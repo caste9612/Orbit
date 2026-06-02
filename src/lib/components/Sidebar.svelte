@@ -1,29 +1,40 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
+  import Explorer from "./Explorer.svelte";
   import { layout } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
+  import { openFolderDialog } from "../state/explorer.svelte";
 
   const titles: Record<string, string> = {
     explorer: "Esplora risorse",
     git: "Controllo sorgente",
     search: "Cerca",
   };
-  let title = $derived(titles[layout.sidebarView] ?? "");
+  let title = $derived(
+    layout.sidebarView === "explorer" && workspace.rootName
+      ? workspace.rootName
+      : (titles[layout.sidebarView] ?? ""),
+  );
 </script>
 
 <aside class="sidebar" style="width:{layout.sidebarWidth}px">
   <header class="head">
     <span class="title">{title}</span>
+    {#if layout.sidebarView === "explorer" && workspace.rootPath}
+      <button class="act" title="Apri un'altra cartella" aria-label="Apri un'altra cartella" onclick={openFolderDialog}>
+        <Icon name="folder-open" size={15} strokeWidth={1.7} />
+      </button>
+    {/if}
   </header>
 
   <div class="body">
     {#if layout.sidebarView === "explorer"}
       {#if workspace.rootPath}
-        <div class="placeholder">Albero file (milestone 3)</div>
+        <Explorer />
       {:else}
         <div class="empty">
           <p class="muted">Nessuna cartella aperta.</p>
-          <button class="primary">
+          <button class="primary" onclick={openFolderDialog}>
             <Icon name="folder-open" size={15} strokeWidth={1.7} />
             Apri cartella…
           </button>
@@ -58,7 +69,8 @@
     flex: 0 0 35px;
     display: flex;
     align-items: center;
-    padding: 0 16px 0 18px;
+    justify-content: space-between;
+    padding: 0 6px 0 18px;
   }
   .title {
     font-size: 11px;
@@ -66,16 +78,30 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--color-ink-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .act {
+    width: 26px;
+    height: 26px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 5px;
+    color: var(--color-ink-muted);
+    cursor: pointer;
+  }
+  .act:hover {
+    color: var(--color-ink);
+    background: var(--color-surface-3);
   }
   .body {
     flex: 1;
-    overflow: auto;
+    overflow: hidden;
     min-height: 0;
-  }
-  .placeholder {
-    padding: 8px 18px;
-    color: var(--color-ink-subtle);
-    font-size: 12px;
   }
   .empty {
     padding: 14px 18px;

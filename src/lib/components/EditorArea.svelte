@@ -1,25 +1,44 @@
 <script lang="ts">
-  // Area centrale: barra delle tab + editor. In milestone 2 mostra lo stato di benvenuto.
-  // CodeMirror arriva in milestone 4.
+  import Icon from "./Icon.svelte";
+  import { workspace, activeFile, setActive, closeFile } from "../state/workspace.svelte";
+
+  // In milestone 3 il contenuto è in sola lettura (<pre>); milestone 4 monta CodeMirror.
+  let active = $derived(activeFile());
 </script>
 
 <section class="editor-area">
   <div class="tabbar">
-    <!-- le tab dei file aperti compariranno qui (milestone 4) -->
+    {#each workspace.openFiles as f (f.path)}
+      <div class="tab" class:active={f.path === workspace.activePath}>
+        <button type="button" class="sel" onclick={() => setActive(f.path)} title={f.path}>
+          <Icon name="file" size={13} strokeWidth={1.5} />
+          <span class="label">{f.name}</span>
+          {#if f.dirty}<span class="dot" aria-label="non salvato"></span>{/if}
+        </button>
+        <button type="button" class="close" aria-label="Chiudi {f.name}" onclick={() => closeFile(f.path)}>
+          <Icon name="x" size={13} strokeWidth={2} />
+        </button>
+      </div>
+    {/each}
   </div>
 
-  <div class="surface">
-    <div class="welcome">
-      <div class="mark">Lume</div>
-      <div class="tagline">IDE leggero · companion per Claude Code</div>
-
-      <ul class="hints">
-        <li><kbd>Ctrl</kbd><kbd>K</kbd><span>Apri cartella</span></li>
-        <li><kbd>Ctrl</kbd><kbd>P</kbd><span>Vai al file</span></li>
-        <li><kbd>Ctrl</kbd><kbd>`</kbd><span>Terminale integrato</span></li>
-      </ul>
+  {#if active}
+    <div class="surface">
+      <pre class="code">{active.content}</pre>
     </div>
-  </div>
+  {:else}
+    <div class="surface center">
+      <div class="welcome">
+        <div class="mark">Lume</div>
+        <div class="tagline">IDE leggero · companion per Claude Code</div>
+        <ul class="hints">
+          <li><kbd>Ctrl</kbd><kbd>K</kbd><span>Apri cartella</span></li>
+          <li><kbd>Ctrl</kbd><kbd>B</kbd><span>Mostra/nascondi sidebar</span></li>
+          <li><kbd>Ctrl</kbd><kbd>`</kbd><span>Terminale integrato</span></li>
+        </ul>
+      </div>
+    </div>
+  {/if}
 </section>
 
 <style>
@@ -31,6 +50,7 @@
     flex-direction: column;
     background: var(--color-surface-1);
   }
+
   .tabbar {
     height: 36px;
     flex: 0 0 36px;
@@ -38,14 +58,99 @@
     border-bottom: 1px solid var(--color-line);
     display: flex;
     align-items: stretch;
+    overflow-x: auto;
+    overflow-y: hidden;
   }
+  .tabbar::-webkit-scrollbar {
+    height: 0;
+  }
+  .tab {
+    display: flex;
+    align-items: center;
+    border-right: 1px solid var(--color-line);
+    border-top: 2px solid transparent;
+    background: transparent;
+    max-width: 220px;
+  }
+  .tab.active {
+    background: var(--color-surface-1);
+    border-top-color: var(--color-accent);
+  }
+  .sel {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 100%;
+    padding: 0 6px 0 12px;
+    background: transparent;
+    border: 0;
+    color: var(--color-ink-muted);
+    font-size: 12.5px;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .tab.active .sel {
+    color: var(--color-ink);
+  }
+  .label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dot {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-ink-muted);
+  }
+  .close {
+    width: 22px;
+    height: 22px;
+    margin-right: 5px;
+    display: grid;
+    place-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 5px;
+    color: var(--color-ink-subtle);
+    cursor: pointer;
+    opacity: 0;
+    transition:
+      opacity 90ms ease,
+      background 90ms ease,
+      color 90ms ease;
+  }
+  .tab:hover .close,
+  .tab.active .close {
+    opacity: 1;
+  }
+  .close:hover {
+    color: var(--color-ink);
+    background: var(--color-surface-3);
+  }
+
   .surface {
     flex: 1;
     min-height: 0;
-    display: grid;
-    place-items: center;
     overflow: auto;
   }
+  .surface.center {
+    display: grid;
+    place-items: center;
+  }
+  .code {
+    margin: 0;
+    padding: 12px 16px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--color-ink);
+    tab-size: 2;
+    white-space: pre;
+    user-select: text;
+  }
+
   .welcome {
     display: flex;
     flex-direction: column;

@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Capability per la finestra principale",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "dialog:default", "dialog:allow-open"]
 }

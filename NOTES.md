@@ -100,6 +100,33 @@ Verifica visiva con screenshot della finestra reale (1280×800): shell pulita e 
 
 ---
 
+## Milestone 3 — albero file + apertura file
+
+Backend (Rust):
+- `read_dir(path)`: legge UNA directory (lazy, non ricorsivo), dirs-first + ordine
+  case-insensitive. Lazy + virtualizzazione UI = regge cartelle grandi senza walk totale.
+- `read_file(path)`: legge testo UTF-8 (errore sui binari, gestito lato UI).
+- `startup()`: cartella/file iniziali da `LUME_DIR`/`LUME_FILE` o primo arg CLI → si può
+  lanciare `lume /percorso` (utile come companion) ed è anche il gancio per i test visivi.
+
+Frontend:
+- **Albero virtualizzato** (`Explorer.svelte`): windowing ad altezza fissa (riga 22px,
+  overscan 8) — rende solo le righe nel viewport. Niente libreria di virtual-list.
+- Espansione lazy delle cartelle (figli caricati al primo expand).
+- Click su file → tab + contenuto (in M3 sola lettura in `<pre>`; M4 monta CodeMirror).
+- Tab bar con file aperti, chiusura, indicatore dirty (predisposto per M4).
+- Scorciatoie: Ctrl/Cmd+K apri cartella, Ctrl/Cmd+B sidebar, Ctrl/Cmd+\` terminale.
+
+Dipendenza aggiunta:
+- `tauri-plugin-dialog` (+ `@tauri-apps/plugin-dialog`): folder-picker nativo.
+  **Giustificata**: serve un selettore cartella nativo cross-platform; è il plugin
+  ufficiale Tauri (niente reinvenzione).
+
+Footprint frontend a fine M3: JS ~57KB (21KB gz), CSS ~17KB (4.1KB gz).
+Verifica visiva: aperto il progetto stesso, albero popolato, `NOTES.md` in tab.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

@@ -51,7 +51,7 @@
   {:else}
     <div class="surface center">
       <div class="welcome">
-        <div class="mark">Caret</div>
+        <div class="mark">Orbit</div>
         <div class="tagline">IDE leggero · companion per Claude Code</div>
         <ul class="hints">
           <li><kbd>Ctrl</kbd><kbd>K</kbd><span>Apri cartella</span></li>

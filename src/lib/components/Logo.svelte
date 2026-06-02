@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Logo del brand: quadrato arrotondato con gradiente + glifo prompt `>_`.
-  // `gid` rende univoco l'id del gradiente se il logo compare più volte nella pagina.
+  // Logo del brand "Orbit": quadrato arrotondato con gradiente + glifo orbita
+  // (corpo centrale, anello, satellite). `gid` rende univoco l'id del gradiente.
   interface Props {
     size?: number;
     gid?: string;
@@ -16,12 +16,17 @@
     </linearGradient>
   </defs>
   <rect x="1.5" y="1.5" width="29" height="29" rx="8.5" fill="url(#{gid})" />
-  <path
-    d="M11.5 11 L16.5 16 L11.5 21"
+  <ellipse
+    cx="16"
+    cy="16"
+    rx="9.6"
+    ry="4.3"
+    transform="rotate(-25 16 16)"
     stroke="#fff"
-    stroke-width="2.4"
-    stroke-linecap="round"
-    stroke-linejoin="round"
+    stroke-width="1.8"
+    fill="none"
+    opacity="0.95"
   />
-  <path d="M18.5 21 H22" stroke="#fff" stroke-width="2.4" stroke-linecap="round" />
+  <circle cx="16" cy="16" r="2.7" fill="#fff" />
+  <circle cx="24.6" cy="12" r="2" fill="#fff" />
 </svg>

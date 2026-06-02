@@ -211,6 +211,30 @@ Permessi capability aggiunti per la finestra flottante: `core:webview:allow-crea
 
 ---
 
+## Milestone 7 — file watcher (notify)
+
+Backend (`watcher.rs`, crate notify):
+- `watch_start(root)`: watcher ricorsivo sulla cartella; ignora gli eventi di solo accesso
+  e i path in `node_modules`/`target`/`dist`/`.git` (riduce il rumore e, su Linux, il
+  numero di watch inotify).
+- Thread di **debounce** (~250ms): coalizza i burst in un solo evento `fs-changed`.
+- Il watcher vive in uno State; aprire una nuova cartella lo sostituisce (e il thread
+  precedente termina perché il sender cade).
+
+Frontend:
+- `openRoot` avvia il watch; App ascolta `fs-changed` → `refreshTree()` + `refreshStatus()`.
+- `refreshTree` ricostruisce l'albero preservando le cartelle espanse.
+
+Verifica end-to-end: con la cartella aperta e il pannello git visibile, creando un file
+dall'esterno il pannello mostra il nuovo file come untracked **senza refresh manuale** e
+l'albero lo elenca. Aggiornamento in tempo reale confermato.
+
+Dipendenza aggiunta: `notify`. **Giustificata**: mandata dal brief per il file watcher.
+Limitazione nota: su progetti enormi il watch ricorsivo inotify (Linux) potrebbe avvicinarsi
+ai limiti di sistema; un watcher gitignore-aware selettivo è un'evoluzione possibile.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

@@ -26,6 +26,8 @@ git2 = { version = "0.20", default-features = false }
 portable-pty = "0.8"
 # streaming byte-accurate dell'output PTY verso il frontend
 base64 = "0.22"
+# file watcher (albero + git in tempo reale)
+notify = "6"
 
 # Profilo release ottimizzato per footprint minimo (gate #1: leggerezza).
 [profile.release]

@@ -9,8 +9,10 @@
   import Splitter from "./lib/components/Splitter.svelte";
   import Terminal from "./lib/components/Terminal.svelte";
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal } from "./lib/state/layout.svelte";
-  import { openRoot, openFolderDialog } from "./lib/state/explorer.svelte";
+  import { listen } from "@tauri-apps/api/event";
+  import { openRoot, openFolderDialog, refreshTree } from "./lib/state/explorer.svelte";
   import { openFile, saveActive } from "./lib/state/workspace.svelte";
+  import { refreshStatus } from "./lib/state/git.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
   // La finestra flottante (label "term-float") mostra solo un terminale a tutta finestra.
@@ -23,6 +25,11 @@
 
   onMount(async () => {
     if (isFloatingTerminal) return;
+    // aggiornamento in tempo reale: il backend emette fs-changed (debounced)
+    listen("fs-changed", () => {
+      refreshTree();
+      refreshStatus();
+    });
     try {
       const s = await invoke<{ dir: string | null; file: string | null }>("startup");
       if (s.dir) await openRoot(s.dir);

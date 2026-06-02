@@ -30,6 +30,7 @@ export async function openRoot(path: string) {
   workspace.rootName = basename(path);
   const entries = await invoke<FsEntry[]>("read_dir", { path });
   tree.roots = entries.map((e) => makeNode(e, 0));
+  await invoke("watch_start", { root: path }).catch(() => {});
 }
 
 /** Mostra il folder-picker nativo e apre la cartella scelta. */
@@ -61,4 +62,45 @@ export function flatten(nodes: TreeNode[], out: TreeNode[] = []): TreeNode[] {
     if (n.entry.isDir && n.expanded && n.children.length) flatten(n.children, out);
   }
   return out;
+}
+
+/** Ricostruisce l'albero preservando le cartelle espanse (usato dal file watcher). */
+export async function refreshTree() {
+  if (!workspace.rootPath) return;
+  const expanded = new Set<string>();
+  collectExpanded(tree.roots, expanded);
+  tree.roots = await buildLevel(workspace.rootPath, 0, expanded);
+}
+
+function collectExpanded(nodes: TreeNode[], set: Set<string>) {
+  for (const n of nodes) {
+    if (n.entry.isDir && n.expanded) {
+      set.add(n.entry.path);
+      collectExpanded(n.children, set);
+    }
+  }
+}
+
+async function buildLevel(
+  path: string,
+  depth: number,
+  expanded: Set<string>,
+): Promise<TreeNode[]> {
+  let entries: FsEntry[];
+  try {
+    entries = await invoke<FsEntry[]>("read_dir", { path });
+  } catch {
+    return [];
+  }
+  const nodes: TreeNode[] = [];
+  for (const e of entries) {
+    const node = makeNode(e, depth);
+    if (e.isDir && expanded.has(e.path)) {
+      node.expanded = true;
+      node.loaded = true;
+      node.children = await buildLevel(e.path, depth + 1, expanded);
+    }
+    nodes.push(node);
+  }
+  return nodes;
 }

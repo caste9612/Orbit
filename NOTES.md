@@ -299,6 +299,13 @@ controlli finestra testati (massimizza/ripristina funzionano).
   (`Logo.svelte`, quadrato con gradiente). Nome prodotto provvisorio **Caret** (cursore di
   testo); il nome interno del pacchetto resta `lume` per non rompere build/script.
 
+### Iterazione 3 — tipografia
+Font **self-hosted** (via `@fontsource-variable`, niente CDN): **Inter** (interfaccia) +
+**JetBrains Mono** (editor e terminale), al posto di Segoe UI/Consolas di sistema (che non
+piacevano). +~296 KB di woff2 nel bundle; a runtime si carica solo il subset latin grazie a
+`unicode-range`. Importati in `main.ts`, applicati via i token `--font-sans`/`--font-mono`
+(e nel `fontFamily` di xterm).
+
 ---
 
 ## Ambiente di sviluppo verificato

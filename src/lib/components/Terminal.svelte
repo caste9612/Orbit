@@ -66,7 +66,7 @@
 
   onMount(async () => {
     term = new Terminal({
-      fontFamily: '"Cascadia Code", "JetBrains Mono", "Fira Code", Consolas, monospace',
+      fontFamily: '"JetBrains Mono Variable", "Cascadia Code", Consolas, monospace',
       fontSize: 13,
       lineHeight: 1.2,
       cursorBlink: true,

@@ -29,11 +29,11 @@
   --color-success: #4ec9b0;
   --color-warning: #cca700;
 
-  /* tipografia */
-  --font-sans: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue",
-    Arial, sans-serif;
-  --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "Fira Code",
-    Consolas, "Liberation Mono", monospace;
+  /* tipografia (font self-hosted via @fontsource, niente CDN) */
+  --font-sans: "Inter Variable", "Segoe UI", system-ui, -apple-system, Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "Cascadia Code", Consolas,
+    "Liberation Mono", monospace;
 }
 
 /* raggi e ombre (custom props normali: usate in CSS scoped via var()) */

@@ -1,0 +1,15 @@
+# Line ending coerenti (LF) su tutte le piattaforme: progetto cross-platform.
+* text=auto eol=lf
+
+# Lockfile: testo ma non normalizzare aggressivamente
+package-lock.json -text
+src-tauri/Cargo.lock -text
+
+# Binari
+*.png binary
+*.jpg binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary

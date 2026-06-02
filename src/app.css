@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ *
+ * Token del tema dark — fonte unica di verità per la palette.
+ * Tailwind v4 genera utility da questi (es. --color-surface-2 -> bg-surface-2).
+ * Palette: dark neutro con sottotono freddo, livello IntelliJ/VS 2026.
+ * ------------------------------------------------------------------ */
+@theme {
+  /* superfici, dalla più profonda alla più chiara */
+  --color-surface-0: #0f1115; /* title bar / sfondo più profondo */
+  --color-surface-1: #14171c; /* sfondo editor */
+  --color-surface-2: #181c22; /* sidebar / pannelli */
+  --color-surface-3: #21262d; /* hover / elementi elevati */
+  --color-surface-4: #2a313a; /* hover forte / selezione */
+
+  /* linee e bordi */
+  --color-line: #262d37;
+  --color-line-strong: #323b47;
+
+  /* testo */
+  --color-ink: #d7dce3;
+  --color-ink-muted: #9aa4b2;
+  --color-ink-subtle: #6b7480;
+
+  /* accento e stati */
+  --color-accent: #6ea8fe;
+  --color-accent-soft: #21344f;
+  --color-danger: #f0626f;
+  --color-success: #5bc88a;
+  --color-warning: #e3b341;
+
+  /* tipografia */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "Fira Code",
+    Consolas, "Liberation Mono", monospace;
+}
+
+/* ------------------------------------------------------------------ *
+ * Reset / base
+ * ------------------------------------------------------------------ */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-surface-1);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* feel da app nativa: niente selezione testo nella chrome */
+  user-select: none;
+  -webkit-user-select: none;
+  overflow: hidden;
+}
+
+#app {
+  height: 100%;
+}
+
+/* scrollbar sottili e scure, coerenti su WebView2 e WebKitGTK */
+*::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-surface-3);
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-surface-4);
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}

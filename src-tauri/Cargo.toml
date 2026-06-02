@@ -1,0 +1,29 @@
+[package]
+name = "lume"
+version = "0.1.0"
+description = "Lume — IDE leggero, companion per Claude Code"
+authors = ["visialab"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# Il suffisso `_lib` rende il nome della lib unico e non in conflitto col bin (necessario su Windows).
+name = "lume_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Profilo release ottimizzato per footprint minimo (gate #1: leggerezza).
+[profile.release]
+opt-level = "s"   # ottimizza per dimensione
+lto = true        # link-time optimization
+codegen-units = 1 # massimizza l'ottimizzazione (build più lenta)
+panic = "abort"   # niente unwinding: binario più piccolo
+strip = true      # rimuove i simboli di debug

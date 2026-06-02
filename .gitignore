@@ -1,0 +1,20 @@
+# dipendenze
+node_modules
+
+# output di build del frontend (Vite)
+/dist
+
+# sistema
+.DS_Store
+Thumbs.db
+
+# env
+.env
+.env.*
+!.env.example
+
+# timestamp temporanei di Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# build Rust/Tauri: vedi anche src-tauri/.gitignore

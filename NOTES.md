@@ -235,6 +235,42 @@ ai limiti di sistema; un watcher gitignore-aware selettivo è un'evoluzione poss
 
 ---
 
+## Milestone 8 — footprint e verifica dei gate
+
+Build **release** size-optimized (`opt-level=s`, LTO, `codegen-units=1`, `panic=abort`,
+`strip`) completato in ~1m40s.
+
+Footprint misurato (Windows, app a riposo, schermata di benvenuto):
+- **Binario `lume.exe`: 4,88 MB** (un'app Electron equivalente sarebbe ~80–200 MB).
+- Frontend `dist/`: 1,93 MB (incluse tutte le grammatiche CodeMirror caricate lazy).
+- **RAM a riposo — working set PRIVATO (RAM reale, senza doppio conteggio):**
+  - core Rust `lume.exe`: **~4,5 MB** privati (~25 MB working set)
+  - WebView2 (6 processi): **~97 MB** privati (~345 MB di working set *lordo*, ma il
+    lordo conta più volte le pagine Chromium condivise → il privato è il dato onesto)
+  - **≈ 101 MB** app + webview · **≈ 127 MB** includendo la shell PowerShell del terminale.
+
+### Verifica dei gate
+1. **Leggerezza estrema** ✓ — binario 4,88 MB e RAM reale ~100 MB: nettamente sotto
+   VS Code (300–800 MB) e IntelliJ (1–2 GB). Il costo dominante è il runtime WebView2 di
+   sistema, inerente a qualunque UI webview (è il compromesso di Tauri: binario minuscolo,
+   nessun Chromium nel bundle).
+2. **Dark mode curata** ✓ — verificata con screenshot reali a ogni milestone (shell, albero,
+   editor con highlighting, pannello git con diff, terminale).
+3. **Cross-platform** ⚠️ — codice cross-platform *per costruzione* (Tauri 2 + crate standard;
+   le uniche parti platform-specific sono cfg-gated: shell di default, separatori di path).
+   **Verificato end-to-end solo su Windows.** Linux/macOS **non** verificati da questo
+   ambiente: per Linux servono WebKitGTK 4.1 + libsoup3 e un build sulla piattaforma (o CI).
+   Questo è l'unico punto non provato empiricamente — lo segnalo apertamente, come da
+   criterio di accettazione (onestà prima della teoria).
+
+### Conclusione
+La base è **funzionante e bella**, e regge i gate di leggerezza ed estetica su Windows.
+Tutti i punti della Definition of Done sono implementati e verificati end-to-end (con
+screenshot e test reali). Unico residuo: un build di validazione su Linux/macOS, non
+eseguibile da Windows.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

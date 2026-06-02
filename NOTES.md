@@ -155,6 +155,32 @@ il contenuto non salvato sì. Accettabile per ora.
 
 ---
 
+## Milestone 5 — pannello git (libgit2)
+
+Backend (`git.rs`, crate git2 **senza default-features** → solo locale, no openssl/ssh):
+- `git_status`: ramo corrente + file con codici index/worktree (M/A/D/R/T, U=untracked).
+- `git_diff`: patch unificata (HEAD↔index se staged, index↔workdir altrimenti),
+  con contenuto degli untracked.
+- `git_stage`/`git_unstage`: `add_path`/`remove_path` · `reset_default` su HEAD.
+- `git_commit`: `write_tree` → `commit` (firma da config repo, fallback). Gestisce il
+  primo commit (HEAD unborn).
+- `git_branches`/`git_checkout_branch`: rami locali · `checkout_tree` + `set_head`.
+
+Frontend (`GitPanel.svelte`, `git.svelte.ts`, `DiffView.svelte`):
+- Selettore ramo con dropdown + switch; pulsante refresh.
+- Box messaggio + Commit (Ctrl+Invio); "Stage tutto"; stage/unstage per file.
+- Click su file → tab diff di sola lettura colorata (add verde, del rosso, hunk accento).
+- Il ramo corrente appare anche nella status bar.
+
+libgit2 vendored compila con cc+MSVC (niente cmake). Verifica **end-to-end** su un repo
+usa-e-getta: status/diff a schermo; stage+commit → nuovo commit in `git log` e albero
+pulito; switch branch → HEAD passa da `main` a `feature`.
+
+Dipendenza aggiunta: `git2` (`default-features = false`). **Giustificata**: mandata dal
+brief per git; senza https/ssh evita openssl/libssh2 (servono solo operazioni locali).
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
   import Editor from "./Editor.svelte";
+  import DiffView from "./DiffView.svelte";
   import {
     workspace,
     activeFile,
@@ -32,13 +33,17 @@
   {#if active}
     <div class="surface">
       {#key active.path}
-        <Editor
-          doc={active.content}
-          path={active.path}
-          readonly={active.readonly}
-          onChange={(c) => updateContent(active.path, c)}
-          onSave={saveActive}
-        />
+        {#if active.kind === "diff"}
+          <DiffView content={active.content} />
+        {:else}
+          <Editor
+            doc={active.content}
+            path={active.path}
+            readonly={active.readonly}
+            onChange={(c) => updateContent(active.path, c)}
+            onSave={saveActive}
+          />
+        {/if}
       {/key}
     </div>
   {:else}

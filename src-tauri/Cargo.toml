@@ -20,6 +20,8 @@ tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2" # folder/file picker nativo (apri cartella)
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# git2 senza default-features: solo operazioni LOCALI (no https/ssh -> niente openssl/libssh2)
+git2 = { version = "0.20", default-features = false }
 
 # Profilo release ottimizzato per footprint minimo (gate #1: leggerezza).
 [profile.release]

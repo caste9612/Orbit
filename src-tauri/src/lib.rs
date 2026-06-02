@@ -1,3 +1,5 @@
+mod git;
+
 use serde::Serialize;
 use std::path::Path;
 
@@ -78,7 +80,18 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            app_info, startup, read_dir, read_file, write_file
+            app_info,
+            startup,
+            read_dir,
+            read_file,
+            write_file,
+            git::git_status,
+            git::git_diff,
+            git::git_stage,
+            git::git_unstage,
+            git::git_commit,
+            git::git_branches,
+            git::git_checkout_branch
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

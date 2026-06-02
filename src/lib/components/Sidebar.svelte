@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
   import Explorer from "./Explorer.svelte";
+  import GitPanel from "./GitPanel.svelte";
   import { layout } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog } from "../state/explorer.svelte";
@@ -41,10 +42,14 @@
         </div>
       {/if}
     {:else if layout.sidebarView === "git"}
-      <div class="empty">
-        <p class="muted">Nessun repository git.</p>
-        <p class="hint">Apri una cartella che contiene un repository.</p>
-      </div>
+      {#if workspace.rootPath}
+        <GitPanel />
+      {:else}
+        <div class="empty">
+          <p class="muted">Nessun repository git.</p>
+          <p class="hint">Apri prima una cartella.</p>
+        </div>
+      {/if}
     {:else}
       <div class="empty">
         <p class="muted">Cerca nei file</p>

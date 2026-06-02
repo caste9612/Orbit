@@ -3,11 +3,12 @@ import { invoke } from "@tauri-apps/api/core";
 import { basename } from "../util";
 
 export interface OpenFile {
-  path: string;
+  path: string; // chiave univoca della tab (per i diff è un id sintetico)
   name: string;
   content: string;
   dirty: boolean;
   readonly: boolean;
+  kind: "file" | "diff";
 }
 
 export const workspace = $state({
@@ -38,8 +39,34 @@ export async function openFile(path: string) {
     content = `// Impossibile aprire il file (binario o non UTF-8).\n// ${e}`;
     readonly = true; // non sovrascrivere un binario col messaggio d'errore
   }
-  workspace.openFiles.push({ path, name: basename(path), content, dirty: false, readonly });
+  workspace.openFiles.push({
+    path,
+    name: basename(path),
+    content,
+    dirty: false,
+    readonly,
+    kind: "file",
+  });
   workspace.activePath = path;
+}
+
+/** Apre (o aggiorna) una tab di sola lettura con un diff. */
+export function openDiff(id: string, name: string, patch: string) {
+  const existing = workspace.openFiles.find((f) => f.path === id);
+  if (existing) {
+    existing.content = patch;
+    workspace.activePath = id;
+    return;
+  }
+  workspace.openFiles.push({
+    path: id,
+    name,
+    content: patch,
+    dirty: false,
+    readonly: true,
+    kind: "diff",
+  });
+  workspace.activePath = id;
 }
 
 export function closeFile(path: string) {
@@ -68,7 +95,7 @@ export function updateContent(path: string, content: string) {
 /** Salva su disco il file attivo (se modificato e non in sola lettura). */
 export async function saveActive() {
   const f = activeFile();
-  if (!f || f.readonly || !f.dirty) return;
+  if (!f || f.readonly || !f.dirty || f.kind !== "file") return;
   try {
     await invoke("write_file", { path: f.path, content: f.content });
     f.dirty = false;

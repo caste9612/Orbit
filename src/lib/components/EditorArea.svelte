@@ -2,6 +2,7 @@
   import Icon from "./Icon.svelte";
   import Editor from "./Editor.svelte";
   import DiffView from "./DiffView.svelte";
+  import { fileIcon } from "../util";
   import {
     workspace,
     activeFile,
@@ -17,9 +18,10 @@
 <section class="editor-area">
   <div class="tabbar">
     {#each workspace.openFiles as f (f.path)}
+      {@const fi = f.kind === "diff" ? { glyph: "git-commit", color: "#a3acb9" } : fileIcon(f.name)}
       <div class="tab" class:active={f.path === workspace.activePath}>
         <button type="button" class="sel" onclick={() => setActive(f.path)} title={f.path}>
-          <Icon name="file" size={13} strokeWidth={1.5} />
+          <span class="ti" style="color:{fi.color}"><Icon name={fi.glyph} size={14} strokeWidth={1.6} /></span>
           <span class="label">{f.name}</span>
           {#if f.dirty}<span class="dot" aria-label="non salvato"></span>{/if}
         </button>
@@ -112,6 +114,11 @@
   .tab.active .sel {
     color: var(--color-ink);
   }
+  .ti {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+  }
   .label {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -170,11 +177,11 @@
     transform: translateY(-6%);
   }
   .mark {
-    font-size: 56px;
-    font-weight: 700;
-    letter-spacing: -0.03em;
+    font-size: 58px;
+    font-weight: 750;
+    letter-spacing: -0.035em;
     line-height: 1;
-    background: linear-gradient(180deg, var(--color-ink) 0%, var(--color-ink-subtle) 130%);
+    background: linear-gradient(120deg, #eaf0f8 0%, #9cc0ff 52%, #b69cff 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

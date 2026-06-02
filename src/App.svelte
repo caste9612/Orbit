@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import ActivityBar from "./lib/components/ActivityBar.svelte";
+  import TopBar from "./lib/components/TopBar.svelte";
   import Sidebar from "./lib/components/Sidebar.svelte";
   import EditorArea from "./lib/components/EditorArea.svelte";
   import TerminalPanel from "./lib/components/TerminalPanel.svelte";
@@ -71,9 +71,8 @@
   </div>
 {:else}
   <div class="shell">
+    <TopBar />
     <div class="body">
-      <ActivityBar />
-
       {#if layout.sidebarVisible}
         <Sidebar />
         <Splitter orientation="vertical" onResize={resizeSidebar} />

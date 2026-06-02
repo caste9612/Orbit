@@ -2,6 +2,7 @@
   import Icon from "./Icon.svelte";
   import { tree, toggle, flatten, type TreeNode } from "../state/explorer.svelte";
   import { openFile, workspace } from "../state/workspace.svelte";
+  import { fileIcon } from "../util";
 
   // Lista virtuale ad altezza fissa: rende solo le righe nel viewport (+overscan).
   const ROW = 22;
@@ -29,6 +30,7 @@
 <div class="tree" onscroll={onScroll} bind:clientHeight={viewportH}>
   <div class="canvas" style="height:{rows.length * ROW}px">
     {#each visible as n, i (n.entry.path)}
+      {@const fi = fileIcon(n.entry.name)}
       <button
         type="button"
         class="row"
@@ -40,13 +42,15 @@
         <span class="chev" class:open={n.expanded}>
           {#if n.entry.isDir}<Icon name="chevron-right" size={14} strokeWidth={2} />{/if}
         </span>
-        <span class="ic" class:dir={n.entry.isDir}>
-          <Icon
-            name={n.entry.isDir ? (n.expanded ? "folder-open" : "folder") : "file"}
-            size={15}
-            strokeWidth={1.6}
-          />
-        </span>
+        {#if n.entry.isDir}
+          <span class="ic dir">
+            <Icon name={n.expanded ? "folder-open" : "folder"} size={15} strokeWidth={1.6} />
+          </span>
+        {:else}
+          <span class="ic" style="color:{fi.color}">
+            <Icon name={fi.glyph} size={15} strokeWidth={1.7} />
+          </span>
+        {/if}
         <span class="name">{n.entry.name}</span>
       </button>
     {/each}

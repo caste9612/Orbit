@@ -2,29 +2,30 @@
 
 /* ------------------------------------------------------------------ *
  * Token del tema dark — fonte unica di verità per la palette.
- * Tailwind v4 genera utility da questi (es. --color-surface-2 -> bg-surface-2).
- * Palette: dark neutro con sottotono freddo, livello IntelliJ/VS 2026.
+ * Dark curato ispirato a IntelliJ (new UI) e Visual Studio 2022/2026:
+ * superfici morbide a freddo, accento blu vivo, bordi a basso contrasto.
  * ------------------------------------------------------------------ */
 @theme {
   /* superfici, dalla più profonda alla più chiara */
-  --color-surface-0: #0f1115; /* title bar / sfondo più profondo */
-  --color-surface-1: #14171c; /* sfondo editor */
-  --color-surface-2: #181c22; /* sidebar / pannelli */
-  --color-surface-3: #21262d; /* hover / elementi elevati */
-  --color-surface-4: #2a313a; /* hover forte / selezione */
+  --color-surface-0: #16181d; /* title bar / status bar */
+  --color-surface-1: #1a1d23; /* sfondo editor */
+  --color-surface-2: #1e2127; /* sidebar / pannelli */
+  --color-surface-3: #262a31; /* hover */
+  --color-surface-4: #2f343d; /* selezione / hover forte */
 
   /* linee e bordi */
-  --color-line: #262d37;
-  --color-line-strong: #323b47;
+  --color-line: #2a2f37;
+  --color-line-strong: #373d47;
 
   /* testo */
-  --color-ink: #d7dce3;
-  --color-ink-muted: #9aa4b2;
-  --color-ink-subtle: #6b7480;
+  --color-ink: #dfe1e5;
+  --color-ink-muted: #a3acb9;
+  --color-ink-subtle: #6c7682;
 
   /* accento e stati */
-  --color-accent: #6ea8fe;
-  --color-accent-soft: #21344f;
+  --color-accent: #4d8bff;
+  --color-accent-2: #8b5cf6;
+  --color-accent-soft: #20335a;
   --color-danger: #f0626f;
   --color-success: #5bc88a;
   --color-warning: #e3b341;
@@ -34,6 +35,15 @@
     Arial, sans-serif;
   --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "Fira Code",
     Consolas, "Liberation Mono", monospace;
+}
+
+/* raggi e ombre (custom props normali: usate in CSS scoped via var()) */
+:root {
+  --radius-sm: 5px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow-pop: 0 12px 34px rgba(0, 0, 0, 0.45);
+  --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.25);
 }
 
 /* ------------------------------------------------------------------ *
@@ -53,7 +63,6 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  /* feel da app nativa: niente selezione testo nella chrome */
   user-select: none;
   -webkit-user-select: none;
   overflow: hidden;
@@ -69,13 +78,13 @@ body {
   height: 11px;
 }
 *::-webkit-scrollbar-thumb {
-  background: var(--color-surface-3);
+  background: var(--color-surface-4);
   border-radius: 6px;
   border: 3px solid transparent;
   background-clip: padding-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: var(--color-surface-4);
+  background: #3a414c;
   background-clip: padding-box;
 }
 *::-webkit-scrollbar-corner {

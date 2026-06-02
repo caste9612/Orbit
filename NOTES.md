@@ -271,6 +271,27 @@ eseguibile da Windows.
 
 ---
 
+## Restyling UI (richiesta utente)
+
+- **Title bar custom integrata** (window `decorations: false`, `shadow: true`): in alto
+  logo gradiente + switch viste (Esplora/Git/Cerca) + toggle terminale + nome workspace e
+  ramo al centro + azioni (apri cartella, impostazioni) + **controlli finestra**
+  (minimizza / massimizza-ripristina / chiudi via API Tauri `getCurrentWindow`, con i
+  relativi permessi in capability). **Rimossa la activity bar sinistra** → più spazio
+  orizzontale. Trascinamento finestra via `data-tauri-drag-region`.
+- **Icone file colorate** per estensione/nome (`fileIcon` in `util.ts`): glifo + colore
+  brand (ts blu, js/json giallo, rust arancio, svelte/html "code" arancio, css blu, md
+  "doc" blu, git arancio, lock, gear per i config, image, ecc.). Inline SVG, zero dipendenze.
+- **Palette rifinita** (ispirata a IntelliJ new UI / Visual Studio 2022-2026): superfici più
+  morbide, accento blu vivo + secondo accento viola per i gradienti (logo e wordmark), bordi
+  a basso contrasto, token per raggi e ombre.
+- La finestra flottante del terminale mantiene il chrome nativo (decorations di default).
+
+Verifica: screenshot reali (top bar + albero con icone colorate + editor con highlighting);
+controlli finestra testati (massimizza/ripristina funzionano).
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

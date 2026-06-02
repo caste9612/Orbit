@@ -127,6 +127,34 @@ Verifica visiva: aperto il progetto stesso, albero popolato, `NOTES.md` in tab.
 
 ---
 
+## Milestone 4 — editor CodeMirror 6
+
+- `Editor.svelte`: CodeMirror 6 assemblato a mano (state/view/commands/language) con
+  numeri di riga, fold gutter, history (undo/redo), bracket matching, indent con Tab,
+  riga attiva, selezione, auto-focus all'apertura.
+- **Tema dark scritto a mano** (`editor/theme.ts`): `EditorView.theme` + `HighlightStyle`
+  con palette VS Code Dark+. Niente theme-package esterno → più leggero e coerente.
+- **Highlighting multi-linguaggio lazy**: `@codemirror/language-data` +
+  `LanguageDescription.matchFilename` → la grammatica giusta è importata on-demand
+  (code-split da Vite). All'avvio il bundle resta leggero; le grammatiche caricano solo
+  all'apertura di un file di quel tipo (~140 linguaggi; totale misurato in M8).
+- **Modifica + salvataggio**: l'updateListener marca dirty; Ctrl/Cmd+S → comando Rust
+  `write_file`. I file binari/non-UTF8 si aprono in sola lettura (non sovrascrivibili).
+
+Verifica end-to-end (reale): script che apre un file di test, clicca nell'editor, digita
+via SendKeys e preme Ctrl+S → il contenuto risulta scritto su disco (`SAVE_OK`).
+Highlighting verificato su `lib.rs` (Rust).
+
+Dipendenze aggiunte (editor mandato dal brief; pacchetti CM6 modulari):
+`@codemirror/state`, `/view`, `/commands`, `/language`, `/language-data`,
+`@lezer/highlight`. **Giustificate**: nucleo CM6 + grammatiche lazy + tag per il tema.
+Nessun theme-package (tema fatto in casa).
+
+Limitazione nota: l'undo non è preservato cambiando tab (editor ricreato per file);
+il contenuto non salvato sì. Accettabile per ora.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

@@ -9,7 +9,7 @@
   import Splitter from "./lib/components/Splitter.svelte";
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal } from "./lib/state/layout.svelte";
   import { openRoot, openFolderDialog } from "./lib/state/explorer.svelte";
-  import { openFile } from "./lib/state/workspace.svelte";
+  import { openFile, saveActive } from "./lib/state/workspace.svelte";
 
   onMount(async () => {
     try {
@@ -35,6 +35,10 @@
       case "k":
         e.preventDefault();
         openFolderDialog();
+        break;
+      case "s":
+        e.preventDefault();
+        saveActive();
         break;
     }
   }

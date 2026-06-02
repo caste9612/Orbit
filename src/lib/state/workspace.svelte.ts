@@ -7,6 +7,7 @@ export interface OpenFile {
   name: string;
   content: string;
   dirty: boolean;
+  readonly: boolean;
 }
 
 export const workspace = $state({
@@ -30,12 +31,14 @@ export async function openFile(path: string) {
     return;
   }
   let content: string;
+  let readonly = false;
   try {
     content = await invoke<string>("read_file", { path });
   } catch (e) {
     content = `// Impossibile aprire il file (binario o non UTF-8).\n// ${e}`;
+    readonly = true; // non sovrascrivere un binario col messaggio d'errore
   }
-  workspace.openFiles.push({ path, name: basename(path), content, dirty: false });
+  workspace.openFiles.push({ path, name: basename(path), content, dirty: false, readonly });
   workspace.activePath = path;
 }
 
@@ -51,4 +54,25 @@ export function closeFile(path: string) {
 
 export function setActive(path: string) {
   workspace.activePath = path;
+}
+
+/** Aggiorna il contenuto in memoria di un file e lo marca come modificato. */
+export function updateContent(path: string, content: string) {
+  const f = workspace.openFiles.find((x) => x.path === path);
+  if (f && !f.readonly && f.content !== content) {
+    f.content = content;
+    f.dirty = true;
+  }
+}
+
+/** Salva su disco il file attivo (se modificato e non in sola lettura). */
+export async function saveActive() {
+  const f = activeFile();
+  if (!f || f.readonly || !f.dirty) return;
+  try {
+    await invoke("write_file", { path: f.path, content: f.content });
+    f.dirty = false;
+  } catch (e) {
+    console.error("save", e);
+  }
 }

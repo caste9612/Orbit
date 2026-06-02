@@ -1,8 +1,15 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
-  import { workspace, activeFile, setActive, closeFile } from "../state/workspace.svelte";
+  import Editor from "./Editor.svelte";
+  import {
+    workspace,
+    activeFile,
+    setActive,
+    closeFile,
+    updateContent,
+    saveActive,
+  } from "../state/workspace.svelte";
 
-  // In milestone 3 il contenuto è in sola lettura (<pre>); milestone 4 monta CodeMirror.
   let active = $derived(activeFile());
 </script>
 
@@ -24,7 +31,15 @@
 
   {#if active}
     <div class="surface">
-      <pre class="code">{active.content}</pre>
+      {#key active.path}
+        <Editor
+          doc={active.content}
+          path={active.path}
+          readonly={active.readonly}
+          onChange={(c) => updateContent(active.path, c)}
+          onSave={saveActive}
+        />
+      {/key}
     </div>
   {:else}
     <div class="surface center">
@@ -133,22 +148,12 @@
   .surface {
     flex: 1;
     min-height: 0;
-    overflow: auto;
+    overflow: hidden;
   }
   .surface.center {
     display: grid;
     place-items: center;
-  }
-  .code {
-    margin: 0;
-    padding: 12px 16px;
-    font-family: var(--font-mono);
-    font-size: 13px;
-    line-height: 1.55;
-    color: var(--color-ink);
-    tab-size: 2;
-    white-space: pre;
-    user-select: text;
+    overflow: auto;
   }
 
   .welcome {

@@ -1,4 +1,5 @@
 mod git;
+mod pty;
 
 use serde::Serialize;
 use std::path::Path;
@@ -79,6 +80,7 @@ fn write_file(path: String, content: String) -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .manage(pty::PtyManager::default())
         .invoke_handler(tauri::generate_handler![
             app_info,
             startup,
@@ -91,7 +93,11 @@ pub fn run() {
             git::git_unstage,
             git::git_commit,
             git::git_branches,
-            git::git_checkout_branch
+            git::git_checkout_branch,
+            pty::pty_spawn,
+            pty::pty_write,
+            pty::pty_resize,
+            pty::pty_kill
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

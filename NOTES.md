@@ -181,6 +181,36 @@ brief per git; senza https/ssh evita openssl/libssh2 (servono solo operazioni lo
 
 ---
 
+## Milestone 6 — terminale integrato (PTY) + finestra flottante
+
+Backend (`pty.rs`, crate portable-pty → ConPTY su Windows):
+- `PtyManager` (State Tauri): mappa id→sessione (master, writer, child) sotto Mutex.
+- `pty_spawn` (idempotente): apre un PTY, spawna la shell (PowerShell su Windows, `$SHELL`
+  su Unix; override `LUME_SHELL`), cwd = workspace o `LUME_DIR`. Un thread legge l'output
+  e lo emette come `pty-data-<id>` (byte in **base64**, accurato sui byte). All'uscita della
+  shell → `pty-exit-<id>`.
+- `pty_write` / `pty_resize` / `pty_kill`.
+
+Frontend (`Terminal.svelte`, xterm.js + addon-fit):
+- xterm con tema coerente; input → `pty_write`; output base64 → `term.write(bytes)`;
+  ResizeObserver → fit + `pty_resize`. Prop `persistent`: il terminale del pannello
+  sopravvive a hide/show senza uccidere la shell; quello flottante muore alla chiusura.
+- **Finestra flottante always-on-top** creata da JS con `WebviewWindow` e
+  `url = window.location.href` (robusto dev/prod; `WebviewUrl::App` dal lato Rust dava
+  pagina bianca in dev). La finestra è rilevata via label `term-float` e mostra solo
+  il terminale.
+
+Verifica end-to-end: PowerShell reale nel pannello (prompt nella cartella di progetto),
+`echo` digitato → output mostrato; finestra flottante aperta con terminale funzionante.
+Ci si può lanciare `claude`.
+
+Dipendenze aggiunte: `portable-pty` (PTY reale cross-platform), `base64` (streaming
+byte-accurate), `@xterm/xterm` + `@xterm/addon-fit` (terminale, mandato dal brief).
+Permessi capability aggiunti per la finestra flottante: `core:webview:allow-create-webview-window`,
+`core:window:allow-set-focus`.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

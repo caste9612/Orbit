@@ -7,11 +7,22 @@
   import TerminalPanel from "./lib/components/TerminalPanel.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
   import Splitter from "./lib/components/Splitter.svelte";
+  import Terminal from "./lib/components/Terminal.svelte";
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal } from "./lib/state/layout.svelte";
   import { openRoot, openFolderDialog } from "./lib/state/explorer.svelte";
   import { openFile, saveActive } from "./lib/state/workspace.svelte";
+  import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+
+  // La finestra flottante (label "term-float") mostra solo un terminale a tutta finestra.
+  let isFloatingTerminal = false;
+  try {
+    isFloatingTerminal = getCurrentWebviewWindow().label === "term-float";
+  } catch {
+    /* fuori dal contesto Tauri */
+  }
 
   onMount(async () => {
+    if (isFloatingTerminal) return;
     try {
       const s = await invoke<{ dir: string | null; file: string | null }>("startup");
       if (s.dir) await openRoot(s.dir);
@@ -22,6 +33,7 @@
   });
 
   function onKey(e: KeyboardEvent) {
+    if (isFloatingTerminal) return;
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
     switch (e.key) {
       case "b":
@@ -46,27 +58,33 @@
 
 <svelte:window onkeydown={onKey} />
 
-<div class="shell">
-  <div class="body">
-    <ActivityBar />
-
-    {#if layout.sidebarVisible}
-      <Sidebar />
-      <Splitter orientation="vertical" onResize={resizeSidebar} />
-    {/if}
-
-    <main class="main">
-      <EditorArea />
-
-      {#if layout.terminalVisible}
-        <Splitter orientation="horizontal" onResize={resizeTerminal} />
-        <TerminalPanel />
-      {/if}
-    </main>
+{#if isFloatingTerminal}
+  <div class="floatwrap">
+    <Terminal id="float" />
   </div>
+{:else}
+  <div class="shell">
+    <div class="body">
+      <ActivityBar />
 
-  <StatusBar />
-</div>
+      {#if layout.sidebarVisible}
+        <Sidebar />
+        <Splitter orientation="vertical" onResize={resizeSidebar} />
+      {/if}
+
+      <main class="main">
+        <EditorArea />
+
+        {#if layout.terminalVisible}
+          <Splitter orientation="horizontal" onResize={resizeTerminal} />
+          <TerminalPanel />
+        {/if}
+      </main>
+    </div>
+
+    <StatusBar />
+  </div>
+{/if}
 
 <style>
   .shell {
@@ -86,5 +104,9 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
+  }
+  .floatwrap {
+    height: 100%;
+    background: var(--color-surface-1);
   }
 </style>

@@ -1,33 +1,49 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
+  import Terminal from "./Terminal.svelte";
+  import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
   import { layout, toggleTerminal } from "../state/layout.svelte";
+  import { workspace } from "../state/workspace.svelte";
+
+  async function detach() {
+    const existing = await WebviewWindow.getByLabel("term-float");
+    if (existing) {
+      await existing.setFocus();
+      return;
+    }
+    const w = new WebviewWindow("term-float", {
+      url: window.location.href,
+      title: "Lume · Terminale",
+      width: 760,
+      height: 460,
+      minWidth: 360,
+      minHeight: 200,
+      alwaysOnTop: true,
+    });
+    w.once("tauri://error", (e) => console.error("finestra flottante:", e));
+  }
 </script>
 
 <section class="terminal-panel" style="height:{layout.terminalHeight}px">
   <header class="head">
     <div class="tabs">
-      <button class="tab active">
+      <div class="tab active">
         <Icon name="terminal" size={13} strokeWidth={1.8} />
         <span>Terminale</span>
-      </button>
+      </div>
     </div>
     <div class="actions">
-      <button class="act" title="Nuovo terminale" aria-label="Nuovo terminale">
-        <Icon name="plus" size={15} strokeWidth={1.9} />
-      </button>
-      <button class="act" title="Sposta in finestra flottante" aria-label="Sposta in finestra flottante">
+      <button class="act" title="Apri in finestra flottante (always-on-top)" aria-label="Finestra flottante" onclick={detach}>
         <Icon name="external-link" size={14} strokeWidth={1.8} />
       </button>
-      <button class="act" title="Chiudi pannello" aria-label="Chiudi pannello" onclick={toggleTerminal}>
+      <button class="act" title="Nascondi pannello (Ctrl+`)" aria-label="Nascondi pannello" onclick={toggleTerminal}>
         <Icon name="x" size={15} strokeWidth={1.9} />
       </button>
     </div>
   </header>
 
   <div class="surface">
-    <div class="ghost">
-      <span class="prompt">$</span> il terminale integrato apparirà qui (milestone 6)
-    </div>
+    <Terminal id="main" cwd={workspace.rootPath} persistent={true} />
   </div>
 </section>
 
@@ -60,12 +76,9 @@
     gap: 7px;
     height: 100%;
     padding: 0 14px;
-    background: transparent;
-    border: 0;
     border-top: 2px solid transparent;
     color: var(--color-ink-muted);
     font-size: 12px;
-    cursor: pointer;
   }
   .tab.active {
     color: var(--color-ink);
@@ -98,18 +111,6 @@
   .surface {
     flex: 1;
     min-height: 0;
-    overflow: auto;
-    padding: 8px 12px;
-    font-family: var(--font-mono);
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: var(--color-ink);
-  }
-  .ghost {
-    color: var(--color-ink-subtle);
-  }
-  .prompt {
-    color: var(--color-success);
-    margin-right: 6px;
+    overflow: hidden;
   }
 </style>

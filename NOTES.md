@@ -290,6 +290,15 @@ eseguibile da Windows.
 Verifica: screenshot reali (top bar + albero con icone colorate + editor con highlighting);
 controlli finestra testati (massimizza/ripristina funzionano).
 
+### Iterazione 2 — verso Visual Studio 2026
+- Palette ridisegnata sui **grigi neutri di VS** (editor `#1e1e1e`, pannelli `#252526`,
+  chrome `#2d2d30` più chiaro dell'editor) + accento **blu VS** `#3b9dff`.
+- **Terminale docked a destra** (non più in basso): layout a 3 colonne
+  sidebar | editor | terminale, con `terminalWidth` nello stato e splitter verticale.
+- **Solo logo nella barra** (rimosso il wordmark testuale): nuovo mark `>_`
+  (`Logo.svelte`, quadrato con gradiente). Nome prodotto provvisorio **Caret** (cursore di
+  testo); il nome interno del pacchetto resta `lume` per non rompere build/script.
+
 ---
 
 ## Ambiente di sviluppo verificato

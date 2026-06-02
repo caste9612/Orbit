@@ -6,17 +6,17 @@ export type SidebarView = "explorer" | "git" | "search";
 export const layout = $state({
   sidebarView: "explorer" as SidebarView,
   sidebarVisible: true,
-  sidebarWidth: 264,
+  sidebarWidth: 260,
   terminalVisible: true,
-  terminalHeight: 240,
+  terminalWidth: 440, // il terminale è docked a destra
 });
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 560;
-const TERMINAL_MIN = 96;
-const TERMINAL_MAX = 760;
+const TERMINAL_MIN = 280;
+const TERMINAL_MAX = 1000;
 
-/** Click su un'icona della activity bar: seleziona la vista o, se già attiva, chiude la sidebar. */
+/** Click su una voce della top bar: seleziona la vista o, se già attiva, chiude la sidebar. */
 export function selectView(view: SidebarView) {
   if (layout.sidebarVisible && layout.sidebarView === view) {
     layout.sidebarVisible = false;
@@ -39,9 +39,9 @@ export function resizeSidebar(delta: number) {
   layout.sidebarWidth = clamp(layout.sidebarWidth + delta, SIDEBAR_MIN, SIDEBAR_MAX);
 }
 
-/** Lo splitter del terminale è sopra di esso: trascinare in su (delta negativo) alza il terminale. */
+/** Il terminale è a destra, con lo splitter alla sua sinistra: trascinare a sinistra lo allarga. */
 export function resizeTerminal(delta: number) {
-  layout.terminalHeight = clamp(layout.terminalHeight - delta, TERMINAL_MIN, TERMINAL_MAX);
+  layout.terminalWidth = clamp(layout.terminalWidth - delta, TERMINAL_MIN, TERMINAL_MAX);
 }
 
 function clamp(value: number, min: number, max: number): number {

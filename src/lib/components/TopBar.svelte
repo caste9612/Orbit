@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import Icon from "./Icon.svelte";
+  import Logo from "./Logo.svelte";
   import { layout, selectView, toggleTerminal } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog } from "../state/explorer.svelte";
@@ -29,8 +30,7 @@
 
 <header class="topbar" data-tauri-drag-region>
   <div class="brand" data-tauri-drag-region>
-    <span class="logo"></span>
-    <span class="name">Lume</span>
+    <Logo size={21} gid="topGrad" />
   </div>
 
   <nav class="views">
@@ -89,37 +89,23 @@
 
 <style>
   .topbar {
-    height: 40px;
-    flex: 0 0 40px;
+    height: 38px;
+    flex: 0 0 38px;
     display: flex;
     align-items: center;
     gap: 4px;
-    padding-left: 12px;
-    background: linear-gradient(180deg, #181b21 0%, var(--color-surface-0) 100%);
+    padding-left: 11px;
+    background: var(--color-surface-0);
     border-bottom: 1px solid var(--color-line);
     user-select: none;
   }
   .brand {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding-right: 12px;
+    padding-right: 11px;
     margin-right: 6px;
     border-right: 1px solid var(--color-line);
     height: 22px;
-  }
-  .logo {
-    width: 17px;
-    height: 17px;
-    border-radius: 6px;
-    background: linear-gradient(135deg, var(--color-accent), var(--color-accent-2));
-    box-shadow: 0 0 10px -2px var(--color-accent);
-  }
-  .name {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--color-ink);
   }
 
   .views {
@@ -131,7 +117,7 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    height: 28px;
+    height: 27px;
     padding: 0 11px;
     border: 0;
     border-radius: var(--radius-sm);
@@ -151,8 +137,8 @@
     color: var(--color-ink);
   }
   .view.active {
-    background: rgba(77, 139, 255, 0.14);
-    color: #9cc0ff;
+    background: rgba(var(--accent-rgb), 0.18);
+    color: #cfe5ff;
   }
   .sep {
     width: 1px;

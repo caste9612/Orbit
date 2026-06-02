@@ -24,7 +24,7 @@
   }
 </script>
 
-<section class="terminal-panel" style="height:{layout.terminalHeight}px">
+<section class="terminal-panel" style="width:{layout.terminalWidth}px">
   <header class="head">
     <div class="tabs">
       <div class="tab active">

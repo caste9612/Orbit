@@ -1,37 +1,36 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------ *
- * Token del tema dark — fonte unica di verità per la palette.
- * Dark curato ispirato a IntelliJ (new UI) e Visual Studio 2022/2026:
- * superfici morbide a freddo, accento blu vivo, bordi a basso contrasto.
+ * Token del tema dark — modellato su Visual Studio 2026:
+ * grigi neutri, editor scuro, chrome (barre) più chiaro, accento blu VS.
  * ------------------------------------------------------------------ */
 @theme {
-  /* superfici, dalla più profonda alla più chiara */
-  --color-surface-0: #16181d; /* title bar / status bar */
-  --color-surface-1: #1a1d23; /* sfondo editor */
-  --color-surface-2: #1e2127; /* sidebar / pannelli */
-  --color-surface-3: #262a31; /* hover */
-  --color-surface-4: #2f343d; /* selezione / hover forte */
+  /* superfici */
+  --color-surface-0: #2d2d30; /* chrome: top bar / status bar (più chiaro dell'editor, stile VS) */
+  --color-surface-1: #1e1e1e; /* editor (il più scuro) */
+  --color-surface-2: #252526; /* sidebar / pannelli */
+  --color-surface-3: #2f3033; /* hover */
+  --color-surface-4: #3a3d41; /* selezione / hover forte */
 
   /* linee e bordi */
-  --color-line: #2a2f37;
-  --color-line-strong: #373d47;
+  --color-line: #3a3a3f;
+  --color-line-strong: #4a4a50;
 
   /* testo */
-  --color-ink: #dfe1e5;
-  --color-ink-muted: #a3acb9;
-  --color-ink-subtle: #6c7682;
+  --color-ink: #d4d4d4;
+  --color-ink-muted: #a0a0a0;
+  --color-ink-subtle: #6e7176;
 
-  /* accento e stati */
-  --color-accent: #4d8bff;
-  --color-accent-2: #8b5cf6;
-  --color-accent-soft: #20335a;
-  --color-danger: #f0626f;
-  --color-success: #5bc88a;
-  --color-warning: #e3b341;
+  /* accento e stati (blu VS) */
+  --color-accent: #3b9dff;
+  --color-accent-2: #6b5bff;
+  --color-accent-soft: #094771; /* selezione blu VS */
+  --color-danger: #f14c4c;
+  --color-success: #4ec9b0;
+  --color-warning: #cca700;
 
   /* tipografia */
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+  --font-sans: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue",
     Arial, sans-serif;
   --font-mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "Fira Code",
     Consolas, "Liberation Mono", monospace;
@@ -39,11 +38,12 @@
 
 /* raggi e ombre (custom props normali: usate in CSS scoped via var()) */
 :root {
-  --radius-sm: 5px;
-  --radius: 8px;
-  --radius-lg: 12px;
-  --shadow-pop: 0 12px 34px rgba(0, 0, 0, 0.45);
-  --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.25);
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 9px;
+  --shadow-pop: 0 12px 34px rgba(0, 0, 0, 0.5);
+  --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.3);
+  --accent-rgb: 59, 157, 255;
 }
 
 /* ------------------------------------------------------------------ *
@@ -74,17 +74,17 @@ body {
 
 /* scrollbar sottili e scure, coerenti su WebView2 e WebKitGTK */
 *::-webkit-scrollbar {
-  width: 11px;
-  height: 11px;
+  width: 12px;
+  height: 12px;
 }
 *::-webkit-scrollbar-thumb {
-  background: var(--color-surface-4);
-  border-radius: 6px;
+  background: #424247;
+  border-radius: 7px;
   border: 3px solid transparent;
   background-clip: padding-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: #3a414c;
+  background: #4f4f55;
   background-clip: padding-box;
 }
 *::-webkit-scrollbar-corner {

@@ -78,14 +78,12 @@
         <Splitter orientation="vertical" onResize={resizeSidebar} />
       {/if}
 
-      <main class="main">
-        <EditorArea />
+      <EditorArea />
 
-        {#if layout.terminalVisible}
-          <Splitter orientation="horizontal" onResize={resizeTerminal} />
-          <TerminalPanel />
-        {/if}
-      </main>
+      {#if layout.terminalVisible}
+        <Splitter orientation="vertical" onResize={resizeTerminal} />
+        <TerminalPanel />
+      {/if}
     </div>
 
     <StatusBar />
@@ -104,12 +102,6 @@
     min-height: 0;
     display: flex;
     align-items: stretch;
-  }
-  .main {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
   }
   .floatwrap {
     height: 100%;

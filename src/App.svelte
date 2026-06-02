@@ -1,20 +1,52 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
-
-  // Smoke test della milestone 1: conferma render Svelte + utility Tailwind + IPC Tauri.
-  let info = $state("connessione al backend…");
-
-  invoke<string>("app_info")
-    .then((v) => (info = v))
-    .catch((e) => (info = `errore IPC: ${e}`));
+  import ActivityBar from "./lib/components/ActivityBar.svelte";
+  import Sidebar from "./lib/components/Sidebar.svelte";
+  import EditorArea from "./lib/components/EditorArea.svelte";
+  import TerminalPanel from "./lib/components/TerminalPanel.svelte";
+  import StatusBar from "./lib/components/StatusBar.svelte";
+  import Splitter from "./lib/components/Splitter.svelte";
+  import { layout, resizeSidebar, resizeTerminal } from "./lib/state/layout.svelte";
 </script>
 
-<main class="flex h-full flex-col items-center justify-center gap-2">
-  <div class="text-3xl font-semibold tracking-tight text-ink">Lume</div>
-  <div class="text-sm text-ink-muted">IDE leggero · companion per Claude Code</div>
-  <div
-    class="mt-4 rounded-md border border-line bg-surface-2 px-3 py-1.5 font-mono text-xs text-ink-subtle"
-  >
-    {info}
+<div class="shell">
+  <div class="body">
+    <ActivityBar />
+
+    {#if layout.sidebarVisible}
+      <Sidebar />
+      <Splitter orientation="vertical" onResize={resizeSidebar} />
+    {/if}
+
+    <main class="main">
+      <EditorArea />
+
+      {#if layout.terminalVisible}
+        <Splitter orientation="horizontal" onResize={resizeTerminal} />
+        <TerminalPanel />
+      {/if}
+    </main>
   </div>
-</main>
+
+  <StatusBar />
+</div>
+
+<style>
+  .shell {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface-1);
+  }
+  .body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+  }
+  .main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+</style>

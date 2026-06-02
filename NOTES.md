@@ -71,6 +71,35 @@ Rust (`src-tauri/Cargo.toml`):
 
 ---
 
+## Milestone 2 — dark shell (gate estetico)
+
+Layout a pannelli, modello VS Code/IntelliJ:
+- **Activity bar** (48px, surface-0): switch vista sidebar (Esplora/Git/Cerca),
+  toggle terminale, impostazioni. Indicatore accento sull'elemento attivo.
+- **Sidebar** (surface-2, ridimensionabile 180–560px): header + corpo con empty-state.
+- **Area editor** (surface-1): tab bar + superficie; senza file mostra il welcome
+  (wordmark in gradiente, hint da tastiera).
+- **Pannello terminale** (ridimensionabile 96–760px): header con tab + azioni.
+- **Status bar** (24px, surface-0): ramo git, info file.
+
+Decisioni:
+- **Splitter custom** (pointer events, ~6px di presa, linea 1px, accento on hover)
+  invece di una libreria di pannelli → zero dipendenze (gate #1).
+- **Icone inline** (stile Lucide, 24x24, currentColor) in `Icon.svelte` → niente
+  icon-font né sprite, niente dipendenze.
+- **Stato reattivo** via runes in moduli `.svelte.ts` (`layout`, `workspace`) invece
+  di store classici → parte di Svelte 5, API più semplice.
+- **Titlebar nativa** (window `theme: Dark`) per ora: sicura cross-platform; una
+  titlebar custom resta un possibile polish futuro.
+- **Niente web font**: stack di sistema (`system-ui`/Segoe UI + monospace di sistema)
+  → nessun download di font.
+
+Footprint frontend a fine M2: JS ~50KB (19KB gz), CSS ~14KB (3.7KB gz).
+Verifica visiva con screenshot della finestra reale (1280×800): shell pulita e scura.
+**Nessuna dipendenza aggiunta in M2.**
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

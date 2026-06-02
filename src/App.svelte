@@ -11,7 +11,8 @@
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal } from "./lib/state/layout.svelte";
   import { listen } from "@tauri-apps/api/event";
   import { openRoot, openFolderDialog, refreshTree } from "./lib/state/explorer.svelte";
-  import { openFile, saveActive } from "./lib/state/workspace.svelte";
+  import { openFile, saveActive, reloadOpenFiles } from "./lib/state/workspace.svelte";
+  import { setQuery } from "./lib/state/search.svelte";
   import { refreshStatus } from "./lib/state/git.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
@@ -29,11 +30,19 @@
     listen("fs-changed", () => {
       refreshTree();
       refreshStatus();
+      reloadOpenFiles();
     });
     try {
-      const s = await invoke<{ dir: string | null; file: string | null }>("startup");
+      const s = await invoke<{ dir: string | null; file: string | null; search: string | null }>(
+        "startup",
+      );
       if (s.dir) await openRoot(s.dir);
       if (s.file) await openFile(s.file);
+      if (s.search) {
+        layout.sidebarView = "search";
+        layout.sidebarVisible = true;
+        setQuery(s.search);
+      }
     } catch (e) {
       console.error("startup", e);
     }

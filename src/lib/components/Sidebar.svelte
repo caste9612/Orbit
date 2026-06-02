@@ -2,6 +2,7 @@
   import Icon from "./Icon.svelte";
   import Explorer from "./Explorer.svelte";
   import GitPanel from "./GitPanel.svelte";
+  import SearchView from "./SearchView.svelte";
   import { layout } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog } from "../state/explorer.svelte";
@@ -50,10 +51,12 @@
           <p class="hint">Apri prima una cartella.</p>
         </div>
       {/if}
+    {:else if workspace.rootPath}
+      <SearchView />
     {:else}
       <div class="empty">
         <p class="muted">Cerca nei file</p>
-        <p class="hint">Disponibile dopo l'apertura di una cartella.</p>
+        <p class="hint">Apri prima una cartella.</p>
       </div>
     {/if}
   </div>

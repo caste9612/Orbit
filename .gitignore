@@ -18,3 +18,7 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # build Rust/Tauri: vedi anche src-tauri/.gitignore
+
+# icone mobile generate da `tauri icon` (progetto desktop, non servono)
+src-tauri/icons/android/
+src-tauri/icons/ios/

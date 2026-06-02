@@ -21,6 +21,7 @@ fn app_info() -> String {
 struct Startup {
     dir: Option<String>,
     file: Option<String>,
+    search: Option<String>,
 }
 
 #[tauri::command]
@@ -32,7 +33,10 @@ fn startup() -> Startup {
     let file = std::env::var("LUME_FILE")
         .ok()
         .filter(|f| Path::new(f).is_file());
-    Startup { dir, file }
+    let search = std::env::var("LUME_SEARCH")
+        .ok()
+        .filter(|s| !s.trim().is_empty());
+    Startup { dir, file, search }
 }
 
 #[derive(Serialize)]
@@ -77,6 +81,93 @@ fn write_file(path: String, content: String) -> Result<(), String> {
     std::fs::write(&path, content).map_err(|e| e.to_string())
 }
 
+#[derive(Serialize)]
+struct SearchMatch {
+    line: u32,
+    text: String,
+}
+
+#[derive(Serialize)]
+struct FileMatches {
+    path: String,
+    rel: String,
+    matches: Vec<SearchMatch>,
+}
+
+/// Ricerca testuale (substring, case-insensitive) in tutti i file del progetto.
+/// Walk manuale con esclusioni (no dep extra); salta cartelle rumorose, file grandi
+/// e binari; limita i risultati per restare leggero e reattivo.
+#[tauri::command]
+fn search_in_project(root: String, query: String) -> Result<Vec<FileMatches>, String> {
+    if query.trim().is_empty() {
+        return Ok(vec![]);
+    }
+    let needle = query.to_lowercase();
+    let root_path = std::path::Path::new(&root);
+    let mut results: Vec<FileMatches> = Vec::new();
+    let mut total = 0usize;
+    let mut stack = vec![root_path.to_path_buf()];
+
+    while let Some(dir) = stack.pop() {
+        let rd = match std::fs::read_dir(&dir) {
+            Ok(r) => r,
+            Err(_) => continue,
+        };
+        for entry in rd.flatten() {
+            if total >= 2000 || results.len() >= 400 {
+                results.sort_by(|a, b| a.rel.cmp(&b.rel));
+                return Ok(results);
+            }
+            let p = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
+            if is_dir {
+                if matches!(name.as_str(), "node_modules" | ".git" | "target" | "dist") {
+                    continue;
+                }
+                stack.push(p);
+                continue;
+            }
+            if entry.metadata().map(|m| m.len()).unwrap_or(0) > 2_000_000 {
+                continue;
+            }
+            let content = match std::fs::read_to_string(&p) {
+                Ok(c) => c,
+                Err(_) => continue, // binario o non-UTF8
+            };
+            let mut fm: Vec<SearchMatch> = Vec::new();
+            for (i, line) in content.lines().enumerate() {
+                if line.to_lowercase().contains(&needle) {
+                    let trimmed = line.trim_start();
+                    let text: String = trimmed.chars().take(240).collect();
+                    fm.push(SearchMatch {
+                        line: (i as u32) + 1,
+                        text,
+                    });
+                    total += 1;
+                    if fm.len() >= 50 || total >= 2000 {
+                        break;
+                    }
+                }
+            }
+            if !fm.is_empty() {
+                let rel = p
+                    .strip_prefix(root_path)
+                    .unwrap_or(&p)
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                results.push(FileMatches {
+                    path: p.to_string_lossy().to_string(),
+                    rel,
+                    matches: fm,
+                });
+            }
+        }
+    }
+    results.sort_by(|a, b| a.rel.cmp(&b.rel));
+    Ok(results)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -89,6 +180,7 @@ pub fn run() {
             read_dir,
             read_file,
             write_file,
+            search_in_project,
             git::git_status,
             git::git_diff,
             git::git_stage,

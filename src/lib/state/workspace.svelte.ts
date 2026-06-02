@@ -9,6 +9,9 @@ export interface OpenFile {
   dirty: boolean;
   readonly: boolean;
   kind: "file" | "diff";
+  rev: number; // incrementa al reload esterno → l'editor rimpiazza il doc
+  externallyChanged: boolean; // modificato su disco con edit non salvati (conflitto)
+  gotoLine: number | null; // riga a cui saltare (da ricerca)
 }
 
 export const workspace = $state({
@@ -37,7 +40,7 @@ export async function openFile(path: string) {
     content = await invoke<string>("read_file", { path });
   } catch (e) {
     content = `// Impossibile aprire il file (binario o non UTF-8).\n// ${e}`;
-    readonly = true; // non sovrascrivere un binario col messaggio d'errore
+    readonly = true;
   }
   workspace.openFiles.push({
     path,
@@ -46,8 +49,18 @@ export async function openFile(path: string) {
     dirty: false,
     readonly,
     kind: "file",
+    rev: 0,
+    externallyChanged: false,
+    gotoLine: null,
   });
   workspace.activePath = path;
+}
+
+/** Apre un file e salta a una riga (usato dalla ricerca). */
+export async function openFileAt(path: string, line: number) {
+  await openFile(path);
+  const f = workspace.openFiles.find((x) => x.path === path);
+  if (f) f.gotoLine = line;
 }
 
 /** Apre (o aggiorna) una tab di sola lettura con un diff. */
@@ -65,6 +78,9 @@ export function openDiff(id: string, name: string, patch: string) {
     dirty: false,
     readonly: true,
     kind: "diff",
+    rev: 0,
+    externallyChanged: false,
+    gotoLine: null,
   });
   workspace.activePath = id;
 }
@@ -99,7 +115,29 @@ export async function saveActive() {
   try {
     await invoke("write_file", { path: f.path, content: f.content });
     f.dirty = false;
+    f.externallyChanged = false;
   } catch (e) {
     console.error("save", e);
+  }
+}
+
+/** Ricarica dal disco le tab aperte cambiate esternamente (es. da Claude). */
+export async function reloadOpenFiles() {
+  for (const f of workspace.openFiles) {
+    if (f.kind !== "file" || f.readonly) continue;
+    let disk: string;
+    try {
+      disk = await invoke<string>("read_file", { path: f.path });
+    } catch {
+      continue; // file forse eliminato: lascio la tab
+    }
+    if (disk === f.content) continue;
+    if (f.dirty) {
+      f.externallyChanged = true; // conflitto: non sovrascrivo gli edit non salvati
+    } else {
+      f.content = disk;
+      f.externallyChanged = false;
+      f.rev++; // segnala all'editor di rimpiazzare il doc
+    }
   }
 }

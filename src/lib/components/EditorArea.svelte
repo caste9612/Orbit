@@ -23,7 +23,11 @@
         <button type="button" class="sel" onclick={() => setActive(f.path)} title={f.path}>
           <span class="ti" style="color:{fi.color}"><Icon name={fi.glyph} size={14} strokeWidth={1.6} /></span>
           <span class="label">{f.name}</span>
-          {#if f.dirty}<span class="dot" aria-label="non salvato"></span>{/if}
+          {#if f.externallyChanged}
+            <span class="dot warn" aria-label="modificato su disco"></span>
+          {:else if f.dirty}
+            <span class="dot" aria-label="non salvato"></span>
+          {/if}
         </button>
         <button type="button" class="close" aria-label="Chiudi {f.name}" onclick={() => closeFile(f.path)}>
           <Icon name="x" size={13} strokeWidth={2} />
@@ -42,8 +46,13 @@
             doc={active.content}
             path={active.path}
             readonly={active.readonly}
+            rev={active.rev}
+            gotoLine={active.gotoLine}
             onChange={(c) => updateContent(active.path, c)}
             onSave={saveActive}
+            onGotoHandled={() => {
+              if (active) active.gotoLine = null;
+            }}
           />
         {/if}
       {/key}
@@ -130,6 +139,9 @@
     height: 8px;
     border-radius: 50%;
     background: var(--color-ink-muted);
+  }
+  .dot.warn {
+    background: var(--color-warning);
   }
   .close {
     width: 22px;

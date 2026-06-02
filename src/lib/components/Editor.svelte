@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { EditorState, Compartment } from "@codemirror/state";
   import {
     EditorView,
@@ -28,13 +28,27 @@
     doc: string;
     path: string;
     readonly?: boolean;
+    rev?: number;
+    gotoLine?: number | null;
     onChange: (doc: string) => void;
     onSave: () => void;
+    onGotoHandled?: () => void;
   }
-  let { doc, path, readonly = false, onChange, onSave }: Props = $props();
+  let {
+    doc,
+    path,
+    readonly = false,
+    rev = 0,
+    gotoLine = null,
+    onChange,
+    onSave,
+    onGotoHandled,
+  }: Props = $props();
 
   let host: HTMLDivElement;
   let view: EditorView | undefined;
+  let applyingExternal = false; // evita di marcare dirty durante un reload programmatico
+  let lastRev = untrack(() => rev); // baseline iniziale (volutamente non reattivo)
   const langConf = new Compartment();
 
   onMount(() => {
@@ -71,7 +85,7 @@
           ...foldKeymap,
         ]),
         EditorView.updateListener.of((u) => {
-          if (u.docChanged) onChange(u.state.doc.toString());
+          if (u.docChanged && !applyingExternal) onChange(u.state.doc.toString());
         }),
       ],
     });
@@ -81,7 +95,29 @@
     return () => view?.destroy();
   });
 
-  // Carica la grammatica giusta in base al nome file (lazy, code-split da Vite).
+  // reload esterno (rev cambiato): rimpiazza il doc preservando la vista, senza dirty
+  $effect(() => {
+    const r = rev;
+    if (!view || r === lastRev) return;
+    lastRev = r;
+    const text = untrack(() => doc);
+    if (text === view.state.doc.toString()) return;
+    applyingExternal = true;
+    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+    applyingExternal = false;
+  });
+
+  // salto a una riga (da ricerca)
+  $effect(() => {
+    const gl = gotoLine;
+    if (!view || gl == null || gl <= 0) return;
+    const ln = Math.min(gl, view.state.doc.lines);
+    const info = view.state.doc.line(ln);
+    view.dispatch({ selection: { anchor: info.from }, scrollIntoView: true });
+    view.focus();
+    onGotoHandled?.();
+  });
+
   async function loadLanguage() {
     const desc = LanguageDescription.matchFilename(languages, basename(path));
     if (!desc || !view) return;

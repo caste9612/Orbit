@@ -308,6 +308,26 @@ piacevano). +~296 KB di woff2 nel bundle; a runtime si carica solo il subset lat
 
 ---
 
+## Estensioni (post-base, su richiesta)
+
+- **Auto-reload dei file aperti**: quando il watcher segnala una modifica, le tab aperte
+  *non sporche* vengono ricaricate dal disco (l'editor rimpiazza il doc con una transaction,
+  preservando la vista e senza marcare dirty — flag `applyingExternal`). Con edit non salvati
+  niente overwrite: la tab mostra un indicatore di conflitto (pallino arancio). Chiave per il
+  flusso con Claude Code: i file che `claude` modifica si aggiornano da soli nell'editor.
+- **Ricerca nel progetto** (vista Cerca): comando Rust `search_in_project` (walk manuale con
+  esclusioni node_modules/.git/target/dist, substring case-insensitive, salta binari/file
+  grandi, cap sui risultati — **nessuna dipendenza nuova**). `SearchView`: match raggruppati
+  per file con numero di riga ed evidenziazione; click → apre il file alla riga
+  (`openFileAt` → goto nell'editor). `LUME_SEARCH` apre all'avvio con una query.
+- **Icona app = logo Orbit**: PNG 1024 generato con System.Drawing e set icone rigenerato
+  con `tauri icon` (desktop + mobile), al posto delle icone default di Tauri.
+
+Verifiche reali: auto-reload (riga appesa dall'esterno → comparsa nell'editor, tab non
+sporca); ricerca (`terminalWidth` → 4 risultati in 3 file con evidenziazione); icona generata.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

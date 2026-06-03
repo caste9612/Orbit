@@ -101,6 +101,7 @@ of RAM and IntelliJ 1–2 GB.
 - **notify** for the file watcher.
 - **Lazy-loaded** CodeMirror and xterm so the first paint stays light.
 
+For contributors, an architecture overview is in [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 The complete decision log (one entry per milestone, with the rationale for every dependency)
 lives in [NOTES.md](./NOTES.md).
 

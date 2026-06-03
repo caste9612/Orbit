@@ -16,6 +16,21 @@ export function joinPath(dir: string, name: string): string {
   return dir.endsWith(sep) ? dir + name : dir + sep + name;
 }
 
+/** Normalizza i separatori a "/" e rimuove l'eventuale slash finale. */
+export function normSlash(p: string): string {
+  return p.replace(/\\/g, "/").replace(/\/+$/, "");
+}
+
+/** Percorso di `abs` relativo a `root` (separatori "/"): "" se coincide con root,
+ *  l'assoluto normalizzato se `abs` non è sotto `root`. */
+export function relTo(abs: string, root: string | null): string {
+  const a = abs.replace(/\\/g, "/");
+  if (!root) return a;
+  const r = normSlash(root);
+  if (a === r) return "";
+  return a.startsWith(r + "/") ? a.slice(r.length + 1) : a;
+}
+
 export interface FileIcon {
   glyph: string;
   color: string;

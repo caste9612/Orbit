@@ -1,6 +1,7 @@
 <script lang="ts">
   import { scale } from "svelte/transition";
   import Icon from "./Icon.svelte";
+  import Backdrop from "./Backdrop.svelte";
   import { basename } from "../util";
   import {
     shelf,
@@ -40,8 +41,7 @@
   }
 </script>
 
-<svelte:window onkeydown={(e) => e.key === "Escape" && onClose()} />
-<button class="backdrop" aria-label="Close" onpointerdown={onClose}></button>
+<Backdrop {onClose} z={92} />
 
 <div class="picker" style="left:{left}px; top:{top}px; width:{W}px" role="menu" transition:scale={{ duration: 90, start: 0.97, opacity: 0.3 }}>
   <div class="head">
@@ -77,15 +77,6 @@
 </div>
 
 <style>
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 92;
-    background: transparent;
-    border: 0;
-    padding: 0;
-    cursor: default;
-  }
   .picker {
     position: fixed;
     z-index: 93;

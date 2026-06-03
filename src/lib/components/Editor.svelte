@@ -29,7 +29,7 @@
   import { git } from "../state/git.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import { basename } from "../util";
+  import { basename, normSlash, relTo } from "../util";
 
   interface Props {
     doc: string;
@@ -167,9 +167,8 @@
   function relPath(): string | null {
     const root = workspace.rootPath;
     if (!root) return null;
-    const r = root.replace(/\\/g, "/").replace(/\/+$/, "");
-    const p = path.replace(/\\/g, "/");
-    return p.startsWith(r + "/") ? p.slice(r.length + 1) : null;
+    const rel = relTo(path, root);
+    return rel && rel !== normSlash(path) ? rel : null;
   }
 
   async function loadGutter() {

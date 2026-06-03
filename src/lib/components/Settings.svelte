@@ -1,14 +1,14 @@
 <script lang="ts">
   import { scale } from "svelte/transition";
   import Icon from "./Icon.svelte";
-  import { settings, settingsUI, closeSettings, MONO_FONTS, ACCENTS, type AccentName } from "../state/settings.svelte";
+  import Switch from "./Switch.svelte";
+  import Backdrop from "./Backdrop.svelte";
+  import { settings, closeSettings, MONO_FONTS, ACCENTS, type AccentName } from "../state/settings.svelte";
 
   const accentNames = Object.keys(ACCENTS) as AccentName[];
 </script>
 
-<svelte:window onkeydown={(e) => settingsUI.open && e.key === "Escape" && closeSettings()} />
-
-<button class="backdrop" aria-label="Close settings" onclick={closeSettings}></button>
+<Backdrop onClose={closeSettings} dim z={110} />
 
 <div class="panel" role="dialog" aria-label="Settings" transition:scale={{ duration: 110, start: 0.97, opacity: 0.3 }}>
   <header class="head">
@@ -64,16 +64,11 @@
         <span class="name">Smooth caret</span>
         <span class="hint">Animate the editor cursor while typing</span>
       </div>
-      <button
-        class="switch"
-        class:on={settings.smoothCursor}
-        role="switch"
-        aria-checked={settings.smoothCursor}
-        aria-label="Smooth caret"
-        onclick={() => (settings.smoothCursor = !settings.smoothCursor)}
-      >
-        <span class="knob"></span>
-      </button>
+      <Switch
+        checked={settings.smoothCursor}
+        onToggle={() => (settings.smoothCursor = !settings.smoothCursor)}
+        label="Smooth caret"
+      />
     </div>
 
     <div class="row">
@@ -81,30 +76,16 @@
         <span class="name">Terminal GPU rendering (WebGL)</span>
         <span class="hint">Sharper text — uses noticeably more memory</span>
       </div>
-      <button
-        class="switch"
-        class:on={settings.webgl}
-        role="switch"
-        aria-checked={settings.webgl}
-        aria-label="Terminal GPU rendering"
-        onclick={() => (settings.webgl = !settings.webgl)}
-      >
-        <span class="knob"></span>
-      </button>
+      <Switch
+        checked={settings.webgl}
+        onToggle={() => (settings.webgl = !settings.webgl)}
+        label="Terminal GPU rendering"
+      />
     </div>
   </div>
 </div>
 
 <style>
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 110;
-    background: rgba(0, 0, 0, 0.32);
-    border: 0;
-    padding: 0;
-    cursor: default;
-  }
   .panel {
     position: fixed;
     z-index: 111;
@@ -222,33 +203,5 @@
   .swatch.on {
     border-color: var(--color-ink);
     box-shadow: 0 0 0 2px var(--color-surface-2) inset;
-  }
-  .switch {
-    flex: 0 0 auto;
-    width: 40px;
-    height: 22px;
-    border-radius: 11px;
-    border: 0;
-    background: var(--color-surface-4);
-    cursor: pointer;
-    padding: 0;
-    position: relative;
-    transition: background 120ms ease;
-  }
-  .switch.on {
-    background: var(--color-accent);
-  }
-  .knob {
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #fff;
-    transition: transform 120ms ease;
-  }
-  .switch.on .knob {
-    transform: translateX(18px);
   }
 </style>

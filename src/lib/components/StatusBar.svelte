@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
   import Icon from "./Icon.svelte";
+  import Backdrop from "./Backdrop.svelte";
   import { workspace, editorStatus, activeFile } from "../state/workspace.svelte";
   import { git, checkout, loadBranches, createBranch } from "../state/git.svelte";
   import { langLabel } from "../util";
@@ -62,7 +63,7 @@
       </button>
 
       {#if open}
-        <button class="backdrop" aria-label="Close" onclick={close}></button>
+        <Backdrop onClose={close} z={60} />
         <div class="popup" role="menu" transition:fade={{ duration: 80 }}>
           <div class="phead">Branch</div>
           {#if git.branches.length === 0}
@@ -84,7 +85,7 @@
               placeholder="new branch name"
               onkeydown={(e) => {
                 if (e.key === "Enter") doCreate();
-                else if (e.key === "Escape") { creating = false; }
+                else if (e.key === "Escape") { e.stopPropagation(); creating = false; }
               }}
             />
           {:else}
@@ -152,15 +153,6 @@
     cursor: default;
   }
 
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    background: transparent;
-    border: 0;
-    padding: 0;
-    cursor: default;
-  }
   .popup {
     position: absolute;
     bottom: calc(100% + 4px);

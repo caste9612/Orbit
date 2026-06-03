@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { workspace, openDiff } from "./workspace.svelte";
 import { notify } from "./toast.svelte";
-import { basename } from "../util";
+import { basename, normSlash } from "../util";
 
 export interface StatusEntry {
   path: string;
@@ -172,9 +172,9 @@ export function decorations(): { files: Map<string, string>; dirs: Set<string> }
   const dirs = new Set<string>();
   const root = workspace.rootPath;
   if (!root) return { files, dirs };
-  const rootN = root.replace(/\\/g, "/").replace(/\/+$/, "");
+  const rootN = normSlash(root);
   const add = (rel: string, code: string) => {
-    const abs = `${rootN}/${rel.replace(/\\/g, "/")}`;
+    const abs = `${rootN}/${normSlash(rel)}`;
     if (files.has(abs)) return;
     files.set(abs, code);
     let d = abs.slice(0, abs.lastIndexOf("/"));

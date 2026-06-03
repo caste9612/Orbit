@@ -3,7 +3,7 @@
   import Editor from "./LazyEditor.svelte";
   import DiffView from "./DiffView.svelte";
   import { confirm } from "@tauri-apps/plugin-dialog";
-  import { fileIcon } from "../util";
+  import { fileIcon, relTo } from "../util";
   import { layout, setFocusPanel } from "../state/layout.svelte";
   import {
     workspace,
@@ -43,13 +43,7 @@
 
   // segmenti del percorso (relativo alla radice) per il breadcrumb
   function crumbs(path: string): string[] {
-    const root = workspace.rootPath;
-    let rel = path.replace(/\\/g, "/");
-    if (root) {
-      const r = root.replace(/\\/g, "/").replace(/\/+$/, "");
-      if (rel.startsWith(r + "/")) rel = rel.slice(r.length + 1);
-    }
-    return rel.split("/").filter(Boolean);
+    return relTo(path, workspace.rootPath).split("/").filter(Boolean);
   }
 </script>
 

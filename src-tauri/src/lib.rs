@@ -7,16 +7,6 @@ use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 
-// Smoke test IPC (milestone 1).
-#[tauri::command]
-fn app_info() -> String {
-    format!(
-        "Lume v{} · Tauri {}",
-        env!("CARGO_PKG_VERSION"),
-        tauri::VERSION
-    )
-}
-
 /// Cartella/file da aprire all'avvio: da variabili LUME_DIR/LUME_FILE oppure dal
 /// primo argomento CLI (così si può lanciare `lume /percorso/progetto`).
 #[derive(Serialize)]
@@ -320,7 +310,6 @@ pub fn run() {
         .manage(pty::PtyManager::default())
         .manage(watcher::WatchState::default())
         .invoke_handler(tauri::generate_handler![
-            app_info,
             startup,
             read_dir,
             read_file,

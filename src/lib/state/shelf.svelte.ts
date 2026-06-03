@@ -3,7 +3,7 @@
 // committabile, leggibile/modificabile anche da Claude). Mappa relPath -> [categorie].
 import { invoke } from "@tauri-apps/api/core";
 import { workspace } from "./workspace.svelte";
-import { joinPath } from "../util";
+import { joinPath, relTo } from "../util";
 
 export const shelf = $state({
   map: {} as Record<string, string[]>, // relPath (separatori "/") -> categorie
@@ -16,12 +16,7 @@ function shelfPath(): string | null {
 
 /** Percorso relativo alla radice, normalizzato con "/" (chiave dello scaffale). */
 export function relOf(abs: string): string {
-  const root = workspace.rootPath;
-  if (!root) return abs.replace(/\\/g, "/");
-  const rootN = root.replace(/\\/g, "/").replace(/\/+$/, "");
-  const r = abs.replace(/\\/g, "/");
-  if (r === rootN) return "";
-  return r.startsWith(rootN + "/") ? r.slice(rootN.length + 1) : r;
+  return relTo(abs, workspace.rootPath);
 }
 
 /** Una cartella è nascosta dall'albero se è nello scaffale o è dentro una che lo è. */

@@ -736,6 +736,35 @@ Verifica: `svelte-check` 166 file 0/0.
 
 ---
 
+## Milestone 22 — manutenzione: doc, pulizia repo, refactor
+
+Passata di igiene prima di proseguire lo sviluppo.
+
+**Documentazione**
+- Nuovo `docs/ARCHITECTURE.md` (in inglese): mappa per chi riprende il progetto — struttura,
+  i 3 tipi di modulo frontend (componenti / stato a runes / estensioni editor), elenco dei
+  moduli di stato, livello IPC (comandi Tauri per area + come aggiungerne uno), persistenza,
+  theming, convenzioni, ricetta "aggiungi una feature". `NOTES.md` resta il diario decisionale.
+- Screenshot dell'app aggiunto in cima al `README.md` (`docs/screenshot.png`).
+
+**Pulizia**
+- Rimosso il comando IPC inutilizzato `app_info` (smoke-test della M1).
+- Rimosse 11 icone Store/MSIX non referenziate in `tauri.conf.json` (restano 32/128/128@2x/
+  icns/ico/png).
+- Eliminato uno screenshot-spazzatura (immagine vuota da un tentativo di cattura fallito).
+
+**Refactor (comportamento invariato)**
+- Centralizzati `normSlash` e `relTo` in `util.ts`; deduplicata la normalizzazione path in 5
+  file (git, Editor, Explorer, EditorArea, shelf).
+- Estratti due primitivi UI riusabili: `Backdrop.svelte` (overlay + Esc, usato dai 5 popup:
+  context menu, quick-open, settings, scaffale, popup branch) e `Switch.svelte` (toggle delle
+  Impostazioni).
+
+Verifica: `svelte-check` 168 file 0/0; `cargo check` pulito. (Refactor type-clean e
+comportamento preservato per costruzione; sanity-check runtime consigliato con `npm run tauri dev`.)
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

@@ -19,7 +19,7 @@
   import { openFile, workspace } from "../state/workspace.svelte";
   import { decorations } from "../state/git.svelte";
   import { shelf, relOf, isHidden, byCategory, shelveFolder } from "../state/shelf.svelte";
-  import { fileIcon, dirname, joinPath } from "../util";
+  import { fileIcon, dirname, joinPath, normSlash } from "../util";
 
   // Lista virtuale ad altezza fissa: rende solo le righe nel viewport (+overscan).
   const ROW = 22;
@@ -180,7 +180,7 @@
           {@const n = r.node}
           {@const fi = fileIcon(n.entry.name)}
           {@const renaming = edit.active && edit.mode === "rename" && edit.target === n.entry.path}
-          {@const np = n.entry.path.replace(/\\/g, "/").replace(/\/+$/, "")}
+          {@const np = normSlash(n.entry.path)}
           {@const gcode = n.entry.isDir ? undefined : deco.files.get(np)}
           {@const gdir = n.entry.isDir && deco.dirs.has(np)}
           <button

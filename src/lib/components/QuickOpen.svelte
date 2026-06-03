@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
   import Icon from "./Icon.svelte";
+  import Backdrop from "./Backdrop.svelte";
   import { quickopen, setQuery, move, choose, closePalette } from "../state/quickopen.svelte";
   import { fileIcon } from "../util";
 
@@ -39,7 +40,7 @@
 </script>
 
 <!-- backdrop: click fuori chiude -->
-<button class="backdrop" aria-label="Close" onclick={closePalette}></button>
+<Backdrop onClose={closePalette} dim z={100} />
 
 <div class="palette" role="dialog" aria-label="Open file" transition:fade={{ duration: 80 }}>
   <div class="field">
@@ -80,15 +81,6 @@
 </div>
 
 <style>
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    background: rgba(0, 0, 0, 0.32);
-    border: 0;
-    padding: 0;
-    cursor: default;
-  }
   .palette {
     position: fixed;
     z-index: 101;

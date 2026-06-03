@@ -1,6 +1,7 @@
 <script lang="ts">
   import { scale } from "svelte/transition";
   import Icon from "./Icon.svelte";
+  import Backdrop from "./Backdrop.svelte";
 
   export interface MenuItem {
     label: string;
@@ -31,13 +32,7 @@
   }
 </script>
 
-<svelte:window
-  onkeydown={(e) => e.key === "Escape" && onClose()}
-  onresize={onClose}
-/>
-
-<!-- backdrop trasparente: un click fuori chiude il menu -->
-<button class="backdrop" aria-label="Close menu" onpointerdown={onClose} oncontextmenu={(e) => { e.preventDefault(); onClose(); }}></button>
+<Backdrop {onClose} z={90} closeOnRightClick />
 
 <div class="menu" style="left:{left}px; top:{top}px; width:{W}px" role="menu" transition:scale={{ duration: 90, start: 0.97, opacity: 0.3 }}>
   {#each items as item (item.label)}
@@ -50,15 +45,6 @@
 </div>
 
 <style>
-  .backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 90;
-    background: transparent;
-    border: 0;
-    padding: 0;
-    cursor: default;
-  }
   .menu {
     position: fixed;
     z-index: 91;

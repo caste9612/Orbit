@@ -9,8 +9,19 @@
   import { openFolderDialog } from "../state/explorer.svelte";
   import { changedCount } from "../state/git.svelte";
   import { run, runConfig, openConfig, teachClaude } from "../state/run.svelte";
+  import { open as openDialog } from "@tauri-apps/plugin-dialog";
+  import { invoke } from "@tauri-apps/api/core";
 
   const win = getCurrentWindow();
+
+  async function newWindow() {
+    try {
+      const sel = await openDialog({ directory: true, multiple: false });
+      if (typeof sel === "string") await invoke("open_new_window", { dir: sel });
+    } catch (e) {
+      console.error("nuova finestra", e);
+    }
+  }
   let maximized = $state(false);
   let changed = $derived(changedCount()); // file modificati → badge sul pulsante Git
 
@@ -99,6 +110,9 @@
     {/if}
     <button class="view only" title="Apri cartella (Ctrl+K)" aria-label="Apri cartella" onclick={openFolderDialog}>
       <Icon name="folder-open" size={15} strokeWidth={1.7} />
+    </button>
+    <button class="view only" title="Nuova finestra (altra cartella)" aria-label="Nuova finestra" onclick={newWindow}>
+      <Icon name="new-window" size={15} strokeWidth={1.7} />
     </button>
     <button class="view only" title="Impostazioni" aria-label="Impostazioni">
       <Icon name="settings" size={15} strokeWidth={1.7} />

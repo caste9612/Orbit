@@ -1,10 +1,13 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { Terminal } from "@xterm/xterm";
+  import { Terminal, type ILinkProvider, type ILink } from "@xterm/xterm";
   import { FitAddon } from "@xterm/addon-fit";
+  import { WebglAddon } from "@xterm/addon-webgl";
   import "@xterm/xterm/css/xterm.css";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+  import { openFile, openFileAt, workspace } from "../state/workspace.svelte";
+  import { joinPath } from "../util";
 
   interface Props {
     id: string;
@@ -30,21 +33,21 @@
     onStart,
   }: Props = $props();
 
-  // tema xterm coerente con la palette della shell
+  // tema xterm allineato alla sintassi dell'editor (sfondo = editor #1e1e1e)
   const theme = {
-    background: "#14171c",
-    foreground: "#d7dce3",
-    cursor: "#6ea8fe",
-    cursorAccent: "#14171c",
-    selectionBackground: "#2a4163",
-    black: "#0f1115",
-    red: "#f0626f",
+    background: "#1e1e1e",
+    foreground: "#d4d4d4",
+    cursor: "#3b9dff",
+    cursorAccent: "#1e1e1e",
+    selectionBackground: "#264f78",
+    black: "#1e1e1e",
+    red: "#f14c4c",
     green: "#5bc88a",
     yellow: "#e3b341",
-    blue: "#6ea8fe",
+    blue: "#569cd6",
     magenta: "#c586c0",
     cyan: "#4ec9b0",
-    white: "#d7dce3",
+    white: "#d4d4d4",
     brightBlack: "#6b7480",
     brightRed: "#ff7b86",
     brightGreen: "#7ee0a6",
@@ -68,6 +71,47 @@
     const arr = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
     return arr;
+  }
+
+  // Apre il file indicato da un token tipo "src/App.svelte:12" cliccato nel terminale.
+  function openPathToken(token: string) {
+    const mm = token.match(/^(.+?)(?::(\d+))?(?::\d+)?$/);
+    const p = mm ? mm[1] : token;
+    const line = mm && mm[2] ? parseInt(mm[2], 10) : 0;
+    const isAbs = /^([A-Za-z]:[\\/]|[\\/])/.test(p);
+    const abs = isAbs ? p : workspace.rootPath ? joinPath(workspace.rootPath, p) : p;
+    if (line > 0) void openFileAt(abs, line);
+    else void openFile(abs);
+  }
+
+  // Rileva percorsi (con estensione, opzionale :riga) nell'output e li rende cliccabili.
+  function pathLinkProvider(): ILinkProvider {
+    const re = /(?:[A-Za-z]:)?[\w.\\/-]*\w\.[A-Za-z]\w*(?::\d+(?::\d+)?)?/g;
+    return {
+      provideLinks(y: number, callback: (links: ILink[] | undefined) => void) {
+        const buf = term?.buffer.active.getLine(y - 1);
+        if (!buf) {
+          callback(undefined);
+          return;
+        }
+        const text = buf.translateToString(true);
+        const links: ILink[] = [];
+        re.lastIndex = 0;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(text)) !== null) {
+          const token = m[0];
+          if (token.length < 3) continue;
+          const startX = m.index + 1;
+          links.push({
+            text: token,
+            range: { start: { x: startX, y }, end: { x: startX + token.length - 1, y } },
+            activate: () => openPathToken(token),
+            decorations: { pointerCursor: true, underline: true },
+          });
+        }
+        callback(links.length ? links : undefined);
+      },
+    };
   }
 
   function fitSafe(resize = false) {
@@ -95,6 +139,16 @@
     fit = new FitAddon();
     term.loadAddon(fit);
     term.open(host);
+    // renderer WebGL: testo più nitido e veloce (fallback automatico al DOM se assente)
+    try {
+      const webgl = new WebglAddon();
+      webgl.onContextLoss(() => webgl.dispose());
+      term.loadAddon(webgl);
+    } catch {
+      /* WebGL non disponibile su questa GPU/webview */
+    }
+    // percorsi cliccabili (non nel terminale flottante, che non ha un editor)
+    if (id !== "float") term.registerLinkProvider(pathLinkProvider());
     fitSafe();
 
     unlistenData = await listen<string>(`pty-data-${id}`, (e) => term?.write(b64ToBytes(e.payload)));

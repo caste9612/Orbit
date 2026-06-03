@@ -23,6 +23,16 @@
   let shells = $state<ShellInfo[]>([]);
   let shellMenu = $state<{ x: number; y: number } | null>(null);
 
+  // colore-identità dell'icona per tipo di shell
+  function shellColor(shell: string | null, title: string): string {
+    const s = `${shell ?? ""} ${title}`.toLowerCase();
+    if (s.includes("pwsh") || s.includes("powershell")) return "#5391fe";
+    if (s.includes("cmd") || s.includes("comandi")) return "#c0c0c0";
+    if (s.includes("git") || s.includes("bash") || s.includes("zsh") || s.includes("fish")) return "#4eaa25";
+    if (s.includes("wsl")) return "#c586c0";
+    return "var(--color-ink-muted)";
+  }
+
   onMount(async () => {
     ensureTerminal();
     try {
@@ -77,7 +87,7 @@
       {#each terminals.list as t (t.id)}
         <div class="tab" class:active={t.id === terminals.activeId}>
           <button class="tab-main" title={t.title} onclick={() => setActiveTerminal(t.id)}>
-            <Icon name="terminal" size={13} strokeWidth={1.8} />
+            <span class="tic" style="color:{shellColor(t.shell, t.title)}"><Icon name="terminal" size={13} strokeWidth={1.8} /></span>
             <span>{t.title}</span>
           </button>
           <button class="tab-close" title="Chiudi terminale" aria-label="Chiudi terminale" onclick={() => closeTerminal(t.id)}>
@@ -183,6 +193,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .tab-main .tic {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    overflow: visible;
   }
   .tab-close {
     display: grid;

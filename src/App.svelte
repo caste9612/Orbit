@@ -11,12 +11,13 @@
   import QuickOpen from "./lib/components/QuickOpen.svelte";
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal } from "./lib/state/layout.svelte";
   import { listen } from "@tauri-apps/api/event";
-  import { openRoot, openFolderDialog, refreshTree } from "./lib/state/explorer.svelte";
+  import { openFolderDialog, refreshTree } from "./lib/state/explorer.svelte";
   import { openFile, saveActive, reloadOpenFiles } from "./lib/state/workspace.svelte";
   import { setQuery } from "./lib/state/search.svelte";
   import { refreshStatus } from "./lib/state/git.svelte";
   import { quickopen, openPalette } from "./lib/state/quickopen.svelte";
   import { loadRunConfig } from "./lib/state/run.svelte";
+  import { loadShelf } from "./lib/state/shelf.svelte";
   import { loadSession, startAutosave } from "./lib/state/persist.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
@@ -36,14 +37,16 @@
       refreshStatus();
       reloadOpenFiles();
       loadRunConfig(); // ricarica il menu Esegui se Claude tocca .orbit/run.json
+      loadShelf(); // ricarica lo scaffale se Claude tocca .orbit/shelf.json
     });
     try {
       const s = await invoke<{ dir: string | null; file: string | null; search: string | null }>(
         "startup",
       );
       if (s.dir) {
-        // avvio esplicito (arg CLI / env): la cartella richiesta vince sulla sessione
-        await openRoot(s.dir);
+        // avvio esplicito (arg CLI / env, es. "Nuova finestra"): apre quella cartella
+        // ripristinandone la sessione (tab/layout) se esiste, altrimenti fresca
+        await loadSession(s.dir);
         if (s.file) await openFile(s.file);
         if (s.search) {
           layout.sidebarView = "search";

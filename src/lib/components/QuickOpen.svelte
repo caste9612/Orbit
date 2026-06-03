@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { fade } from "svelte/transition";
   import Icon from "./Icon.svelte";
   import { quickopen, setQuery, move, choose, closePalette } from "../state/quickopen.svelte";
   import { fileIcon } from "../util";
@@ -40,7 +41,7 @@
 <!-- backdrop: click fuori chiude -->
 <button class="backdrop" aria-label="Chiudi" onclick={closePalette}></button>
 
-<div class="palette" role="dialog" aria-label="Apri file">
+<div class="palette" role="dialog" aria-label="Apri file" transition:fade={{ duration: 80 }}>
   <div class="field">
     <Icon name="search" size={15} strokeWidth={1.8} />
     <!-- svelte-ignore a11y_autofocus -->

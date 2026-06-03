@@ -22,6 +22,9 @@ export const workspace = $state({
   activePath: null as string | null,
 });
 
+/** Posizione del cursore nell'editor attivo (per la status bar). */
+export const editorStatus = $state({ line: 1, col: 1 });
+
 /** File attualmente attivo (reattivo se usato dentro $derived). */
 export function activeFile(): OpenFile | undefined {
   return workspace.openFiles.find((f) => f.path === workspace.activePath);

@@ -311,6 +311,22 @@ pub fn git_log(root: String, limit: usize) -> Result<Vec<CommitInfo>, String> {
     Ok(out)
 }
 
+/// Crea un nuovo branch da HEAD e ci passa sopra (create + switch).
+#[tauri::command]
+pub fn git_create_branch(root: String, name: String) -> Result<(), String> {
+    let repo = open(&root)?;
+    let commit = repo
+        .head()
+        .and_then(|h| h.peel_to_commit())
+        .map_err(|_| "Nessun commit su HEAD: crea prima un commit".to_string())?;
+    repo.branch(&name, &commit, false).map_err(|e| e.to_string())?;
+    let refname = format!("refs/heads/{}", name);
+    let obj = repo.revparse_single(&refname).map_err(|e| e.to_string())?;
+    repo.checkout_tree(&obj, None).map_err(|e| e.to_string())?;
+    repo.set_head(&refname).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// Patch (diff vs primo genitore) di un commit, per la vista di dettaglio.
 #[tauri::command]
 pub fn git_show(root: String, id: String) -> Result<String, String> {

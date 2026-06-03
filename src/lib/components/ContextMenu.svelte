@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { scale } from "svelte/transition";
   import Icon from "./Icon.svelte";
 
   export interface MenuItem {
@@ -38,7 +39,7 @@
 <!-- backdrop trasparente: un click fuori chiude il menu -->
 <button class="backdrop" aria-label="Chiudi menu" onpointerdown={onClose} oncontextmenu={(e) => { e.preventDefault(); onClose(); }}></button>
 
-<div class="menu" style="left:{left}px; top:{top}px; width:{W}px" role="menu">
+<div class="menu" style="left:{left}px; top:{top}px; width:{W}px" role="menu" transition:scale={{ duration: 90, start: 0.97, opacity: 0.3 }}>
   {#each items as item (item.label)}
     {#if item.separatorBefore}<div class="sep"></div>{/if}
     <button class="item" class:danger={item.danger} role="menuitem" onclick={() => pick(item)}>

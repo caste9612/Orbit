@@ -509,6 +509,105 @@ con comando in esecuzione; "Prepara per Claude" → sezione in CLAUDE.md) da pro
 
 ---
 
+## Milestone 14 — selettore branch (status bar) + istanze multiple + distribuzione
+
+### Selettore branch nella status bar (stile VS Code)
+Il ramo in basso a sinistra è ora **cliccabile**: apre un popup (verso l'alto) con l'elenco
+dei branch locali (`loadBranches`), cambio ramo (`checkout`) e **crea+switch** di un nuovo
+branch. Backend `git_create_branch` (crea da HEAD via `repo.branch` + checkout). Resta
+disponibile anche il selettore nel pannello Git.
+
+### Istanze multiple (entrambe le modalità richieste)
+- `open_new_window` (Rust): lancia una **nuova istanza** (nuovo processo) di `current_exe`,
+  con una cartella opzionale come argomento CLI. Nessun blocco single-instance → avviare
+  l'eseguibile più volte apre istanze indipendenti.
+- Pulsante **Nuova finestra** nella top bar → folder picker → nuova istanza su quella cartella.
+- **Sessioni per-cartella**: `save_state`/`load_state` ora sono *keyed* (file
+  `sessions/<hash-della-cartella>.json`) + puntatore `last_session.txt`. Così due istanze su
+  progetti diversi **non si sovrascrivono** la sessione. Avvio con cartella (arg) → ripristina
+  la sessione di quella cartella, o la apre fresca; avvio "nudo" → ripristina l'ultima usata.
+  (La vecchia `session.json` globale viene ignorata → un reset una-tantum della sessione.)
+- Nota dev: in `tauri dev` una nuova istanza carica `localhost:1420` (serve il dev server
+  attivo); nel portable/installer gli asset sono embedded → funziona standalone.
+
+### Distribuzione (installer + portable)
+`npm run tauri build` (size-optimized) produce:
+- **Portable**: `src-tauri/target/release/lume.exe` — **~5,2 MB**, standalone (richiede WebView2,
+  preinstallato su Win11).
+- **Installer MSI**: `.../bundle/msi/Orbit_0.1.0_x64_en-US.msi` — ~3,7 MB.
+- **Installer NSIS**: `.../bundle/nsis/Orbit_0.1.0_x64-setup.exe` — ~2,5 MB.
+
+Zero dipendenze nuove. Verifica: `svelte-check` 0/0; `cargo check` pulito.
+
+---
+
+## Milestone 15 — "Scaffale": cartelle messe da parte per categoria
+
+Orbit mostra tutto l'albero (a differenza di VS che vede solo la "soluzione"); lo Scaffale è
+il complemento opt-in per togliere il rumore senza perderlo. Decisioni utente: **sezione in
+fondo all'Esplora**, cartelle marcate **raggruppate in fondo** (rimosse dall'albero
+principale), **sfogliabili inline** con un mini-albero.
+
+- **Marcatura**: tasto destro su una cartella → "Metti nello scaffale…" → `ShelfPicker`
+  (popup) per assegnare/togliere **una o più categorie** o crearne di nuove. Una cartella può
+  stare in più categorie.
+- **Stato** (`shelf.svelte.ts`): mappa `relPath → [categorie]`; `relOf`/`isHidden`,
+  `shelveFolder`/`unshelve*`, `byCategory`. Persistito in **`.orbit/shelf.json`**
+  (per-progetto, committabile, modificabile anche da Claude). Riusa `read_file`/`write_file`/
+  `create_dir`; ricaricato all'apertura cartella e **live dal watcher**.
+- **Albero pulito**: l'Esplora filtra le cartelle nello scaffale (e i loro discendenti).
+- **Sezione Scaffale** (in fondo all'Esplora): categorie comprimibili → cartelle; cliccando
+  una cartella si apre un **mini-albero inline** (`MiniTree.svelte`, ricorsivo e lazy) per
+  navigarne i file senza sporcare l'albero. Tasto destro su una voce → di nuovo il picker
+  (ricategorizza / togli).
+- **Scorciatoia**: tasto destro sull'area vuota → "Metti via cartelle rumore"
+  (`node_modules`, `target`, `dist`, `.git`) nella categoria *Generato* con un click.
+
+**Zero dipendenze e zero comandi Rust nuovi.** Verifica: `svelte-check` 0/0; HMR applicato in
+dev senza errori. Runtime end-to-end (marca → sparisce dall'albero e compare in fondo → sfoglia
+inline → togli) da confermare nell'uso.
+
+---
+
+## Milestone 16 — rifinitura grafica (IDE + terminale)
+
+Quattro gruppi di miglioramenti estetici, a gate invariati.
+
+### IDE — polish
+- **Status bar reale**: i valori finti (`Spazi: 2 · UTF-8 · LF · Testo semplice`) sono
+  sostituiti da dati veri — **Ln/Col** del cursore (l'editor li riporta via `onCursor` →
+  `editorStatus`), **linguaggio** (`langLabel`), **fine-riga** (LF/CRLF dal contenuto), UTF-8.
+- **Barra-accento a sinistra** sulla riga attiva dell'albero (`box-shadow inset`).
+- **Micro-transizioni**: `scale` sui menu (`ContextMenu`, `ShelfPicker`), `fade` su quick-open
+  e popup branch; transizione di sfondo sulle righe dell'albero. (`svelte/transition`, zero dip.)
+
+### Editor — leggibilità
+- **Indent guides** custom (`editor/indentGuides.ts`): un `ViewPlugin` che disegna righe
+  verticali di indentazione via background ritagliato, **zero dipendenze** (niente plugin
+  esterni).
+- **Breadcrumb** del file aperto sopra l'editor (percorso relativo a segmenti, con icona).
+
+### Terminale — companion
+- **Percorsi cliccabili**: `registerLinkProvider` rileva token tipo `src/App.svelte:12`
+  nell'output e li rende cliccabili → apre il file alla riga. Quando Claude scrive "ho
+  modificato X", ci clicchi e lo apri. (Disattivato nel terminale flottante, che non ha editor.)
+
+### Terminale — resa & coerenza
+- **Renderer WebGL** (`@xterm/addon-webgl`): testo più nitido e veloce; `try/catch` con
+  fallback automatico al renderer DOM se la GPU/webview non lo supporta.
+- **Palette ANSI** allineata alla sintassi dell'editor e **sfondo = editor `#1e1e1e`** (prima
+  `#14171c`, scollegato).
+- **Icona shell colorata per tab** (PowerShell blu, cmd grigio, bash/git verde, WSL viola).
+
+**Dipendenza aggiunta**: `@xterm/addon-webgl@^0.19` (la 0.18 ha peer su xterm 5 → conflitto con
+xterm 6; la 0.19 non ha vincoli di peer). Unica dip della milestone.
+
+Verifica: `svelte-check` 161 file 0/0; HMR in dev ok (Vite ha ottimizzato la nuova dip e
+ricaricato). Runtime end-to-end (guide visibili, breadcrumb, status bar viva, path cliccabili,
+testo WebGL nitido) da confermare nell'uso.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

@@ -23,6 +23,7 @@
   } from "@codemirror/language";
   import { languages } from "@codemirror/language-data";
   import { lumeTheme, lumeHighlight } from "../editor/theme";
+  import { indentGuides } from "../editor/indentGuides";
   import { basename } from "../util";
 
   interface Props {
@@ -34,6 +35,7 @@
     onChange: (doc: string) => void;
     onSave: () => void;
     onGotoHandled?: () => void;
+    onCursor?: (line: number, col: number) => void;
   }
   let {
     doc,
@@ -44,6 +46,7 @@
     onChange,
     onSave,
     onGotoHandled,
+    onCursor,
   }: Props = $props();
 
   let host: HTMLDivElement;
@@ -67,6 +70,7 @@
         highlightActiveLine(),
         highlightSelectionMatches(),
         search({ top: true }),
+        indentGuides,
         indentUnit.of("  "),
         langConf.of([]),
         syntaxHighlighting(lumeHighlight),
@@ -90,11 +94,17 @@
         ]),
         EditorView.updateListener.of((u) => {
           if (u.docChanged && !applyingExternal) onChange(u.state.doc.toString());
+          if ((u.docChanged || u.selectionSet) && onCursor) {
+            const head = u.state.selection.main.head;
+            const line = u.state.doc.lineAt(head);
+            onCursor(line.number, head - line.from + 1);
+          }
         }),
       ],
     });
     view = new EditorView({ state, parent: host });
     view.focus();
+    onCursor?.(1, 1); // posizione iniziale del cursore
     void loadLanguage();
     return () => view?.destroy();
   });

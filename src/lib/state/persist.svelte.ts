@@ -39,19 +39,32 @@ function serialize(): string {
   return JSON.stringify(data);
 }
 
-/** Ripristina l'ultima sessione salvata. Ritorna true se ha riaperto una cartella. */
-export async function loadSession(): Promise<boolean> {
-  let raw: string | null;
+/** Ripristina una sessione. Con `rootHint` carica quella della cartella indicata (e la
+ *  apre comunque se non c'è sessione salvata); senza, ripristina l'ultima cartella usata.
+ *  Sessioni keyed per-cartella → due istanze su progetti diversi non si sovrascrivono. */
+export async function loadSession(rootHint?: string): Promise<boolean> {
+  let raw: string | null = null;
   try {
-    raw = await invoke<string | null>("load_state");
+    raw = await invoke<string | null>("load_state", { key: rootHint ?? null });
   } catch {
+    raw = null;
+  }
+  if (!raw) {
+    if (rootHint) {
+      try {
+        await openRoot(rootHint);
+        return true;
+      } catch {
+        return false;
+      }
+    }
     return false;
   }
-  if (!raw) return false;
   let s: Session;
   try {
     s = JSON.parse(raw);
   } catch {
+    if (rootHint) await openRoot(rootHint).catch(() => {});
     return false;
   }
 
@@ -63,9 +76,10 @@ export async function loadSession(): Promise<boolean> {
     layout.terminalWidth = s.layout.terminalWidth ?? layout.terminalWidth;
   }
 
-  if (!s.root) return false;
+  const root = s.root ?? rootHint ?? null;
+  if (!root) return false;
   try {
-    await openRoot(s.root);
+    await openRoot(root);
   } catch {
     return false;
   }
@@ -76,15 +90,18 @@ export async function loadSession(): Promise<boolean> {
   return true;
 }
 
-/** Attiva il salvataggio automatico (debounced) a ogni cambio di sessione/layout. */
+/** Attiva il salvataggio automatico (debounced) a ogni cambio di sessione/layout.
+ *  La sessione è salvata sotto chiave = cartella aperta (per le istanze multiple). */
 export function startAutosave() {
   $effect.root(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     $effect(() => {
+      const root = workspace.rootPath; // dipendenza + chiave
       const data = serialize(); // legge i campi reattivi → dipendenze tracciate
+      if (!root) return; // niente cartella aperta → niente da persistere
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
-        void invoke("save_state", { data }).catch((e) => console.error("save_state", e));
+        void invoke("save_state", { key: root, data }).catch((e) => console.error("save_state", e));
       }, 400);
     });
   });

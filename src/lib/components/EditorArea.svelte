@@ -5,6 +5,7 @@
   import { fileIcon } from "../util";
   import {
     workspace,
+    editorStatus,
     activeFile,
     setActive,
     closeFile,
@@ -13,6 +14,17 @@
   } from "../state/workspace.svelte";
 
   let active = $derived(activeFile());
+
+  // segmenti del percorso (relativo alla radice) per il breadcrumb
+  function crumbs(path: string): string[] {
+    const root = workspace.rootPath;
+    let rel = path.replace(/\\/g, "/");
+    if (root) {
+      const r = root.replace(/\\/g, "/").replace(/\/+$/, "");
+      if (rel.startsWith(r + "/")) rel = rel.slice(r.length + 1);
+    }
+    return rel.split("/").filter(Boolean);
+  }
 </script>
 
 <section class="editor-area">
@@ -37,6 +49,24 @@
   </div>
 
   {#if active}
+    {#if active.kind === "file"}
+      {@const parts = crumbs(active.path)}
+      <div class="crumbs">
+        {#if workspace.rootName}<span class="crumb dim">{workspace.rootName}</span>{/if}
+        {#each parts as p, i (i)}
+          <span class="csep"><Icon name="chevron-right" size={12} strokeWidth={2} /></span>
+          {#if i === parts.length - 1}
+            {@const fi = fileIcon(p)}
+            <span class="crumb">
+              <span class="cci" style="color:{fi.color}"><Icon name={fi.glyph} size={13} strokeWidth={1.7} /></span>
+              {p}
+            </span>
+          {:else}
+            <span class="crumb dim">{p}</span>
+          {/if}
+        {/each}
+      </div>
+    {/if}
     <div class="surface">
       {#key active.path}
         {#if active.kind === "diff"}
@@ -52,6 +82,10 @@
             onSave={saveActive}
             onGotoHandled={() => {
               if (active) active.gotoLine = null;
+            }}
+            onCursor={(line: number, col: number) => {
+              editorStatus.line = line;
+              editorStatus.col = col;
             }}
           />
         {/if}
@@ -167,6 +201,40 @@
   .close:hover {
     color: var(--color-ink);
     background: var(--color-surface-3);
+  }
+
+  .crumbs {
+    flex: 0 0 auto;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 12px;
+    background: var(--color-surface-1);
+    border-bottom: 1px solid var(--color-line);
+    font-size: 11.5px;
+    color: var(--color-ink-muted);
+    overflow: hidden;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .crumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .crumb.dim {
+    color: var(--color-ink-subtle);
+  }
+  .cci {
+    display: inline-flex;
+    align-items: center;
+  }
+  .csep {
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-ink-subtle);
+    opacity: 0.6;
   }
 
   .surface {

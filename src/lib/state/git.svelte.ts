@@ -101,6 +101,14 @@ export async function checkout(name: string) {
   await refreshStatus();
 }
 
+/** Crea un nuovo branch da HEAD e ci passa sopra. */
+export async function createBranch(name: string) {
+  if (!workspace.rootPath || !name.trim()) return;
+  await invoke("git_create_branch", { root: workspace.rootPath, name: name.trim() });
+  await refreshStatus();
+  await loadBranches();
+}
+
 export async function showDiff(entry: StatusEntry, staged: boolean) {
   if (!workspace.rootPath) return;
   try {

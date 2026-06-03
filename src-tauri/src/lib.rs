@@ -3,7 +3,8 @@ mod pty;
 mod watcher;
 
 use serde::Serialize;
-use std::path::Path;
+use std::hash::{Hash, Hasher};
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 
 // Smoke test IPC (milestone 1).
@@ -262,27 +263,54 @@ fn list_files(root: String) -> Result<Vec<FileRef>, String> {
     Ok(out)
 }
 
-// ---- Persistenza di sessione ------------------------------------------------
-// Un blob JSON (gestito dal frontend) salvato nella config dir dell'app:
-// ultima cartella, tab aperte, tab attiva, dimensioni/visibilità dei pannelli.
+// ---- Persistenza di sessione (per-cartella, per le istanze multiple) ---------
+// Ogni sessione è un blob JSON salvato sotto una chiave = cartella aperta, così due
+// istanze su progetti diversi non si sovrascrivono. Un puntatore "last_session.txt"
+// ricorda l'ultima cartella, per ripristinarla all'avvio senza argomenti.
 
-fn session_path(app: &AppHandle) -> Result<std::path::PathBuf, String> {
-    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
-    Ok(dir.join("session.json"))
+fn session_file(app: &AppHandle, key: &str) -> Result<PathBuf, String> {
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?.join("sessions");
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    key.hash(&mut h);
+    Ok(dir.join(format!("{:016x}.json", h.finish())))
+}
+
+fn last_pointer(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(app.path().app_config_dir().map_err(|e| e.to_string())?.join("last_session.txt"))
+}
+
+/// Carica la sessione per `key` (cartella); senza key usa l'ultima cartella aperta.
+#[tauri::command]
+fn load_state(app: AppHandle, key: Option<String>) -> Option<String> {
+    let resolved = match key {
+        Some(k) => k,
+        None => std::fs::read_to_string(last_pointer(&app).ok()?).ok()?,
+    };
+    std::fs::read_to_string(session_file(&app, &resolved).ok()?).ok()
 }
 
 #[tauri::command]
-fn load_state(app: AppHandle) -> Option<String> {
-    std::fs::read_to_string(session_path(&app).ok()?).ok()
-}
-
-#[tauri::command]
-fn save_state(app: AppHandle, data: String) -> Result<(), String> {
-    let path = session_path(&app)?;
-    if let Some(parent) = path.parent() {
+fn save_state(app: AppHandle, key: String, data: String) -> Result<(), String> {
+    let file = session_file(&app, &key)?;
+    if let Some(parent) = file.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
-    std::fs::write(path, data).map_err(|e| e.to_string())
+    std::fs::write(file, data).map_err(|e| e.to_string())?;
+    let _ = std::fs::write(last_pointer(&app)?, &key); // aggiorna "ultima cartella"
+    Ok(())
+}
+
+/// Apre una nuova istanza dell'app (nuovo processo), opzionalmente su una cartella.
+/// Le istanze sono indipendenti: niente blocco single-instance.
+#[tauri::command]
+fn open_new_window(dir: Option<String>) -> Result<(), String> {
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let mut cmd = std::process::Command::new(exe);
+    if let Some(d) = dir.filter(|d| Path::new(d).is_dir()) {
+        cmd.arg(d);
+    }
+    cmd.spawn().map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -305,6 +333,7 @@ pub fn run() {
             list_files,
             load_state,
             save_state,
+            open_new_window,
             git::git_status,
             git::git_diff,
             git::git_stage,
@@ -315,6 +344,7 @@ pub fn run() {
             git::git_discard,
             git::git_log,
             git::git_show,
+            git::git_create_branch,
             pty::pty_spawn,
             pty::pty_write,
             pty::pty_resize,

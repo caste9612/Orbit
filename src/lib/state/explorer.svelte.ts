@@ -5,6 +5,7 @@ import { basename, dirname, joinPath } from "../util";
 import { workspace, renameOpenPaths, closeUnder } from "./workspace.svelte";
 import { refreshStatus } from "./git.svelte";
 import { loadRunConfig } from "./run.svelte";
+import { loadShelf } from "./shelf.svelte";
 
 export interface FsEntry {
   name: string;
@@ -35,6 +36,7 @@ export async function openRoot(path: string) {
   await invoke("watch_start", { root: path }).catch(() => {});
   void refreshStatus(); // popola le decorazioni git dell'albero senza aprire il pannello
   void loadRunConfig(); // popola il menu Esegui da .orbit/run.json
+  void loadShelf(); // carica le cartelle messe nello scaffale (.orbit/shelf.json)
 }
 
 /** Mostra il folder-picker nativo e apre la cartella scelta. */

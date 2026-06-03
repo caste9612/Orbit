@@ -93,6 +93,25 @@ const BY_EXT: Record<string, FileIcon> = {
   svg: { glyph: "image", color: "#ffb13b" },
 };
 
+// Etichetta del linguaggio per estensione/nome (per la status bar).
+const LANG_BY_EXT: Record<string, string> = {
+  ts: "TypeScript", mts: "TypeScript", cts: "TypeScript", tsx: "TypeScript React",
+  js: "JavaScript", mjs: "JavaScript", cjs: "JavaScript", jsx: "JavaScript React",
+  svelte: "Svelte", vue: "Vue", rs: "Rust", py: "Python", go: "Go", rb: "Ruby",
+  php: "PHP", java: "Java", c: "C", h: "C", cpp: "C++", hpp: "C++", cs: "C#",
+  json: "JSON", jsonc: "JSON", html: "HTML", htm: "HTML", xml: "XML",
+  css: "CSS", scss: "SCSS", sass: "Sass", less: "Less", md: "Markdown", markdown: "Markdown",
+  toml: "TOML", yaml: "YAML", yml: "YAML", ini: "INI", sh: "Shell", bash: "Shell",
+  ps1: "PowerShell", sql: "SQL", txt: "Testo", svg: "SVG",
+};
+
+/** Nome del linguaggio per un file (fallback "Testo"). */
+export function langLabel(name: string): string {
+  const lower = name.toLowerCase();
+  const ext = lower.includes(".") ? lower.slice(lower.lastIndexOf(".") + 1) : "";
+  return LANG_BY_EXT[ext] ?? "Testo";
+}
+
 /** Tempo relativo compatto in italiano (es. "5 min fa", "2 h fa", "3 g fa"). */
 export function relativeTime(unixSeconds: number): string {
   const diff = Date.now() / 1000 - unixSeconds;

@@ -8,6 +8,8 @@ cross-platform desktop app that weighs almost nothing.
 > It is the calm editor you keep next to Claude Code: it shows you everything, stays out of the
 > way, and starts instantly.
 
+![Orbit — a lightweight IDE, companion for Claude Code](docs/screenshot.png)
+
 ---
 
 ## Why Orbit

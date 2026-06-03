@@ -5,7 +5,7 @@
   import SearchView from "./SearchView.svelte";
   import { layout } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
-  import { openFolderDialog } from "../state/explorer.svelte";
+  import { openFolderDialog, startCreate } from "../state/explorer.svelte";
 
   const titles: Record<string, string> = {
     explorer: "Esplora risorse",
@@ -23,9 +23,17 @@
   <header class="head">
     <span class="title">{title}</span>
     {#if layout.sidebarView === "explorer" && workspace.rootPath}
-      <button class="act" title="Apri un'altra cartella" aria-label="Apri un'altra cartella" onclick={openFolderDialog}>
-        <Icon name="folder-open" size={15} strokeWidth={1.7} />
-      </button>
+      <div class="acts">
+        <button class="act" title="Nuovo file" aria-label="Nuovo file" onclick={() => startCreate(workspace.rootPath!, "file")}>
+          <Icon name="file-plus" size={15} strokeWidth={1.7} />
+        </button>
+        <button class="act" title="Nuova cartella" aria-label="Nuova cartella" onclick={() => startCreate(workspace.rootPath!, "dir")}>
+          <Icon name="folder-plus" size={15} strokeWidth={1.7} />
+        </button>
+        <button class="act" title="Apri un'altra cartella" aria-label="Apri un'altra cartella" onclick={openFolderDialog}>
+          <Icon name="folder-open" size={15} strokeWidth={1.7} />
+        </button>
+      </div>
     {/if}
   </header>
 
@@ -89,6 +97,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .acts {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    flex: 0 0 auto;
   }
   .act {
     width: 26px;

@@ -328,6 +328,187 @@ sporca); ricerca (`terminalWidth` → 4 risultati in 3 file con evidenziazione);
 
 ---
 
+## Milestone 9 — produttività (gestione file, persistenza, find/replace, quick-open)
+
+Primo gruppo di "table-stakes" per l'uso quotidiano dell'IDE.
+
+### Gestione file dall'albero
+Backend (`lib.rs`, solo `std::fs`, **zero dipendenze**): `create_file` (errore se
+esiste, crea i genitori), `create_dir`, `rename_path` (rifiuta se la destinazione
+esiste), `delete_path` (file o cartella ricorsiva).
+Frontend: menu contestuale riusabile (`ContextMenu.svelte`) sull'albero (tasto destro
+su file/cartella o su area vuota = radice) con **Nuovo file/cartella, Rinomina, Elimina,
+Copia percorso**; più i pulsanti nuovo-file/nuova-cartella nell'header della vista Esplora.
+Crea/rinomina avvengono con **input inline** dentro l'albero (la riga di input è iniettata
+nella lista virtuale dopo la cartella target, così la virtualizzazione resta coerente).
+L'eliminazione chiede conferma (dialog nativo) e chiude le tab interessate; il rename
+riallinea i percorsi delle tab aperte (anche per i file sotto una cartella rinominata).
+L'albero e lo stato git si aggiornano da soli (file watcher) e vengono comunque
+rinfrescati subito. Eliminazione **definitiva** (non nel cestino): un crate `trash` è una
+possibile evoluzione di sicurezza, per ora evitato per il gate dipendenze.
+Permesso capability aggiunto: `dialog:allow-confirm` (conferma eliminazione).
+
+### Persistenza di sessione
+Backend: `save_state`/`load_state` scrivono un blob JSON in `app_config_dir()/session.json`
+(via `tauri::Manager::path()`, **zero dipendenze**). Il frontend (`persist.svelte.ts`)
+serializza ultima cartella, tab aperte, tab attiva e stato pannelli (vista sidebar,
+visibilità e larghezze di sidebar/terminale). `startAutosave()` salva in modo **debounced**
+(400ms) via un `$effect.root` che traccia i campi reattivi; il ripristino avviene all'avvio
+solo se non c'è un avvio esplicito (`LUME_DIR`/arg CLI vincono). Il file di sessione vive
+fuori dalla cartella di progetto → nessun loop col watcher.
+
+### Find/replace nell'editor
+Cablato `@codemirror/search` in `Editor.svelte` (`search({top:true})`,
+`highlightSelectionMatches()`, `...searchKeymap`): **Ctrl+F** apre il pannello cerca,
+con sostituzione, regex e match-case. Pannello stilizzato a tema scuro in `editor/theme.ts`
+(`.cm-panels`, `.cm-textfield`, `.cm-button`). Prima Ctrl+F non faceva nulla.
+
+### Quick-open (Ctrl+P)
+Backend: `list_files` (stesso walk/esclusioni della ricerca, cap 20000, **zero dipendenze**).
+Frontend: `quickopen.svelte.ts` (ranking fuzzy: substring nel nome file > nel path >
+sottosequenza) + `QuickOpen.svelte` (overlay con input, navigazione frecce/Invio/Esc).
+**Ctrl+P** apre la palette; l'elenco file è caricato all'apertura.
+
+### Dipendenze e verifica
+Unica dipendenza aggiunta: **`@codemirror/search`** (feature editor, in linea col brief;
+nucleo CM6 già presente). Footprint frontend invariato a parte questo pacchetto.
+Verifica: `svelte-check` 0 errori/0 warning; `cargo check` pulito; **`cargo test` — 8 unit
+test** (primi test automatici del progetto) sui comandi filesystem/ricerca, ognuno in una
+cartella temporanea isolata, tutti verdi. La verifica end-to-end runtime (stile delle
+milestone precedenti, con `npm run tauri dev`) resta il passo successivo consigliato.
+
+---
+
+## Milestone 10 — terminali multipli
+
+Tab multiple nel pannello terminale, con scelta della shell (utile come companion:
+una shell con `claude` in esecuzione, un'altra libera per i comandi).
+
+Backend (`pty.rs`, **zero dipendenze**):
+- `pty_spawn` ora accetta una `shell` opzionale (override del programma); senza, usa il
+  default di piattaforma (`LUME_SHELL`/PowerShell/`$SHELL`).
+- `list_shells`: rileva le shell **effettivamente presenti** sul sistema (Windows:
+  PowerShell, pwsh, cmd, Git Bash, WSL; Unix: `$SHELL` + bash/zsh/fish/sh) con probe di
+  esistenza. Helper `which` (Windows) e `shell_label` (Unix) cfg-gated per non lasciare
+  codice morto sull'altra piattaforma.
+
+Frontend:
+- `terminals.svelte.ts`: stato con lista tab + tab attiva; `addTerminal(shell?)`,
+  `closeTerminal` (uccide il PTY), `ensureTerminal`.
+- `TerminalPanel`: barra con tab (titolo + chiudi), pulsante **+** (terminale default) e
+  **caret** che apre il selettore shell (riusa `ContextMenu`). I terminali restano **tutti
+  montati**, con sola visibilità CSS → scrollback e shell si conservano cambiando tab.
+- `Terminal`: nuove prop `shell` e `active` (al diventare attivo rifit + focus) + guard che
+  non ridimensiona il PTY quando la tab è nascosta (dimensioni nulle). Chiudendo l'ultima
+  tab il pannello si nasconde; riaprendolo (Ctrl+`) se ne crea una nuova. La finestra
+  flottante resta un singolo terminale.
+
+Verifica: `svelte-check` 0/0; `cargo check` pulito. Runtime end-to-end (più tab, switch,
+shell diverse) da provare con `npm run tauri dev`.
+
+---
+
+## Milestone 11 — git: discard + cronologia
+
+Completa il pannello git locale con due flussi utili rivedendo ciò che Claude modifica.
+
+Backend (`git.rs`, crate `git2` già presente, **zero dipendenze nuove**):
+- `git_discard`: annulla le modifiche di un file. Untracked → eliminato dal disco (HEAD non
+  lo conosce); tracciato → riportato a HEAD via `checkout_head` con `CheckoutBuilder::force()`
+  sul pathspec (ripristina workdir + index). Distruttivo → conferma lato UI.
+- `git_log`: cronologia da HEAD (revwalk, `Sort::TIME`, cap 100), ritorna id/short/summary/
+  author/time. HEAD unborn → lista vuota.
+- `git_show`: patch di un commit vs primo genitore (`diff_tree_to_tree`), stesso formato di
+  `git_diff`, per la vista di dettaglio.
+
+Frontend:
+- `git.svelte.ts`: stato `view` (changes/history) + `log`; azioni `discardFile` (con dialog
+  di conferma), `loadLog`, `setView`, `showCommit`.
+- `GitPanel.svelte`: toggle **Modifiche / Cronologia**; nelle modifiche ogni file ha ora il
+  pulsante **annulla** (cestino) oltre allo stage; la cronologia elenca i commit (short id
+  accento, summary, autore + tempo relativo via `relativeTime` in `util.ts`) e al click apre
+  il diff del commit in una tab di sola lettura (riusa `openDiff`/`DiffView`).
+- Il pulsante refresh è contestuale alla vista attiva.
+
+Restano fuori (come da gate): operazioni remote (push/pull/fetch) — `git2` è senza
+https/ssh, solo locale.
+
+Verifica: `svelte-check` 0/0; `cargo check` pulito. Runtime end-to-end (discard di un file,
+sfoglia cronologia, apri diff di un commit) da provare con `npm run tauri dev`.
+
+---
+
+## Milestone 12 — startup lazy + decorazioni git (companion)
+
+Due interventi: alleggerire il primo paint e rendere visibile a colpo d'occhio cosa cambia
+sul disco (i file che Claude tocca).
+
+### Ottimizzazione startup (lazy xterm + CodeMirror)
+Il chunk d'ingresso bundlava eager Svelte app + **CodeMirror** + **xterm** (797 KB).
+Introdotti due wrapper, `LazyEditor.svelte` e `LazyTerminal.svelte`, che fanno
+`import()` dinamico del componente pesante; usati da `EditorArea`, `TerminalPanel` e dal
+terminale flottante in `App`. `DiffView` è puro (nessun CM) e resta com'è.
+
+Risultato **misurato** (`npm run build`):
+- chunk d'ingresso **797 KB → 117 KB** (gzip 242 KB → 40 KB, **−85%**);
+- `Editor-*.js` (~354 KB, CodeMirror) caricato solo all'apertura del primo file — la welcome
+  non lo carica affatto;
+- `Terminal-*.js` (~328 KB, xterm) caricato quando il pannello/finestra terminale monta
+  (async, non blocca il primo paint);
+- totale `dist/` invariato (2,29 MB): cambia *cosa* si carica all'avvio, non *quanto*.
+
+### Decorazioni git nell'albero + badge (companion-Claude)
+- `decorations()` (in `git.svelte.ts`) costruisce la mappa path→codice dei file modificati
+  e l'insieme delle cartelle che li contengono. `Explorer` colora il nome dei file con il
+  codice git (M giallo, U/A verde, D rosso) + lettera a destra, e mette un pallino sulle
+  cartelle che contengono modifiche. Aggiornate **live dal watcher**: quando Claude modifica
+  file nel terminale, l'albero si illumina da solo.
+- `refreshStatus()` è ora invocato all'apertura della cartella (`openRoot`), così le
+  decorazioni compaiono senza dover aprire il pannello Git.
+- Badge col numero di file modificati sul pulsante **Git** della top bar (ingresso rapido
+  alla review).
+- Limite noto: se si apre una **sottocartella** di un repo (non la root), i path relativi di
+  git potrebbero non combaciare con quelli dell'albero → decorazioni assenti per quei file.
+
+Verifica: `svelte-check` 0/0; build misurato. Runtime end-to-end (welcome senza CM, terminale
+async, albero che si illumina alle modifiche) da provare con `npm run tauri dev`.
+
+---
+
+## Milestone 13 — configurazioni di esecuzione ("Esegui ▶", loop con Claude)
+
+Pulsante **Esegui** stile IntelliJ: comandi lanciabili con un click, **creati da Claude
+Code**. Il cerchio si chiude perché l'IDE documenta il formato in un file che Claude legge
+da solo. Decisioni utente: insegnare via **CLAUDE.md**, config in **`.orbit/run.json`**,
+esecuzione in **tab del terminale**.
+
+Formato (`.orbit/run.json`):
+```json
+{ "configurations": [ { "name": "Dev", "command": "npm run dev", "cwd": "." } ] }
+```
+
+- **Lettura** (`run.svelte.ts`): legge `.orbit/run.json` via `read_file`; ricaricato
+  all'apertura cartella (`openRoot`) e **live dal watcher** (`.orbit` non è escluso) → quando
+  Claude modifica il file, il menu si aggiorna da solo. Voci invalide scartate.
+- **Esecuzione** (`runConfig`): apre una nuova **tab terminale** col nome della config e ci
+  invia il comando. Modello terminali esteso (`NewTerminal`: shell/title/cwd/initCommand);
+  `Terminal` invia `initCommand` **una sola volta** dopo lo spawn (flag `started` sul
+  TermSession → niente ri-esecuzione al remount del pannello). `cwd` per-terminale.
+- **UI**: pulsante play (verde) nella top bar → menu (`ContextMenu`) con le config + azioni
+  "Apri .orbit/run.json" e "Prepara per Claude (CLAUDE.md)".
+- **Insegna a Claude** (`teachClaude`): crea `.orbit/run.json` se manca e appende una sezione
+  a `CLAUDE.md` (marker `orbit:run-config`, idempotente) che spiega lo schema. Da lì Claude
+  Code sa creare/aggiornare le run config su richiesta dell'utente.
+
+**Zero dipendenze nuove e zero comandi Rust nuovi** (riusa `read_file`/`write_file`/
+`create_dir`). Seedato `.orbit/run.json` di questo repo come demo (Dev/Build/Check/Test).
+
+Verifica: `svelte-check` 0/0 (nessuna modifica Rust). Runtime end-to-end (click play → tab
+con comando in esecuzione; "Prepara per Claude" → sezione in CLAUDE.md) da provare con
+`npm run tauri dev`.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

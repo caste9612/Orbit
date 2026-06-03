@@ -99,6 +99,38 @@ export function setActive(path: string) {
   workspace.activePath = path;
 }
 
+/** Riallinea le tab aperte dopo un rename su disco (di un file o di una cartella). */
+export function renameOpenPaths(oldPath: string, newPath: string) {
+  let activeMoved: string | null = null;
+  for (const f of workspace.openFiles) {
+    if (f.kind !== "file") continue;
+    let next: string | null = null;
+    if (f.path === oldPath) next = newPath;
+    else if (f.path.startsWith(oldPath + "/") || f.path.startsWith(oldPath + "\\")) {
+      next = newPath + f.path.slice(oldPath.length);
+    }
+    if (next) {
+      if (workspace.activePath === f.path) activeMoved = next;
+      f.path = next;
+      f.name = basename(next);
+    }
+  }
+  if (activeMoved) workspace.activePath = activeMoved;
+}
+
+/** Chiude le tab del file eliminato (o dei file sotto la cartella eliminata). */
+export function closeUnder(path: string) {
+  for (const f of [...workspace.openFiles]) {
+    if (
+      f.path === path ||
+      f.path.startsWith(path + "/") ||
+      f.path.startsWith(path + "\\")
+    ) {
+      closeFile(f.path);
+    }
+  }
+}
+
 /** Aggiorna il contenuto in memoria di un file e lo marca come modificato. */
 export function updateContent(path: string, content: string) {
   const f = workspace.openFiles.find((x) => x.path === path);

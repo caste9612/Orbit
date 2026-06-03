@@ -3,12 +3,37 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import Icon from "./Icon.svelte";
   import Logo from "./Logo.svelte";
+  import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
   import { layout, selectView, toggleTerminal } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog } from "../state/explorer.svelte";
+  import { changedCount } from "../state/git.svelte";
+  import { run, runConfig, openConfig, teachClaude } from "../state/run.svelte";
 
   const win = getCurrentWindow();
   let maximized = $state(false);
+  let changed = $derived(changedCount()); // file modificati → badge sul pulsante Git
+
+  let runMenu = $state<{ x: number; y: number } | null>(null);
+  function openRunMenu(e: MouseEvent) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    runMenu = { x: r.left, y: r.bottom + 4 };
+  }
+  function runMenuItems(): MenuItem[] {
+    const items: MenuItem[] = run.configs.map((c) => ({
+      label: c.name,
+      icon: "play",
+      onClick: () => runConfig(c),
+    }));
+    items.push({
+      label: "Apri .orbit/run.json",
+      icon: "braces",
+      separatorBefore: items.length > 0,
+      onClick: openConfig,
+    });
+    items.push({ label: "Prepara per Claude (CLAUDE.md)", icon: "doc", onClick: teachClaude });
+    return items;
+  }
 
   const views = [
     { id: "explorer", icon: "explorer", label: "Esplora" },
@@ -43,6 +68,7 @@
       >
         <Icon name={v.icon} size={15} strokeWidth={1.7} />
         <span>{v.label}</span>
+        {#if v.id === "git" && changed > 0}<span class="badge">{changed}</span>{/if}
       </button>
     {/each}
     <span class="sep"></span>
@@ -66,6 +92,11 @@
   </div>
 
   <div class="actions">
+    {#if workspace.rootName}
+      <button class="view only run" title="Esegui…" aria-label="Esegui" onclick={openRunMenu}>
+        <Icon name="play" size={14} strokeWidth={1.8} />
+      </button>
+    {/if}
     <button class="view only" title="Apri cartella (Ctrl+K)" aria-label="Apri cartella" onclick={openFolderDialog}>
       <Icon name="folder-open" size={15} strokeWidth={1.7} />
     </button>
@@ -86,6 +117,10 @@
     </button>
   </div>
 </header>
+
+{#if runMenu}
+  <ContextMenu x={runMenu.x} y={runMenu.y} items={runMenuItems()} onClose={() => (runMenu = null)} />
+{/if}
 
 <style>
   .topbar {
@@ -140,6 +175,19 @@
     background: rgba(var(--accent-rgb), 0.18);
     color: #cfe5ff;
   }
+  .badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--color-accent);
+    color: #08111f;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1;
+  }
   .sep {
     width: 1px;
     height: 18px;
@@ -172,6 +220,13 @@
     align-items: center;
     gap: 2px;
     padding-right: 4px;
+  }
+  .actions .run {
+    color: var(--color-success);
+  }
+  .actions .run:hover {
+    color: var(--color-success);
+    background: rgba(78, 201, 176, 0.16);
   }
 
   .wctrls {

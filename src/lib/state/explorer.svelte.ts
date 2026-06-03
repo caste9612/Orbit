@@ -1,8 +1,10 @@
 // Albero file: lazy per directory; la UI virtualizza il rendering.
 import { invoke } from "@tauri-apps/api/core";
-import { open } from "@tauri-apps/plugin-dialog";
-import { basename } from "../util";
-import { workspace } from "./workspace.svelte";
+import { open, confirm } from "@tauri-apps/plugin-dialog";
+import { basename, dirname, joinPath } from "../util";
+import { workspace, renameOpenPaths, closeUnder } from "./workspace.svelte";
+import { refreshStatus } from "./git.svelte";
+import { loadRunConfig } from "./run.svelte";
 
 export interface FsEntry {
   name: string;
@@ -31,6 +33,8 @@ export async function openRoot(path: string) {
   const entries = await invoke<FsEntry[]>("read_dir", { path });
   tree.roots = entries.map((e) => makeNode(e, 0));
   await invoke("watch_start", { root: path }).catch(() => {});
+  void refreshStatus(); // popola le decorazioni git dell'albero senza aprire il pannello
+  void loadRunConfig(); // popola il menu Esegui da .orbit/run.json
 }
 
 /** Mostra il folder-picker nativo e apre la cartella scelta. */
@@ -103,4 +107,122 @@ async function buildLevel(
     nodes.push(node);
   }
   return nodes;
+}
+
+function findNode(nodes: TreeNode[], path: string): TreeNode | undefined {
+  for (const n of nodes) {
+    if (n.entry.path === path) return n;
+    if (n.children.length) {
+      const f = findNode(n.children, path);
+      if (f) return f;
+    }
+  }
+  return undefined;
+}
+
+// ---- Gestione file: editing inline (crea/rinomina) + elimina ----------------
+// L'albero si aggiorna via watcher; rinfreschiamo anche subito per reattività.
+
+export const edit = $state({
+  active: false,
+  mode: "create" as "create" | "rename",
+  kind: "file" as "file" | "dir",
+  dir: "", // cartella in cui si crea / che contiene l'elemento rinominato
+  target: null as string | null, // path dell'elemento in rinomina
+  value: "",
+  error: null as string | null,
+});
+
+/** Avvia la creazione di un file/cartella dentro `dir` (espandendola se serve). */
+export async function startCreate(dir: string, kind: "file" | "dir") {
+  if (dir !== workspace.rootPath) {
+    const node = findNode(tree.roots, dir);
+    if (node) {
+      node.expanded = true;
+      if (!node.loaded) await loadChildren(node);
+    }
+  }
+  edit.active = true;
+  edit.mode = "create";
+  edit.kind = kind;
+  edit.dir = dir;
+  edit.target = null;
+  edit.value = "";
+  edit.error = null;
+}
+
+/** Avvia la rinomina di un elemento esistente. */
+export function startRename(path: string, name: string, isDir: boolean) {
+  edit.active = true;
+  edit.mode = "rename";
+  edit.kind = isDir ? "dir" : "file";
+  edit.dir = dirname(path);
+  edit.target = path;
+  edit.value = name;
+  edit.error = null;
+}
+
+export function cancelEdit() {
+  edit.active = false;
+  edit.error = null;
+}
+
+/** Conferma l'editing inline: crea o rinomina su disco, poi aggiorna albero e git. */
+export async function commitEdit() {
+  const name = edit.value.trim();
+  if (!edit.active) return;
+  if (!name) {
+    cancelEdit();
+    return;
+  }
+  if (/[\\/]/.test(name)) {
+    edit.error = "Il nome non può contenere separatori di percorso";
+    return;
+  }
+  try {
+    if (edit.mode === "create") {
+      const path = joinPath(edit.dir, name);
+      await invoke(edit.kind === "dir" ? "create_dir" : "create_file", { path });
+    } else if (edit.target) {
+      if (name === basename(edit.target)) {
+        cancelEdit();
+        return;
+      }
+      const to = joinPath(dirname(edit.target), name);
+      await invoke("rename_path", { from: edit.target, to });
+      renameOpenPaths(edit.target, to);
+    }
+    edit.active = false;
+    edit.error = null;
+    await refreshTree();
+    await refreshStatus();
+  } catch (e) {
+    edit.error = String(e);
+  }
+}
+
+/** Elimina un file/cartella (con conferma), chiude le tab interessate e aggiorna. */
+export async function deleteEntry(path: string, name: string, isDir: boolean) {
+  const ok = await confirm(
+    `Eliminare ${isDir ? "la cartella" : "il file"} "${name}"?${isDir ? " Il contenuto verrà rimosso." : ""}`,
+    { title: "Conferma eliminazione", kind: "warning" },
+  );
+  if (!ok) return;
+  try {
+    await invoke("delete_path", { path });
+    closeUnder(path);
+    await refreshTree();
+    await refreshStatus();
+  } catch (e) {
+    console.error("delete", e);
+  }
+}
+
+/** Copia il percorso assoluto negli appunti (utile per incollarlo in Claude). */
+export async function copyPath(path: string) {
+  try {
+    await navigator.clipboard.writeText(path);
+  } catch (e) {
+    console.error("copy path", e);
+  }
 }

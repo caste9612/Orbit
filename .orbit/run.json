@@ -1,0 +1,9 @@
+{
+  "configurations": [
+    { "name": "Dev (tauri)", "command": "npm run tauri dev", "cwd": "." },
+    { "name": "Dev (frontend)", "command": "npm run dev", "cwd": "." },
+    { "name": "Build frontend", "command": "npm run build", "cwd": "." },
+    { "name": "Type-check", "command": "npm run check", "cwd": "." },
+    { "name": "Test backend", "command": "cargo test --manifest-path src-tauri/Cargo.toml", "cwd": "." }
+  ]
+}

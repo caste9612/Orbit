@@ -11,8 +11,24 @@
     cwd?: string | null;
     /** true = non uccidere il PTY allo smontaggio (es. terminale del pannello principale). */
     persistent?: boolean;
+    /** programma shell da lanciare (assoluto o in PATH); null = default di piattaforma. */
+    shell?: string | null;
+    /** tab attiva: se true rifit + focus (le tab nascoste restano montate). */
+    active?: boolean;
+    /** comando da lanciare all'avvio (run config); inviato una sola volta. */
+    initCommand?: string | null;
+    /** chiamato dopo aver inviato initCommand, così il parent non lo rilancia. */
+    onStart?: () => void;
   }
-  let { id, cwd = null, persistent = false }: Props = $props();
+  let {
+    id,
+    cwd = null,
+    persistent = false,
+    shell = null,
+    active = false,
+    initCommand = null,
+    onStart,
+  }: Props = $props();
 
   // tema xterm coerente con la palette della shell
   const theme = {
@@ -56,6 +72,8 @@
 
   function fitSafe(resize = false) {
     if (!fit || !term || disposed) return;
+    // tab nascosta (display:none) → dimensioni nulle: non rifittare/ridimensionare il PTY
+    if (!host || host.clientWidth < 2 || host.clientHeight < 2) return;
     try {
       fit.fit();
       if (resize) invoke("pty_resize", { id, cols: term.cols, rows: term.rows }).catch(() => {});
@@ -84,12 +102,25 @@
       term?.write("\r\n\x1b[90m· processo terminato ·\x1b[0m\r\n"),
     );
 
-    await invoke("pty_spawn", { id, cols: term.cols, rows: term.rows, cwd });
+    await invoke("pty_spawn", { id, cols: term.cols, rows: term.rows, cwd, shell });
+    // run config: invia il comando una sola volta (il parent azzera initCommand dopo)
+    if (initCommand) {
+      await invoke("pty_write", { id, data: initCommand + "\r" }).catch(() => {});
+      onStart?.();
+    }
     term.onData((d) => invoke("pty_write", { id, data: d }).catch(() => {}));
 
     ro = new ResizeObserver(() => fitSafe(true));
     ro.observe(host);
-    term.focus();
+    if (active) term.focus();
+  });
+
+  // quando la tab diventa attiva (da nascosta a visibile): rifit e porta il focus
+  $effect(() => {
+    if (active && term && !disposed) {
+      fitSafe(true);
+      term.focus();
+    }
   });
 
   onDestroy(() => {

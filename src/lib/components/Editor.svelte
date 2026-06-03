@@ -11,6 +11,7 @@
     highlightSpecialChars,
   } from "@codemirror/view";
   import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+  import { search, searchKeymap, highlightSelectionMatches } from "@codemirror/search";
   import {
     syntaxHighlighting,
     indentOnInput,
@@ -64,6 +65,8 @@
         indentOnInput(),
         bracketMatching(),
         highlightActiveLine(),
+        highlightSelectionMatches(),
+        search({ top: true }),
         indentUnit.of("  "),
         langConf.of([]),
         syntaxHighlighting(lumeHighlight),
@@ -80,6 +83,7 @@
             },
           },
           indentWithTab,
+          ...searchKeymap,
           ...defaultKeymap,
           ...historyKeymap,
           ...foldKeymap,

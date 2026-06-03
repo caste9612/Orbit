@@ -7,13 +7,17 @@
   import TerminalPanel from "./lib/components/TerminalPanel.svelte";
   import StatusBar from "./lib/components/StatusBar.svelte";
   import Splitter from "./lib/components/Splitter.svelte";
-  import Terminal from "./lib/components/Terminal.svelte";
+  import Terminal from "./lib/components/LazyTerminal.svelte";
+  import QuickOpen from "./lib/components/QuickOpen.svelte";
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal } from "./lib/state/layout.svelte";
   import { listen } from "@tauri-apps/api/event";
   import { openRoot, openFolderDialog, refreshTree } from "./lib/state/explorer.svelte";
   import { openFile, saveActive, reloadOpenFiles } from "./lib/state/workspace.svelte";
   import { setQuery } from "./lib/state/search.svelte";
   import { refreshStatus } from "./lib/state/git.svelte";
+  import { quickopen, openPalette } from "./lib/state/quickopen.svelte";
+  import { loadRunConfig } from "./lib/state/run.svelte";
+  import { loadSession, startAutosave } from "./lib/state/persist.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
   // La finestra flottante (label "term-float") mostra solo un terminale a tutta finestra.
@@ -31,21 +35,29 @@
       refreshTree();
       refreshStatus();
       reloadOpenFiles();
+      loadRunConfig(); // ricarica il menu Esegui se Claude tocca .orbit/run.json
     });
     try {
       const s = await invoke<{ dir: string | null; file: string | null; search: string | null }>(
         "startup",
       );
-      if (s.dir) await openRoot(s.dir);
-      if (s.file) await openFile(s.file);
-      if (s.search) {
-        layout.sidebarView = "search";
-        layout.sidebarVisible = true;
-        setQuery(s.search);
+      if (s.dir) {
+        // avvio esplicito (arg CLI / env): la cartella richiesta vince sulla sessione
+        await openRoot(s.dir);
+        if (s.file) await openFile(s.file);
+        if (s.search) {
+          layout.sidebarView = "search";
+          layout.sidebarVisible = true;
+          setQuery(s.search);
+        }
+      } else {
+        // nessun avvio esplicito: ripristina l'ultima sessione
+        await loadSession();
       }
     } catch (e) {
       console.error("startup", e);
     }
+    startAutosave(); // d'ora in poi persiste cartella, tab e pannelli
   });
 
   function onKey(e: KeyboardEvent) {
@@ -64,6 +76,10 @@
         e.preventDefault();
         openFolderDialog();
         break;
+      case "p":
+        e.preventDefault();
+        openPalette();
+        break;
       case "s":
         e.preventDefault();
         saveActive();
@@ -76,7 +92,7 @@
 
 {#if isFloatingTerminal}
   <div class="floatwrap">
-    <Terminal id="float" />
+    <Terminal id="float" active />
   </div>
 {:else}
   <div class="shell">
@@ -97,6 +113,10 @@
 
     <StatusBar />
   </div>
+
+  {#if quickopen.open}
+    <QuickOpen />
+  {/if}
 {/if}
 
 <style>

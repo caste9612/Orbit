@@ -11,7 +11,12 @@
     loadBranches,
     checkout,
     showDiff,
+    discardFile,
+    setView,
+    loadLog,
+    showCommit,
   } from "../state/git.svelte";
+  import { relativeTime } from "../util";
 
   let message = $state("");
   let branchOpen = $state(false);
@@ -21,6 +26,11 @@
     refreshStatus();
     loadBranches();
   });
+
+  function doRefresh() {
+    if (git.view === "history") loadLog();
+    else refreshStatus();
+  }
 
   async function doCommit() {
     error = "";
@@ -55,7 +65,7 @@
       <span class="bname">{git.branch ?? "—"}</span>
       <Icon name="chevron-down" size={13} strokeWidth={1.8} />
     </button>
-    <button class="act" class:spin={git.loading} title="Aggiorna stato" aria-label="Aggiorna stato" onclick={refreshStatus}>
+    <button class="act" class:spin={git.loading || git.logLoading} title="Aggiorna" aria-label="Aggiorna" onclick={doRefresh}>
       <Icon name="refresh" size={14} strokeWidth={1.7} />
     </button>
 
@@ -74,6 +84,12 @@
     {/if}
   </div>
 
+  <div class="viewtabs">
+    <button class="vtab" class:on={git.view === "changes"} onclick={() => setView("changes")}>Modifiche</button>
+    <button class="vtab" class:on={git.view === "history"} onclick={() => setView("history")}>Cronologia</button>
+  </div>
+
+  {#if git.view === "changes"}
   <div class="commitbox">
     <textarea
       bind:value={message}
@@ -128,6 +144,9 @@
             <span class="code" class:untracked={e.unstaged === "U"}>{e.unstaged}</span>
             <span class="t">{e.path}</span>
           </button>
+          <button class="fileact" title="Annulla modifiche" aria-label="Annulla modifiche" onclick={() => discardFile(e)}>
+            <Icon name="trash" size={13} strokeWidth={1.8} />
+          </button>
           <button class="fileact" title="Aggiungi allo stage" aria-label="Stage" onclick={() => stage(e.path)}>
             <Icon name="plus" size={15} strokeWidth={2} />
           </button>
@@ -135,6 +154,25 @@
       {/each}
     </div>
   </div>
+  {:else}
+  <div class="lists">
+    {#if git.logLoading && git.log.length === 0}
+      <div class="clean">Caricamento cronologia…</div>
+    {:else if git.log.length === 0}
+      <div class="clean">Nessun commit.</div>
+    {:else}
+      {#each git.log as c (c.id)}
+        <button class="commit" onclick={() => showCommit(c)} title={c.summary}>
+          <span class="cid">{c.short}</span>
+          <span class="cmain">
+            <span class="csum">{c.summary || "(senza messaggio)"}</span>
+            <span class="cmeta">{c.author}{c.author ? " · " : ""}{relativeTime(c.time)}</span>
+          </span>
+        </button>
+      {/each}
+    {/if}
+  </div>
+  {/if}
 </div>
 
 <style>
@@ -389,5 +427,70 @@
   .fileact:hover {
     background: var(--color-surface-4);
     color: var(--color-ink);
+  }
+
+  .viewtabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 8px 6px;
+    border-bottom: 1px solid var(--color-line);
+  }
+  .vtab {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    color: var(--color-ink-muted);
+    font-size: 12px;
+    padding: 5px 0 6px;
+    cursor: pointer;
+  }
+  .vtab:hover {
+    color: var(--color-ink);
+  }
+  .vtab.on {
+    color: var(--color-ink);
+    border-bottom-color: var(--color-accent);
+  }
+
+  .commit {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    padding: 5px 12px;
+    cursor: pointer;
+  }
+  .commit:hover {
+    background: var(--color-surface-3);
+  }
+  .cid {
+    flex: 0 0 auto;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-accent);
+  }
+  .cmain {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .csum {
+    font-size: 12.5px;
+    color: var(--color-ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cmeta {
+    font-size: 11px;
+    color: var(--color-ink-subtle);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 </style>

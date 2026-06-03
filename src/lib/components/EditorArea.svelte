@@ -1,6 +1,6 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
-  import Editor from "./Editor.svelte";
+  import Editor from "./LazyEditor.svelte";
   import DiffView from "./DiffView.svelte";
   import { fileIcon } from "../util";
   import {
@@ -48,7 +48,7 @@
             readonly={active.readonly}
             rev={active.rev}
             gotoLine={active.gotoLine}
-            onChange={(c) => updateContent(active.path, c)}
+            onChange={(c: string) => updateContent(active.path, c)}
             onSave={saveActive}
             onGotoHandled={() => {
               if (active) active.gotoLine = null;

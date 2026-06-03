@@ -35,6 +35,71 @@ fn default_shell() -> CommandBuilder {
     }
 }
 
+/// Etichetta breve di una shell dal suo percorso (es. ".../bash.exe" -> "bash").
+#[cfg(not(windows))]
+fn shell_label(path: &str) -> String {
+    std::path::Path::new(path)
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_else(|| path.to_string())
+}
+
+/// Cerca un eseguibile nelle directory di PATH (program include già l'estensione su Windows).
+#[cfg(windows)]
+fn which(program: &str) -> Option<String> {
+    let path = std::env::var_os("PATH")?;
+    for dir in std::env::split_paths(&path) {
+        let cand = dir.join(program);
+        if cand.is_file() {
+            return Some(cand.to_string_lossy().into_owned());
+        }
+    }
+    None
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShellInfo {
+    label: String,
+    program: String,
+}
+
+/// Shell disponibili sul sistema (per il selettore "nuovo terminale"). Solo quelle
+/// effettivamente presenti, così non si tenta di lanciare un programma inesistente.
+#[tauri::command]
+pub fn list_shells() -> Vec<ShellInfo> {
+    let mut out: Vec<ShellInfo> = Vec::new();
+    #[cfg(windows)]
+    {
+        out.push(ShellInfo { label: "PowerShell".into(), program: "powershell.exe".into() });
+        if let Some(p) = which("pwsh.exe") {
+            out.push(ShellInfo { label: "PowerShell 7".into(), program: p });
+        }
+        out.push(ShellInfo { label: "Prompt dei comandi".into(), program: "cmd.exe".into() });
+        let git_bash = r"C:\Program Files\Git\bin\bash.exe";
+        if std::path::Path::new(git_bash).exists() {
+            out.push(ShellInfo { label: "Git Bash".into(), program: git_bash.into() });
+        }
+        if which("wsl.exe").is_some() {
+            out.push(ShellInfo { label: "WSL".into(), program: "wsl.exe".into() });
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        if let Ok(sh) = std::env::var("SHELL") {
+            if std::path::Path::new(&sh).exists() {
+                out.push(ShellInfo { label: shell_label(&sh), program: sh });
+            }
+        }
+        for cand in ["/bin/bash", "/bin/zsh", "/usr/bin/fish", "/bin/sh"] {
+            if std::path::Path::new(cand).exists() && !out.iter().any(|s| s.program == cand) {
+                out.push(ShellInfo { label: shell_label(cand), program: cand.into() });
+            }
+        }
+    }
+    out
+}
+
 #[tauri::command]
 pub fn pty_spawn(
     app: AppHandle,
@@ -43,6 +108,7 @@ pub fn pty_spawn(
     cols: u16,
     rows: u16,
     cwd: Option<String>,
+    shell: Option<String>,
 ) -> Result<(), String> {
     // idempotente: se la sessione esiste già la teniamo viva (re-attach)
     if state.sessions.lock().unwrap().contains_key(&id) {
@@ -59,7 +125,11 @@ pub fn pty_spawn(
         })
         .map_err(|e| e.to_string())?;
 
-    let mut cmd = default_shell();
+    // shell esplicita (dal selettore) o default di piattaforma
+    let mut cmd = match shell {
+        Some(s) if !s.trim().is_empty() => CommandBuilder::new(s),
+        _ => default_shell(),
+    };
     let dir = cwd
         .filter(|c| std::path::Path::new(c).is_dir())
         .or_else(|| std::env::var("LUME_DIR").ok().filter(|c| std::path::Path::new(c).is_dir()));

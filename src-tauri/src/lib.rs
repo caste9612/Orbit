@@ -4,6 +4,7 @@ mod watcher;
 
 use serde::Serialize;
 use std::path::Path;
+use tauri::{AppHandle, Manager};
 
 // Smoke test IPC (milestone 1).
 #[tauri::command]
@@ -79,6 +80,50 @@ fn read_file(path: String) -> Result<String, String> {
 #[tauri::command]
 fn write_file(path: String, content: String) -> Result<(), String> {
     std::fs::write(&path, content).map_err(|e| e.to_string())
+}
+
+// ---- Gestione file (create / rename / delete) -------------------------------
+// Operazioni su filesystem usate dal menu contestuale dell'albero. Nessuna
+// dipendenza extra: solo std::fs. L'albero si aggiorna da solo via file watcher.
+
+/// Crea un file vuoto (errore se esiste già). Crea i genitori mancanti.
+#[tauri::command]
+fn create_file(path: String) -> Result<(), String> {
+    if let Some(parent) = Path::new(&path).parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Crea una cartella (e i genitori mancanti).
+#[tauri::command]
+fn create_dir(path: String) -> Result<(), String> {
+    std::fs::create_dir_all(&path).map_err(|e| e.to_string())
+}
+
+/// Rinomina/sposta un file o una cartella. Rifiuta se la destinazione esiste.
+#[tauri::command]
+fn rename_path(from: String, to: String) -> Result<(), String> {
+    if Path::new(&to).exists() {
+        return Err("Esiste già un elemento con questo nome".into());
+    }
+    std::fs::rename(&from, &to).map_err(|e| e.to_string())
+}
+
+/// Elimina (definitivamente) un file o una cartella con il suo contenuto.
+#[tauri::command]
+fn delete_path(path: String) -> Result<(), String> {
+    let p = Path::new(&path);
+    if p.is_dir() {
+        std::fs::remove_dir_all(p).map_err(|e| e.to_string())
+    } else {
+        std::fs::remove_file(p).map_err(|e| e.to_string())
+    }
 }
 
 #[derive(Serialize)]
@@ -168,6 +213,78 @@ fn search_in_project(root: String, query: String) -> Result<Vec<FileMatches>, St
     Ok(results)
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FileRef {
+    path: String,
+    rel: String,
+}
+
+/// Elenca tutti i file del progetto (path assoluto + relativo) per il quick-open.
+/// Stesso walk/esclusioni della ricerca; cap alto per restare leggero su repo enormi.
+#[tauri::command]
+fn list_files(root: String) -> Result<Vec<FileRef>, String> {
+    let root_path = Path::new(&root);
+    let mut out: Vec<FileRef> = Vec::new();
+    let mut stack = vec![root_path.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let rd = match std::fs::read_dir(&dir) {
+            Ok(r) => r,
+            Err(_) => continue,
+        };
+        for entry in rd.flatten() {
+            if out.len() >= 20000 {
+                out.sort_by(|a, b| a.rel.cmp(&b.rel));
+                return Ok(out);
+            }
+            let p = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
+            if is_dir {
+                if matches!(name.as_str(), "node_modules" | ".git" | "target" | "dist") {
+                    continue;
+                }
+                stack.push(p);
+            } else {
+                let rel = p
+                    .strip_prefix(root_path)
+                    .unwrap_or(&p)
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                out.push(FileRef {
+                    path: p.to_string_lossy().to_string(),
+                    rel,
+                });
+            }
+        }
+    }
+    out.sort_by(|a, b| a.rel.cmp(&b.rel));
+    Ok(out)
+}
+
+// ---- Persistenza di sessione ------------------------------------------------
+// Un blob JSON (gestito dal frontend) salvato nella config dir dell'app:
+// ultima cartella, tab aperte, tab attiva, dimensioni/visibilità dei pannelli.
+
+fn session_path(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    Ok(dir.join("session.json"))
+}
+
+#[tauri::command]
+fn load_state(app: AppHandle) -> Option<String> {
+    std::fs::read_to_string(session_path(&app).ok()?).ok()
+}
+
+#[tauri::command]
+fn save_state(app: AppHandle, data: String) -> Result<(), String> {
+    let path = session_path(&app)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(path, data).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -180,7 +297,14 @@ pub fn run() {
             read_dir,
             read_file,
             write_file,
+            create_file,
+            create_dir,
+            rename_path,
+            delete_path,
             search_in_project,
+            list_files,
+            load_state,
+            save_state,
             git::git_status,
             git::git_diff,
             git::git_stage,
@@ -188,12 +312,133 @@ pub fn run() {
             git::git_commit,
             git::git_branches,
             git::git_checkout_branch,
+            git::git_discard,
+            git::git_log,
+            git::git_show,
             pty::pty_spawn,
             pty::pty_write,
             pty::pty_resize,
             pty::pty_kill,
+            pty::list_shells,
             watcher::watch_start
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    //! Unit test dei comandi su filesystem (puri, senza runtime Tauri/GUI).
+    //! Ogni test lavora in una cartella temporanea isolata e la ripulisce.
+    use super::*;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+    fn temp_root(tag: &str) -> PathBuf {
+        let n = COUNTER.fetch_add(1, Ordering::SeqCst);
+        let dir = std::env::temp_dir().join(format!("lume_test_{}_{}_{}", std::process::id(), tag, n));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn s(p: &Path) -> String {
+        p.to_string_lossy().to_string()
+    }
+
+    #[test]
+    fn create_file_then_duplicate_errors() {
+        let root = temp_root("create");
+        let f = root.join("a.txt");
+        create_file(s(&f)).unwrap();
+        assert!(f.is_file());
+        assert!(create_file(s(&f)).is_err(), "creare un file esistente deve fallire");
+        fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn create_file_makes_missing_parents() {
+        let root = temp_root("parents");
+        let f = root.join("nested/deep/b.txt");
+        create_file(s(&f)).unwrap();
+        assert!(f.is_file());
+        fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn create_directory_recursive() {
+        let root = temp_root("dir");
+        let d = root.join("sub/inner");
+        create_dir(s(&d)).unwrap();
+        assert!(d.is_dir());
+        fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn rename_moves_and_rejects_existing_target() {
+        let root = temp_root("rename");
+        let a = root.join("a.txt");
+        let b = root.join("b.txt");
+        create_file(s(&a)).unwrap();
+        rename_path(s(&a), s(&b)).unwrap();
+        assert!(!a.exists() && b.is_file());
+        let c = root.join("c.txt");
+        create_file(s(&c)).unwrap();
+        assert!(rename_path(s(&c), s(&b)).is_err(), "rename su destinazione esistente deve fallire");
+        fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn delete_file_and_directory() {
+        let root = temp_root("delete");
+        let f = root.join("x.txt");
+        create_file(s(&f)).unwrap();
+        delete_path(s(&f)).unwrap();
+        assert!(!f.exists());
+        let d = root.join("d");
+        create_file(s(&d.join("inner.txt"))).unwrap();
+        delete_path(s(&d)).unwrap();
+        assert!(!d.exists(), "delete su cartella deve essere ricorsivo");
+        fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn list_files_excludes_noise_and_is_relative() {
+        let root = temp_root("list");
+        create_file(s(&root.join("README.md"))).unwrap();
+        create_file(s(&root.join("src/main.rs"))).unwrap();
+        create_file(s(&root.join("node_modules/pkg/index.js"))).unwrap();
+        create_file(s(&root.join(".git/config"))).unwrap();
+        let files = list_files(s(&root)).unwrap();
+        let rels: Vec<&str> = files.iter().map(|f| f.rel.as_str()).collect();
+        assert!(rels.contains(&"README.md"));
+        assert!(rels.contains(&"src/main.rs"));
+        assert!(!rels.iter().any(|r| r.contains("node_modules")), "node_modules deve essere escluso");
+        assert!(!rels.iter().any(|r| r.starts_with(".git")), ".git deve essere escluso");
+        fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn search_is_case_insensitive_with_line_numbers() {
+        let root = temp_root("search");
+        fs::write(root.join("a.txt"), "Hello World\nsecond TODO line\n").unwrap();
+        let res = search_in_project(s(&root), "todo".into()).unwrap();
+        assert_eq!(res.len(), 1);
+        assert_eq!(res[0].matches.len(), 1);
+        assert_eq!(res[0].matches[0].line, 2, "il match è sulla seconda riga");
+        fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn read_dir_lists_directories_first() {
+        let root = temp_root("readdir");
+        create_file(s(&root.join("zzz.txt"))).unwrap();
+        create_dir(s(&root.join("aaa_dir"))).unwrap();
+        let entries = read_dir(s(&root)).unwrap();
+        assert!(entries[0].is_dir, "le cartelle vengono prima dei file");
+        fs::remove_dir_all(&root).ok();
+    }
 }

@@ -1,6 +1,10 @@
 // Operazioni git locali via libgit2 (crate git2). Ogni comando riapre il repo
 // (semplice, niente stato condiviso da gestire). Tutte le operazioni sono locali.
-use git2::{BranchType, DiffFormat, DiffOptions, ObjectType, Repository, Signature, Status, StatusOptions};
+use git2::build::CheckoutBuilder;
+use git2::{
+    BranchType, DiffFormat, DiffOptions, ObjectType, Oid, Repository, Signature, Sort, Status,
+    StatusOptions,
+};
 use serde::Serialize;
 use std::path::Path;
 
@@ -234,4 +238,103 @@ pub fn git_checkout_branch(root: String, name: String) -> Result<(), String> {
     repo.checkout_tree(&obj, None).map_err(|e| e.to_string())?;
     repo.set_head(&refname).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+/// Annulla le modifiche di un file: gli untracked vengono eliminati, i file tracciati
+/// riportati allo stato di HEAD (workdir + index). Operazione distruttiva (conferma a UI).
+#[tauri::command]
+pub fn git_discard(root: String, path: String) -> Result<(), String> {
+    let repo = open(&root)?;
+    let status = repo.status_file(Path::new(&path)).map_err(|e| e.to_string())?;
+    // untracked puro → rimuovi dal disco (HEAD non lo conosce)
+    if status.contains(Status::WT_NEW) && !status.contains(Status::INDEX_NEW) {
+        if let Some(wd) = repo.workdir() {
+            let full = wd.join(&path);
+            if full.is_dir() {
+                std::fs::remove_dir_all(&full).map_err(|e| e.to_string())?;
+            } else if full.exists() {
+                std::fs::remove_file(&full).map_err(|e| e.to_string())?;
+            }
+        }
+        return Ok(());
+    }
+    // tracciato → ripristina a HEAD per quel path
+    let mut cb = CheckoutBuilder::new();
+    cb.force().path(path.as_str());
+    repo.checkout_head(Some(&mut cb)).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CommitInfo {
+    id: String,
+    short: String,
+    summary: String,
+    author: String,
+    time: i64, // secondi epoch
+}
+
+/// Cronologia dei commit a partire da HEAD (i più recenti prima), fino a `limit`.
+#[tauri::command]
+pub fn git_log(root: String, limit: usize) -> Result<Vec<CommitInfo>, String> {
+    let repo = open(&root)?;
+    let mut rw = repo.revwalk().map_err(|e| e.to_string())?;
+    if rw.push_head().is_err() {
+        return Ok(vec![]); // HEAD unborn: nessun commit
+    }
+    rw.set_sorting(Sort::TIME).map_err(|e| e.to_string())?;
+    let mut out = Vec::new();
+    for oid in rw {
+        if out.len() >= limit {
+            break;
+        }
+        let oid = match oid {
+            Ok(o) => o,
+            Err(_) => continue,
+        };
+        let c = match repo.find_commit(oid) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+        let author = c.author();
+        let id = oid.to_string();
+        let short = id.chars().take(7).collect();
+        out.push(CommitInfo {
+            id,
+            short,
+            summary: c.summary().unwrap_or("").to_string(),
+            author: author.name().unwrap_or("").to_string(),
+            time: c.time().seconds(),
+        });
+    }
+    Ok(out)
+}
+
+/// Patch (diff vs primo genitore) di un commit, per la vista di dettaglio.
+#[tauri::command]
+pub fn git_show(root: String, id: String) -> Result<String, String> {
+    let repo = open(&root)?;
+    let oid = Oid::from_str(&id).map_err(|e| e.to_string())?;
+    let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
+    let tree = commit.tree().map_err(|e| e.to_string())?;
+    let parent_tree = commit.parent(0).ok().and_then(|p| p.tree().ok());
+    let mut opts = DiffOptions::new();
+    let diff = repo
+        .diff_tree_to_tree(parent_tree.as_ref(), Some(&tree), Some(&mut opts))
+        .map_err(|e| e.to_string())?;
+    let mut out = String::new();
+    diff.print(DiffFormat::Patch, |_delta, _hunk, line| {
+        match line.origin() {
+            '+' | '-' | ' ' => out.push(line.origin()),
+            _ => {}
+        }
+        out.push_str(std::str::from_utf8(line.content()).unwrap_or(""));
+        true
+    })
+    .map_err(|e| e.to_string())?;
+    if out.is_empty() {
+        out.push_str("(nessuna differenza)");
+    }
+    Ok(out)
 }

@@ -4,6 +4,18 @@ export function basename(p: string): string {
   return parts[parts.length - 1] || p;
 }
 
+/** Cartella contenitrice di un percorso (mantiene il separatore originale). */
+export function dirname(p: string): string {
+  const i = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
+  return i <= 0 ? p : p.slice(0, i);
+}
+
+/** Unisce un percorso a un nome figlio usando il separatore già presente nel padre. */
+export function joinPath(dir: string, name: string): string {
+  const sep = dir.includes("\\") && !dir.includes("/") ? "\\" : "/";
+  return dir.endsWith(sep) ? dir + name : dir + sep + name;
+}
+
 export interface FileIcon {
   glyph: string;
   color: string;
@@ -80,6 +92,17 @@ const BY_EXT: Record<string, FileIcon> = {
   ico: { glyph: "image", color: "#7aa2f7" },
   svg: { glyph: "image", color: "#ffb13b" },
 };
+
+/** Tempo relativo compatto in italiano (es. "5 min fa", "2 h fa", "3 g fa"). */
+export function relativeTime(unixSeconds: number): string {
+  const diff = Date.now() / 1000 - unixSeconds;
+  if (diff < 60) return "ora";
+  if (diff < 3600) return `${Math.floor(diff / 60)} min fa`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} h fa`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)} g fa`;
+  const d = new Date(unixSeconds * 1000);
+  return d.toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 /** Glifo + colore per un file, in base al nome/estensione. */
 export function fileIcon(name: string): FileIcon {

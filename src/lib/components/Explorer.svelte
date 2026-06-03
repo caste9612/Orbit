@@ -121,20 +121,20 @@
     const my = menu?.y ?? 0;
     const dir = node ? (node.entry.isDir ? node.entry.path : dirname(node.entry.path)) : workspace.rootPath!;
     const items: MenuItem[] = [
-      { label: "Nuovo file…", icon: "file-plus", onClick: () => startCreate(dir, "file") },
-      { label: "Nuova cartella…", icon: "folder-plus", onClick: () => startCreate(dir, "dir") },
+      { label: "New file…", icon: "file-plus", onClick: () => startCreate(dir, "file") },
+      { label: "New folder…", icon: "folder-plus", onClick: () => startCreate(dir, "dir") },
     ];
     if (node) {
       items.push(
-        { label: "Rinomina…", icon: "pencil", separatorBefore: true, onClick: () => startRename(node.entry.path, node.entry.name, node.entry.isDir) },
-        { label: "Elimina", icon: "trash", danger: true, onClick: () => deleteEntry(node.entry.path, node.entry.name, node.entry.isDir) },
+        { label: "Rename…", icon: "pencil", separatorBefore: true, onClick: () => startRename(node.entry.path, node.entry.name, node.entry.isDir) },
+        { label: "Delete", icon: "trash", danger: true, onClick: () => deleteEntry(node.entry.path, node.entry.name, node.entry.isDir) },
       );
       if (node.entry.isDir) {
-        items.push({ label: "Metti nello scaffale…", icon: "archive", separatorBefore: true, onClick: () => (shelfPicker = { x: mx, y: my, absPath: node.entry.path }) });
+        items.push({ label: "Add to shelf…", icon: "archive", separatorBefore: true, onClick: () => (shelfPicker = { x: mx, y: my, absPath: node.entry.path }) });
       }
-      items.push({ label: "Copia percorso", icon: "copy", separatorBefore: !node.entry.isDir, onClick: () => copyPath(node.entry.path) });
+      items.push({ label: "Copy path", icon: "copy", separatorBefore: !node.entry.isDir, onClick: () => copyPath(node.entry.path) });
     } else if (hasNoise) {
-      items.push({ label: "Metti via cartelle rumore", icon: "archive", separatorBefore: true, onClick: shelveNoise });
+      items.push({ label: "Shelve noise folders", icon: "archive", separatorBefore: true, onClick: shelveNoise });
     }
     return items;
   }
@@ -173,7 +173,7 @@
               onkeydown={onInputKey}
               onblur={commitEdit}
               title={edit.error ?? ""}
-              placeholder={edit.kind === "dir" ? "nome cartella" : "nome file"}
+              placeholder={edit.kind === "dir" ? "folder name" : "file name"}
             />
           </div>
         {:else}
@@ -236,7 +236,7 @@
       <button class="shelf-head" onclick={() => (shelfCollapsed = !shelfCollapsed)}>
         <span class="chev" class:open={!shelfCollapsed}><Icon name="chevron-right" size={13} strokeWidth={2} /></span>
         <Icon name="archive" size={13} strokeWidth={1.7} />
-        <span class="shelf-ttl">Scaffale</span>
+        <span class="shelf-ttl">Shelf</span>
         <span class="shelf-count">{shelfCount}</span>
       </button>
       {#if !shelfCollapsed}

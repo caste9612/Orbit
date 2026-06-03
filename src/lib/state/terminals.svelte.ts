@@ -33,7 +33,7 @@ export function addTerminal(opts: NewTerminal = {}): string {
   const id = `term-${counter}`;
   terminals.list.push({
     id,
-    title: opts.title ?? `Terminale ${counter}`,
+    title: opts.title ?? `Terminal ${counter}`,
     shell: opts.shell ?? null,
     cwd: opts.cwd ?? null,
     initCommand: opts.initCommand ?? null,

@@ -56,17 +56,17 @@
 <footer class="statusbar">
   <div class="left">
     <div class="branchwrap">
-      <button class="seg" class:static={!git.isRepo} title="Ramo git — cambia/crea branch" onclick={toggle}>
+      <button class="seg" class:static={!git.isRepo} title="Git branch — switch / create" onclick={toggle}>
         <Icon name="git-branch" size={13} strokeWidth={1.8} />
         <span>{workspace.branch ?? "—"}</span>
       </button>
 
       {#if open}
-        <button class="backdrop" aria-label="Chiudi" onclick={close}></button>
+        <button class="backdrop" aria-label="Close" onclick={close}></button>
         <div class="popup" role="menu" transition:fade={{ duration: 80 }}>
           <div class="phead">Branch</div>
           {#if git.branches.length === 0}
-            <div class="bitem empty">nessun ramo</div>
+            <div class="bitem empty">no branches</div>
           {/if}
           {#each git.branches as b (b)}
             <button class="bitem" class:cur={b === git.branch} role="menuitem" onclick={() => pick(b)}>
@@ -81,7 +81,7 @@
               class="newinput"
               autofocus
               bind:value={newName}
-              placeholder="nome nuovo branch"
+              placeholder="new branch name"
               onkeydown={(e) => {
                 if (e.key === "Enter") doCreate();
                 else if (e.key === "Escape") { creating = false; }
@@ -90,7 +90,7 @@
           {:else}
             <button class="bitem create" onclick={() => (creating = true)}>
               <span class="tick"><Icon name="plus" size={13} strokeWidth={2} /></span>
-              <span class="bn">Crea branch…</span>
+              <span class="bn">Create branch…</span>
             </button>
           {/if}
           {#if error}<div class="err">{error}</div>{/if}
@@ -110,8 +110,8 @@
 
 <style>
   .statusbar {
-    height: 24px;
-    flex: 0 0 24px;
+    height: 22px;
+    flex: 0 0 22px;
     display: flex;
     align-items: center;
     justify-content: space-between;

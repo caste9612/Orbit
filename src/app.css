@@ -38,6 +38,7 @@
 
 /* raggi e ombre (custom props normali: usate in CSS scoped via var()) */
 :root {
+  --color-bg: #16181d; /* sfondo dietro i pannelli "card" (look Visual Studio 2026) */
   --radius-sm: 4px;
   --radius: 6px;
   --radius-lg: 9px;

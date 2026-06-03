@@ -3,14 +3,14 @@
   import Explorer from "./Explorer.svelte";
   import GitPanel from "./GitPanel.svelte";
   import SearchView from "./SearchView.svelte";
-  import { layout } from "../state/layout.svelte";
+  import { layout, setFocusPanel } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog, startCreate } from "../state/explorer.svelte";
 
   const titles: Record<string, string> = {
-    explorer: "Esplora risorse",
-    git: "Controllo sorgente",
-    search: "Cerca",
+    explorer: "Explorer",
+    git: "Source Control",
+    search: "Search",
   };
   let title = $derived(
     layout.sidebarView === "explorer" && workspace.rootName
@@ -19,18 +19,18 @@
   );
 </script>
 
-<aside class="sidebar" style="width:{layout.sidebarWidth}px">
+<aside class="sidebar" class:focused={layout.focusPanel === "sidebar"} style="width:{layout.sidebarWidth}px" onpointerdown={() => setFocusPanel("sidebar")}>
   <header class="head">
     <span class="title">{title}</span>
     {#if layout.sidebarView === "explorer" && workspace.rootPath}
       <div class="acts">
-        <button class="act" title="Nuovo file" aria-label="Nuovo file" onclick={() => startCreate(workspace.rootPath!, "file")}>
+        <button class="act" title="New File" aria-label="New File" onclick={() => startCreate(workspace.rootPath!, "file")}>
           <Icon name="file-plus" size={15} strokeWidth={1.7} />
         </button>
-        <button class="act" title="Nuova cartella" aria-label="Nuova cartella" onclick={() => startCreate(workspace.rootPath!, "dir")}>
+        <button class="act" title="New Folder" aria-label="New Folder" onclick={() => startCreate(workspace.rootPath!, "dir")}>
           <Icon name="folder-plus" size={15} strokeWidth={1.7} />
         </button>
-        <button class="act" title="Apri un'altra cartella" aria-label="Apri un'altra cartella" onclick={openFolderDialog}>
+        <button class="act" title="Open another folder" aria-label="Open another folder" onclick={openFolderDialog}>
           <Icon name="folder-open" size={15} strokeWidth={1.7} />
         </button>
       </div>
@@ -43,10 +43,10 @@
         <Explorer />
       {:else}
         <div class="empty">
-          <p class="muted">Nessuna cartella aperta.</p>
+          <p class="muted">No folder open.</p>
           <button class="primary" onclick={openFolderDialog}>
             <Icon name="folder-open" size={15} strokeWidth={1.7} />
-            Apri cartella…
+            Open folder…
           </button>
         </div>
       {/if}
@@ -55,16 +55,16 @@
         <GitPanel />
       {:else}
         <div class="empty">
-          <p class="muted">Nessun repository git.</p>
-          <p class="hint">Apri prima una cartella.</p>
+          <p class="muted">No git repository.</p>
+          <p class="hint">Open a folder first.</p>
         </div>
       {/if}
     {:else if workspace.rootPath}
       <SearchView />
     {:else}
       <div class="empty">
-        <p class="muted">Cerca nei file</p>
-        <p class="hint">Apri prima una cartella.</p>
+        <p class="muted">Search in files</p>
+        <p class="hint">Open a folder first.</p>
       </div>
     {/if}
   </div>
@@ -79,14 +79,20 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid var(--color-line);
+    transition: border-color 120ms ease;
+  }
+  .sidebar.focused {
+    border-color: var(--color-accent);
   }
   .head {
-    height: 35px;
-    flex: 0 0 35px;
+    height: 30px;
+    flex: 0 0 30px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 6px 0 18px;
+    padding: 0 6px 0 14px;
   }
   .title {
     font-size: 11px;

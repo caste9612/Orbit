@@ -2,7 +2,9 @@
   import Icon from "./Icon.svelte";
   import Editor from "./LazyEditor.svelte";
   import DiffView from "./DiffView.svelte";
+  import { confirm } from "@tauri-apps/plugin-dialog";
   import { fileIcon } from "../util";
+  import { layout, setFocusPanel } from "../state/layout.svelte";
   import {
     workspace,
     editorStatus,
@@ -11,9 +13,33 @@
     closeFile,
     updateContent,
     saveActive,
+    type OpenFile,
   } from "../state/workspace.svelte";
 
   let active = $derived(activeFile());
+
+  // indicatore della tab attiva che "scorre": misura geometria della tab attiva
+  let tabbarEl: HTMLElement | undefined;
+  let ind = $state({ left: 0, width: 0, show: false });
+  $effect(() => {
+    workspace.activePath; // dipendenza
+    workspace.openFiles.length;
+    const el = tabbarEl?.querySelector(".tab.active") as HTMLElement | null;
+    if (el) ind = { left: el.offsetLeft, width: el.offsetWidth, show: true };
+    else ind = { left: 0, width: 0, show: false };
+  });
+
+  // chiusura con conferma se ci sono modifiche non salvate
+  async function tryClose(f: OpenFile) {
+    if (f.dirty && f.kind === "file") {
+      const ok = await confirm(`"${f.name}" has unsaved changes. Close without saving?`, {
+        title: "Unsaved changes",
+        kind: "warning",
+      });
+      if (!ok) return;
+    }
+    closeFile(f.path);
+  }
 
   // segmenti del percorso (relativo alla radice) per il breadcrumb
   function crumbs(path: string): string[] {
@@ -27,8 +53,12 @@
   }
 </script>
 
-<section class="editor-area">
-  <div class="tabbar">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<section class="editor-area" class:focused={layout.focusPanel === "editor"} onpointerdown={() => setFocusPanel("editor")}>
+  <div class="tabbar" bind:this={tabbarEl}>
+    {#if ind.show}
+      <div class="tab-indicator" style="transform:translateX({ind.left}px); width:{ind.width}px"></div>
+    {/if}
     {#each workspace.openFiles as f (f.path)}
       {@const fi = f.kind === "diff" ? { glyph: "git-commit", color: "#a3acb9" } : fileIcon(f.name)}
       <div class="tab" class:active={f.path === workspace.activePath}>
@@ -36,12 +66,12 @@
           <span class="ti" style="color:{fi.color}"><Icon name={fi.glyph} size={14} strokeWidth={1.6} /></span>
           <span class="label">{f.name}</span>
           {#if f.externallyChanged}
-            <span class="dot warn" aria-label="modificato su disco"></span>
+            <span class="dot warn" aria-label="changed on disk"></span>
           {:else if f.dirty}
-            <span class="dot" aria-label="non salvato"></span>
+            <span class="dot" aria-label="unsaved"></span>
           {/if}
         </button>
-        <button type="button" class="close" aria-label="Chiudi {f.name}" onclick={() => closeFile(f.path)}>
+        <button type="button" class="close" aria-label="Close {f.name}" onclick={() => tryClose(f)}>
           <Icon name="x" size={13} strokeWidth={2} />
         </button>
       </div>
@@ -95,11 +125,11 @@
     <div class="surface center">
       <div class="welcome">
         <div class="mark">Orbit</div>
-        <div class="tagline">IDE leggero · companion per Claude Code</div>
+        <div class="tagline">Lightweight IDE · companion for Claude Code</div>
         <ul class="hints">
-          <li><kbd>Ctrl</kbd><kbd>K</kbd><span>Apri cartella</span></li>
-          <li><kbd>Ctrl</kbd><kbd>B</kbd><span>Mostra/nascondi sidebar</span></li>
-          <li><kbd>Ctrl</kbd><kbd>`</kbd><span>Terminale integrato</span></li>
+          <li><kbd>Ctrl</kbd><kbd>K</kbd><span>Open folder</span></li>
+          <li><kbd>Ctrl</kbd><kbd>P</kbd><span>Quick open file</span></li>
+          <li><kbd>Ctrl</kbd><kbd>`</kbd><span>Integrated terminal</span></li>
         </ul>
       </div>
     </div>
@@ -114,17 +144,38 @@
     display: flex;
     flex-direction: column;
     background: var(--color-surface-1);
+    border-radius: 8px;
+    border: 1px solid var(--color-line);
+    overflow: hidden;
+    transition: border-color 120ms ease;
+  }
+  .editor-area.focused {
+    border-color: var(--color-accent);
   }
 
   .tabbar {
-    height: 36px;
-    flex: 0 0 36px;
+    position: relative;
+    height: 32px;
+    flex: 0 0 32px;
     background: var(--color-surface-2);
     border-bottom: 1px solid var(--color-line);
     display: flex;
     align-items: stretch;
     overflow-x: auto;
     overflow-y: hidden;
+  }
+  .tab-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 2px;
+    background: var(--color-accent);
+    border-radius: 0 0 2px 2px;
+    transition:
+      transform 180ms ease,
+      width 180ms ease;
+    pointer-events: none;
+    z-index: 1;
   }
   .tabbar::-webkit-scrollbar {
     height: 0;
@@ -139,7 +190,6 @@
   }
   .tab.active {
     background: var(--color-surface-1);
-    border-top-color: var(--color-accent);
   }
   .sel {
     display: flex;

@@ -9,6 +9,8 @@
   import Splitter from "./lib/components/Splitter.svelte";
   import Terminal from "./lib/components/LazyTerminal.svelte";
   import QuickOpen from "./lib/components/QuickOpen.svelte";
+  import Toaster from "./lib/components/Toaster.svelte";
+  import Settings from "./lib/components/Settings.svelte";
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal } from "./lib/state/layout.svelte";
   import { listen } from "@tauri-apps/api/event";
   import { openFolderDialog, refreshTree } from "./lib/state/explorer.svelte";
@@ -18,6 +20,7 @@
   import { quickopen, openPalette } from "./lib/state/quickopen.svelte";
   import { loadRunConfig } from "./lib/state/run.svelte";
   import { loadShelf } from "./lib/state/shelf.svelte";
+  import { loadSettings, startSettingsAutosave, settingsUI, nudgeFontSize } from "./lib/state/settings.svelte";
   import { loadSession, startAutosave } from "./lib/state/persist.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
@@ -30,7 +33,19 @@
   }
 
   onMount(async () => {
+    loadSettings(); // applica font/dimensione/accento/caret (anche nella finestra flottante)
+    // Ctrl+rotella = zoom del font di editor/terminale (intercetta prima del WebView)
+    window.addEventListener(
+      "wheel",
+      (e) => {
+        if (!e.ctrlKey) return;
+        e.preventDefault();
+        nudgeFontSize(e.deltaY < 0 ? 1 : -1);
+      },
+      { passive: false },
+    );
     if (isFloatingTerminal) return;
+    startSettingsAutosave();
     // aggiornamento in tempo reale: il backend emette fs-changed (debounced)
     listen("fs-changed", () => {
       refreshTree();
@@ -120,6 +135,10 @@
   {#if quickopen.open}
     <QuickOpen />
   {/if}
+  {#if settingsUI.open}
+    <Settings />
+  {/if}
+  <Toaster />
 {/if}
 
 <style>
@@ -134,6 +153,8 @@
     min-height: 0;
     display: flex;
     align-items: stretch;
+    padding: 4px;
+    background: var(--color-bg);
   }
   .floatwrap {
     height: 100%;

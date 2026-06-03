@@ -46,32 +46,33 @@
   .splitter {
     position: relative;
     flex: 0 0 auto;
-    background: var(--color-line);
+    background: transparent;
     z-index: 5;
-    transition: background 80ms ease;
   }
   .splitter.vertical {
-    width: 1px;
+    width: 4px;
     cursor: col-resize;
   }
   .splitter.horizontal {
-    height: 1px;
+    height: 4px;
     cursor: row-resize;
   }
-  /* area di presa più ampia della linea visibile */
+  /* grip centrale: invisibile a riposo (mostra lo sfondo come gap), accento all'hover */
   .splitter::after {
     content: "";
     position: absolute;
-    z-index: 5;
+    border-radius: 2px;
+    background: transparent;
+    transition: background 80ms ease;
   }
   .splitter.vertical::after {
-    inset: 0 -3px;
+    inset: 6px 1px;
   }
   .splitter.horizontal::after {
-    inset: -3px 0;
+    inset: 1px 6px;
   }
-  .splitter:hover,
-  .splitter.dragging {
+  .splitter:hover::after,
+  .splitter.dragging::after {
     background: var(--color-accent);
   }
 </style>

@@ -2,6 +2,7 @@
 // Fonte unica di verità per visibilità e dimensioni dei pannelli.
 
 export type SidebarView = "explorer" | "git" | "search";
+export type FocusPanel = "sidebar" | "editor" | "terminal";
 
 export const layout = $state({
   sidebarView: "explorer" as SidebarView,
@@ -9,7 +10,13 @@ export const layout = $state({
   sidebarWidth: 260,
   terminalVisible: true,
   terminalWidth: 440, // il terminale è docked a destra
+  focusPanel: "editor" as FocusPanel, // pannello con focus (bordo-accento)
 });
+
+/** Segna quale pannello ha il focus (per il bordo-accento). */
+export function setFocusPanel(p: FocusPanel) {
+  layout.focusPanel = p;
+}
 
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 560;

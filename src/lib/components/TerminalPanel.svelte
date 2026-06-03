@@ -5,7 +5,7 @@
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
   import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
   import { invoke } from "@tauri-apps/api/core";
-  import { layout, toggleTerminal } from "../state/layout.svelte";
+  import { layout, toggleTerminal, setFocusPanel } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import {
     terminals,
@@ -50,7 +50,7 @@
     }
     const w = new WebviewWindow("term-float", {
       url: window.location.href,
-      title: "Orbit · Terminale",
+      title: "Orbit · Terminal",
       width: 760,
       height: 460,
       minWidth: 360,
@@ -67,7 +67,7 @@
 
   function shellMenuItems(): MenuItem[] {
     const items: MenuItem[] = [
-      { label: "Terminale (default)", icon: "terminal", onClick: () => addTerminal() },
+      { label: "Terminal (default)", icon: "terminal", onClick: () => addTerminal() },
     ];
     for (const sh of shells) {
       items.push({
@@ -81,7 +81,8 @@
   }
 </script>
 
-<section class="terminal-panel" style="width:{layout.terminalWidth}px">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<section class="terminal-panel" class:focused={layout.focusPanel === "terminal"} style="width:{layout.terminalWidth}px" onpointerdown={() => setFocusPanel("terminal")}>
   <header class="head">
     <div class="tabs">
       {#each terminals.list as t (t.id)}
@@ -90,23 +91,23 @@
             <span class="tic" style="color:{shellColor(t.shell, t.title)}"><Icon name="terminal" size={13} strokeWidth={1.8} /></span>
             <span>{t.title}</span>
           </button>
-          <button class="tab-close" title="Chiudi terminale" aria-label="Chiudi terminale" onclick={() => closeTerminal(t.id)}>
+          <button class="tab-close" title="Close terminal" aria-label="Close terminal" onclick={() => closeTerminal(t.id)}>
             <Icon name="x" size={12} strokeWidth={2} />
           </button>
         </div>
       {/each}
-      <button class="newt" title="Nuovo terminale" aria-label="Nuovo terminale" onclick={() => addTerminal()}>
+      <button class="newt" title="New terminal" aria-label="New terminal" onclick={() => addTerminal()}>
         <Icon name="plus" size={14} strokeWidth={2} />
       </button>
-      <button class="newt caret" title="Scegli shell…" aria-label="Scegli shell" onclick={openShellMenu}>
+      <button class="newt caret" title="Choose shell…" aria-label="Choose shell" onclick={openShellMenu}>
         <Icon name="chevron-down" size={13} strokeWidth={2} />
       </button>
     </div>
     <div class="actions">
-      <button class="act" title="Apri in finestra flottante (always-on-top)" aria-label="Finestra flottante" onclick={detach}>
+      <button class="act" title="Open in floating window (always on top)" aria-label="Floating window" onclick={detach}>
         <Icon name="external-link" size={14} strokeWidth={1.8} />
       </button>
-      <button class="act" title="Nascondi pannello (Ctrl+`)" aria-label="Nascondi pannello" onclick={toggleTerminal}>
+      <button class="act" title="Hide panel (Ctrl+`)" aria-label="Hide panel" onclick={toggleTerminal}>
         <Icon name="x" size={15} strokeWidth={1.9} />
       </button>
     </div>
@@ -140,10 +141,16 @@
     flex-direction: column;
     background: var(--color-surface-1);
     overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid var(--color-line);
+    transition: border-color 120ms ease;
+  }
+  .terminal-panel.focused {
+    border-color: var(--color-accent);
   }
   .head {
-    height: 34px;
-    flex: 0 0 34px;
+    height: 30px;
+    flex: 0 0 30px;
     display: flex;
     align-items: center;
     justify-content: space-between;

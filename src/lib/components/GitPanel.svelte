@@ -65,14 +65,14 @@
       <span class="bname">{git.branch ?? "—"}</span>
       <Icon name="chevron-down" size={13} strokeWidth={1.8} />
     </button>
-    <button class="act" class:spin={git.loading || git.logLoading} title="Aggiorna" aria-label="Aggiorna" onclick={doRefresh}>
+    <button class="act" class:spin={git.loading || git.logLoading} title="Refresh" aria-label="Refresh" onclick={doRefresh}>
       <Icon name="refresh" size={14} strokeWidth={1.7} />
     </button>
 
     {#if branchOpen}
       <div class="dropdown">
         {#if git.branches.length === 0}
-          <div class="ditem empty">nessun ramo</div>
+          <div class="ditem empty">no branches</div>
         {/if}
         {#each git.branches as b (b)}
           <button class="ditem" class:cur={b === git.branch} onclick={() => doCheckout(b)}>
@@ -85,15 +85,15 @@
   </div>
 
   <div class="viewtabs">
-    <button class="vtab" class:on={git.view === "changes"} onclick={() => setView("changes")}>Modifiche</button>
-    <button class="vtab" class:on={git.view === "history"} onclick={() => setView("history")}>Cronologia</button>
+    <button class="vtab" class:on={git.view === "changes"} onclick={() => setView("changes")}>Changes</button>
+    <button class="vtab" class:on={git.view === "history"} onclick={() => setView("history")}>History</button>
   </div>
 
   {#if git.view === "changes"}
   <div class="commitbox">
     <textarea
       bind:value={message}
-      placeholder="Messaggio di commit (Ctrl+Invio)"
+      placeholder="Commit message (Ctrl+Enter)"
       rows="2"
       onkeydown={(e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === "Enter") doCommit();
@@ -120,7 +120,7 @@
               <span class="code staged">{e.staged}</span>
               <span class="t">{e.path}</span>
             </button>
-            <button class="fileact" title="Rimuovi dallo stage" aria-label="Unstage" onclick={() => unstage(e.path)}>
+            <button class="fileact" title="Unstage" aria-label="Unstage" onclick={() => unstage(e.path)}>
               <Icon name="x" size={14} strokeWidth={2} />
             </button>
           </div>
@@ -130,13 +130,13 @@
 
     <div class="section">
       <div class="sechead">
-        <span>Modifiche ({git.unstaged.length})</span>
+        <span>Changes ({git.unstaged.length})</span>
         {#if git.unstaged.length}
-          <button class="link" onclick={stageAll}>Stage tutto</button>
+          <button class="link" onclick={stageAll}>Stage all</button>
         {/if}
       </div>
       {#if git.unstaged.length === 0 && git.staged.length === 0}
-        <div class="clean">Albero di lavoro pulito.</div>
+        <div class="clean">Working tree clean.</div>
       {/if}
       {#each git.unstaged as e (e.path)}
         <div class="file">
@@ -144,10 +144,10 @@
             <span class="code" class:untracked={e.unstaged === "U"}>{e.unstaged}</span>
             <span class="t">{e.path}</span>
           </button>
-          <button class="fileact" title="Annulla modifiche" aria-label="Annulla modifiche" onclick={() => discardFile(e)}>
+          <button class="fileact" title="Discard changes" aria-label="Discard changes" onclick={() => discardFile(e)}>
             <Icon name="trash" size={13} strokeWidth={1.8} />
           </button>
-          <button class="fileact" title="Aggiungi allo stage" aria-label="Stage" onclick={() => stage(e.path)}>
+          <button class="fileact" title="Stage" aria-label="Stage" onclick={() => stage(e.path)}>
             <Icon name="plus" size={15} strokeWidth={2} />
           </button>
         </div>
@@ -157,15 +157,15 @@
   {:else}
   <div class="lists">
     {#if git.logLoading && git.log.length === 0}
-      <div class="clean">Caricamento cronologia…</div>
+      <div class="clean">Loading history…</div>
     {:else if git.log.length === 0}
-      <div class="clean">Nessun commit.</div>
+      <div class="clean">No commits.</div>
     {:else}
       {#each git.log as c (c.id)}
         <button class="commit" onclick={() => showCommit(c)} title={c.summary}>
           <span class="cid">{c.short}</span>
           <span class="cmain">
-            <span class="csum">{c.summary || "(senza messaggio)"}</span>
+            <span class="csum">{c.summary || "(no message)"}</span>
             <span class="cmeta">{c.author}{c.author ? " · " : ""}{relativeTime(c.time)}</span>
           </span>
         </button>

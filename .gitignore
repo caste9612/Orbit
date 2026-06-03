@@ -4,6 +4,9 @@ node_modules
 # output di build del frontend (Vite)
 /dist
 
+# scaffale: preferenza di vista personale (run.json invece è condiviso)
+.orbit/shelf.json
+
 # sistema
 .DS_Store
 Thumbs.db

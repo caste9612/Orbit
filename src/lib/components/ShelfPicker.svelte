@@ -41,12 +41,12 @@
 </script>
 
 <svelte:window onkeydown={(e) => e.key === "Escape" && onClose()} />
-<button class="backdrop" aria-label="Chiudi" onpointerdown={onClose}></button>
+<button class="backdrop" aria-label="Close" onpointerdown={onClose}></button>
 
 <div class="picker" style="left:{left}px; top:{top}px; width:{W}px" role="menu" transition:scale={{ duration: 90, start: 0.97, opacity: 0.3 }}>
   <div class="head">
     <Icon name="archive" size={13} strokeWidth={1.7} />
-    <span class="ttl">Scaffale · {basename(absPath)}</span>
+    <span class="ttl">Shelf · {basename(absPath)}</span>
   </div>
 
   {#if cats.length}
@@ -63,7 +63,7 @@
   <input
     class="newcat"
     bind:value={newName}
-    placeholder="Nuova categoria…"
+    placeholder="New category…"
     onkeydown={(e) => { if (e.key === "Enter") create(); }}
   />
 
@@ -71,7 +71,7 @@
     <div class="divider"></div>
     <button class="remove" onclick={() => { unshelveFolder(rel); onClose(); }}>
       <Icon name="trash" size={13} strokeWidth={1.8} />
-      <span>Togli dallo scaffale</span>
+      <span>Remove from shelf</span>
     </button>
   {/if}
 </div>

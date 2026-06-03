@@ -24,6 +24,11 @@
   import { languages } from "@codemirror/language-data";
   import { lumeTheme, lumeHighlight } from "../editor/theme";
   import { indentGuides } from "../editor/indentGuides";
+  import { gitGutter, setGitMarks, parseGitMarks } from "../editor/gitGutter";
+  import { settings } from "../state/settings.svelte";
+  import { git } from "../state/git.svelte";
+  import { workspace } from "../state/workspace.svelte";
+  import { invoke } from "@tauri-apps/api/core";
   import { basename } from "../util";
 
   interface Props {
@@ -60,6 +65,7 @@
       doc,
       extensions: [
         lineNumbers(),
+        gitGutter(),
         foldGutter(),
         highlightActiveLineGutter(),
         highlightSpecialChars(),
@@ -106,6 +112,7 @@
     view.focus();
     onCursor?.(1, 1); // posizione iniziale del cursore
     void loadLanguage();
+    void loadGutter();
     return () => view?.destroy();
   });
 
@@ -119,6 +126,19 @@
     applyingExternal = true;
     view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
     applyingExternal = false;
+  });
+
+  // cambio font/dimensione (dalle Impostazioni): re-misura la geometria di CodeMirror
+  $effect(() => {
+    settings.fontSize;
+    settings.fontMono;
+    view?.requestMeasure();
+  });
+
+  // ricarica i marcatori git quando lo stato git cambia (refresh / save / modifica esterna)
+  $effect(() => {
+    git.tick;
+    if (view) void loadGutter();
   });
 
   // salto a una riga (da ricerca)
@@ -140,6 +160,30 @@
       view.dispatch({ effects: langConf.reconfigure(support) });
     } catch {
       /* grammatica non disponibile: resta testo semplice */
+    }
+  }
+
+  // path relativo alla radice del repo (per git_diff); null se fuori dal workspace
+  function relPath(): string | null {
+    const root = workspace.rootPath;
+    if (!root) return null;
+    const r = root.replace(/\\/g, "/").replace(/\/+$/, "");
+    const p = path.replace(/\\/g, "/");
+    return p.startsWith(r + "/") ? p.slice(r.length + 1) : null;
+  }
+
+  async function loadGutter() {
+    if (!view) return;
+    const rel = relPath();
+    if (!rel) {
+      view.dispatch({ effects: setGitMarks.of([]) });
+      return;
+    }
+    try {
+      const patch = await invoke<string>("git_diff", { root: workspace.rootPath, path: rel, staged: false });
+      view?.dispatch({ effects: setGitMarks.of(parseGitMarks(patch)) });
+    } catch {
+      view?.dispatch({ effects: setGitMarks.of([]) });
     }
   }
 </script>

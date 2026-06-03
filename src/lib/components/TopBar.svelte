@@ -11,6 +11,7 @@
   import { run, runConfig, openConfig, teachClaude } from "../state/run.svelte";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { invoke } from "@tauri-apps/api/core";
+  import { openSettings } from "../state/settings.svelte";
 
   const win = getCurrentWindow();
 
@@ -37,19 +38,19 @@
       onClick: () => runConfig(c),
     }));
     items.push({
-      label: "Apri .orbit/run.json",
+      label: "Open .orbit/run.json",
       icon: "braces",
       separatorBefore: items.length > 0,
       onClick: openConfig,
     });
-    items.push({ label: "Prepara per Claude (CLAUDE.md)", icon: "doc", onClick: teachClaude });
+    items.push({ label: "Set up for Claude (CLAUDE.md)", icon: "doc", onClick: teachClaude });
     return items;
   }
 
   const views = [
-    { id: "explorer", icon: "explorer", label: "Esplora" },
+    { id: "explorer", icon: "explorer", label: "Explorer" },
     { id: "git", icon: "git-branch", label: "Git" },
-    { id: "search", icon: "search", label: "Cerca" },
+    { id: "search", icon: "search", label: "Search" },
   ] as const;
 
   onMount(async () => {
@@ -66,7 +67,7 @@
 
 <header class="topbar" data-tauri-drag-region>
   <div class="brand" data-tauri-drag-region>
-    <Logo size={21} gid="topGrad" />
+    <Logo size={18} gid="topGrad" />
   </div>
 
   <nav class="views">
@@ -86,8 +87,8 @@
     <button
       class="view only"
       class:active={layout.terminalVisible}
-      title="Terminale (Ctrl+`)"
-      aria-label="Terminale"
+      title="Terminal (Ctrl+`)"
+      aria-label="Terminal"
       onclick={toggleTerminal}
     >
       <Icon name="terminal" size={15} strokeWidth={1.7} />
@@ -96,37 +97,41 @@
 
   <div class="spacer" data-tauri-drag-region>
     {#if workspace.rootName}
-      <span class="ws" data-tauri-drag-region>
-        {workspace.rootName}{#if workspace.branch}<span class="dim"> · {workspace.branch}</span>{/if}
-      </span>
+      <div class="ws" data-tauri-drag-region>
+        <span class="wsname">{workspace.rootName}</span>
+        {#if workspace.branch}
+          <span class="wssep"></span>
+          <span class="wsbranch"><Icon name="git-branch" size={11} strokeWidth={1.8} />{workspace.branch}</span>
+        {/if}
+      </div>
     {/if}
   </div>
 
   <div class="actions">
     {#if workspace.rootName}
-      <button class="view only run" title="Esegui…" aria-label="Esegui" onclick={openRunMenu}>
+      <button class="view only run" title="Run…" aria-label="Run" onclick={openRunMenu}>
         <Icon name="play" size={14} strokeWidth={1.8} />
       </button>
     {/if}
-    <button class="view only" title="Apri cartella (Ctrl+K)" aria-label="Apri cartella" onclick={openFolderDialog}>
+    <button class="view only" title="Open folder (Ctrl+K)" aria-label="Open folder" onclick={openFolderDialog}>
       <Icon name="folder-open" size={15} strokeWidth={1.7} />
     </button>
-    <button class="view only" title="Nuova finestra (altra cartella)" aria-label="Nuova finestra" onclick={newWindow}>
+    <button class="view only" title="New window (another folder)" aria-label="New window" onclick={newWindow}>
       <Icon name="new-window" size={15} strokeWidth={1.7} />
     </button>
-    <button class="view only" title="Impostazioni" aria-label="Impostazioni">
+    <button class="view only" title="Settings" aria-label="Settings" onclick={openSettings}>
       <Icon name="settings" size={15} strokeWidth={1.7} />
     </button>
   </div>
 
   <div class="wctrls">
-    <button class="wc" title="Riduci a icona" aria-label="Riduci" onclick={() => win.minimize()}>
+    <button class="wc" title="Minimize" aria-label="Minimize" onclick={() => win.minimize()}>
       <Icon name="win-minimize" size={15} strokeWidth={1.3} />
     </button>
-    <button class="wc" title={maximized ? "Ripristina" : "Ingrandisci"} aria-label="Ingrandisci" onclick={() => win.toggleMaximize()}>
+    <button class="wc" title={maximized ? "Restore" : "Maximize"} aria-label="Maximize" onclick={() => win.toggleMaximize()}>
       <Icon name={maximized ? "win-restore" : "win-maximize"} size={14} strokeWidth={1.3} />
     </button>
-    <button class="wc close" title="Chiudi" aria-label="Chiudi" onclick={() => win.close()}>
+    <button class="wc close" title="Close" aria-label="Close" onclick={() => win.close()}>
       <Icon name="x" size={16} strokeWidth={1.6} />
     </button>
   </div>
@@ -138,8 +143,8 @@
 
 <style>
   .topbar {
-    height: 38px;
-    flex: 0 0 38px;
+    height: 30px;
+    flex: 0 0 30px;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -151,10 +156,10 @@
   .brand {
     display: flex;
     align-items: center;
-    padding-right: 11px;
-    margin-right: 6px;
+    padding-right: 10px;
+    margin-right: 5px;
     border-right: 1px solid var(--color-line);
-    height: 22px;
+    height: 18px;
   }
 
   .views {
@@ -165,21 +170,21 @@
   .view {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    height: 27px;
-    padding: 0 11px;
+    gap: 6px;
+    height: 23px;
+    padding: 0 9px;
     border: 0;
     border-radius: var(--radius-sm);
     background: transparent;
     color: var(--color-ink-muted);
-    font-size: 12.5px;
+    font-size: 12px;
     cursor: pointer;
     transition:
       background 100ms ease,
       color 100ms ease;
   }
   .view.only {
-    padding: 0 8px;
+    padding: 0 7px;
   }
   .view:hover {
     background: var(--color-surface-3);
@@ -218,15 +223,37 @@
     min-width: 0;
   }
   .ws {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    height: 21px;
+    padding: 0 11px;
+    background: var(--color-surface-1);
+    border: 1px solid var(--color-line);
+    border-radius: 7px;
     font-size: 12px;
-    color: var(--color-ink-muted);
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
-    padding: 0 12px;
   }
-  .ws .dim {
-    color: var(--color-ink-subtle);
+  .wsname {
+    color: #eaeef3;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .wssep {
+    flex: 0 0 auto;
+    width: 1px;
+    height: 12px;
+    background: var(--color-line-strong);
+  }
+  .wsbranch {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--color-ink-muted);
   }
 
   .actions {
@@ -250,7 +277,7 @@
     margin-left: 4px;
   }
   .wc {
-    width: 46px;
+    width: 44px;
     display: grid;
     place-items: center;
     border: 0;

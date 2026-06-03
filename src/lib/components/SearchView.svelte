@@ -28,7 +28,7 @@
   <div class="box">
     <Icon name="search" size={14} strokeWidth={1.8} />
     <input
-      placeholder="Cerca nel progetto"
+      placeholder="Search in project"
       value={search.query}
       oninput={(e) => setQuery(e.currentTarget.value)}
       spellcheck="false"
@@ -36,10 +36,10 @@
   </div>
 
   {#if search.running}
-    <div class="info">ricerca…</div>
+    <div class="info">searching…</div>
   {:else if search.done}
     <div class="info">
-      {search.count} risultati · {search.results.length} file
+      {search.count} results · {search.results.length} files
     </div>
   {/if}
 
@@ -53,7 +53,7 @@
         <span class="fcount">{f.matches.length}</span>
       </div>
       {#each f.matches as m (m.line)}
-        <button class="match" onclick={() => openResult(f.path, m.line)} title="Riga {m.line}">
+        <button class="match" onclick={() => openResult(f.path, m.line)} title="Line {m.line}">
           <span class="ln">{m.line}</span>
           <span class="mt"
             >{#each parts(m.text, search.query) as p}{#if p.m}<mark>{p.t}</mark>{:else}{p.t}{/if}{/each}</span

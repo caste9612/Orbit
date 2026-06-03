@@ -1,6 +1,7 @@
 // Stato del workspace: cartella aperta, file aperti/attivo, ramo git.
 import { invoke } from "@tauri-apps/api/core";
 import { basename } from "../util";
+import { notify } from "./toast.svelte";
 
 export interface OpenFile {
   path: string; // chiave univoca della tab (per i diff è un id sintetico)
@@ -42,7 +43,7 @@ export async function openFile(path: string) {
   try {
     content = await invoke<string>("read_file", { path });
   } catch (e) {
-    content = `// Impossibile aprire il file (binario o non UTF-8).\n// ${e}`;
+    content = `// Cannot open file (binary or non-UTF-8).\n// ${e}`;
     readonly = true;
   }
   workspace.openFiles.push({
@@ -151,7 +152,9 @@ export async function saveActive() {
     await invoke("write_file", { path: f.path, content: f.content });
     f.dirty = false;
     f.externallyChanged = false;
+    notify(`${f.name} saved`, "success", 1500);
   } catch (e) {
+    notify(`Save failed: ${e}`, "error");
     console.error("save", e);
   }
 }

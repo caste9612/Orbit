@@ -6,6 +6,7 @@ import { workspace, renameOpenPaths, closeUnder } from "./workspace.svelte";
 import { refreshStatus } from "./git.svelte";
 import { loadRunConfig } from "./run.svelte";
 import { loadShelf } from "./shelf.svelte";
+import { notify } from "./toast.svelte";
 
 export interface FsEntry {
   name: string;
@@ -178,7 +179,7 @@ export async function commitEdit() {
     return;
   }
   if (/[\\/]/.test(name)) {
-    edit.error = "Il nome non può contenere separatori di percorso";
+    edit.error = "Name cannot contain path separators";
     return;
   }
   try {
@@ -206,8 +207,8 @@ export async function commitEdit() {
 /** Elimina un file/cartella (con conferma), chiude le tab interessate e aggiorna. */
 export async function deleteEntry(path: string, name: string, isDir: boolean) {
   const ok = await confirm(
-    `Eliminare ${isDir ? "la cartella" : "il file"} "${name}"?${isDir ? " Il contenuto verrà rimosso." : ""}`,
-    { title: "Conferma eliminazione", kind: "warning" },
+    `Delete ${isDir ? "folder" : "file"} "${name}"?${isDir ? " Its contents will be removed." : ""}`,
+    { title: "Confirm delete", kind: "warning" },
   );
   if (!ok) return;
   try {
@@ -216,6 +217,7 @@ export async function deleteEntry(path: string, name: string, isDir: boolean) {
     await refreshTree();
     await refreshStatus();
   } catch (e) {
+    notify(`Delete failed: ${e}`, "error");
     console.error("delete", e);
   }
 }

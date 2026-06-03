@@ -39,16 +39,16 @@
 </script>
 
 <!-- backdrop: click fuori chiude -->
-<button class="backdrop" aria-label="Chiudi" onclick={closePalette}></button>
+<button class="backdrop" aria-label="Close" onclick={closePalette}></button>
 
-<div class="palette" role="dialog" aria-label="Apri file" transition:fade={{ duration: 80 }}>
+<div class="palette" role="dialog" aria-label="Open file" transition:fade={{ duration: 80 }}>
   <div class="field">
     <Icon name="search" size={15} strokeWidth={1.8} />
     <!-- svelte-ignore a11y_autofocus -->
     <input
       autofocus
       type="text"
-      placeholder="Apri file per nome…"
+      placeholder="Open file by name…"
       value={quickopen.query}
       oninput={(e) => setQuery(e.currentTarget.value)}
       onkeydown={onKey}
@@ -58,9 +58,9 @@
 
   <div class="results" bind:this={list}>
     {#if quickopen.loading}
-      <div class="msg">Indicizzazione…</div>
+      <div class="msg">Indexing…</div>
     {:else if quickopen.results.length === 0}
-      <div class="msg">Nessun file</div>
+      <div class="msg">No files</div>
     {:else}
       {#each quickopen.results as f, i (f.path)}
         {@const fi = fileIcon(baseOf(f.rel))}

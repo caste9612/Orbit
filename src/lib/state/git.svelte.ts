@@ -2,6 +2,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { workspace, openDiff } from "./workspace.svelte";
+import { notify } from "./toast.svelte";
 import { basename } from "../util";
 
 export interface StatusEntry {
@@ -29,6 +30,7 @@ export const git = $state({
   view: "changes" as "changes" | "history",
   log: [] as CommitInfo[],
   logLoading: false,
+  tick: 0, // incrementa a ogni refresh: segnale per ricaricare i marcatori nel gutter
 });
 
 export async function refreshStatus() {
@@ -44,6 +46,7 @@ export async function refreshStatus() {
     workspace.branch = s.branch;
     git.staged = s.entries.filter((e) => e.staged);
     git.unstaged = s.entries.filter((e) => e.unstaged);
+    git.tick++;
   } catch (e) {
     console.error("git_status", e);
   } finally {
@@ -130,15 +133,16 @@ export async function discardFile(entry: StatusEntry) {
   const untracked = entry.unstaged === "U";
   const ok = await confirm(
     untracked
-      ? `Eliminare il file non tracciato "${entry.path}"?`
-      : `Annullare le modifiche a "${entry.path}"? L'operazione non è reversibile.`,
-    { title: "Annulla modifiche", kind: "warning" },
+      ? `Delete untracked file "${entry.path}"?`
+      : `Discard changes to "${entry.path}"? This cannot be undone.`,
+    { title: "Discard changes", kind: "warning" },
   );
   if (!ok) return;
   try {
     await invoke("git_discard", { root: workspace.rootPath, path: entry.path });
     await refreshStatus();
   } catch (e) {
+    notify(`Discard failed: ${e}`, "error");
     console.error("git_discard", e);
   }
 }
@@ -198,7 +202,7 @@ export async function showCommit(c: CommitInfo) {
   if (!workspace.rootPath) return;
   try {
     const patch = await invoke<string>("git_show", { root: workspace.rootPath, id: c.id });
-    openDiff(`commit:${c.id}`, `${c.short} · ${c.summary || "(senza messaggio)"}`, patch);
+    openDiff(`commit:${c.id}`, `${c.short} · ${c.summary || "(no message)"}`, patch);
   } catch (e) {
     console.error("git_show", e);
   }

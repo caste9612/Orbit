@@ -10,7 +10,7 @@ export const lumeTheme = EditorView.theme(
       color: "var(--color-ink)",
       backgroundColor: "transparent",
       height: "100%",
-      fontSize: "13px",
+      fontSize: "var(--editor-font-size, 13px)",
     },
     ".cm-content": {
       fontFamily: "var(--font-mono)",
@@ -22,7 +22,11 @@ export const lumeTheme = EditorView.theme(
       lineHeight: "1.55",
     },
     "&.cm-focused": { outline: "none" },
-    ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--color-accent)" },
+    // cursore "fluido": anima lo spostamento del caret mentre si scrive/cancella
+    ".cm-cursor, .cm-dropCursor": {
+      borderLeftColor: "var(--color-accent)",
+      transition: "var(--caret-transition, left 55ms ease-out, top 55ms ease-out)",
+    },
     "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {
       backgroundColor: "#2a4163",
     },
@@ -42,6 +46,18 @@ export const lumeTheme = EditorView.theme(
       minWidth: "34px",
     },
     ".cm-foldGutter .cm-gutterElement": { color: "var(--color-ink-subtle)" },
+    // marcatori di modifica git nel gutter (stile Visual Studio)
+    ".cm-gitgutter": { width: "3px" },
+    ".cm-gitgutter .cm-gutterElement": { display: "flex" },
+    ".cm-gitmark": { width: "3px", borderRadius: "1px" },
+    ".cm-gitmark-add": { alignSelf: "stretch", background: "#3fb950" },
+    ".cm-gitmark-mod": { alignSelf: "stretch", background: "#3b9dff" },
+    ".cm-gitmark-del": {
+      alignSelf: "flex-start",
+      height: "5px",
+      background: "#f14c4c",
+      borderRadius: "0 0 2px 2px",
+    },
     ".cm-matchingBracket, &.cm-focused .cm-matchingBracket": {
       backgroundColor: "rgba(110, 168, 254, 0.18)",
       outline: "1px solid rgba(110, 168, 254, 0.4)",

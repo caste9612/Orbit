@@ -2,11 +2,11 @@
   import { onMount, onDestroy } from "svelte";
   import { Terminal, type ILinkProvider, type ILink } from "@xterm/xterm";
   import { FitAddon } from "@xterm/addon-fit";
-  import { WebglAddon } from "@xterm/addon-webgl";
   import "@xterm/xterm/css/xterm.css";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { openFile, openFileAt, workspace } from "../state/workspace.svelte";
+  import { settings, monoStack } from "../state/settings.svelte";
   import { joinPath } from "../util";
 
   interface Props {
@@ -128,8 +128,8 @@
 
   onMount(async () => {
     term = new Terminal({
-      fontFamily: '"JetBrains Mono Variable", "Cascadia Code", Consolas, monospace',
-      fontSize: 13,
+      fontFamily: monoStack(settings.fontMono),
+      fontSize: settings.fontSize,
       lineHeight: 1.2,
       cursorBlink: true,
       scrollback: 5000,
@@ -139,13 +139,16 @@
     fit = new FitAddon();
     term.loadAddon(fit);
     term.open(host);
-    // renderer WebGL: testo più nitido e veloce (fallback automatico al DOM se assente)
-    try {
-      const webgl = new WebglAddon();
-      webgl.onContextLoss(() => webgl.dispose());
-      term.loadAddon(webgl);
-    } catch {
-      /* WebGL non disponibile su questa GPU/webview */
+    // GPU rendering (WebGL) opzionale, default OFF: import dinamico per non pesare sul bundle
+    if (settings.webgl) {
+      try {
+        const { WebglAddon } = await import("@xterm/addon-webgl");
+        const webgl = new WebglAddon();
+        webgl.onContextLoss(() => webgl.dispose());
+        term.loadAddon(webgl);
+      } catch {
+        /* WebGL non disponibile su questa GPU/webview */
+      }
     }
     // percorsi cliccabili (non nel terminale flottante, che non ha un editor)
     if (id !== "float") term.registerLinkProvider(pathLinkProvider());
@@ -153,7 +156,7 @@
 
     unlistenData = await listen<string>(`pty-data-${id}`, (e) => term?.write(b64ToBytes(e.payload)));
     unlistenExit = await listen(`pty-exit-${id}`, () =>
-      term?.write("\r\n\x1b[90m· processo terminato ·\x1b[0m\r\n"),
+      term?.write("\r\n\x1b[90m· process exited ·\x1b[0m\r\n"),
     );
 
     await invoke("pty_spawn", { id, cols: term.cols, rows: term.rows, cwd, shell });
@@ -174,6 +177,17 @@
     if (active && term && !disposed) {
       fitSafe(true);
       term.focus();
+    }
+  });
+
+  // cambio font/dimensione dalle Impostazioni → applica al terminale e rifit
+  $effect(() => {
+    const fam = monoStack(settings.fontMono);
+    const sz = settings.fontSize;
+    if (term && !disposed) {
+      term.options.fontFamily = fam;
+      term.options.fontSize = sz;
+      fitSafe(true);
     }
   });
 

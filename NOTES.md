@@ -608,6 +608,134 @@ testo WebGL nitido) da confermare nell'uso.
 
 ---
 
+## Milestone 17 — polish grafico 2 (diff, toast, focus, title bar, tab)
+
+Due gruppi scelti dall'utente. **Zero dipendenze** (tutto Svelte/CSS).
+
+### DiffView + Toast
+- **DiffView** con **numeri di riga** e marcatori **+/−**: parsing del diff unificato con
+  tracking dei contatori dai marcatori `@@`; intestazioni hunk/meta distinte. Prima erano
+  righe colorate senza numeri.
+- **Toast** (`toast.svelte.ts` + `Toaster.svelte`): notifiche non invasive in basso a destra,
+  auto-dismiss, con `svelte/transition`. Collegate a: salvataggio (conferma breve), errori di
+  salvataggio/eliminazione/annullamento (prima andavano solo in console).
+
+### Focus + title bar + tab
+- **Bordo-accento sul pannello a fuoco**: stato `layout.focusPanel` + `setFocusPanel`,
+  impostato su `pointerdown` in sidebar/editor/terminale → filo accento (inset top 2px) sul
+  pannello attivo.
+- **Title bar inattiva**: il chrome si attenua quando la finestra perde il focus
+  (`win.onFocusChanged`); i controlli finestra restano pieni.
+- **Indicatore tab scorrevole**: una barra accento unica che scorre sotto la tab attiva
+  (misura `offsetLeft`/`offsetWidth`, transizione su transform/width); rimosso il vecchio
+  bordo per-tab.
+- **Chiusura tab non salvata**: conferma (dialog) prima di chiudere una tab con modifiche.
+
+Verifica: `svelte-check` 163 file 0/0; HMR in dev ok.
+
+---
+
+## Milestone 18 — impostazioni, font, cursore fluido, UI/README in inglese
+
+### Cursore fluido
+Caret dell'editor animato: la transizione è pilotata dalla variabile CSS `--caret-transition`
+sul `.cm-cursor` (toggle nelle Impostazioni). Nel **terminale non è fattibile**: xterm disegna
+il cursore su canvas/WebGL, non c'è un elemento DOM da animare.
+
+### Pannello Impostazioni
+`settings.svelte.ts` + `Settings.svelte` (il bottone ingranaggio ora è attivo):
+- **Font editor/terminale** da lista curata (JetBrains Mono, Cascadia Code, Fira Code, Consolas,
+  Source Code Pro, Menlo/Monaco), **dimensione** (11–20), **preset accento** (blu/viola/verde/
+  teal), **toggle cursore fluido**.
+- Applicati come variabili CSS sul documento (`--font-mono`, `--editor-font-size`,
+  `--color-accent`/`--accent-rgb`/`--color-accent-2`, `--caret-transition`); l'editor re-misura
+  la geometria al cambio, il terminale aggiorna `fontFamily`/`fontSize` di xterm e rifa il fit.
+- **Persistenza in `localStorage`** (app-global, anche per la finestra flottante): niente
+  comando Rust nuovo e nessun conflitto con la sessione per-cartella.
+
+Nota font: Orbit usa **Inter + JetBrains Mono** (= IntelliJ); Visual Studio usa Cascadia Code +
+Segoe UI (Cascadia ora selezionabile).
+
+### Interfaccia e README in inglese
+Tutta la UI è stata tradotta in **inglese** (~20 componenti: label, tooltip, menu, toast,
+empty-state, conferme, placeholder). Il **README** è stato riscritto in inglese e curato
+(filosofia, gate, stack con motivazioni, feature, footprint, scorciatoie, build/test).
+Per scelta dell'utente, **CLAUDE.md, NOTES.md e i commenti del codice restano in italiano**.
+
+Nessuna dipendenza nuova. Verifica: `svelte-check` 165 file 0/0; HMR in dev ok.
+
+---
+
+## Milestone 19 — zoom, font VS, look Visual Studio 2026
+
+- **Ctrl + rotella = zoom**: `nudgeFontSize` varia la dimensione del font di editor e
+  terminale (range 10–24, persistito). Listener `wheel` **non-passive** in `App.svelte` per
+  intercettare l'evento prima dello zoom-pagina del WebView (`preventDefault` solo con Ctrl).
+- **Cascadia Mono (Visual Studio)** aggiunto ai font selezionabili (Cascadia Code c'era già: è
+  la stessa famiglia; Mono è il default esatto di VS, senza legature). Slider font ora 10–24.
+- **Barra superiore più stretta** (38 → **30px**, stile VS 2026): view 23px, logo 18px,
+  controlli finestra 44px — meno spazio sprecato.
+- **Layout a pannelli arrotondati** (look Visual Studio 2026): `.body` ha uno sfondo base
+  (`--color-bg` `#16181d`, = colore finestra) e padding 6px; Sidebar/Editor/Terminale diventano
+  **card** con `border-radius: 8px` + `overflow: hidden`; gli **splitter** sono resi trasparenti
+  (6px) e fanno da gap tra le card, con grip accento all'hover. Meno "flush" rispetto al look
+  VS Code precedente.
+
+Nessuna dipendenza nuova. Verifica: `svelte-check` 165 file 0/0; HMR in dev ok.
+
+---
+
+## Milestone 20 — verso il look Visual Studio (git gutter, card, densità)
+
+- **Card più definite**: bordo 1px sui pannelli (sidebar/editor/terminale) sullo sfondo base
+  → i pannelli leggono come superfici distinte, non rettangoli piatti.
+- **Git nel gutter dell'editor** (`editor/gitGutter.ts`): un `gutter` CodeMirror con
+  `GutterMarker` per riga **aggiunta/modificata/eliminata** (barre verde/blu/rosso). I
+  marcatori sono calcolati da `parseGitMarks` sul diff unificato (`git_diff`) e ricaricati
+  quando `git.tick` cambia (incrementato a ogni `refreshStatus` → su save/refresh/modifica
+  esterna, anche quando Claude tocca i file).
+- **Densità**: tab bar 36→32, header sidebar/terminale 35/34→30, status bar 24→22 (più
+  compatto, stile VS).
+
+Rimandati (per qualità, da fare come passi dedicati):
+- **Parentesi colorate** (rainbow): vanno fatte *syntax-aware* (saltare stringhe/commenti via
+  syntax tree) per non colorare parentesi dentro le stringhe. La palette di sintassi è invece
+  già VS Code Dark+ (la stessa di Visual Studio).
+- **Overview nella scrollbar** (marcatori git lungo la scrollbar): CM6 non ha un overview-ruler
+  nativo → serve un overlay custom.
+- **Trasparenza Mica/acrylic** (Win11): tocca finestra + Rust + trasparenza del WebView, da
+  verificare con un build reale.
+
+Verifica: `svelte-check` 166 file 0/0; HMR ok.
+
+---
+
+## Milestone 21 — indagine footprint + WebGL opt-in
+
+Misure reali sul **build release** (processi isolati per albero, private bytes = RAM reale):
+- **Core Rust** `lume.exe`: **~6 MB** private, **CPU a riposo ~0,07%** (nessun loop).
+- **WebView2** (Chromium, 6 processi nostri):
+  - pavimento (cartella vuota): **238 MB** con WebGL / **206 MB** senza.
+  - progetto aperto: **310 MB** con WebGL / **225 MB** senza.
+- Bundle chunk "Terminal": **439 KB** con WebGL / **329 KB** senza.
+
+Conclusioni:
+- Il nostro codice è leggerissimo; il peso è **Chromium/WebView2** (inerente a un IDE su webview)
+  **+ il renderer WebGL**. ~206 MB è già vicino al pavimento di WebView2 → oltre WebGL non c'è
+  molto da raschiare senza lasciare il modello webview.
+- **WebGL reso opt-in, default OFF** (`settings.webgl`), caricato via **import dinamico**
+  (`await import("@xterm/addon-webgl")`) solo se attivo → di default non pesa né sulla RAM
+  (~−85 MB sotto carico) né sul bundle (~−110 KB). Toggle nel pannello Settings.
+
+Persistenza preferenze (verificata): **impostazioni** in `localStorage` (chiave `orbit.settings`,
+per-origine del WebView → dev e app installata hanno store separati; l'app installata è coerente
+tra i riavvii); **sessione** in `%APPDATA%/com.visialab.lume/sessions/*.json`. Entrambe
+sopravvivono a riavvio app e PC.
+
+Verifica: `svelte-check` 166 file 0/0.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

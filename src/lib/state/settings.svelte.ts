@@ -28,6 +28,7 @@ export const settings = $state({
   accent: "blue" as AccentName,
   smoothCursor: true,
   webgl: false, // GPU rendering del terminale: OFF di default (più leggero ~85 MB)
+  claudeTerminal: true, // il terminale di default avvia Claude (companion di Claude Code)
 });
 
 export const MIN_FONT = 10;
@@ -71,6 +72,7 @@ export function loadSettings() {
       if (typeof s.accent === "string" && s.accent in ACCENTS) settings.accent = s.accent;
       if (typeof s.smoothCursor === "boolean") settings.smoothCursor = s.smoothCursor;
       if (typeof s.webgl === "boolean") settings.webgl = s.webgl;
+      if (typeof s.claudeTerminal === "boolean") settings.claudeTerminal = s.claudeTerminal;
     }
   } catch {
     /* localStorage non disponibile o JSON invalido */
@@ -88,6 +90,7 @@ export function startSettingsAutosave() {
         accent: settings.accent,
         smoothCursor: settings.smoothCursor,
         webgl: settings.webgl,
+        claudeTerminal: settings.claudeTerminal,
       });
       applySettings();
       try {

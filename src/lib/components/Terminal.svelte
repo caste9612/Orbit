@@ -22,6 +22,10 @@
     initCommand?: string | null;
     /** chiamato dopo aver inviato initCommand, così il parent non lo rilancia. */
     onStart?: () => void;
+    /** true = collegati a un PTY già esistente, senza spawn (terminale estratto/reincollato). */
+    attach?: boolean;
+    /** percorsi cliccabili nell'output (disattivati nella finestra flottante: niente editor). */
+    enableLinks?: boolean;
   }
   let {
     id,
@@ -31,6 +35,8 @@
     active = false,
     initCommand = null,
     onStart,
+    attach = false,
+    enableLinks = true,
   }: Props = $props();
 
   // tema xterm allineato alla sintassi dell'editor (sfondo = editor #1e1e1e)
@@ -65,6 +71,9 @@
   let unlistenExit: UnlistenFn | undefined;
   let ro: ResizeObserver | undefined;
   let disposed = false;
+  let lastCols = 0;
+  let lastRows = 0;
+  let resizeTimer: ReturnType<typeof setTimeout> | undefined;
 
   function b64ToBytes(b64: string): Uint8Array {
     const bin = atob(b64);
@@ -120,10 +129,22 @@
     if (!host || host.clientWidth < 2 || host.clientHeight < 2) return;
     try {
       fit.fit();
-      if (resize) invoke("pty_resize", { id, cols: term.cols, rows: term.rows }).catch(() => {});
+      // ridimensiona il PTY solo se la griglia è davvero cambiata: evita ridisegni
+      // ridondanti dei programmi TUI (es. il banner di Claude che si "duplicava").
+      if (resize && (term.cols !== lastCols || term.rows !== lastRows)) {
+        lastCols = term.cols;
+        lastRows = term.rows;
+        invoke("pty_resize", { id, cols: term.cols, rows: term.rows }).catch(() => {});
+      }
     } catch {
       /* host non ancora dimensionato */
     }
+  }
+
+  // coalescizza i fit ravvicinati (zoom del font / resize rapidi della finestra) in uno solo
+  function scheduleFit(resize = false) {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => fitSafe(resize), 90);
   }
 
   onMount(async () => {
@@ -150,8 +171,8 @@
         /* WebGL non disponibile su questa GPU/webview */
       }
     }
-    // percorsi cliccabili (non nel terminale flottante, che non ha un editor)
-    if (id !== "float") term.registerLinkProvider(pathLinkProvider());
+    // percorsi cliccabili (disattivati nella finestra flottante, che non ha un editor)
+    if (enableLinks) term.registerLinkProvider(pathLinkProvider());
     fitSafe();
 
     unlistenData = await listen<string>(`pty-data-${id}`, (e) => term?.write(b64ToBytes(e.payload)));
@@ -159,15 +180,23 @@
       term?.write("\r\n\x1b[90m· process exited ·\x1b[0m\r\n"),
     );
 
-    await invoke("pty_spawn", { id, cols: term.cols, rows: term.rows, cwd, shell });
-    // run config: invia il comando una sola volta (il parent azzera initCommand dopo)
-    if (initCommand) {
-      await invoke("pty_write", { id, data: initCommand + "\r" }).catch(() => {});
-      onStart?.();
+    if (attach) {
+      // PTY già esistente (estratto in finestra flottante / reincollato): non rispawnare,
+      // ridimensiona soltanto così il programma in esecuzione (es. Claude) ridisegna.
+      await invoke("pty_resize", { id, cols: term.cols, rows: term.rows }).catch(() => {});
+    } else {
+      await invoke("pty_spawn", { id, cols: term.cols, rows: term.rows, cwd, shell });
+      // run config: invia il comando una sola volta (il parent azzera initCommand dopo)
+      if (initCommand) {
+        await invoke("pty_write", { id, data: initCommand + "\r" }).catch(() => {});
+        onStart?.();
+      }
     }
+    lastCols = term.cols;
+    lastRows = term.rows;
     term.onData((d) => invoke("pty_write", { id, data: d }).catch(() => {}));
 
-    ro = new ResizeObserver(() => fitSafe(true));
+    ro = new ResizeObserver(() => scheduleFit(true));
     ro.observe(host);
     if (active) term.focus();
   });
@@ -187,12 +216,13 @@
     if (term && !disposed) {
       term.options.fontFamily = fam;
       term.options.fontSize = sz;
-      fitSafe(true);
+      scheduleFit(true);
     }
   });
 
   onDestroy(() => {
     disposed = true;
+    if (resizeTimer) clearTimeout(resizeTimer);
     ro?.disconnect();
     unlistenData?.();
     unlistenExit?.();
@@ -209,7 +239,8 @@
     width: 100%;
     box-sizing: border-box;
     padding: 6px 4px 6px 10px;
-    background: var(--color-surface-1);
+    /* uguale allo sfondo del tema xterm: il resto sotto l'ultima riga non si vede */
+    background: #1e1e1e;
   }
   :global(.term .xterm) {
     height: 100%;

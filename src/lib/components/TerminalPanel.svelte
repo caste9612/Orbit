@@ -4,15 +4,19 @@
   import Terminal from "./LazyTerminal.svelte";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
   import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
   import { layout, toggleTerminal, setFocusPanel } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
+  import { settings } from "../state/settings.svelte";
+  import { launchClaude } from "../state/claude.svelte";
   import {
     terminals,
     addTerminal,
     setActiveTerminal,
     closeTerminal,
     ensureTerminal,
+    removeTerminalKeepPty,
   } from "../state/terminals.svelte";
 
   interface ShellInfo {
@@ -34,7 +38,6 @@
   }
 
   onMount(async () => {
-    ensureTerminal();
     try {
       shells = await invoke<ShellInfo[]>("list_shells");
     } catch {
@@ -42,21 +45,48 @@
     }
   });
 
+  // Terminale di default: attende il caricamento sessione (per conoscere il progetto),
+  // poi avvia Claude se abilitato e c'è una cartella aperta, altrimenti una shell normale.
+  let bootstrapped = false;
+  $effect(() => {
+    if (bootstrapped || !workspace.ready) return;
+    bootstrapped = true;
+    if (terminals.list.length > 0) return;
+    if (settings.claudeTerminal && workspace.rootPath) launchClaude();
+    else ensureTerminal();
+  });
+
+  // Estrae IL terminale attivo in una finestra flottante (stesso PTY: Claude continua a girare).
   async function detach() {
+    const t = terminals.list.find((x) => x.id === terminals.activeId);
+    if (!t) return;
     const existing = await WebviewWindow.getByLabel("term-float");
     if (existing) {
       await existing.setFocus();
       return;
     }
+    const params = new URLSearchParams({
+      float: t.id,
+      title: t.title,
+      shell: t.shell ?? "",
+      from: getCurrentWindow().label,
+    });
+    const url = new URL(window.location.href);
+    url.search = params.toString();
+    url.hash = "";
     const w = new WebviewWindow("term-float", {
-      url: window.location.href,
+      url: url.toString(),
       title: "Orbit · Terminal",
       width: 760,
       height: 460,
       minWidth: 360,
       minHeight: 200,
       alwaysOnTop: true,
+      decorations: false,
     });
+    // togli la scheda dal pannello SOLO quando la finestra è creata (il PTY resta vivo);
+    // se la creazione fallisce la scheda resta dov'è (niente terminale orfano).
+    w.once("tauri://created", () => removeTerminalKeepPty(t.id));
     w.once("tauri://error", (e) => console.error("finestra flottante:", e));
   }
 
@@ -122,6 +152,7 @@
           persistent={true}
           shell={t.shell}
           active={t.id === terminals.activeId}
+          attach={t.attach}
           initCommand={t.started ? null : t.initCommand}
           onStart={() => (t.started = true)}
         />
@@ -136,7 +167,8 @@
 
 <style>
   .terminal-panel {
-    flex: 0 0 auto;
+    flex: 0 1 auto; /* si comprime quando la finestra è stretta, invece di coprire l'editor */
+    min-width: 180px;
     display: flex;
     flex-direction: column;
     background: var(--color-surface-1);

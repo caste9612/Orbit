@@ -189,7 +189,7 @@ pub fn git_commit(root: String, message: String) -> Result<String, String> {
 
     let sig = repo
         .signature()
-        .or_else(|_| Signature::now("Lume", "lume@localhost"))
+        .or_else(|_| Signature::now("Orbit", "orbit@localhost"))
         .map_err(|e| e.to_string())?;
 
     let parents: Vec<git2::Commit> = repo

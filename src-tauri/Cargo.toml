@@ -1,7 +1,7 @@
 [package]
-name = "lume"
-version = "0.1.0"
-description = "Lume — IDE leggero, companion per Claude Code"
+name = "orbit"
+version = "0.2.0"
+description = "Orbit — a lightweight IDE, companion for Claude Code"
 authors = ["visialab"]
 edition = "2021"
 
@@ -9,7 +9,7 @@ edition = "2021"
 
 [lib]
 # Il suffisso `_lib` rende il nome della lib unico e non in conflitto col bin (necessario su Windows).
-name = "lume_lib"
+name = "orbit_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

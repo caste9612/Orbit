@@ -11,6 +11,7 @@ export interface TermSession {
   cwd: string | null; // cartella di lavoro (null = radice del workspace)
   initCommand: string | null; // comando lanciato all'avvio (run config)
   started: boolean; // initCommand già inviato (evita ri-esecuzione al remount)
+  attach: boolean; // true = si collega a un PTY esistente (terminale reincollato dalla finestra flottante)
 }
 
 let counter = 0;
@@ -38,9 +39,38 @@ export function addTerminal(opts: NewTerminal = {}): string {
     cwd: opts.cwd ?? null,
     initCommand: opts.initCommand ?? null,
     started: false,
+    attach: false,
   });
   terminals.activeId = id;
   return id;
+}
+
+/** Toglie una tab dalla lista SENZA uccidere il PTY (per estrarla in finestra flottante). */
+export function removeTerminalKeepPty(id: string) {
+  const i = terminals.list.findIndex((t) => t.id === id);
+  if (i === -1) return;
+  terminals.list.splice(i, 1);
+  if (terminals.activeId === id) {
+    terminals.activeId = terminals.list[i]?.id ?? terminals.list[i - 1]?.id ?? null;
+  }
+  if (terminals.list.length === 0) layout.terminalVisible = false;
+}
+
+/** Reincolla un terminale estratto: si ricollega al PTY esistente (attach), senza rispawn. */
+export function redockTerminal(s: { id: string; title: string; shell: string | null }) {
+  if (!terminals.list.some((t) => t.id === s.id)) {
+    terminals.list.push({
+      id: s.id,
+      title: s.title,
+      shell: s.shell,
+      cwd: null,
+      initCommand: null,
+      started: true,
+      attach: true,
+    });
+  }
+  terminals.activeId = s.id;
+  layout.terminalVisible = true;
 }
 
 export function setActiveTerminal(id: string) {

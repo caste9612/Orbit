@@ -4,7 +4,7 @@ import { EditorView } from "@codemirror/view";
 import { HighlightStyle } from "@codemirror/language";
 import { tags as t } from "@lezer/highlight";
 
-export const lumeTheme = EditorView.theme(
+export const orbitTheme = EditorView.theme(
   {
     "&": {
       color: "var(--color-ink)",
@@ -105,7 +105,7 @@ export const lumeTheme = EditorView.theme(
 );
 
 // Palette ispirata a VS Code Dark+, ben leggibile.
-export const lumeHighlight = HighlightStyle.define([
+export const orbitHighlight = HighlightStyle.define([
   { tag: [t.comment, t.lineComment, t.blockComment], color: "#6b7480", fontStyle: "italic" },
   { tag: t.keyword, color: "#569cd6" },
   { tag: [t.controlKeyword, t.moduleKeyword], color: "#c586c0" },

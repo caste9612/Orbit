@@ -1,3 +1,4 @@
+// Orbit — backend Tauri: filesystem, sessione, git, pty, watcher.
 mod git;
 mod pty;
 mod watcher;
@@ -341,8 +342,14 @@ pub fn run() {
             pty::list_shells,
             watcher::watch_start
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // all'uscita: termina i PTY (niente shell/claude orfani in background)
+            if let tauri::RunEvent::ExitRequested { .. } = event {
+                app.state::<pty::PtyManager>().kill_all();
+            }
+        });
 }
 
 #[cfg(test)]

@@ -3,7 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import Icon from "./Icon.svelte";
   import Self from "./MiniTree.svelte";
-  import { openFile, workspace } from "../state/workspace.svelte";
+  import { openFile, activePath } from "../state/workspace.svelte";
   import { fileIcon } from "../util";
 
   interface FsEntry {
@@ -41,7 +41,7 @@
     {@const fi = fileIcon(e.name)}
     <button
       class="mini-row"
-      class:active={!e.isDir && workspace.activePath === e.path}
+      class:active={!e.isDir && activePath() === e.path}
       style="padding-left:{8 + depth * 13}px"
       onclick={() => activate(e)}
       title={e.name}

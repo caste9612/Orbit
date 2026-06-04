@@ -9,6 +9,13 @@
   import { openFolderDialog } from "../state/explorer.svelte";
   import { changedCount } from "../state/git.svelte";
   import { run, runConfig, openConfig, teachClaude } from "../state/run.svelte";
+  import {
+    claude,
+    launchClaude,
+    runShortcut,
+    openClaudeConfig,
+    teachClaudeConfig,
+  } from "../state/claude.svelte";
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { invoke } from "@tauri-apps/api/core";
   import { openSettings } from "../state/settings.svelte";
@@ -26,10 +33,15 @@
   let maximized = $state(false);
   let changed = $derived(changedCount()); // file modificati → badge sul pulsante Git
 
+  // posizione di un menu a tendina, appena sotto il pulsante che l'ha aperto
+  function menuPos(e: MouseEvent) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    return { x: r.left, y: r.bottom + 4 };
+  }
+
   let runMenu = $state<{ x: number; y: number } | null>(null);
   function openRunMenu(e: MouseEvent) {
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    runMenu = { x: r.left, y: r.bottom + 4 };
+    runMenu = menuPos(e);
   }
   function runMenuItems(): MenuItem[] {
     const items: MenuItem[] = run.configs.map((c) => ({
@@ -47,10 +59,37 @@
     return items;
   }
 
+  let claudeMenu = $state<{ x: number; y: number } | null>(null);
+  function openClaudeMenu(e: MouseEvent) {
+    claudeMenu = menuPos(e);
+  }
+  function claudeMenuItems(): MenuItem[] {
+    const items: MenuItem[] = [
+      { label: "Open Claude here", icon: "sparkles", onClick: () => launchClaude() },
+    ];
+    claude.shortcuts.forEach((s, i) => {
+      items.push({
+        label: s.name,
+        icon: s.icon ?? "play",
+        separatorBefore: i === 0,
+        onClick: () => runShortcut(s),
+      });
+    });
+    items.push({
+      label: "Configure (.orbit/claude.json)",
+      icon: "braces",
+      separatorBefore: true,
+      onClick: openClaudeConfig,
+    });
+    items.push({ label: "Document shortcuts (CLAUDE.md)", icon: "doc", onClick: teachClaudeConfig });
+    return items;
+  }
+
   const views = [
     { id: "explorer", icon: "explorer", label: "Explorer" },
     { id: "git", icon: "git-branch", label: "Git" },
     { id: "search", icon: "search", label: "Search" },
+    { id: "docs", icon: "book-open", label: "Docs" },
   ] as const;
 
   onMount(async () => {
@@ -109,6 +148,9 @@
 
   <div class="actions">
     {#if workspace.rootName}
+      <button class="view only claude" title="Claude…" aria-label="Claude" onclick={openClaudeMenu}>
+        <Icon name="sparkles" size={15} strokeWidth={1.7} />
+      </button>
       <button class="view only run" title="Run…" aria-label="Run" onclick={openRunMenu}>
         <Icon name="play" size={14} strokeWidth={1.8} />
       </button>
@@ -139,6 +181,9 @@
 
 {#if runMenu}
   <ContextMenu x={runMenu.x} y={runMenu.y} items={runMenuItems()} onClose={() => (runMenu = null)} />
+{/if}
+{#if claudeMenu}
+  <ContextMenu x={claudeMenu.x} y={claudeMenu.y} items={claudeMenuItems()} onClose={() => (claudeMenu = null)} />
 {/if}
 
 <style>
@@ -268,6 +313,13 @@
   .actions .run:hover {
     color: var(--color-success);
     background: rgba(78, 201, 176, 0.16);
+  }
+  .actions .claude {
+    color: var(--color-accent);
+  }
+  .actions .claude:hover {
+    color: var(--color-accent);
+    background: rgba(var(--accent-rgb), 0.16);
   }
 
   .wctrls {

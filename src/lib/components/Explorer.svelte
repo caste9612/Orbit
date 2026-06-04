@@ -16,7 +16,7 @@
     copyPath,
     type TreeNode,
   } from "../state/explorer.svelte";
-  import { openFile, workspace } from "../state/workspace.svelte";
+  import { openFile, workspace, activePath } from "../state/workspace.svelte";
   import { decorations } from "../state/git.svelte";
   import { shelf, relOf, isHidden, byCategory, shelveFolder } from "../state/shelf.svelte";
   import { fileIcon, dirname, joinPath, normSlash } from "../util";
@@ -186,7 +186,7 @@
           <button
             type="button"
             class="row"
-            class:active={!n.entry.isDir && workspace.activePath === n.entry.path}
+            class:active={!n.entry.isDir && activePath() === n.entry.path}
             class:target={menu?.node?.entry.path === n.entry.path}
             style="top:{idx * ROW}px; height:{ROW}px; padding-left:{6 + n.depth * 14}px"
             onclick={() => !renaming && activate(n)}

@@ -11,17 +11,24 @@
   import QuickOpen from "./lib/components/QuickOpen.svelte";
   import Toaster from "./lib/components/Toaster.svelte";
   import Settings from "./lib/components/Settings.svelte";
+  import Logo from "./lib/components/Logo.svelte";
+  import Icon from "./lib/components/Icon.svelte";
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal } from "./lib/state/layout.svelte";
-  import { listen } from "@tauri-apps/api/event";
+  import { listen, emit } from "@tauri-apps/api/event";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { openFolderDialog, refreshTree } from "./lib/state/explorer.svelte";
-  import { openFile, saveActive, reloadOpenFiles } from "./lib/state/workspace.svelte";
+  import { workspace, openFile, saveActive, reloadOpenFiles } from "./lib/state/workspace.svelte";
   import { setQuery } from "./lib/state/search.svelte";
   import { refreshStatus } from "./lib/state/git.svelte";
   import { quickopen, openPalette } from "./lib/state/quickopen.svelte";
   import { loadRunConfig } from "./lib/state/run.svelte";
+  import { loadClaudeConfig } from "./lib/state/claude.svelte";
   import { loadShelf } from "./lib/state/shelf.svelte";
+  import { loadDocs } from "./lib/state/docs.svelte";
+  import { invalidateFiles } from "./lib/state/projectFiles";
   import { loadSettings, startSettingsAutosave, settingsUI, nudgeFontSize } from "./lib/state/settings.svelte";
   import { loadSession, startAutosave } from "./lib/state/persist.svelte";
+  import { redockTerminal } from "./lib/state/terminals.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
   // La finestra flottante (label "term-float") mostra solo un terminale a tutta finestra.
@@ -32,9 +39,42 @@
     /* fuori dal contesto Tauri */
   }
 
-  onMount(async () => {
-    loadSettings(); // applica font/dimensione/accento/caret (anche nella finestra flottante)
-    // Ctrl+rotella = zoom del font di editor/terminale (intercetta prima del WebView)
+  // parametri della finestra flottante: quale terminale (PTY) agganciare e chi l'ha estratto
+  const fq = new URLSearchParams(window.location.search);
+  const floatId = fq.get("float") ?? "float";
+  const floatShell = fq.get("shell") || null;
+  const floatTitle = fq.get("title") || "Terminal";
+  const floatFrom = fq.get("from") ?? "";
+
+  // unlisten dell'handler di chiusura della finestra flottante (hoisted: lo usa anche il close)
+  let floatUnlisten: (() => void) | undefined;
+
+  // finestra flottante: riaggancia al pannello (la chiusura innesca il redock via onCloseRequested)
+  async function dockFloatTerminal() {
+    try {
+      await getCurrentWindow().close();
+    } catch {
+      /* */
+    }
+  }
+  // finestra flottante: chiude davvero il terminale (termina il PTY, niente redock)
+  async function closeFloatTerminal() {
+    floatUnlisten?.(); // disattiva il redock: stiamo chiudendo sul serio
+    floatUnlisten = undefined;
+    try {
+      await invoke("pty_kill", { id: floatId });
+    } catch {
+      /* */
+    }
+    try {
+      await getCurrentWindow().destroy();
+    } catch {
+      /* */
+    }
+  }
+
+  // Ctrl+rotella = zoom del font di editor/terminale (intercetta prima del WebView)
+  function addWheelZoom() {
     window.addEventListener(
       "wheel",
       (e) => {
@@ -44,7 +84,30 @@
       },
       { passive: false },
     );
-    if (isFloatingTerminal) return;
+  }
+
+  onMount(async () => {
+    loadSettings(); // applica font/dimensione/accento/caret (anche nella finestra flottante)
+    if (isFloatingTerminal) {
+      // Registra SUBITO l'handler di chiusura (prima di ogni altro await): una chiusura OS
+      // precoce non deve perdere il redock e lasciare il PTY orfano. Riaggancia il terminale
+      // a chi l'ha estratto (il PTY resta vivo: "torna" nel pannello, Claude continua).
+      try {
+        const w = getCurrentWindow();
+        floatUnlisten = await w.onCloseRequested(async (e) => {
+          e.preventDefault();
+          await emit("term-redock", { id: floatId, title: floatTitle, shell: floatShell, from: floatFrom });
+          floatUnlisten?.();
+          floatUnlisten = undefined;
+          await w.destroy();
+        });
+      } catch {
+        /* fuori dal contesto Tauri */
+      }
+      addWheelZoom();
+      return;
+    }
+    addWheelZoom();
     startSettingsAutosave();
     // aggiornamento in tempo reale: il backend emette fs-changed (debounced)
     listen("fs-changed", () => {
@@ -52,7 +115,20 @@
       refreshStatus();
       reloadOpenFiles();
       loadRunConfig(); // ricarica il menu Esegui se Claude tocca .orbit/run.json
+      loadClaudeConfig(); // ricarica il menu Claude se cambia .orbit/claude.json
       loadShelf(); // ricarica lo scaffale se Claude tocca .orbit/shelf.json
+      invalidateFiles(); // l'elenco file cachato (Docs/Quick Open) non è più aggiornato
+      if (layout.sidebarView === "docs") loadDocs(); // aggiorna l'indice Docs se visibile
+    });
+    // un terminale estratto torna nel pannello quando la sua finestra flottante si chiude
+    listen("term-redock", (e) => {
+      const p = e.payload as { id: string; title: string; shell: string | null; from?: string };
+      try {
+        if (p.from && p.from !== getCurrentWebviewWindow().label) return;
+      } catch {
+        /* */
+      }
+      redockTerminal({ id: p.id, title: p.title, shell: p.shell });
     });
     try {
       const s = await invoke<{ dir: string | null; file: string | null; search: string | null }>(
@@ -76,6 +152,7 @@
       console.error("startup", e);
     }
     startAutosave(); // d'ora in poi persiste cartella, tab e pannelli
+    workspace.ready = true; // sessione caricata: il pannello terminale può creare la tab di default
   });
 
   function onKey(e: KeyboardEvent) {
@@ -109,8 +186,29 @@
 <svelte:window onkeydown={onKey} />
 
 {#if isFloatingTerminal}
-  <div class="floatwrap">
-    <Terminal id="float" active />
+  <div class="floatshell">
+    <header class="floatbar" data-tauri-drag-region>
+      <div class="fbrand" data-tauri-drag-region>
+        <Logo size={14} gid="floatGrad" />
+        <span>{floatTitle}</span>
+      </div>
+      <div class="fctrls">
+        <button class="fc dock" title="Dock to main window" aria-label="Dock to main window" onclick={dockFloatTerminal}>
+          <Icon name="panel-bottom" size={15} strokeWidth={1.6} />
+        </button>
+        <button class="fc" title="Minimize" aria-label="Minimize" onclick={() => getCurrentWindow().minimize()}>
+          <Icon name="win-minimize" size={14} strokeWidth={1.3} />
+        </button>
+        <button class="fc close" title="Close terminal" aria-label="Close terminal" onclick={closeFloatTerminal}>
+          <Icon name="x" size={15} strokeWidth={1.6} />
+        </button>
+      </div>
+    </header>
+    <div class="floatbody">
+      <div class="floatpanel">
+        <Terminal id={floatId} shell={floatShell} attach active persistent enableLinks={false} />
+      </div>
+    </div>
   </div>
 {:else}
   <div class="shell">
@@ -155,9 +253,70 @@
     align-items: stretch;
     padding: 4px;
     background: var(--color-bg);
+    overflow: hidden; /* niente sovrapposizioni se i pannelli non entrano */
   }
-  .floatwrap {
+  .floatshell {
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-surface-1);
+  }
+  .floatbar {
+    height: 30px;
+    flex: 0 0 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--color-surface-0);
+    border-bottom: 1px solid var(--color-line);
+    padding-left: 11px;
+    user-select: none;
+  }
+  .fbrand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--color-ink-muted);
+  }
+  .fctrls {
+    display: flex;
+    align-items: stretch;
+    height: 100%;
+  }
+  .fc {
+    width: 42px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink-muted);
+    cursor: pointer;
+    transition: background 100ms ease;
+  }
+  .fc:hover {
+    background: var(--color-surface-3);
+    color: var(--color-ink);
+  }
+  .fc.close:hover {
+    background: #e81123;
+    color: #fff;
+  }
+  .fc.dock:hover {
+    color: var(--color-accent);
+    background: rgba(var(--accent-rgb), 0.16);
+  }
+  .floatbody {
+    flex: 1;
+    min-height: 0;
+    padding: 4px;
+    background: var(--color-bg);
+  }
+  .floatpanel {
+    height: 100%;
+    border: 1px solid var(--color-accent);
+    border-radius: 8px;
+    overflow: hidden;
     background: var(--color-surface-1);
   }
 </style>

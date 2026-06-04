@@ -1,0 +1,21 @@
+{
+  "command": "claude",
+  "args": "",
+  "shortcuts": [
+    {
+      "name": "Aggiorna documentazione",
+      "icon": "book-open",
+      "prompt": "Rileggi il progetto e aggiorna la documentazione (README, la cartella docs/, ed eventuali NOTES e CLAUDE.md) per allinearla allo stato attuale del codice. Mantieni stile e struttura esistenti, cambia solo ciò che è obsoleto o mancante, e alla fine elencami le modifiche fatte."
+    },
+    {
+      "name": "Recupera contesto progetto",
+      "icon": "search",
+      "prompt": "Studia questo progetto per costruirti un quadro completo: struttura delle cartelle, stack e dipendenze, punti di ingresso, come si builda/testa/avvia, e le convenzioni principali. Non modificare nessun file: riassumimi cos'è il progetto e com'è organizzato."
+    },
+    {
+      "name": "Commit & push (con revisione)",
+      "icon": "git-commit",
+      "prompt": "Esamina tutte le modifiche correnti con git status e git diff. Dimmi cosa conviene tenere e cosa scartare, raggruppa le modifiche correlate e proponimi messaggi di commit chiari. Procedi con i commit solo dopo la mia conferma e non fare push finché non te lo approvo esplicitamente."
+    }
+  ]
+}

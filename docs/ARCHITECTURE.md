@@ -22,9 +22,11 @@ src/
   App.svelte          # window shell: TopBar | (Sidebar | Editor | Terminal) | StatusBar
   lib/
     components/       # UI (Svelte components)
-    state/            # reactive state + actions (Svelte 5 runes in .svelte.ts)
+    state/            # reactive state + actions (Svelte 5 runes in .svelte.ts);
+                      #   plain .ts helpers: dotorbit.ts (.orbit config), projectFiles.ts (list_files cache)
     editor/           # CodeMirror extensions (theme, indent guides, git gutter)
     util.ts           # pure helpers (paths, file icons, language label, time)
+    markdown.ts       # Markdown → sanitized HTML (marked + DOMPurify, lazy) + heading TOC
 src-tauri/
   src/lib.rs          # Rust entry: fs/session/window commands + run() (registers all)
   src/git.rs          # git commands (libgit2)
@@ -34,7 +36,7 @@ src-tauri/
   capabilities/       # Tauri permission capabilities
 docs/                 # this doc + screenshot
 NOTES.md              # decision log (per milestone), Italian
-CLAUDE.md             # tells Claude Code the .orbit/run.json format
+CLAUDE.md             # tells Claude Code the .orbit/run.json + .orbit/claude.json formats
 ```
 
 ## Frontend architecture
@@ -51,15 +53,17 @@ Three kinds of frontend module, kept separate:
 
 | Module | Owns |
 |---|---|
-| `workspace` | open folder, open tabs, active tab, branch, cursor position; `openFile`, `saveActive`, … |
+| `workspace` | open folder, document pool, **editor groups** (split view) + active group/tab, branch; `openFile`, `moveTab`, `splitWithTab`, `saveActive`, … |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete) |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations |
 | `terminals` | terminal tabs (id/title/shell/cwd) + active tab |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
+| `claude` | Claude launcher + shortcuts (`.orbit/claude.json`); opens `claude` in a terminal tab |
 | `shelf` | shelved folders by category (`.orbit/shelf.json`) |
 | `search` | project text search (debounced) |
 | `quickopen` | Ctrl+P fuzzy file finder |
-| `settings` | font/size/accent/smooth‑caret/webgl (localStorage) + applies CSS vars |
+| `docs` | documentation tree (README + `docs/**`) for the Docs view |
+| `settings` | font/size/accent/smooth‑caret/webgl/claude‑terminal (localStorage) + applies CSS vars |
 | `layout` | panel sizes/visibility + focused panel |
 | `persist` | per‑folder session save/restore (autosave via `$effect.root`) |
 | `toast` | transient notifications |
@@ -67,12 +71,44 @@ Three kinds of frontend module, kept separate:
 State is plain **Svelte 5 runes**: `export const x = $state({...})`; components reading those
 fields re‑render automatically. Cross‑module reactive reads (e.g. `git.tick`) drive effects.
 
+**Editor groups (split view).** The editor area renders N side‑by‑side groups. `openFiles` is the
+shared document pool (content/dirty live here), and each `workspace.groups[i]` holds an ordered list
+of tab paths + its active path — so the same file can appear in several groups. Tabs are
+moved / split / reordered via native HTML5 drag‑and‑drop in `EditorArea.svelte`; a document is
+dropped from the pool only when no group references it. (Tauri's OS‑level drag‑drop is turned off
+with `dragDropEnabled: false` in `tauri.conf.json`, otherwise it would swallow in‑page HTML5 DnD.)
+The editor uses soft **line wrapping** (gutter stays correct).
+
 ### Heavy modules are lazy
 
 `Editor.svelte` (CodeMirror) and `Terminal.svelte` (xterm) are loaded through
 `LazyEditor.svelte` / `LazyTerminal.svelte` (dynamic `import()`), so the startup chunk stays
-small (~117 KB). The terminal WebGL renderer is a *further* dynamic import, gated on
-`settings.webgl` (off by default).
+small (~170 KB). The terminal WebGL renderer is a *further* dynamic import, gated on
+`settings.webgl` (off by default). **marked + DOMPurify** are likewise lazy (`markdown.ts`
+imports them on first render), so the Markdown feature adds nothing to the startup payload.
+
+### Feature notes
+
+- **Markdown** — `markdown.ts` renders Markdown to **sanitized** HTML (the WebView has IPC
+  access, so a malicious README must not run scripts). `MarkdownView.svelte` is a reading‑mode
+  preview with a heading TOC, interactive task lists (writing back to the source), and clickable
+  internal links / anchors. `EditorArea` shows a per‑file **source ⇄ preview** toggle for `.md`
+  (state `OpenFile.preview`, default on for `README`).
+- **Docs view** — `docs.svelte.ts` builds a **hierarchical tree** of the project's Markdown
+  (root `README` + `docs/**`) via `list_files`, ordered by numeric prefix, with cleaned titles and
+  `_`‑folders de‑emphasized. `DocsView.svelte` renders it (a recursive snippet); clicking a page
+  opens it in preview.
+- **Claude integration** — `claude.svelte.ts` opens `claude` in a terminal tab at the project root
+  and runs **shortcuts** (`claude "<prompt>"`), reusing the run‑config mechanism
+  (`addTerminal({ cwd, initCommand })`). Config is `.orbit/claude.json` (command/args/shortcuts),
+  Claude‑editable and documented in `CLAUDE.md`. With `settings.claudeTerminal` on (default), the
+  **default terminal launches Claude** instead of a plain shell (gated on `workspace.ready`).
+- **Terminal & floating window** — PTYs live in the Rust backend keyed by `id`, so any webview just
+  attaches via `pty-data-<id>` events + `pty_write` / `pty_resize`. "Pop out" opens a separate
+  `term-float` webview that **attaches to the same PTY** (the live session keeps running) and removes
+  the tab from the panel; **Dock** (or closing the window) emits a global `term-redock` event that
+  re‑attaches it to the originating window. The float window wears the app's own chrome
+  (`decorations: false` + a custom title bar).
 
 ## Backend & IPC
 
@@ -88,7 +124,8 @@ frontend calls them with `invoke("name", {args})`. Areas:
 - **Terminal** (`pty.rs`): `pty_spawn`, `pty_write`, `pty_resize`, `pty_kill`, `list_shells`;
   streams output as `pty-data-<id>` events.
 - **Watcher** (`watcher.rs`): `watch_start`; emits a debounced **`fs-changed`** event that the
-  frontend listens to (refresh tree + git + reload open files + run config + shelf).
+  frontend listens to (refresh tree + git + reload open files + run config + Claude config + shelf
+  + Docs index when visible).
 
 **Adding a command:** write `#[tauri::command] fn foo(...) -> Result<T, String>` in the right
 `*.rs`, add `foo` (or `module::foo`) to the `generate_handler!` list in `lib.rs`, then call
@@ -98,11 +135,13 @@ commands (only Tauri plugin commands need permissions in `capabilities/`).
 ## Persistence
 
 - **Session** (per folder): `save_state(key=folder, data)` → `app_config_dir()/sessions/<hash>.json`
-  + `last_session.txt`. Restored on launch (`persist.loadSession`).
+  + `last_session.txt` (editor groups + tabs + active group + panel layout). Restored on launch
+  (`persist.loadSession`; reads legacy single‑group sessions too).
 - **Settings** (app‑global): `localStorage["orbit.settings"]`, applied as CSS variables on
   `document.documentElement`. (Per WebView origin: dev and the installed app have separate stores.)
-- **Project config** (committed/shared): `.orbit/run.json` (run configs). `.orbit/shelf.json`
-  is a personal view preference and is git‑ignored.
+- **Project config** (committed/shared): `.orbit/run.json` (run configs) and `.orbit/claude.json`
+  (Claude launcher command/args + shortcuts). `.orbit/shelf.json` is a personal view preference and
+  is git‑ignored.
 
 ## Theming
 

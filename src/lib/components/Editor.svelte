@@ -22,7 +22,7 @@
     LanguageDescription,
   } from "@codemirror/language";
   import { languages } from "@codemirror/language-data";
-  import { lumeTheme, lumeHighlight } from "../editor/theme";
+  import { orbitTheme, orbitHighlight } from "../editor/theme";
   import { indentGuides } from "../editor/indentGuides";
   import { gitGutter, setGitMarks, parseGitMarks } from "../editor/gitGutter";
   import { settings } from "../state/settings.svelte";
@@ -71,6 +71,7 @@
         highlightSpecialChars(),
         history(),
         drawSelection(),
+        EditorView.lineWrapping, // le righe lunghe vanno a capo (gutter come VS Code)
         indentOnInput(),
         bracketMatching(),
         highlightActiveLine(),
@@ -79,8 +80,8 @@
         indentGuides,
         indentUnit.of("  "),
         langConf.of([]),
-        syntaxHighlighting(lumeHighlight),
-        lumeTheme,
+        syntaxHighlighting(orbitHighlight),
+        orbitTheme,
         EditorState.readOnly.of(readonly),
         EditorView.editable.of(!readonly),
         keymap.of([
@@ -153,9 +154,17 @@
   });
 
   async function loadLanguage() {
-    const desc = LanguageDescription.matchFilename(languages, basename(path));
-    if (!desc || !view) return;
+    if (!view) return;
+    const name = basename(path);
     try {
+      // Svelte non è in @codemirror/language-data: language-pack dedicato (lazy).
+      if (name.toLowerCase().endsWith(".svelte")) {
+        const { svelte } = await import("@replit/codemirror-lang-svelte");
+        view.dispatch({ effects: langConf.reconfigure(svelte()) });
+        return;
+      }
+      const desc = LanguageDescription.matchFilename(languages, name);
+      if (!desc) return;
       const support = await desc.load();
       view.dispatch({ effects: langConf.reconfigure(support) });
     } catch {

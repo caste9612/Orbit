@@ -5,6 +5,17 @@ Regola: dipendenze al minimo; ogni aggiunta deve essere motivata qui.
 
 Nome in codice provvisorio: **Lume** (it. "lume" = luce/lampada — leggero, ti illumina
 il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
+> Nota: il progetto è poi stato rinominato **Orbit** (M25). L'identifier bundle e le env var
+> `LUME_*` restano invariati di proposito (per non orfanizzare sessioni/impostazioni installate).
+
+---
+
+## Indice
+- [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
+- Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
+- [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020)
+- [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
 
@@ -762,6 +773,223 @@ Passata di igiene prima di proseguire lo sviluppo.
 
 Verifica: `svelte-check` 168 file 0/0; `cargo check` pulito. (Refactor type-clean e
 comportamento preservato per costruzione; sanity-check runtime consigliato con `npm run tauri dev`.)
+
+---
+
+## Milestone 23 — più linguaggi + esperienza Markdown/Docs
+
+Tre richieste: indentare i file non coperti da `language-data`, un'esperienza Markdown "più
+figa del solito" e una vista dedicata alla documentazione.
+
+**Svelte (e affini) indentati**
+- I `.svelte` non erano evidenziati né indentati: Svelte **non è** in `@codemirror/language-data`,
+  quindi cadeva a testo semplice. Aggiunto `@replit/codemirror-lang-svelte` con **import dinamico**
+  dentro `loadLanguage()` (caso speciale per estensione `.svelte`): la grammatica pesa solo quando
+  apri un file Svelte, coerente con il resto delle grammatiche lazy.
+
+**Markdown: toggle sorgente ↔ anteprima (no split)**
+- Niente finestra divisa: un **toggle** nella breadcrumb mostra *solo* sorgente o *solo* anteprima.
+  Stato `preview` per-tab in `workspace` (`togglePreview`/`setPreview`); i `README.md` si aprono
+  già in anteprima.
+- Rendering in `src/lib/markdown.ts`: **marked + DOMPurify** caricati **on-demand** (import
+  dinamico) — non pesano sull'avvio (chunk separati: marked ~43 KB, purify ~27 KB) e l'HTML è
+  **sanitizzato** (un README malevolo non può eseguire script nel webview, che ha accesso all'IPC).
+- `MarkdownView.svelte` — anteprima "reading-mode" (colonna centrata, tipografia curata) con extra:
+  - **TOC flottante** ("Outline") generato dagli heading, comprimibile; click → scroll all'ancora.
+  - **Task list interattive**: spuntare una casella riscrive la riga `- [ ]`/`- [x]` nel sorgente
+    (per ordine di comparsa, saltando i fence) e salva.
+  - **Link e ancore**: i link interni `.md` aprono il file, gli `#anchor` scrollano, gli esterni
+    vanno al browser. `preventDefault` su *tutti* i link → l'app non naviga mai via.
+  - Id slug sugli heading dopo il render (coerenti tra TOC e ancore).
+
+**Vista Docs (albero gerarchico)**
+- Nuova voce **Docs** nella top bar + pannello in sidebar (`DocsView.svelte`, stato `docs.svelte.ts`).
+- Indicizza i markdown del progetto riusando il comando Rust `list_files` (README di root + tutto
+  sotto `docs/`) e li presenta come **albero pieghevole** che rispecchia le cartelle — pensato per
+  documentazioni grandi (centinaia di file su più livelli, es. progetti con `00-…/01-…/99-…`):
+  - **ordinamento per prefisso numerico** (`00-…99-`) su cartelle e file; il numero diventa un
+    badge e non sporca il titolo;
+  - **titoli puliti** (kebab/snake → Title Case, con un set di acronimi: API, FSM, WS…);
+  - **cartelle "meta" `_`** (es. `_archive`, `_plans`) attenuate e spinte in fondo;
+  - **README/index → "Overview"** (in caso di doppio README vince quello dentro `docs/`).
+- Click su una pagina → la apre **in anteprima** (con il suo TOC). Caricamento lazy: l'albero si
+  costruisce solo quando la vista è montata (`$effect` su `rootPath`) e si aggiorna su `fs-changed`
+  **solo se** la vista Docs è aperta (niente walk dell'albero a ogni modifica).
+
+Verifica: `svelte-check` 175 file 0/0; `vite build` ok (marked/purify confermati come chunk
+lazy separati). Non implementato (non richiesto): azione "Crea docs" di scaffold.
+
+---
+
+## Milestone 24 — integrazione Claude Code
+
+Orbit nasce come *companion* di Claude Code: questa milestone porta Claude dentro il flusso.
+
+**Menu Claude (barra in alto)**
+- Nuovo menu **✨ Claude** accanto a Esegui ▶ (`claude.svelte.ts`): apre Claude in una tab del
+  terminale **nella radice del progetto** e offre *scorciatoie* = prompt predefiniti lanciati come
+  `claude "<prompt>"`. Claude parte sempre **interattivo**: l'utente supervisiona (cruciale per
+  commit/push). Il prompt è quotato in sicurezza (una riga, niente virgolette doppie interne).
+- Scorciatoie di default: **Aggiorna documentazione**, **Recupera contesto progetto**,
+  **Commit & push (con revisione)** (esamina il diff, distingue cosa tenere/scartare, chiede
+  conferma prima di pushare).
+
+**Configurazione `.orbit/claude.json` (per progetto, come run.json)**
+- `command` (default `claude`), `args` (flag liberi, es. `--model opus` — future-proof se i
+  settings di Claude cambiano), `shortcuts[]` (`name`/`prompt`/`icon`). Committato e **modificabile
+  da Claude stesso**: il formato è documentato in `CLAUDE.md` ("Document shortcuts"), così puoi
+  chiedere a Claude "aggiungi una scorciatoia che lancia i test e ne sistema i fallimenti" e
+  compare nel menu. Orbit lo ricarica su `fs-changed`. Se il file manca, valgono i default
+  (menu sempre funzionante).
+
+**Terminale di default = Claude**
+- Nuova impostazione **`claudeTerminal`** (Settings, ON di default): quando Orbit apre il terminale
+  per te (avvio, o riapertura del pannello vuoto) e c'è un progetto aperto, avvia `claude` base
+  invece di una shell vuota. Il `+` resta una shell normale; spegnendo l'opzione torna tutto come prima.
+- Per evitare di partire nella cartella sbagliata, il pannello attende `workspace.ready` (settato a
+  fine caricamento sessione) prima di decidere Claude-vs-shell.
+
+Riuso, non reinvenzione: avvio e scorciatoie poggiano sullo stesso meccanismo delle run config
+(`addTerminal({ cwd, initCommand })`). Orbit non fa git da sé: semina solo il comando nel terminale
+interattivo, sotto la tua supervisione.
+
+Verifica: `svelte-check` 176 file 0/0.
+
+---
+
+## Milestone 25 — refactor + pulizia pre-release
+
+Passata di consolidamento prima della release (Markdown/Docs + integrazione Claude).
+
+**Refactor (comportamento invariato)**
+- Estratto `dotorbit.ts`: helper condivisi per la config di progetto in `.orbit/` (path, lettura
+  JSON, creazione da template, documentazione del formato in `CLAUDE.md`). `run.svelte.ts` e
+  `claude.svelte.ts` vi poggiano sopra → eliminata la duplicazione `configPath`/`ensureFile`/`teach*`.
+- Estratto `projectFiles.ts`: `list_files` con **cache per-root** e dedup delle chiamate concorrenti,
+  condiviso da Quick Open e Docs (niente più doppio walk dell'albero); invalidata su `fs-changed`.
+- TopBar: helper `menuPos` per i menu a tendina (run/claude).
+
+**Pulizia / naming → Orbit**
+- Rinominati simboli ed etichette residui da "lume" a "orbit" dove **non** impatta gli utenti:
+  titolo finestra (`index.html`, ora anche `lang="en"`), tema editor (`orbitTheme`/`orbitHighlight`),
+  nome pacchetto npm, crate Rust (`orbit`/`orbit_lib`, binario ora `orbit.exe`), descrizioni in
+  inglese, firma git di fallback.
+- **Identifier bundle `com.visialab.lume` lasciato invariato di proposito**: cambiarlo
+  orfanizzerebbe sessioni (`%APPDATA%/com.visialab.lume/`) e impostazioni (localStorage per-origine)
+  degli utenti, e per OS/installer sarebbe un'app nuova. (Rivede in parte la nota precedente "nome
+  interno lume tenuto per non rompere build": ora il *crate/pacchetto* è `orbit`, ma l'*identifier*
+  resta.) Anche le env var `LUME_*` (contratto CLI/test) restano.
+- `CLAUDE.md` documenta ora anche `.orbit/claude.json`; aggiunto al repo `.orbit/claude.json`
+  (dogfood: le 3 scorciatoie di default).
+
+Verifica: `svelte-check` 178 file 0/0; `cargo check` + `cargo test` ok (8/8, binario `orbit`);
+`vite build` ok.
+
+---
+
+## Milestone 26 — split view (riquadri editor affiancati)
+
+Ultima feature prima della release: trascinare le schede per affiancare codice/documentazione,
+stile VS Code (N riquadri in fila).
+
+**Modello a gruppi editor**
+- `workspace` passa da "tab singole + activePath" a: **pool di documenti** (`openFiles`, con
+  contenuto/dirty condivisi) + **`groups[]`** (ogni gruppo = colonna affiancata con le sue `tabs` e
+  il suo `activePath`) + `activeGroupId`. Lo stesso file può stare in più gruppi. Un documento si
+  chiude dal pool solo quando nessun gruppo lo referenzia (`pruneDocs`); un gruppo vuoto si rimuove
+  (tranne l'ultimo). Nuove azioni: `setActiveTab`/`setActiveGroup`/`closeTab`/`moveTab`/`reorderTab`/
+  `splitWithTab`; `activeFile()`/`activePath()` derivano ora dal gruppo attivo.
+- `savePath(path)` salva un documento specifico (ogni editor salva il proprio file); `saveActive()`
+  salva il file del gruppo attivo.
+
+**UI + drag & drop**
+- `EditorArea.svelte` renderizza N gruppi affiancati (flex uguale), ciascuno con la sua barra tab,
+  breadcrumb e superficie (editor / anteprima / diff). Drag&drop **HTML5 nativo** (zero librerie):
+  tab sul **bordo destro** → zona "Split" → nuovo riquadro; sulla **barra di un altro riquadro** →
+  sposta; nella **stessa barra** → riordina (indice dai punti medi delle tab).
+- Solo l'editor del **gruppo attivo** aggiorna la status bar (cursore); il click su un gruppo lo
+  rende attivo.
+
+**Persistenza** (`persist.svelte.ts`)
+- La sessione salva i gruppi (tab + attiva) e il gruppo attivo (formato **v2**); legge ancora le
+  sessioni **v1** (un solo gruppo) per retrocompatibilità.
+
+Verifica: `svelte-check` 178 file 0/0; `vite build` ok.
+
+---
+
+## Milestone 27 — rifiniture split view + terminale flottante
+
+Giro di correzioni emerse provando lo split view, più il rifacimento del terminale flottante.
+
+**Drag&drop, wrapping, layout**
+- Il drag delle schede non partiva (cursore "stop"): **Tauri intercetta il drag a livello OS**
+  (`dragDropEnabled`, default `true`) e disabilita l'HTML5 DnD nella pagina → messo a **`false`** in
+  `tauri.conf.json` (+ `dropEffect="move"` sui target).
+- **Line wrapping** nell'editor: le righe lunghe vanno a capo, con il gutter dei numeri coerente.
+- L'editor non viene più nascosto dal terminale: `min-width` sull'area editor, terminale
+  comprimibile (`flex:0 1 auto`), `.body { overflow:hidden }`.
+- **Schede**: larghezza minima leggibile + scroll, e un menu **"tutte le schede"** per riquadro
+  (chevron) che le elenca e le chiude quando sono molte.
+
+**Terminale**
+- Riga nera in fondo: il container è allineato allo sfondo del tema xterm (`#1e1e1e`).
+- Resize **debounced** e inviato solo se cambia la griglia (`cols/rows`) → niente più ridisegni
+  "duplicati" dei programmi TUI (es. il banner di Claude) durante lo zoom del font.
+
+**Terminale flottante — rifatto**
+- Prima apriva un terminale *nuovo*. Ora **estrae il terminale attivo**: il PTY vive nel backend
+  (per `id`), la finestra flottante ci si **aggancia** (prop `attach`: nessun rispawn, solo un
+  `pty_resize` → il TUI si ridisegna). Il terminale lascia il pannello senza uccidere il PTY
+  (`removeTerminalKeepPty`).
+- **Rientro**: pulsante **Dock** (o chiusura della finestra) → evento globale `term-redock` (con la
+  label della finestra d'origine, per il multi-istanza) → `redockTerminal` ricollega in `attach`.
+  La **✕** invece termina davvero il PTY.
+- **Chrome coerente**: `decorations:false` + title bar custom (logo Orbit, nome, Dock/Min/Close),
+  terminale in un pannello con **bordo accento** come i pannelli a fuoco.
+- Capabilities aggiunte: `core:window:allow-destroy`, `core:event:allow-emit`.
+
+Verifica: `svelte-check` 178 file 0/0; `cargo check`/`cargo test` ok (8/8); rebuild Tauri ok.
+
+---
+
+## Milestone 28 — revisione pre-release (v0.2.0)
+
+Passata di revisione prima di pubblicare: tre audit indipendenti (split view, terminale flottante,
+repo/doc) + misure di footprint sul build release. Correzioni applicate ai bug reali emersi.
+
+**Split view — robustezza drag&drop** (`workspace.svelte.ts`, `EditorArea.svelte`)
+- L'overlay "Split" poteva restare bloccato se la scheda trascinata spariva a metà drag (rename/
+  delete esterno): aggiunto un `$effect` che annulla il drag quando il path non è più in nessun
+  gruppo, più un `svelte:window ondragend` (cattura anche Esc / rilascio nel vuoto).
+- `splitWithTab`: guardia `from.tabs.includes(path)` → niente più gruppo vuoto fantasma con path stale.
+- `moveTab`: se la scheda è già aperta nel gruppo destinazione ora la **riposiziona** (niente
+  duplicati, indice di rilascio rispettato) invece di ignorare la posizione.
+
+**Terminale flottante — affidabilità** (`TerminalPanel.svelte`, `App.svelte`, `Terminal.svelte`)
+- `detach()` ora rimuove la scheda dal pannello **solo a finestra creata** (`tauri://created`); se
+  la creazione fallisce la scheda resta → niente terminale orfano.
+- Handler di chiusura registrato **subito** (prima di altri await) e `unlisten` hoisted: `Dock`
+  riaggancia, `✕` termina davvero il PTY, senza dipendere dalla differenza `close()`/`destroy()`.
+- I link cliccabili nella finestra flottante sono disattivati via prop esplicita `enableLinks`
+  (prima il check `id !== "float"` non scattava più, perché l'id è `term-N`).
+
+**Cleanup PTY all'uscita** (`pty.rs`, `lib.rs`)
+- `PtyManager::kill_all` + `Drop`, e gancio su `RunEvent::ExitRequested`: alla chiusura dell'app
+  i processi figli (shell/`claude`) vengono terminati → niente più processi orfani in background
+  (era un leak pre-esistente).
+
+**Footprint misurato (release v0.2.0)** — invariato rispetto alla 0.1.0 nonostante le nuove feature:
+- portable `orbit.exe` **5,25 MB**; MSI **3,79 MB**; NSIS **2,61 MB**; chunk d'avvio **174 KB** (58 KB gzip).
+- RAM a riposo (progetto aperto): **~220 MB private** (orbit + WebView2); il core Rust è **~30 MB**,
+  il resto è la WebView di sistema. I processi del terminale (`claude` ~350 MB Node, shell) sono a
+  parte. Coerente con l'indagine M21 (225 MB senza WebGL). Corretto il README (dichiarava ~100 MB).
+
+**Esito audit**: nessun dead code, naming `lume` residuo solo dove intenzionale (identifier, `LUME_*`),
+repo pulito, doc accurate. Aggiunto questo TOC a NOTES e i due helper (`dotorbit`/`projectFiles`) ad
+ARCHITECTURE.
+
+Verifica: `svelte-check` 178 file 0/0; `cargo check`/`cargo test` ok (8/8); build release ok.
 
 ---
 

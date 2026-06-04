@@ -1,16 +1,23 @@
-// Persistenza di sessione: salva/ripristina ultima cartella, tab aperte, tab
-// attiva e stato dei pannelli in un JSON nella config dir dell'app (comandi Rust
-// load_state/save_state). Zero dipendenze: niente plugin esterni.
+// Persistenza di sessione: salva/ripristina ultima cartella, gruppi editor (split view) con
+// le rispettive tab e tab attiva, gruppo attivo e stato dei pannelli, in un JSON nella config
+// dir dell'app (comandi Rust load_state/save_state). Zero dipendenze.
 import { invoke } from "@tauri-apps/api/core";
-import { workspace, openFile } from "./workspace.svelte";
+import { workspace, fileByPath, restoreGroups } from "./workspace.svelte";
 import { openRoot } from "./explorer.svelte";
 import { layout, type SidebarView } from "./layout.svelte";
+
+interface SavedGroup {
+  tabs: string[];
+  active: string | null;
+}
 
 interface Session {
   v: number;
   root: string | null;
-  files: string[];
-  active: string | null;
+  groups?: SavedGroup[]; // v2: split view
+  activeGroup?: number;
+  files?: string[]; // v1 (legacy): un solo gruppo
+  active?: string | null;
   layout: {
     sidebarView: SidebarView;
     sidebarVisible: boolean;
@@ -21,13 +28,20 @@ interface Session {
 }
 
 function serialize(): string {
-  const files = workspace.openFiles.filter((f) => f.kind === "file").map((f) => f.path);
-  const active = files.includes(workspace.activePath ?? "") ? workspace.activePath : null;
+  const groups: SavedGroup[] = [];
+  let activeGroup = 0;
+  for (const g of workspace.groups) {
+    const tabs = g.tabs.filter((p) => fileByPath(p)?.kind === "file"); // i diff non si persistono
+    if (tabs.length === 0) continue;
+    if (g.id === workspace.activeGroupId) activeGroup = groups.length;
+    const active = g.activePath && tabs.includes(g.activePath) ? g.activePath : tabs[0];
+    groups.push({ tabs, active });
+  }
   const data: Session = {
-    v: 1,
+    v: 2,
     root: workspace.rootPath,
-    files,
-    active,
+    groups,
+    activeGroup,
     layout: {
       sidebarView: layout.sidebarView,
       sidebarVisible: layout.sidebarVisible,
@@ -83,10 +97,13 @@ export async function loadSession(rootHint?: string): Promise<boolean> {
   } catch {
     return false;
   }
-  for (const p of s.files ?? []) {
-    await openFile(p);
+
+  if (Array.isArray(s.groups) && s.groups.length) {
+    await restoreGroups(s.groups, s.activeGroup ?? 0);
+  } else if (Array.isArray(s.files) && s.files.length) {
+    // sessione v1: un solo gruppo
+    await restoreGroups([{ tabs: s.files, active: s.active ?? s.files[0] }], 0);
   }
-  if (s.active) workspace.activePath = s.active;
   return true;
 }
 

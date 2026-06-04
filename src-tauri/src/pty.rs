@@ -20,6 +20,23 @@ pub struct PtyManager {
     sessions: Mutex<HashMap<String, PtySession>>,
 }
 
+impl PtyManager {
+    /// Termina tutti i processi figli (chiamato all'uscita dell'app: niente shell/claude orfani).
+    pub fn kill_all(&self) {
+        if let Ok(mut sessions) = self.sessions.lock() {
+            for (_, mut s) in sessions.drain() {
+                let _ = s.child.kill();
+            }
+        }
+    }
+}
+
+impl Drop for PtyManager {
+    fn drop(&mut self) {
+        self.kill_all();
+    }
+}
+
 fn default_shell() -> CommandBuilder {
     if let Ok(s) = std::env::var("LUME_SHELL") {
         return CommandBuilder::new(s);

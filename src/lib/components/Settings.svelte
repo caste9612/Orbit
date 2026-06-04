@@ -61,6 +61,18 @@
 
     <div class="row">
       <div class="label">
+        <span class="name">Launch Claude in the default terminal</span>
+        <span class="hint">When Orbit opens a terminal for you, start <code>claude</code> instead of a plain shell</span>
+      </div>
+      <Switch
+        checked={settings.claudeTerminal}
+        onToggle={() => (settings.claudeTerminal = !settings.claudeTerminal)}
+        label="Launch Claude in the default terminal"
+      />
+    </div>
+
+    <div class="row">
+      <div class="label">
         <span class="name">Smooth caret</span>
         <span class="hint">Animate the editor cursor while typing</span>
       </div>
@@ -153,6 +165,11 @@
   .hint {
     font-size: 11.5px;
     color: var(--color-ink-subtle);
+  }
+  .hint code {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    color: var(--color-ink-muted);
   }
   .control {
     flex: 0 0 auto;

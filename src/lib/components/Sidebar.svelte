@@ -3,6 +3,7 @@
   import Explorer from "./Explorer.svelte";
   import GitPanel from "./GitPanel.svelte";
   import SearchView from "./SearchView.svelte";
+  import DocsView from "./DocsView.svelte";
   import { layout, setFocusPanel } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog, startCreate } from "../state/explorer.svelte";
@@ -11,6 +12,7 @@
     explorer: "Explorer",
     git: "Source Control",
     search: "Search",
+    docs: "Documentation",
   };
   let title = $derived(
     layout.sidebarView === "explorer" && workspace.rootName
@@ -56,6 +58,15 @@
       {:else}
         <div class="empty">
           <p class="muted">No git repository.</p>
+          <p class="hint">Open a folder first.</p>
+        </div>
+      {/if}
+    {:else if layout.sidebarView === "docs"}
+      {#if workspace.rootPath}
+        <DocsView />
+      {:else}
+        <div class="empty">
+          <p class="muted">No documentation.</p>
           <p class="hint">Open a folder first.</p>
         </div>
       {/if}

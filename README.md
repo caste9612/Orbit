@@ -17,11 +17,13 @@ cross-platform desktop app that weighs almost nothing.
 - **It shows the whole project.** Unlike Visual Studio's "solution" view, Orbit lists the real
   filesystem — nothing is hidden. To keep that clean, you can put folders you don't care about
   on a **Shelf** (by category) instead of having them clutter the tree.
-- **It closes the loop with Claude Code.** Files Claude edits in the terminal **reload by
-  themselves**, changed files are **highlighted in the tree**, paths printed in the terminal are
-  **clickable**, and you can define **Run configurations** that Claude itself can create —
-  because Orbit documents the format in your `CLAUDE.md`.
-- **It is genuinely small.** A ~5 MB binary, ~100 MB RAM at rest, and a 117 KB startup payload.
+- **It closes the loop with Claude Code.** A one-click **Claude menu** opens `claude` in the
+  project root and runs task **shortcuts** (update docs, gather context, commit & push with
+  review); files Claude edits **reload by themselves**, changed files are **highlighted in the
+  tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
+  `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
+- **It is genuinely small.** A ~5 MB binary, ~220 MB RAM at rest (mostly the shared system
+  WebView — Orbit's own Rust core is ~30 MB), and a ~170 KB startup payload.
 
 ### Project gates (non-negotiable)
 
@@ -43,16 +45,33 @@ cross-platform desktop app that weighs almost nothing.
 - **Quick Open** (`Ctrl/Cmd+P`) with fuzzy ranking, and full‑text **project search**.
 
 **Editor** (CodeMirror 6)
-- Lazy, multi-language syntax highlighting (~140 grammars loaded on demand).
+- Lazy, multi-language syntax highlighting (~140 grammars loaded on demand, plus a dedicated
+  Svelte pack).
 - Indentation guides, breadcrumb, find & replace (`Ctrl/Cmd+F`), smooth caret.
+- **Split view**: drag a tab to the edge to open files side by side (N panes); drag tabs between
+  panes, or within a bar to reorder. A per-pane **"all tabs" menu** lists and closes tabs when many.
+- **Word wrap** for long lines (the line-number gutter stays correct, VS Code-style).
 - Auto-reload of open files changed on disk, with a conflict indicator for unsaved edits.
 - Live status bar: line:column, language, end-of-line.
 
-**Terminal** (xterm.js + a real PTY, WebGL renderer)
+**Markdown & docs**
+- Per-file **toggle** between source and a clean **reading-mode preview** (no split view) —
+  `README` files open in preview by default.
+- The preview adds a floating **outline (TOC)**, **interactive task lists** (ticking a box writes
+  back to the source), and clickable internal links / heading anchors. Rendered HTML is sanitized.
+- A dedicated **Docs** view organizes the project's Markdown (root `README` + everything under
+  `docs/`) into a **hierarchical, collapsible tree** — ordered by numbered prefixes, with cleaned
+  titles and archive folders tucked away — so even large documentation sets stay navigable.
+
+![The Docs view with a Markdown file in reading-mode preview and its outline, next to Claude Code running in the integrated terminal](docs/screenshot-docs.png)
+
+**Terminal** (xterm.js + a real PTY, optional WebGL)
 - Docked on the right, with **multiple tabs** and shell selection (PowerShell, cmd, Git Bash,
   WSL, bash/zsh…).
 - **Clickable file paths** in the output (open the file at the line).
-- An always-on-top **floating terminal window** — keep `claude` running while you work.
+- **Pop out** the active terminal into an always-on-top **floating window** that carries the live
+  session (`claude` keeps running), with the app's own title bar and chrome — and **dock** it back
+  with one click.
 
 **Git** (local, via libgit2)
 - Status, diff, stage/unstage, commit, branch switch/create (from the status bar too), discard
@@ -63,10 +82,19 @@ cross-platform desktop app that weighs almost nothing.
   **"Set up for Claude"** to document the format in `CLAUDE.md`, so you can simply ask Claude to
   add a run configuration and it appears in the menu.
 
+**Claude Code integration**
+- A **Claude menu** opens `claude` in a terminal at the project root, plus one-click **shortcuts**
+  (predefined prompts): update the docs, gather project context, or commit & push after reviewing
+  what to keep vs discard. Shortcuts run **interactively**, so you stay in control.
+- Configured in **`.orbit/claude.json`** (command, flags, shortcuts) — committed, and editable by
+  Claude itself (the format is documented in `CLAUDE.md`), so you can just ask Claude to add one.
+- Optionally, the **default terminal launches Claude** instead of a plain shell (toggle in Settings).
+
 **Workspace**
 - Session persistence per folder (reopens last folder, tabs and panel layout).
 - **Multiple instances** ("New window") for working on several projects at once.
-- **Settings**: editor/terminal font and size, accent color presets, smooth-caret toggle.
+- **Settings**: editor/terminal font and size, accent color presets, smooth-caret toggle, and
+  "launch Claude in the default terminal".
 
 ---
 
@@ -80,11 +108,12 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~3.7 MB |
 | NSIS setup | ~2.5 MB |
 | Frontend `dist/` | ~2.3 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~117 KB (≈40 KB gzipped) |
-| RAM at rest | ~100 MB (dominated by the system WebView, inherent to Tauri) |
+| Startup JS chunk | ~170 KB (≈57 KB gzipped) |
+| RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
 
-For comparison, an equivalent Electron app ships an 80–200 MB binary; VS Code uses 300–800 MB
-of RAM and IntelliJ 1–2 GB.
+The terminal's child processes are separate: a `claude` session (Node) or a shell add their own
+memory on top, just as in any terminal. For comparison, an equivalent Electron app ships an
+80–200 MB binary; VS Code uses 300–800 MB of RAM and IntelliJ 1–2 GB.
 
 ---
 
@@ -112,7 +141,7 @@ lives in [NOTES.md](./NOTES.md).
 | Key | Action |
 |---|---|
 | `Ctrl/Cmd+P` | Quick open file by name |
-| `Ctrl/Cmd+F` | Find / replace in the file |
+| `Ctrl/Cmd+F` | Find / replace (within the focused editor) |
 | `Ctrl/Cmd+S` | Save the active file |
 | `Ctrl/Cmd+K` | Open folder |
 | `Ctrl/Cmd+B` | Toggle sidebar |
@@ -124,6 +153,8 @@ lives in [NOTES.md](./NOTES.md).
 
 - `.orbit/run.json` — Run ▶ configurations (committed/shared). Format is documented to Claude in
   `CLAUDE.md` via "Set up for Claude".
+- `.orbit/claude.json` — Claude launcher command/flags + task shortcuts (committed/shared). Format
+  is documented to Claude in `CLAUDE.md` via the Claude menu's "Document shortcuts".
 - `.orbit/shelf.json` — shelved folders by category (a personal view preference; git-ignored).
 
 ---

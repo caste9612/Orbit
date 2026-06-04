@@ -1,12 +1,9 @@
 // Quick-open (Ctrl+P): apertura rapida di un file per nome, con ranking fuzzy.
 // L'elenco file è fornito dal comando Rust `list_files` e caricato all'apertura.
-import { invoke } from "@tauri-apps/api/core";
 import { workspace, openFile } from "./workspace.svelte";
+import { listFiles, type FileRef } from "./projectFiles";
 
-export interface FileRef {
-  path: string; // assoluto (per aprire)
-  rel: string; // relativo alla radice, separatori "/"
-}
+export type { FileRef };
 
 export const quickopen = $state({
   open: false,
@@ -20,13 +17,14 @@ export const quickopen = $state({
 const CAP = 200; // righe mostrate al massimo
 
 export async function openPalette() {
-  if (!workspace.rootPath) return;
+  const root = workspace.rootPath;
+  if (!root) return;
   quickopen.open = true;
   quickopen.query = "";
   quickopen.index = 0;
   quickopen.loading = true;
   try {
-    quickopen.files = await invoke<FileRef[]>("list_files", { root: workspace.rootPath });
+    quickopen.files = await listFiles(root);
   } catch (e) {
     console.error("list_files", e);
     quickopen.files = [];

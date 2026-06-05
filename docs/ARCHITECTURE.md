@@ -24,7 +24,7 @@ src/
     components/       # UI (Svelte components)
     state/            # reactive state + actions (Svelte 5 runes in .svelte.ts);
                       #   plain .ts helpers: dotorbit.ts (.orbit config), projectFiles.ts (list_files cache)
-    editor/           # CodeMirror extensions (theme, indent guides, git gutter)
+    editor/           # CodeMirror extensions (theme, indent guides, git gutter) + outline.ts (symbols), activeEditor.ts
     util.ts           # pure helpers (paths, file icons, language label, time)
     markdown.ts       # Markdown → sanitized HTML (marked + DOMPurify, lazy) + heading TOC
 src-tauri/
@@ -55,13 +55,15 @@ Three kinds of frontend module, kept separate:
 |---|---|
 | `workspace` | open folder, document pool, **editor groups** (split view) + active group/tab, branch; `openFile`, `moveTab`, `splitWithTab`, `saveActive`, … |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete) |
-| `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations |
+| `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
 | `terminals` | terminal tabs (id/title/shell/cwd) + active tab |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
 | `claude` | Claude launcher + shortcuts (`.orbit/claude.json`); opens `claude` in a terminal tab |
 | `shelf` | shelved folders by category (`.orbit/shelf.json`) |
 | `search` | project text search (debounced) |
 | `quickopen` | Ctrl+P fuzzy file finder |
+| `symbols` | **Go to Symbol** palette (Ctrl+Shift+O): outline of the active editor + fuzzy filter |
+| `claudeChats` | the project's recent Claude Code sessions (from transcripts) + resume |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
 | `settings` | font/size/accent/smooth‑caret/webgl/claude‑terminal (localStorage) + applies CSS vars |
 | `layout` | panel sizes/visibility + focused panel |
@@ -103,11 +105,21 @@ imports them on first render), so the Markdown feature adds nothing to the start
   (`addTerminal({ cwd, initCommand })`). Config is `.orbit/claude.json` (command/args/shortcuts),
   Claude‑editable and documented in `CLAUDE.md`. With `settings.claudeTerminal` on (default), the
   **default terminal launches Claude** instead of a plain shell (gated on `workspace.ready`).
+- **Go to symbol** — `editor/outline.ts` extracts an outline from CodeMirror's syntax tree
+  (`ensureSyntaxTree`), `editor/activeEditor.ts` tracks the focused editor, and `symbols.svelte.ts`
+  + `SymbolPalette.svelte` are the `Ctrl+Shift+O` fuzzy palette that jumps to a definition.
+- **Claude chats** — `claudeChats.svelte.ts` lists the project's Claude Code sessions; the backend
+  `claude_sessions` reads the `~/.claude/projects/<slug>/*.jsonl` transcripts (titling each from its
+  first user message), and clicking resumes one with `claude --resume <id>` (id validated as a UUID).
+- **Git sync** — ahead/behind is computed locally with libgit2 (`git_upstream`, no network); the
+  actual fetch/pull/push/merge run the `git` CLI in a terminal tab (reusing the user's git auth), so
+  no openssl/libssh2 is pulled into the build.
 - **Terminal & floating window** — PTYs live in the Rust backend keyed by `id`, so any webview just
   attaches via `pty-data-<id>` events + `pty_write` / `pty_resize`. "Pop out" opens a separate
   `term-float` webview that **attaches to the same PTY** (the live session keeps running) and removes
   the tab from the panel; **Dock** (or closing the window) emits a global `term-redock` event that
-  re‑attaches it to the originating window. The float window wears the app's own chrome
+  re‑attaches it to the originating window (a dead PTY is reaped on EOF and `redockTerminal` checks `pty_alive`
+  first, so a finished session never leaves a zombie tab). The float window wears the app's own chrome
   (`decorations: false` + a custom title bar).
 
 ## Backend & IPC
@@ -119,6 +131,8 @@ frontend calls them with `invoke("name", {args})`. Areas:
   `create_dir`, `rename_path`, `delete_path`, `list_files`, `search_in_project`, `startup`.
 - **Session** (`lib.rs`): `load_state`/`save_state` (keyed per folder).
 - **Window** (`lib.rs`): `open_new_window`.
+- **Misc** (`lib.rs`): `reveal_path` (show a path in the OS file manager), `claude_sessions` (list
+  the project's Claude Code transcripts, each titled from its first user message).
 - **Git** (`git.rs`): `git_status`, `git_diff`, `git_stage`, `git_unstage`, `git_commit`,
   `git_branches`, `git_checkout_branch`, `git_create_branch`, `git_discard`, `git_log`, `git_show`.
 - **Terminal** (`pty.rs`): `pty_spawn`, `pty_write`, `pty_resize`, `pty_kill`, `list_shells`;

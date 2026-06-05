@@ -37,7 +37,8 @@ cross-platform desktop app that weighs almost nothing.
 
 **Files & navigation**
 - Virtualized, lazy file tree with type icons.
-- File management from the context menu: new / rename / delete / copy path (inline editing).
+- File management from the context menu: new / rename / delete, **copy (relative) path**, **open a
+  terminal here**, and **reveal in the OS file manager** (inline editing for new / rename).
 - **Git decorations** in the tree: modified/added/deleted files are highlighted live (so you
   see exactly what changed — including what Claude just touched).
 - **Shelf**: set aside uninteresting folders by category to declutter the tree without losing
@@ -48,6 +49,8 @@ cross-platform desktop app that weighs almost nothing.
 - Lazy, multi-language syntax highlighting (~140 grammars loaded on demand, plus a dedicated
   Svelte pack).
 - Indentation guides, breadcrumb, find & replace (`Ctrl/Cmd+F`), smooth caret.
+- **Go to symbol** (`Ctrl/Cmd+Shift+O`): fuzzy‑jump to functions, classes, methods and more in the
+  active file (extracted from the editor's syntax tree).
 - **Split view**: drag a tab to the edge to open files side by side (N panes); drag tabs between
   panes, or within a bar to reorder. A per-pane **"all tabs" menu** lists and closes tabs when many.
 - **Word wrap** for long lines (the line-number gutter stays correct, VS Code-style).
@@ -76,6 +79,9 @@ cross-platform desktop app that weighs almost nothing.
 **Git** (local, via libgit2)
 - Status, diff, stage/unstage, commit, branch switch/create (from the status bar too), discard
   changes, and commit history with per-commit diffs.
+- **Sync**: a local **ahead/behind** indicator (computed with libgit2, no network) plus one‑click
+  **Fetch / Pull / Push / Merge** — these run the real `git` CLI in a terminal tab, so they reuse
+  your existing git authentication and show real, supervised output.
 
 **Run ▶ configurations**
 - Define commands in `.orbit/run.json` and launch them in a terminal tab with one click. Use
@@ -89,6 +95,8 @@ cross-platform desktop app that weighs almost nothing.
 - Configured in **`.orbit/claude.json`** (command, flags, shortcuts) — committed, and editable by
   Claude itself (the format is documented in `CLAUDE.md`), so you can just ask Claude to add one.
 - Optionally, the **default terminal launches Claude** instead of a plain shell (toggle in Settings).
+- A **Chats** view lists the project's recent Claude Code sessions (read from Claude's transcripts)
+  and **resumes** one in a terminal with a click (`claude --resume`).
 
 **Workspace**
 - Session persistence per folder (reopens last folder, tabs and panel layout).
@@ -141,6 +149,7 @@ lives in [NOTES.md](./NOTES.md).
 | Key | Action |
 |---|---|
 | `Ctrl/Cmd+P` | Quick open file by name |
+| `Ctrl/Cmd+Shift+O` | Go to symbol in the active file |
 | `Ctrl/Cmd+F` | Find / replace (within the focused editor) |
 | `Ctrl/Cmd+S` | Save the active file |
 | `Ctrl/Cmd+K` | Open folder |

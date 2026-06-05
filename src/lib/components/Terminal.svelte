@@ -6,6 +6,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { openFile, openFileAt, workspace } from "../state/workspace.svelte";
+  import { notify } from "../state/toast.svelte";
   import { settings, monoStack } from "../state/settings.svelte";
   import { joinPath } from "../util";
 
@@ -83,12 +84,24 @@
   }
 
   // Apre il file indicato da un token tipo "src/App.svelte:12" cliccato nel terminale.
-  function openPathToken(token: string) {
+  async function openPathToken(token: string) {
     const mm = token.match(/^(.+?)(?::(\d+))?(?::\d+)?$/);
     const p = mm ? mm[1] : token;
     const line = mm && mm[2] ? parseInt(mm[2], 10) : 0;
     const isAbs = /^([A-Za-z]:[\\/]|[\\/])/.test(p);
-    const abs = isAbs ? p : workspace.rootPath ? joinPath(workspace.rootPath, p) : p;
+    // percorsi relativi (es. quelli stampati da Claude): provo la cwd del terminale e poi la
+    // radice del progetto, e apro il PRIMO che esiste davvero (niente più "os error 2").
+    const bases = isAbs
+      ? [p]
+      : ([
+          cwd ? joinPath(cwd, p) : null,
+          workspace.rootPath ? joinPath(workspace.rootPath, p) : null,
+        ].filter(Boolean) as string[]);
+    const abs = await invoke<string | null>("resolve_existing", { paths: bases }).catch(() => null);
+    if (!abs) {
+      notify(`File non trovato: ${p}`, "error");
+      return;
+    }
     if (line > 0) void openFileAt(abs, line);
     else void openFile(abs);
   }
@@ -114,7 +127,7 @@
           links.push({
             text: token,
             range: { start: { x: startX, y }, end: { x: startX + token.length - 1, y } },
-            activate: () => openPathToken(token),
+            activate: () => void openPathToken(token),
             decorations: { pointerCursor: true, underline: true },
           });
         }

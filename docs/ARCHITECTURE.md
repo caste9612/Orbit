@@ -53,7 +53,7 @@ Three kinds of frontend module, kept separate:
 
 | Module | Owns |
 |---|---|
-| `workspace` | open folder, document pool, **editor groups** (split view) + active group/tab, branch; `openFile`, `moveTab`, `splitWithTab`, `saveActive`, … |
+| `workspace` | open folder, document pool (kinds: file/diff/image/pdf), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, … |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete) |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
 | `terminals` | terminal tabs (id/title/shell/cwd) + active tab |
@@ -64,10 +64,11 @@ Three kinds of frontend module, kept separate:
 | `quickopen` | Ctrl+P fuzzy file finder |
 | `symbols` | **Go to Symbol** palette (Ctrl+Shift+O): outline of the active editor + fuzzy filter |
 | `claudeChats` | the project's recent Claude Code sessions (from transcripts) + resume |
+| `scratch` | one‑click persistent scratchpad (`.orbit/scratch.md`) for notes/prompts |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
 | `settings` | font/size/accent/smooth‑caret/webgl/claude‑terminal (localStorage) + applies CSS vars |
 | `layout` | panel sizes/visibility + focused panel |
-| `persist` | per‑folder session save/restore (autosave via `$effect.root`) |
+| `persist` | per‑folder session save/restore (autosave via `$effect.root`); `switchFolder` swaps the workspace folder cleanly |
 | `toast` | transient notifications |
 
 State is plain **Svelte 5 runes**: `export const x = $state({...})`; components reading those
@@ -75,11 +76,13 @@ fields re‑render automatically. Cross‑module reactive reads (e.g. `git.tick`
 
 **Editor groups (split view).** The editor area renders N side‑by‑side groups. `openFiles` is the
 shared document pool (content/dirty live here), and each `workspace.groups[i]` holds an ordered list
-of tab paths + its active path — so the same file can appear in several groups. Tabs are
-moved / split / reordered via native HTML5 drag‑and‑drop in `EditorArea.svelte`; a document is
-dropped from the pool only when no group references it. (Tauri's OS‑level drag‑drop is turned off
-with `dragDropEnabled: false` in `tauri.conf.json`, otherwise it would swallow in‑page HTML5 DnD.)
-The editor uses soft **line wrapping** (gutter stays correct).
+of tab paths + its active path — so the same file can appear in several groups. A document is
+dropped from the pool only when no group references it. Tabs are moved / split / reordered with a
+**pointer‑based** drag in `EditorArea.svelte` (pointer events + `elementFromPoint` hit‑testing):
+this is required because **`dragDropEnabled: true`** in `tauri.conf.json` (so the OS file‑drop events
+carry real paths — see *Drag‑and‑drop* below) suppresses in‑page HTML5 DnD on Windows. A
+window‑level `dragstart` preventer in `App.svelte` kills the stray native drag (and its "no‑drop"
+cursor). The editor uses soft **line wrapping** (gutter stays correct).
 
 ### Heavy modules are lazy
 
@@ -104,7 +107,8 @@ imports them on first render), so the Markdown feature adds nothing to the start
   and runs **shortcuts** (`claude "<prompt>"`), reusing the run‑config mechanism
   (`addTerminal({ cwd, initCommand })`). Config is `.orbit/claude.json` (command/args/shortcuts),
   Claude‑editable and documented in `CLAUDE.md`. With `settings.claudeTerminal` on (default), the
-  **default terminal launches Claude** instead of a plain shell (gated on `workspace.ready`).
+  **first terminal at startup** launches Claude (only at startup, in `App.svelte`); the terminal
+  icon / `+` always open a plain shell.
 - **Go to symbol** — `editor/outline.ts` extracts an outline from CodeMirror's syntax tree
   (`ensureSyntaxTree`), `editor/activeEditor.ts` tracks the focused editor, and `symbols.svelte.ts`
   + `SymbolPalette.svelte` are the `Ctrl+Shift+O` fuzzy palette that jumps to a definition.
@@ -114,13 +118,32 @@ imports them on first render), so the Markdown feature adds nothing to the start
 - **Git sync** — ahead/behind is computed locally with libgit2 (`git_upstream`, no network); the
   actual fetch/pull/push/merge run the `git` CLI in a terminal tab (reusing the user's git auth), so
   no openssl/libssh2 is pulled into the build.
-- **Terminal & floating window** — PTYs live in the Rust backend keyed by `id`, so any webview just
-  attaches via `pty-data-<id>` events + `pty_write` / `pty_resize`. "Pop out" opens a separate
-  `term-float` webview that **attaches to the same PTY** (the live session keeps running) and removes
-  the tab from the panel; **Dock** (or closing the window) emits a global `term-redock` event that
-  re‑attaches it to the originating window (a dead PTY is reaped on EOF and `redockTerminal` checks `pty_alive`
-  first, so a finished session never leaves a zombie tab). The float window wears the app's own chrome
-  (`decorations: false` + a custom title bar).
+- **Viewers (images & PDF)** — `util.assetKind` tags `.png/.jpg/.svg/.pdf/…` so `workspace.loadDoc`
+  creates an `image`/`pdf` doc (no text read); `AssetView.svelte` shows it via Tauri's **asset
+  protocol** (`convertFileSrc`, no base64 — needs `assetProtocol` in `tauri.conf` + the
+  `protocol-asset` Cargo feature): images in `<img>`, PDFs in an `<iframe>` (WebView2's viewer).
+- **Drag‑and‑drop (OS files)** — `EditorArea` listens to `getCurrentWebview().onDragDropEvent` and
+  opens dropped file paths (requires `dragDropEnabled: true`; the same flag forces the pointer‑based
+  tab drag above). `assetProtocol.scope` is `["**"]`, consistent with `read_file` already exposing
+  any path over IPC; the Markdown preview is DOMPurify‑sanitized.
+- **Editor context menu** — right‑click in `Editor.svelte` opens a `ContextMenu` (cut/copy/paste/
+  select‑all/go‑to‑symbol) acting on the CodeMirror `view`. The native WebView2 menu/drag are
+  suppressed app‑wide via `<svelte:window oncontextmenu/ondragstart>` in `App.svelte` (kept in
+  `input`/`textarea`, and `.cm-editor` for text drag).
+- **Folder switch** — `openFolderDialog` → `persist.switchFolder`: saves the current session, sets
+  `rootPath=null` (suspends autosave), `resetDocs()`, then `loadSession(newRoot)` — switching folders
+  restores the new folder's tabs and never carries the previous folder's documents.
+- **Terminal links** — clicked path tokens resolve through `resolve_existing` (Rust): absolute, then
+  relative to the terminal's cwd, then the project root — first that exists wins (works for binaries
+  like images too); otherwise a "file not found" toast.
+- **Terminal & floating windows** — PTYs live in the Rust backend keyed by `id`, so any webview just
+  attaches via `pty-data-<id>` events + `pty_write` / `pty_resize`. "Pop out" opens a
+  `term-float-<id>` webview (unique label per terminal → **several can float at once**; permitted by
+  `capabilities/default.json` → `windows: ["main", "term-float-*"]`) that **attaches to the same PTY**
+  (the live session keeps running) and removes the tab from the panel; **Dock** (or closing the
+  window) emits a global `term-redock` event that re‑attaches it (a dead PTY is reaped on EOF and
+  `redockTerminal` checks `pty_alive` first, so a finished session never leaves a zombie tab). The
+  float window wears the app's own chrome (`decorations: false` + a custom title bar).
 
 ## Backend & IPC
 
@@ -128,14 +151,14 @@ Rust commands are defined with `#[tauri::command]` and registered in `lib.rs` `r
 frontend calls them with `invoke("name", {args})`. Areas:
 
 - **Filesystem** (`lib.rs`): `read_dir`, `read_file`, `write_file`, `create_file`,
-  `create_dir`, `rename_path`, `delete_path`, `list_files`, `search_in_project`, `startup`.
+  `create_dir`, `rename_path`, `delete_path`, `list_files`, `search_in_project`, `resolve_existing`, `startup`.
 - **Session** (`lib.rs`): `load_state`/`save_state` (keyed per folder).
 - **Window** (`lib.rs`): `open_new_window`.
 - **Misc** (`lib.rs`): `reveal_path` (show a path in the OS file manager), `claude_sessions` (list
   the project's Claude Code transcripts, each titled from its first user message).
 - **Git** (`git.rs`): `git_status`, `git_diff`, `git_stage`, `git_unstage`, `git_commit`,
   `git_branches`, `git_checkout_branch`, `git_create_branch`, `git_discard`, `git_log`, `git_show`.
-- **Terminal** (`pty.rs`): `pty_spawn`, `pty_write`, `pty_resize`, `pty_kill`, `list_shells`;
+- **Terminal** (`pty.rs`): `pty_spawn`, `pty_write`, `pty_resize`, `pty_kill`, `pty_alive`, `list_shells`;
   streams output as `pty-data-<id>` events.
 - **Watcher** (`watcher.rs`): `watch_start`; emits a debounced **`fs-changed`** event that the
   frontend listens to (refresh tree + git + reload open files + run config + Claude config + shelf

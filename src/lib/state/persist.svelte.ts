@@ -2,7 +2,7 @@
 // le rispettive tab e tab attiva, gruppo attivo e stato dei pannelli, in un JSON nella config
 // dir dell'app (comandi Rust load_state/save_state). Zero dipendenze.
 import { invoke } from "@tauri-apps/api/core";
-import { workspace, fileByPath, restoreGroups } from "./workspace.svelte";
+import { workspace, fileByPath, restoreGroups, resetDocs } from "./workspace.svelte";
 import { openRoot } from "./explorer.svelte";
 import { layout, type SidebarView } from "./layout.svelte";
 
@@ -105,6 +105,27 @@ export async function loadSession(rootHint?: string): Promise<boolean> {
     await restoreGroups([{ tabs: s.files, active: s.active ?? s.files[0] }], 0);
   }
   return true;
+}
+
+/** Salva subito (senza debounce) la sessione della cartella attualmente aperta. */
+export async function saveSessionNow() {
+  const root = workspace.rootPath;
+  if (!root) return;
+  await invoke("save_state", { key: root, data: serialize() }).catch((e) =>
+    console.error("save_state", e),
+  );
+}
+
+/** Cambia la cartella del workspace nella finestra corrente: salva la sessione attuale,
+ *  azzera i documenti della cartella precedente e ripristina la sessione della nuova (o la
+ *  apre vuota). Mette `rootPath` a null durante lo scambio così l'autosave non sovrascrive
+ *  la sessione appena salvata con uno stato vuoto. */
+export async function switchFolder(path: string) {
+  if (!path || path === workspace.rootPath) return;
+  await saveSessionNow(); // 1. preserva le tab della cartella corrente (sotto la sua chiave)
+  workspace.rootPath = null; // 2. sospende l'autosave (niente clobber durante lo scambio)
+  resetDocs(); // 3. via i documenti della cartella precedente
+  await loadSession(path); // 4. ripristina la nuova cartella (apre comunque se senza sessione)
 }
 
 /** Attiva il salvataggio automatico (debounced) a ogni cambio di sessione/layout.

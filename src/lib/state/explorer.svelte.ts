@@ -31,9 +31,11 @@ function makeNode(entry: FsEntry, depth: number): TreeNode {
 
 /** Apre una cartella come radice del workspace e ne carica il primo livello. */
 export async function openRoot(path: string) {
+  // legge PRIMA: se la cartella è illeggibile lanciamo senza aver cambiato la radice (niente
+  // stato a metà — importante per switchFolder, che altrimenti resterebbe su una radice rotta).
+  const entries = await invoke<FsEntry[]>("read_dir", { path });
   workspace.rootPath = path;
   workspace.rootName = basename(path);
-  const entries = await invoke<FsEntry[]>("read_dir", { path });
   tree.roots = entries.map((e) => makeNode(e, 0));
   await invoke("watch_start", { root: path }).catch(() => {});
   void refreshStatus(); // popola le decorazioni git dell'albero senza aprire il pannello
@@ -42,10 +44,13 @@ export async function openRoot(path: string) {
   void loadShelf(); // carica le cartelle messe nello scaffale (.orbit/shelf.json)
 }
 
-/** Mostra il folder-picker nativo e apre la cartella scelta. */
+/** Mostra il folder-picker nativo e cambia cartella (preservando/ripristinando le sessioni).
+ *  Import dinamico di persist per evitare il ciclo statico (persist importa già da qui). */
 export async function openFolderDialog() {
   const sel = await open({ directory: true, multiple: false });
-  if (typeof sel === "string") await openRoot(sel);
+  if (typeof sel !== "string") return;
+  const { switchFolder } = await import("./persist.svelte");
+  await switchFolder(sel);
 }
 
 export async function toggle(n: TreeNode) {

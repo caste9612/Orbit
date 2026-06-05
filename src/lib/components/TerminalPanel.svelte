@@ -8,8 +8,6 @@
   import { invoke } from "@tauri-apps/api/core";
   import { layout, toggleTerminal, setFocusPanel } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
-  import { settings } from "../state/settings.svelte";
-  import { launchClaude } from "../state/claude.svelte";
   import {
     terminals,
     addTerminal,
@@ -27,14 +25,16 @@
   let shells = $state<ShellInfo[]>([]);
   let shellMenu = $state<{ x: number; y: number } | null>(null);
 
-  // colore-identità dell'icona per tipo di shell
-  function shellColor(shell: string | null, title: string): string {
+  // icona + colore identità per tipo di terminale (Claude in accento ✨, shell coi loro colori)
+  function tabVisual(shell: string | null, title: string): { icon: string; color: string } {
     const s = `${shell ?? ""} ${title}`.toLowerCase();
-    if (s.includes("pwsh") || s.includes("powershell")) return "#5391fe";
-    if (s.includes("cmd") || s.includes("comandi")) return "#c0c0c0";
-    if (s.includes("git") || s.includes("bash") || s.includes("zsh") || s.includes("fish")) return "#4eaa25";
-    if (s.includes("wsl")) return "#c586c0";
-    return "var(--color-ink-muted)";
+    if (s.includes("claude")) return { icon: "sparkles", color: "var(--color-accent)" };
+    if (s.includes("pwsh") || s.includes("powershell")) return { icon: "terminal", color: "#5391fe" };
+    if (s.includes("cmd") || s.includes("comandi")) return { icon: "terminal", color: "#9aa3b2" };
+    if (s.includes("git") || s.includes("bash") || s.includes("zsh") || s.includes("fish"))
+      return { icon: "terminal", color: "#4eaa25" };
+    if (s.includes("wsl")) return { icon: "terminal", color: "#c586c0" };
+    return { icon: "terminal", color: "var(--color-ink-muted)" };
   }
 
   onMount(async () => {
@@ -45,15 +45,10 @@
     }
   });
 
-  // Terminale di default: attende il caricamento sessione (per conoscere il progetto),
-  // poi avvia Claude se abilitato e c'è una cartella aperta, altrimenti una shell normale.
-  let bootstrapped = false;
+  // Pannello mostrato senza terminali → crea una shell NORMALE (mai Claude: il default Claude
+  // all'avvio è gestito una volta sola in App.svelte). Così l'icona terminale apre sempre una shell.
   $effect(() => {
-    if (bootstrapped || !workspace.ready) return;
-    bootstrapped = true;
-    if (terminals.list.length > 0) return;
-    if (settings.claudeTerminal && workspace.rootPath) launchClaude();
-    else ensureTerminal();
+    if (workspace.ready && terminals.list.length === 0) ensureTerminal();
   });
 
   // Estrae IL terminale attivo in una finestra flottante (stesso PTY: Claude continua a girare).
@@ -64,7 +59,10 @@
     try {
       const t = terminals.list.find((x) => x.id === terminals.activeId);
       if (!t) return;
-      const existing = await WebviewWindow.getByLabel("term-float");
+      // etichetta UNICA per terminale: permette più finestre flottanti e niente conflitti/
+      // "fantasmi" di label riusata (era il bug: il detach funzionava una volta sola).
+      const label = `term-float-${t.id}`;
+      const existing = await WebviewWindow.getByLabel(label);
       if (existing) {
         await existing.setFocus();
         return;
@@ -78,7 +76,7 @@
       const url = new URL(window.location.href);
       url.search = params.toString();
       url.hash = "";
-      const w = new WebviewWindow("term-float", {
+      const w = new WebviewWindow(label, {
         url: url.toString(),
         title: "Orbit · Terminal",
         width: 760,
@@ -123,9 +121,10 @@
   <header class="head">
     <div class="tabs">
       {#each terminals.list as t (t.id)}
+        {@const tv = tabVisual(t.shell, t.title)}
         <div class="tab" class:active={t.id === terminals.activeId}>
           <button class="tab-main" title={t.title} onclick={() => setActiveTerminal(t.id)}>
-            <span class="tic" style="color:{shellColor(t.shell, t.title)}"><Icon name="terminal" size={13} strokeWidth={1.8} /></span>
+            <span class="tic" style="color:{tv.color}"><Icon name={tv.icon} size={13} strokeWidth={1.8} /></span>
             <span>{t.title}</span>
           </button>
           <button class="tab-close" title="Close terminal" aria-label="Close terminal" onclick={() => closeTerminal(t.id)}>
@@ -217,10 +216,13 @@
     flex: 0 0 auto;
     max-width: 180px;
   }
+  .tab:not(.active):hover {
+    background: var(--color-surface-3);
+  }
   .tab.active {
     color: var(--color-ink);
     border-top-color: var(--color-accent);
-    background: var(--color-surface-1);
+    background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface-1));
   }
   .tab-main {
     display: inline-flex;

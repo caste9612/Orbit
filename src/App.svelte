@@ -24,19 +24,19 @@
   import { quickopen, openPalette } from "./lib/state/quickopen.svelte";
   import { symbols, openSymbols } from "./lib/state/symbols.svelte";
   import { loadRunConfig } from "./lib/state/run.svelte";
-  import { loadClaudeConfig } from "./lib/state/claude.svelte";
+  import { loadClaudeConfig, launchClaude } from "./lib/state/claude.svelte";
   import { loadShelf } from "./lib/state/shelf.svelte";
   import { loadDocs } from "./lib/state/docs.svelte";
   import { invalidateFiles } from "./lib/state/projectFiles";
-  import { loadSettings, startSettingsAutosave, settingsUI, nudgeFontSize } from "./lib/state/settings.svelte";
+  import { loadSettings, startSettingsAutosave, settingsUI, nudgeFontSize, settings } from "./lib/state/settings.svelte";
   import { loadSession, startAutosave } from "./lib/state/persist.svelte";
-  import { redockTerminal } from "./lib/state/terminals.svelte";
+  import { redockTerminal, terminals } from "./lib/state/terminals.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
-  // La finestra flottante (label "term-float") mostra solo un terminale a tutta finestra.
+  // Le finestre flottanti hanno label "term-float-<id>" e mostrano un terminale a tutta finestra.
   let isFloatingTerminal = false;
   try {
-    isFloatingTerminal = getCurrentWebviewWindow().label === "term-float";
+    isFloatingTerminal = getCurrentWebviewWindow().label.startsWith("term-float");
   } catch {
     /* fuori dal contesto Tauri */
   }
@@ -86,6 +86,21 @@
       },
       { passive: false },
     );
+  }
+
+  // Soppressione dei comportamenti NATIVI di WebView2, registrata su <svelte:window> nel markup
+  // (non in onMount) così l'HMR la applica subito senza rimontare.
+  // menu contestuale: consentito SOLO nei campi di testo (incolla/seleziona); soppresso ovunque
+  // altrove, EDITOR INCLUSO → niente menu di WebView2 sui file aperti.
+  function onAppContextMenu(e: MouseEvent) {
+    const t = e.target as HTMLElement | null;
+    if (!t?.closest("input, textarea")) e.preventDefault();
+  }
+  // drag nativo: consentito dove si trascina testo (campi + editor CodeMirror); soppresso altrove
+  // (tab, chrome) dove darebbe il cursore "stop" e ruberebbe gli eventi pointer al drag delle tab.
+  function onAppDragStart(e: DragEvent) {
+    const t = e.target as HTMLElement | null;
+    if (!t?.closest("input, textarea, .cm-editor")) e.preventDefault();
   }
 
   // unlisten degli eventi globali della finestra principale (vivono quanto la finestra)
@@ -165,7 +180,12 @@
       console.error("startup", e);
     }
     startAutosave(); // d'ora in poi persiste cartella, tab e pannelli
-    workspace.ready = true; // sessione caricata: il pannello terminale può creare la tab di default
+    // Terminale di default all'avvio: Claude SOLO qui (se abilitato, c'è una cartella e il pannello
+    // è mostrato). L'icona terminale e il "+" creano sempre shell normali → niente Claude a sorpresa.
+    if (layout.terminalVisible && settings.claudeTerminal && workspace.rootPath && terminals.list.length === 0) {
+      launchClaude();
+    }
+    workspace.ready = true; // sessione caricata: il pannello può creare una shell normale se serve
   });
 
   function onKey(e: KeyboardEvent) {
@@ -201,7 +221,11 @@
   }
 </script>
 
-<svelte:window onkeydown={isFloatingTerminal ? undefined : onKey} />
+<svelte:window
+  onkeydown={isFloatingTerminal ? undefined : onKey}
+  oncontextmenu={onAppContextMenu}
+  ondragstart={onAppDragStart}
+/>
 
 {#if isFloatingTerminal}
   <div class="floatshell">

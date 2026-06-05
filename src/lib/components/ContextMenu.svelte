@@ -60,15 +60,21 @@
     align-items: center;
     gap: 9px;
     width: 100%;
-    height: 28px;
-    padding: 0 9px;
+    min-height: 28px;
+    padding: 5px 9px;
     border: 0;
     border-radius: var(--radius-sm);
     background: transparent;
     color: var(--color-ink);
     font-size: 12.5px;
+    line-height: 1.3;
     text-align: left;
     cursor: pointer;
+  }
+  .lbl {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere; /* etichette lunghe vanno a capo invece di essere tagliate */
   }
   .item:hover {
     background: rgba(var(--accent-rgb), 0.18);

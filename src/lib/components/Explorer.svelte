@@ -16,7 +16,7 @@
     copyPath,
     type TreeNode,
   } from "../state/explorer.svelte";
-  import { openFile, workspace, activePath } from "../state/workspace.svelte";
+  import { openFile, openInNewGroup, workspace, activePath } from "../state/workspace.svelte";
   import { addTerminal } from "../state/terminals.svelte";
   import { layout } from "../state/layout.svelte";
   import { decorations } from "../state/git.svelte";
@@ -134,6 +134,13 @@
       () => {},
     );
   }
+  // copia solo il nome del file/cartella
+  function copyName(name: string) {
+    void navigator.clipboard.writeText(name).then(
+      () => notify("Name copied", "success", 1200),
+      () => {},
+    );
+  }
   // mostra il file/cartella nel file manager dell'OS (comando Rust)
   function revealPath(path: string) {
     void invoke("reveal_path", { path }).catch((e) => console.error("reveal_path", e));
@@ -150,6 +157,9 @@
       { label: "Reveal in Explorer", icon: "external-link", onClick: () => revealPath(node ? node.entry.path : workspace.rootPath!) },
     ];
     if (node) {
+      if (!node.entry.isDir) {
+        items.push({ label: "Open to the side", icon: "panel-left", separatorBefore: true, onClick: () => void openInNewGroup(node.entry.path) });
+      }
       items.push(
         { label: "Rename…", icon: "pencil", separatorBefore: true, onClick: () => startRename(node.entry.path, node.entry.name, node.entry.isDir) },
         { label: "Delete", icon: "trash", danger: true, onClick: () => deleteEntry(node.entry.path, node.entry.name, node.entry.isDir) },
@@ -160,6 +170,7 @@
       items.push(
         { label: "Copy path", icon: "copy", separatorBefore: !node.entry.isDir, onClick: () => copyPath(node.entry.path) },
         { label: "Copy relative path", icon: "copy", onClick: () => copyRelPath(node.entry.path) },
+        { label: "Copy name", icon: "copy", onClick: () => copyName(node.entry.name) },
       );
     } else if (hasNoise) {
       items.push({ label: "Shelve noise folders", icon: "archive", separatorBefore: true, onClick: shelveNoise });

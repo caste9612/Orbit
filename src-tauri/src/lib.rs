@@ -74,6 +74,13 @@ fn write_file(path: String, content: String) -> Result<(), String> {
     std::fs::write(&path, content).map_err(|e| e.to_string())
 }
 
+/// Primo percorso esistente (file) tra i candidati. Risolve i link cliccati nel terminale
+/// quando il percorso è relativo: il frontend prova cwd del terminale e radice del progetto.
+#[tauri::command]
+fn resolve_existing(paths: Vec<String>) -> Option<String> {
+    paths.into_iter().find(|p| Path::new(p).is_file())
+}
+
 // ---- Gestione file (create / rename / delete) -------------------------------
 // Operazioni su filesystem usate dal menu contestuale dell'albero. Nessuna
 // dipendenza extra: solo std::fs. L'albero si aggiorna da solo via file watcher.
@@ -429,6 +436,8 @@ fn claude_sessions(root: String) -> Result<Vec<ClaudeSession>, String> {
     Ok(out)
 }
 
+// Le finestre flottanti del terminale usano label "term-float-<id>" (una per terminale estratto);
+// i permessi relativi sono in capabilities/default.json (windows: ["main", "term-float-*"]).
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -450,6 +459,7 @@ pub fn run() {
             save_state,
             open_new_window,
             reveal_path,
+            resolve_existing,
             claude_sessions,
             git::git_status,
             git::git_diff,

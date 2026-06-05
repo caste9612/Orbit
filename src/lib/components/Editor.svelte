@@ -31,6 +31,8 @@
   import { workspace } from "../state/workspace.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { basename, normSlash, relTo } from "../util";
+  import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
+  import { openSymbols } from "../state/symbols.svelte";
 
   interface Props {
     doc: string;
@@ -218,9 +220,69 @@
       hadMarks = false;
     }
   }
+  // ---- menu contestuale dell'editor (Taglia/Copia/Incolla/Seleziona tutto/Vai al simbolo) ----
+  let menu = $state<{ x: number; y: number } | null>(null);
+  function openCtxMenu(e: MouseEvent) {
+    e.preventDefault();
+    menu = { x: e.clientX, y: e.clientY };
+  }
+  function selectedText(): string {
+    if (!view) return "";
+    const s = view.state.selection.main;
+    return s.empty ? view.state.doc.lineAt(s.head).text : view.state.sliceDoc(s.from, s.to);
+  }
+  function doCopy() {
+    const t = selectedText();
+    if (t) void navigator.clipboard.writeText(t).catch(() => {});
+  }
+  function doCut() {
+    if (!view || readonly) return;
+    const s = view.state.selection.main;
+    if (s.empty) {
+      const line = view.state.doc.lineAt(s.head);
+      void navigator.clipboard.writeText(line.text).catch(() => {});
+      view.dispatch({ changes: { from: line.from, to: Math.min(line.to + 1, view.state.doc.length) } });
+    } else {
+      void navigator.clipboard.writeText(view.state.sliceDoc(s.from, s.to)).catch(() => {});
+      view.dispatch(view.state.replaceSelection(""));
+    }
+    view.focus();
+  }
+  async function doPaste() {
+    if (!view || readonly) return;
+    const t = await navigator.clipboard.readText().catch(() => "");
+    if (t) view.dispatch(view.state.replaceSelection(t));
+    view.focus();
+  }
+  function doSelectAll() {
+    if (!view) return;
+    view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
+    view.focus();
+  }
+  function editorMenu(): MenuItem[] {
+    const items: MenuItem[] = [];
+    if (!readonly) items.push({ label: "Cut", icon: "scissors", onClick: doCut });
+    items.push({ label: "Copy", icon: "copy", onClick: doCopy });
+    if (!readonly) items.push({ label: "Paste", icon: "clipboard", onClick: () => void doPaste() });
+    items.push({ label: "Select all", separatorBefore: true, onClick: doSelectAll });
+    items.push({
+      label: "Go to symbol…",
+      icon: "search",
+      separatorBefore: true,
+      onClick: () => {
+        if (view) setActiveEditor(view);
+        openSymbols();
+      },
+    });
+    return items;
+  }
 </script>
 
-<div class="cm-host" bind:this={host}></div>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="cm-host" bind:this={host} oncontextmenu={openCtxMenu}></div>
+{#if menu}
+  <ContextMenu x={menu.x} y={menu.y} items={editorMenu()} onClose={() => (menu = null)} />
+{/if}
 
 <style>
   .cm-host {

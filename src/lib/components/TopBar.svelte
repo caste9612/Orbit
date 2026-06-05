@@ -20,6 +20,7 @@
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { invoke } from "@tauri-apps/api/core";
   import { openSettings } from "../state/settings.svelte";
+  import { openScratch } from "../state/scratch";
 
   const win = getCurrentWindow();
 
@@ -152,6 +153,9 @@
 
   <div class="actions">
     {#if workspace.rootName}
+      <button class="view only" title="Scratchpad — notes & prompts" aria-label="Scratchpad" onclick={openScratch}>
+        <Icon name="note" size={15} strokeWidth={1.7} />
+      </button>
       <button class="view only claude" title="Claude…" aria-label="Claude" onclick={openClaudeMenu}>
         <Icon name="sparkles" size={15} strokeWidth={1.7} />
       </button>

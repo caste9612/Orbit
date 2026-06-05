@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability per la finestra principale e per il terminale flottante",
-  "windows": ["main", "term-float"],
+  "description": "Capability per la finestra principale e per i terminali flottanti (term-float-<id>)",
+  "windows": ["main", "term-float-*"],
   "permissions": [
     "core:default",
     "dialog:default",

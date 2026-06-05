@@ -37,13 +37,15 @@ cross-platform desktop app that weighs almost nothing.
 
 **Files & navigation**
 - Virtualized, lazy file tree with type icons.
-- File management from the context menu: new / rename / delete, **copy (relative) path**, **open a
-  terminal here**, and **reveal in the OS file manager** (inline editing for new / rename).
+- File management from the context menu: new / rename / delete, **open to the side**, **open a
+  terminal here**, **reveal in the OS file manager**, and copy path / relative path / name
+  (inline editing for new / rename).
 - **Git decorations** in the tree: modified/added/deleted files are highlighted live (so you
   see exactly what changed — including what Claude just touched).
 - **Shelf**: set aside uninteresting folders by category to declutter the tree without losing
   them — they sit at the bottom and stay browsable inline (`.orbit/shelf.json`).
 - **Quick Open** (`Ctrl/Cmd+P`) with fuzzy ranking, and full‑text **project search**.
+- **Drag in files**: drop files from your OS file manager onto the editor to open them.
 
 **Editor** (CodeMirror 6)
 - Lazy, multi-language syntax highlighting (~140 grammars loaded on demand, plus a dedicated
@@ -51,10 +53,13 @@ cross-platform desktop app that weighs almost nothing.
 - Indentation guides, breadcrumb, find & replace (`Ctrl/Cmd+F`), smooth caret.
 - **Go to symbol** (`Ctrl/Cmd+Shift+O`): fuzzy‑jump to functions, classes, methods and more in the
   active file (extracted from the editor's syntax tree).
+- **Right‑click menu**: cut / copy / paste / select all / go to symbol.
+- View **images and PDFs** inline (native viewer).
 - **Split view**: drag a tab to the edge to open files side by side (N panes); drag tabs between
   panes, or within a bar to reorder. A per-pane **"all tabs" menu** lists and closes tabs when many.
 - **Word wrap** for long lines (the line-number gutter stays correct, VS Code-style).
-- Auto-reload of open files changed on disk, with a conflict indicator for unsaved edits.
+- Auto-reload of open files changed on disk, with a conflict indicator for unsaved edits; closing
+  an unsaved file asks **Save / Don't save / Cancel**.
 - Live status bar: line:column, language, end-of-line.
 
 **Markdown & docs**
@@ -71,10 +76,11 @@ cross-platform desktop app that weighs almost nothing.
 **Terminal** (xterm.js + a real PTY, optional WebGL)
 - Docked on the right, with **multiple tabs** and shell selection (PowerShell, cmd, Git Bash,
   WSL, bash/zsh…).
-- **Clickable file paths** in the output (open the file at the line).
-- **Pop out** the active terminal into an always-on-top **floating window** that carries the live
-  session (`claude` keeps running), with the app's own title bar and chrome — and **dock** it back
-  with one click.
+- **Clickable file paths** in the output — open at the line; relative paths resolve against the
+  terminal's folder or the project root.
+- **Pop out** terminals into always-on-top **floating windows** that carry the live session
+  (`claude` keeps running) — detach **several** at once — with the app's own chrome, and **dock**
+  any back with one click.
 
 **Git** (local, via libgit2)
 - Status, diff, stage/unstage, commit, branch switch/create (from the status bar too), discard
@@ -97,6 +103,8 @@ cross-platform desktop app that weighs almost nothing.
 - Optionally, the **default terminal launches Claude** instead of a plain shell (toggle in Settings).
 - A **Chats** view lists the project's recent Claude Code sessions (read from Claude's transcripts)
   and **resumes** one in a terminal with a click (`claude --resume`).
+- A **Scratchpad** (📝 in the top bar) opens a persistent notes/prompts file (`.orbit/scratch.md`)
+  to jot prompts and reuse them.
 
 **Workspace**
 - Session persistence per folder (reopens last folder, tabs and panel layout).

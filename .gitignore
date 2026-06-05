@@ -7,6 +7,9 @@ node_modules
 # scaffale: preferenza di vista personale (run.json invece è condiviso)
 .orbit/shelf.json
 
+# scratchpad: note/prompt personali (file di lavoro, non condiviso)
+.orbit/scratch.md
+
 # sistema
 .DS_Store
 Thumbs.db

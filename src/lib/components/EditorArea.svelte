@@ -3,12 +3,15 @@
   import Editor from "./LazyEditor.svelte";
   import DiffView from "./DiffView.svelte";
   import MarkdownView from "./MarkdownView.svelte";
+  import AssetView from "./AssetView.svelte";
   import Backdrop from "./Backdrop.svelte";
-  import { confirm } from "@tauri-apps/plugin-dialog";
+  import { onMount, onDestroy } from "svelte";
+  import { getCurrentWebview } from "@tauri-apps/api/webview";
   import { fileIcon, relTo } from "../util";
   import { layout, setFocusPanel } from "../state/layout.svelte";
   import {
     workspace,
+    openFile,
     editorStatus,
     fileByPath,
     setActiveTab,
@@ -25,17 +28,24 @@
 
   const isMd = (name: string) => /\.(md|markdown)$/i.test(name);
 
-  // ---- drag & drop delle schede --------------------------------------------
-  let drag = $state<{ groupId: string; path: string } | null>(null);
-  let splitHover = $state(false);
+  // ---- drag & drop delle schede (pointer-based) ----------------------------
+  // L'HTML5 DnD non funziona con dragDropEnabled:true (Tauri intercetta il drop a livello OS),
+  // quindi il drag delle tab è gestito a mano coi pointer event + hit-testing (elementFromPoint).
+  let drag = $state<{ groupId: string; path: string } | null>(null); // tab in trascinamento
+  let dragging = $state(false); // true dopo la soglia di movimento (distingue il drag dal click)
+  let dropInfo = $state<{ groupId: string; index: number } | null>(null); // barra+indice sotto il cursore
+  let splitHover = $state(false); // cursore sopra la zona di split
+  let pending: { groupId: string; path: string; x: number; y: number } | null = null; // pre-drag
+  // la zona di split ha senso solo se il gruppo di origine ha più di una scheda (altrimenti
+  // splitWithTab è un no-op): così non mostriamo un bersaglio "Split" morto.
+  let canSplit = $derived(
+    dragging && (workspace.groups.find((g) => g.id === drag?.groupId)?.tabs.length ?? 0) > 1,
+  );
 
   // Sicurezza: se la scheda trascinata sparisce a metà drag (es. rename/delete esterno via
-  // fs-changed), `ondragend` può non scattare → annullo il drag così l'overlay non si blocca.
+  // fs-changed), annullo tutto così overlay e indicatori non restano bloccati.
   $effect(() => {
-    if (drag && !workspace.groups.some((g) => g.tabs.includes(drag!.path))) {
-      drag = null;
-      splitHover = false;
-    }
+    if (drag && !workspace.groups.some((g) => g.tabs.includes(drag!.path))) cancelDrag();
   });
 
   // menu "tutte le schede" del riquadro (overflow), per vederle/chiuderle quando sono molte
@@ -45,65 +55,119 @@
     tabMenu = { groupId, right: window.innerWidth - r.right, top: r.bottom + 4 };
   }
 
-  function onDragStart(e: DragEvent, groupId: string, path: string) {
-    drag = { groupId, path };
-    if (e.dataTransfer) {
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", path);
-    }
-  }
-  function onDragEnd() {
+  function cancelDrag() {
     drag = null;
+    dragging = false;
+    dropInfo = null;
     splitHover = false;
+    pending = null;
+    window.removeEventListener("pointermove", onTabPointerMove);
+    window.removeEventListener("pointerup", onTabPointerUp);
   }
-  /** Indice di inserimento nella barra in base alla posizione del cursore (esclude la dragged). */
-  function dropIndex(e: DragEvent): number {
-    const bar = e.currentTarget as HTMLElement;
+
+  function onTabPointerDown(e: PointerEvent, groupId: string, path: string) {
+    if (e.button !== 0) return; // solo tasto sinistro
+    pending = { groupId, path, x: e.clientX, y: e.clientY };
+    window.addEventListener("pointermove", onTabPointerMove);
+    window.addEventListener("pointerup", onTabPointerUp);
+  }
+
+  function onTabPointerMove(e: PointerEvent) {
+    if (e.buttons === 0) {
+      onTabPointerUp(e); // pointerup mancato (rilascio fuori dalla finestra): chiudi comunque
+      return;
+    }
+    if (pending && !dragging) {
+      if (Math.hypot(e.clientX - pending.x, e.clientY - pending.y) < 5) return; // ancora un click
+      drag = { groupId: pending.groupId, path: pending.path };
+      dragging = true;
+    }
+    if (!dragging) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+    if (el?.closest(".splitzone")) {
+      splitHover = true;
+      dropInfo = null;
+      return;
+    }
+    splitHover = false;
+    const bar = el?.closest(".tabs") as HTMLElement | null;
+    dropInfo = bar?.dataset.group
+      ? { groupId: bar.dataset.group, index: barDropIndex(bar, e.clientX) }
+      : null;
+  }
+
+  /** Indice di inserimento nella barra in base alla X del cursore (esclude la tab trascinata). */
+  function barDropIndex(bar: HTMLElement, x: number): number {
     let idx = 0;
     for (const el of bar.querySelectorAll<HTMLElement>(".tab")) {
       if (el.dataset.path === drag?.path) continue;
       const r = el.getBoundingClientRect();
-      if (e.clientX > r.left + r.width / 2) idx++;
+      if (x > r.left + r.width / 2) idx++;
       else break;
     }
     return idx;
   }
-  function onTabbarDragOver(e: DragEvent) {
-    if (!drag) return;
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-  }
-  function onSplitDragOver(e: DragEvent) {
-    if (!drag) return;
-    e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-  }
-  function onTabbarDrop(e: DragEvent, groupId: string) {
-    if (!drag) return;
-    e.preventDefault();
-    const idx = dropIndex(e);
-    if (drag.groupId === groupId) reorderTab(groupId, drag.path, idx);
-    else moveTab(drag.groupId, drag.path, groupId, idx);
-    onDragEnd();
-  }
-  function onSplitDrop(e: DragEvent) {
-    if (!drag) return;
-    e.preventDefault();
-    splitWithTab(drag.groupId, drag.path);
-    onDragEnd();
+
+  function onTabPointerUp(_e: PointerEvent) {
+    const d = drag;
+    if (dragging && d) {
+      if (splitHover) splitWithTab(d.groupId, d.path);
+      else if (dropInfo) {
+        if (dropInfo.groupId === d.groupId) reorderTab(d.groupId, d.path, dropInfo.index);
+        else moveTab(d.groupId, d.path, dropInfo.groupId, dropInfo.index);
+      }
+    }
+    cancelDrag();
   }
 
-  // chiusura con conferma se ci sono modifiche non salvate (solo se è l'ultima copia aperta)
-  async function tryClose(groupId: string, f: OpenFile) {
+  // ---- drop di file dal SISTEMA OPERATIVO (Esplora risorse) → li apre ---------
+  // Richiede dragDropEnabled:true in tauri.conf: solo così Tauri emette gli eventi
+  // di drop con il PERCORSO reale del file (l'HTML5 non lo espone, per sicurezza).
+  let osDragOver = $state(false);
+  let unlistenOsDrop: (() => void) | undefined;
+  onMount(async () => {
+    try {
+      unlistenOsDrop = await getCurrentWebview().onDragDropEvent((e) => {
+        const p = e.payload;
+        if (p.type === "enter" || p.type === "over") osDragOver = true;
+        else if (p.type === "leave") osDragOver = false;
+        else if (p.type === "drop") {
+          osDragOver = false;
+          for (const path of p.paths) void openFile(path); // dir → tab "non apribile": accettabile
+        }
+      });
+    } catch {
+      /* fuori dal contesto Tauri */
+    }
+  });
+  onDestroy(() => {
+    unlistenOsDrop?.();
+    cancelDrag(); // smontaggio a metà drag: rimuovi i listener pointer su window
+  });
+
+  // chiusura: se ci sono modifiche non salvate (ultima copia aperta) chiede Salva/Scarta/Annulla
+  // con un dialog in-app a 3 pulsanti (il confirm nativo di Tauri ne ha solo 2: niente "Salva").
+  let unsavedPrompt = $state<{ groupId: string; file: OpenFile } | null>(null);
+  function tryClose(groupId: string, f: OpenFile) {
     const refs = workspace.groups.filter((g) => g.tabs.includes(f.path)).length;
     if (f.dirty && f.kind === "file" && refs <= 1) {
-      const ok = await confirm(`"${f.name}" has unsaved changes. Close without saving?`, {
-        title: "Unsaved changes",
-        kind: "warning",
-      });
-      if (!ok) return;
+      unsavedPrompt = { groupId, file: f };
+      return;
     }
     closeTab(groupId, f.path);
+  }
+  async function doSaveClose() {
+    const p = unsavedPrompt;
+    if (!p) return;
+    unsavedPrompt = null;
+    await savePath(p.file.path);
+    if (!p.file.dirty) closeTab(p.groupId, p.file.path); // chiude solo se il salvataggio è riuscito
+  }
+  function doDiscardClose() {
+    const p = unsavedPrompt;
+    if (!p) return;
+    unsavedPrompt = null;
+    closeTab(p.groupId, p.file.path);
   }
 
   // segmenti del percorso (relativo alla radice) per il breadcrumb
@@ -128,9 +192,6 @@
   </div>
 {/snippet}
 
-<!-- annulla il drag anche se rilasciato fuori da un target (Esc / drop nel vuoto) -->
-<svelte:window ondragend={onDragEnd} />
-
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <section class="editor-area" class:focused={layout.focusPanel === "editor"} onpointerdown={() => setFocusPanel("editor")}>
   {#if workspace.groups.length === 0}
@@ -144,7 +205,7 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="tabbar">
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="tabs" ondragover={onTabbarDragOver} ondrop={(e) => onTabbarDrop(e, g.id)}>
+            <div class="tabs" class:droptarget={dragging && dropInfo?.groupId === g.id} data-group={g.id}>
             {#each g.tabs as path (path)}
               {@const f = fileByPath(path)}
               {#if f}
@@ -153,10 +214,10 @@
                 <div
                   class="tab"
                   class:active={g.activePath === path}
+                  class:dragging={dragging && drag?.path === path && drag?.groupId === g.id}
                   data-path={path}
-                  draggable="true"
-                  ondragstart={(e) => onDragStart(e, g.id, path)}
-                  ondragend={onDragEnd}
+                  onpointerdown={(e) => onTabPointerDown(e, g.id, path)}
+                  ondragstart={(e) => e.preventDefault()}
                 >
                   <button type="button" class="sel" onclick={() => setActiveTab(g.id, path)} title={path}>
                     <span class="ti" style="color:{fi.color}"><Icon name={fi.glyph} size={14} strokeWidth={1.6} /></span>
@@ -216,6 +277,8 @@
               {#key g.id + "::" + af.path}
                 {#if af.kind === "diff"}
                   <DiffView content={af.content} />
+                {:else if af.kind === "image" || af.kind === "pdf"}
+                  <AssetView path={af.path} kind={af.kind} />
                 {:else if isMd(af.name) && af.preview}
                   <MarkdownView
                     content={af.content}
@@ -253,19 +316,20 @@
         </div>
       {/each}
 
-      {#if drag}
-        <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div
-          class="splitzone"
-          class:hover={splitHover}
-          ondragenter={() => (splitHover = true)}
-          ondragleave={() => (splitHover = false)}
-          ondragover={onSplitDragOver}
-          ondrop={onSplitDrop}
-        >
+      {#if canSplit}
+        <div class="splitzone" class:hover={splitHover}>
           <div class="splithint"><Icon name="panel-left" size={18} strokeWidth={1.6} /><span>Split</span></div>
         </div>
       {/if}
+    </div>
+  {/if}
+
+  {#if osDragOver}
+    <div class="dropmask">
+      <div class="drophint">
+        <Icon name="download" size={22} strokeWidth={1.6} />
+        <span>Drop files to open</span>
+      </div>
     </div>
   {/if}
 </section>
@@ -296,11 +360,26 @@
   {/if}
 {/if}
 
+{#if unsavedPrompt}
+  <Backdrop onClose={() => (unsavedPrompt = null)} dim z={120} />
+  <div class="confirm" role="dialog" aria-modal="true" aria-label="Unsaved changes">
+    <div class="ctitle">Unsaved changes</div>
+    <p class="cmsg">Do you want to save the changes to <b>{unsavedPrompt.file.name}</b>?</p>
+    <div class="cbtns">
+      <button class="cbtn ghost" onclick={() => (unsavedPrompt = null)}>Cancel</button>
+      <button class="cbtn danger" onclick={doDiscardClose}>Don't save</button>
+      <!-- svelte-ignore a11y_autofocus -->
+      <button class="cbtn primary" autofocus onclick={doSaveClose}>Save</button>
+    </div>
+  </div>
+{/if}
+
 <style>
   .editor-area {
     flex: 1 1 0;
     min-height: 0;
     min-width: 220px; /* non collassare quando il terminale è largo / finestra stretta */
+    position: relative; /* ancora l'overlay di drop dei file dal SO */
     display: flex;
     flex-direction: column;
     background: var(--color-surface-1);
@@ -348,6 +427,10 @@
     overflow-x: auto;
     overflow-y: hidden;
   }
+  .tabs.droptarget {
+    box-shadow: inset 0 -2px 0 0 var(--color-accent); /* "rilascia qui" sulla barra di destinazione */
+    background: rgba(var(--accent-rgb), 0.05);
+  }
   .tabs::-webkit-scrollbar {
     height: 0;
   }
@@ -375,10 +458,17 @@
     flex: 0 1 auto; /* si stringono fino a una larghezza leggibile, poi la barra scorre */
     min-width: 124px;
     max-width: 200px;
+    user-select: none; /* niente selezione testo / drag nativo durante il trascinamento */
+  }
+  .tab:not(.active):hover {
+    background: var(--color-surface-3);
   }
   .tab.active {
-    background: var(--color-surface-1);
+    background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface-1));
     border-top-color: var(--color-accent);
+  }
+  .tab.dragging {
+    opacity: 0.4; /* feedback: scheda in trascinamento (manca il "ghost" nativo dell'HTML5 DnD) */
   }
   .sel {
     display: flex;
@@ -519,16 +609,16 @@
     position: absolute;
     top: 0;
     right: 0;
-    width: 64px;
+    width: 120px; /* zona ampia: il drop di split è facile da centrare */
     height: 100%;
     display: grid;
     place-items: center;
-    border-left: 2px dashed transparent;
-    background: transparent;
+    border-left: 2px dashed var(--color-line-strong);
+    background: rgba(var(--accent-rgb), 0.05); /* visibile già durante il drag, non solo all'hover */
     z-index: 5;
   }
   .splitzone.hover {
-    background: rgba(var(--accent-rgb), 0.12);
+    background: rgba(var(--accent-rgb), 0.18);
     border-left-color: var(--color-accent);
   }
   .splithint {
@@ -541,7 +631,7 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     pointer-events: none;
-    opacity: 0;
+    opacity: 0.5;
     transition: opacity 90ms ease;
   }
   .splitzone.hover .splithint {
@@ -662,5 +752,95 @@
     padding: 2px 7px;
     min-width: 16px;
     text-align: center;
+  }
+
+  /* overlay quando si trascinano file dal SO sopra l'area editor */
+  .dropmask {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    background: rgba(var(--accent-rgb), 0.1);
+    border: 2px dashed var(--color-accent);
+    border-radius: 8px;
+    pointer-events: none; /* puramente visivo: il drop è gestito a livello OS da Tauri */
+  }
+  .drophint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-accent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+
+  /* dialog "modifiche non salvate" a 3 pulsanti (Salva / Non salvare / Annulla) */
+  .confirm {
+    position: fixed;
+    z-index: 121;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(420px, 90vw);
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-line-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-pop);
+    padding: 18px 20px 16px;
+  }
+  .ctitle {
+    font-size: 14px;
+    font-weight: 650;
+    color: var(--color-ink);
+    margin-bottom: 8px;
+  }
+  .cmsg {
+    margin: 0 0 16px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--color-ink-muted);
+  }
+  .cmsg b {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .cbtns {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .cbtn {
+    height: 30px;
+    padding: 0 14px;
+    border-radius: 6px;
+    border: 1px solid var(--color-line-strong);
+    background: var(--color-surface-3);
+    color: var(--color-ink);
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .cbtn:hover {
+    background: var(--color-surface-4);
+  }
+  .cbtn.ghost {
+    background: transparent;
+  }
+  .cbtn.danger {
+    color: #ff9b9b;
+  }
+  .cbtn.danger:hover {
+    background: rgba(241, 76, 76, 0.16);
+  }
+  .cbtn.primary {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #08111f;
+    font-weight: 600;
+  }
+  .cbtn.primary:hover {
+    filter: brightness(1.08);
   }
 </style>

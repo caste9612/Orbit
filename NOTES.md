@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -1034,6 +1034,47 @@ robustezza) e dall'hardening del backend.
 - Leak chiuso: `win.onResized` (TopBar) ora ha cleanup. Race-guard in `loadClaudeChats`.
 
 Verifica: `svelte-check` 184 file 0/0; `cargo check`/`cargo test` ok (8/8); build release ok.
+
+---
+
+## Milestone 30 — viewer immagini e PDF, drop file, menu contestuali, multi-detach (v0.3.1)
+
+Giro di feature e rifiniture dopo la v0.3.0, chiuso da una **revisione approfondita** (3 audit
+paralleli: Rust/config, stato, componenti). Nessun bug grave; applicati i fix utili.
+
+**Viewer immagini e PDF** (`util.ts`, `workspace.svelte.ts`, `AssetView.svelte`, `tauri.conf.json`, `Cargo.toml`)
+- `assetKind` riconosce immagini/PDF → `loadDoc` crea un doc `image`/`pdf` (niente lettura testo);
+  `AssetView` li mostra via **asset protocol** (`convertFileSrc`, no base64). Richiede `assetProtocol`
+  in tauri.conf + la feature Cargo `protocol-asset`. Scope `["**"]` (i progetti stanno anche su `D:\`).
+
+**Drop file dal SO + drag tab pointer-based** (`tauri.conf.json`, `EditorArea.svelte`, `App.svelte`)
+- `dragDropEnabled:true` → si trascinano file da Esplora risorse nell'editor (`onDragDropEvent`).
+  Quel flag rompe l'HTML5 DnD, quindi il **drag delle tab è stato riscritto a pointer event** (+
+  `elementFromPoint`), con zona di split allargata e indicatori. Un soppressore globale di
+  `dragstart`/`contextmenu` toglie menu e cursore "stop" nativi di WebView2.
+
+**Link del terminale** (`lib.rs`, `Terminal.svelte`)
+- Comando `resolve_existing`: un path cliccato si risolve come assoluto → relativo alla cwd del
+  terminale → radice, aprendo il primo che esiste (i path relativi di Claude: niente più os error 2).
+
+**Menu contestuali** (`Editor.svelte`, `Explorer.svelte`, `ContextMenu.svelte`)
+- Editor: Taglia/Copia/Incolla/Seleziona tutto/Vai al simbolo. Albero: "Apri di lato", "Copia nome".
+  Le voci lunghe del menu vanno a capo su 2 righe.
+
+**Scratchpad** (`scratch.ts`, `TopBar.svelte`)
+- Pulsante 📝 → apre `.orbit/scratch.md`, file persistente per prompt/note (git-ignored).
+
+**Terminale flottante multiplo + bootstrap** (`TerminalPanel.svelte`, `App.svelte`, `capabilities/default.json`)
+- Etichette uniche `term-float-<id>` → più finestre flottanti, niente "una volta sola" (capability
+  `windows: ["main", "term-float-*"]`). Claude di default **solo all'avvio**: l'icona terminale apre
+  sempre una shell.
+
+**Robustezza** (`workspace.svelte.ts`, `persist.svelte.ts`, `EditorArea.svelte`)
+- Cambio cartella pulito (`switchFolder`: niente tab della cartella precedente). Dialog "modifiche
+  non salvate" a 3 pulsanti (Salva/Non salvare/Annulla). `openRoot` cambia radice solo a lettura
+  riuscita; `renameOpenPaths` rimappa anche immagini/PDF.
+
+Verifica: `svelte-check` 186 file 0/0; `cargo check`/`cargo test` ok (8/8); build release ok.
 
 ---
 

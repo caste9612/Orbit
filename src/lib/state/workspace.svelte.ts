@@ -2,7 +2,7 @@
 // (split view, stile VS Code). Ogni gruppo ha le sue tab e il suo file attivo; lo stesso
 // documento può vivere in più gruppi (contenuto/dirty condivisi dal pool `openFiles`).
 import { invoke } from "@tauri-apps/api/core";
-import { basename } from "../util";
+import { basename, assetKind } from "../util";
 import { notify } from "./toast.svelte";
 
 export interface OpenFile {
@@ -11,7 +11,7 @@ export interface OpenFile {
   content: string;
   dirty: boolean;
   readonly: boolean;
-  kind: "file" | "diff";
+  kind: "file" | "diff" | "image" | "pdf"; // image/pdf: mostrati da un viewer (asset protocol)
   rev: number; // incrementa al reload esterno → l'editor rimpiazza il doc
   externallyChanged: boolean; // modificato su disco con edit non salvati (conflitto)
   gotoLine: number | null; // riga a cui saltare (da ricerca)
@@ -104,6 +104,24 @@ function dropEmptyGroup(g: EditorGroup) {
 /** Carica un documento nel pool se assente. */
 async function loadDoc(path: string) {
   if (fileByPath(path)) return;
+  const name = basename(path);
+  // immagine/PDF: niente lettura come testo, li mostra un viewer (vedi AssetView)
+  const asset = assetKind(name);
+  if (asset) {
+    workspace.openFiles.push({
+      path,
+      name,
+      content: "",
+      dirty: false,
+      readonly: true,
+      kind: asset,
+      rev: 0,
+      externallyChanged: false,
+      gotoLine: null,
+      preview: false,
+    });
+    return;
+  }
   let content: string;
   let readonly = false;
   try {
@@ -112,7 +130,6 @@ async function loadDoc(path: string) {
     content = `// Cannot open file (binary or non-UTF-8).\n// ${e}`;
     readonly = true;
   }
-  const name = basename(path);
   workspace.openFiles.push({
     path,
     name,
@@ -140,7 +157,7 @@ export async function openFile(path: string, groupId?: string) {
 export async function openFileAt(path: string, line: number) {
   await openFile(path);
   const f = fileByPath(path);
-  if (f) f.gotoLine = line;
+  if (f && f.kind === "file") f.gotoLine = line; // gotoLine ha senso solo nell'editor di testo
 }
 
 /** Apre (o aggiorna) una tab di sola lettura con un diff, nel gruppo attivo. */
@@ -217,6 +234,13 @@ export function closeFile(path: string) {
   pruneDocs();
 }
 
+/** Svuota documenti e gruppi (usato al cambio cartella del workspace). */
+export function resetDocs() {
+  workspace.openFiles = [];
+  workspace.groups = [];
+  workspace.activeGroupId = "";
+}
+
 /** Riordina una tab dentro lo stesso gruppo. */
 export function reorderTab(groupId: string, path: string, toIndex: number) {
   const g = groupById(groupId);
@@ -263,13 +287,21 @@ export function splitWithTab(fromGroupId: string, path: string) {
   moveTab(fromGroupId, path, g.id);
 }
 
+/** Apre un file in un NUOVO gruppo affiancato (split) — usato da "Apri di lato" dell'albero. */
+export async function openInNewGroup(path: string) {
+  await loadDoc(path); // carica prima: niente gruppo vuoto lampeggiante durante l'await
+  const g: EditorGroup = { id: newGroupId(), tabs: [path], activePath: path };
+  workspace.groups.push(g);
+  workspace.activeGroupId = g.id;
+}
+
 // ---- rename / delete ------------------------------------------------------
 
 /** Riallinea pool e gruppi dopo un rename su disco (di un file o di una cartella). */
 export function renameOpenPaths(oldPath: string, newPath: string) {
   const map = new Map<string, string>();
   for (const f of workspace.openFiles) {
-    if (f.kind !== "file") continue;
+    if (f.kind === "diff") continue; // i diff hanno id sintetici; file/image/pdf hanno path reali da rimappare
     let next: string | null = null;
     if (f.path === oldPath) next = newPath;
     else if (f.path.startsWith(oldPath + "/") || f.path.startsWith(oldPath + "\\")) {

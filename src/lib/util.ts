@@ -203,6 +203,18 @@ export function relativeTime(unixSeconds: number): string {
   return d.toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+// Estensioni mostrabili inline come immagine (il WebView le renderizza nativamente).
+const IMAGE_EXT = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "svg", "avif"]);
+
+/** Tipo di asset visualizzabile inline (immagine o PDF), o null se è testo/altro. */
+export function assetKind(name: string): "image" | "pdf" | null {
+  const lower = name.toLowerCase();
+  const ext = lower.includes(".") ? lower.slice(lower.lastIndexOf(".") + 1) : "";
+  if (IMAGE_EXT.has(ext)) return "image";
+  if (ext === "pdf") return "pdf";
+  return null;
+}
+
 /** Glifo + colore per un file, in base al nome/pattern/estensione. */
 export function fileIcon(name: string): FileIcon {
   const lower = name.toLowerCase();

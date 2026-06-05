@@ -17,9 +17,13 @@
     type TreeNode,
   } from "../state/explorer.svelte";
   import { openFile, workspace, activePath } from "../state/workspace.svelte";
+  import { addTerminal } from "../state/terminals.svelte";
+  import { layout } from "../state/layout.svelte";
   import { decorations } from "../state/git.svelte";
   import { shelf, relOf, isHidden, byCategory, shelveFolder } from "../state/shelf.svelte";
-  import { fileIcon, dirname, joinPath, normSlash } from "../util";
+  import { notify } from "../state/toast.svelte";
+  import { fileIcon, basename, dirname, joinPath, normSlash, relTo } from "../util";
+  import { invoke } from "@tauri-apps/api/core";
 
   // Lista virtuale ad altezza fissa: rende solo le righe nel viewport (+overscan).
   const ROW = 22;
@@ -116,6 +120,25 @@
     menu = { x: e.clientX, y: e.clientY, node };
   }
 
+  // apre una nuova tab terminale nella cartella indicata
+  function openTerminalAt(dir: string) {
+    if (!dir) return;
+    layout.terminalVisible = true;
+    addTerminal({ title: basename(dir) || "Terminal", cwd: dir });
+  }
+  // copia il percorso relativo alla radice del progetto
+  function copyRelPath(path: string) {
+    const rel = relTo(path, workspace.rootPath) || basename(path);
+    void navigator.clipboard.writeText(rel).then(
+      () => notify("Relative path copied", "success", 1200),
+      () => {},
+    );
+  }
+  // mostra il file/cartella nel file manager dell'OS (comando Rust)
+  function revealPath(path: string) {
+    void invoke("reveal_path", { path }).catch((e) => console.error("reveal_path", e));
+  }
+
   function menuItems(node: TreeNode | null): MenuItem[] {
     const mx = menu?.x ?? 0;
     const my = menu?.y ?? 0;
@@ -123,6 +146,8 @@
     const items: MenuItem[] = [
       { label: "New file…", icon: "file-plus", onClick: () => startCreate(dir, "file") },
       { label: "New folder…", icon: "folder-plus", onClick: () => startCreate(dir, "dir") },
+      { label: "Open in terminal", icon: "terminal", separatorBefore: true, onClick: () => openTerminalAt(dir) },
+      { label: "Reveal in Explorer", icon: "external-link", onClick: () => revealPath(node ? node.entry.path : workspace.rootPath!) },
     ];
     if (node) {
       items.push(
@@ -132,7 +157,10 @@
       if (node.entry.isDir) {
         items.push({ label: "Add to shelf…", icon: "archive", separatorBefore: true, onClick: () => (shelfPicker = { x: mx, y: my, absPath: node.entry.path }) });
       }
-      items.push({ label: "Copy path", icon: "copy", separatorBefore: !node.entry.isDir, onClick: () => copyPath(node.entry.path) });
+      items.push(
+        { label: "Copy path", icon: "copy", separatorBefore: !node.entry.isDir, onClick: () => copyPath(node.entry.path) },
+        { label: "Copy relative path", icon: "copy", onClick: () => copyRelPath(node.entry.path) },
+      );
     } else if (hasNoise) {
       items.push({ label: "Shelve noise folders", icon: "archive", separatorBefore: true, onClick: shelveNoise });
     }

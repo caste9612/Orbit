@@ -304,6 +304,131 @@ fn open_new_window(dir: Option<String>) -> Result<(), String> {
     Ok(())
 }
 
+/// Mostra un file/cartella nel file manager dell'OS (lo seleziona dove possibile).
+#[tauri::command]
+fn reveal_path(path: String) -> Result<(), String> {
+    // un path inesistente farebbe aprire a explorer la cartella sbagliata (silenziosamente)
+    if !Path::new(&path).exists() {
+        return Err(format!("path does not exist: {path}"));
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .arg(format!("/select,{}", path))
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .args(["-R", &path])
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        let p = Path::new(&path);
+        let dir = if p.is_dir() {
+            p.to_path_buf()
+        } else {
+            p.parent().map(|x| x.to_path_buf()).unwrap_or_else(|| p.to_path_buf())
+        };
+        std::process::Command::new("xdg-open")
+            .arg(dir)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ClaudeSession {
+    id: String,
+    title: String,
+    modified: u64,
+}
+
+/// Titolo di una sessione: primo messaggio utente "vero" del transcript (saltando i tag meta).
+fn session_title(path: &Path) -> String {
+    use std::io::BufRead;
+    let file = match std::fs::File::open(path) {
+        Ok(f) => f,
+        Err(_) => return String::new(),
+    };
+    for line in std::io::BufReader::new(file).lines().take(500).flatten() {
+        let v: serde_json::Value = match serde_json::from_str(&line) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        if v.get("type").and_then(|t| t.as_str()) != Some("user") {
+            continue;
+        }
+        let content = &v["message"]["content"];
+        let text = if let Some(s) = content.as_str() {
+            s.to_string()
+        } else if let Some(arr) = content.as_array() {
+            arr.iter()
+                .find_map(|b| {
+                    if b.get("type").and_then(|t| t.as_str()) == Some("text") {
+                        b.get("text").and_then(|t| t.as_str()).map(String::from)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let t = text.trim();
+        if t.is_empty() || t.starts_with('<') {
+            continue; // salta system-reminder / tag / messaggi meta
+        }
+        return t.lines().next().unwrap_or("").chars().take(100).collect();
+    }
+    String::new()
+}
+
+/// Sessioni Claude Code del progetto: transcript in ~/.claude/projects/<slug>/*.jsonl,
+/// dalla più recente. `slug` = path con ogni carattere non alfanumerico sostituito da '-'.
+#[tauri::command]
+fn claude_sessions(root: String) -> Result<Vec<ClaudeSession>, String> {
+    let home = std::env::var("USERPROFILE")
+        .ok()
+        .or_else(|| std::env::var("HOME").ok())
+        .ok_or_else(|| "home dir not found".to_string())?;
+    let slug: String = root
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect();
+    let dir = Path::new(&home).join(".claude").join("projects").join(&slug);
+    let mut out: Vec<ClaudeSession> = Vec::new();
+    let rd = match std::fs::read_dir(&dir) {
+        Ok(r) => r,
+        Err(_) => return Ok(out), // nessuna cartella → nessuna sessione
+    };
+    for entry in rd.flatten() {
+        let p = entry.path();
+        if p.extension().and_then(|e| e.to_str()) != Some("jsonl") {
+            continue;
+        }
+        let id = match p.file_stem().and_then(|s| s.to_str()) {
+            Some(s) if !s.is_empty() => s.to_string(),
+            _ => continue,
+        };
+        let modified = entry
+            .metadata()
+            .ok()
+            .and_then(|m| m.modified().ok())
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        out.push(ClaudeSession { id, title: session_title(&p), modified });
+    }
+    out.sort_by(|a, b| b.modified.cmp(&a.modified));
+    Ok(out)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -324,6 +449,8 @@ pub fn run() {
             load_state,
             save_state,
             open_new_window,
+            reveal_path,
+            claude_sessions,
             git::git_status,
             git::git_diff,
             git::git_stage,
@@ -335,10 +462,12 @@ pub fn run() {
             git::git_log,
             git::git_show,
             git::git_create_branch,
+            git::git_upstream,
             pty::pty_spawn,
             pty::pty_write,
             pty::pty_resize,
             pty::pty_kill,
+            pty::pty_alive,
             pty::list_shells,
             watcher::watch_start
         ])

@@ -39,7 +39,7 @@ const DEFAULT_SHORTCUTS: ClaudeShortcut[] = [
 export const claude = $state({
   command: "claude", // come si invoca la CLI
   args: "", // flag liberi (es. "--model opus"); future-proof se i settings cambiano
-  shortcuts: DEFAULT_SHORTCUTS as ClaudeShortcut[],
+  shortcuts: [...DEFAULT_SHORTCUTS] as ClaudeShortcut[],
   loaded: false, // true se `.orbit/claude.json` esiste ed è valido
 });
 
@@ -63,14 +63,14 @@ export async function loadClaudeConfig() {
           prompt: s.prompt,
           icon: typeof s.icon === "string" ? s.icon : undefined,
         }))
-    : DEFAULT_SHORTCUTS;
+    : [...DEFAULT_SHORTCUTS];
   claude.loaded = true;
 }
 
 function resetDefaults() {
   claude.command = "claude";
   claude.args = "";
-  claude.shortcuts = DEFAULT_SHORTCUTS;
+  claude.shortcuts = [...DEFAULT_SHORTCUTS];
   claude.loaded = false;
 }
 
@@ -96,6 +96,14 @@ export function launchClaude(prompt?: string, title = "Claude") {
 
 export function runShortcut(s: ClaudeShortcut) {
   launchClaude(s.prompt, `Claude · ${s.name}`);
+}
+
+/** Riprende una sessione Claude esistente in una tab del terminale (`claude --resume <id>`). */
+export function resumeClaude(id: string) {
+  const root = workspace.rootPath;
+  if (!root || !/^[A-Za-z0-9-]+$/.test(id)) return; // id sessione = UUID: niente injection
+  layout.terminalVisible = true;
+  addTerminal({ title: "Claude · resume", cwd: root, initCommand: `${buildCommand()} --resume ${id}` });
 }
 
 const TEMPLATE = JSON.stringify(

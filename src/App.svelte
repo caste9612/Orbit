@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import TopBar from "./lib/components/TopBar.svelte";
   import Sidebar from "./lib/components/Sidebar.svelte";
@@ -9,6 +9,7 @@
   import Splitter from "./lib/components/Splitter.svelte";
   import Terminal from "./lib/components/LazyTerminal.svelte";
   import QuickOpen from "./lib/components/QuickOpen.svelte";
+  import SymbolPalette from "./lib/components/SymbolPalette.svelte";
   import Toaster from "./lib/components/Toaster.svelte";
   import Settings from "./lib/components/Settings.svelte";
   import Logo from "./lib/components/Logo.svelte";
@@ -21,6 +22,7 @@
   import { setQuery } from "./lib/state/search.svelte";
   import { refreshStatus } from "./lib/state/git.svelte";
   import { quickopen, openPalette } from "./lib/state/quickopen.svelte";
+  import { symbols, openSymbols } from "./lib/state/symbols.svelte";
   import { loadRunConfig } from "./lib/state/run.svelte";
   import { loadClaudeConfig } from "./lib/state/claude.svelte";
   import { loadShelf } from "./lib/state/shelf.svelte";
@@ -86,6 +88,14 @@
     );
   }
 
+  // unlisten degli eventi globali della finestra principale (vivono quanto la finestra)
+  let offFsChanged: (() => void) | undefined;
+  let offRedock: (() => void) | undefined;
+  onDestroy(() => {
+    offFsChanged?.();
+    offRedock?.();
+  });
+
   onMount(async () => {
     loadSettings(); // applica font/dimensione/accento/caret (anche nella finestra flottante)
     if (isFloatingTerminal) {
@@ -110,7 +120,7 @@
     addWheelZoom();
     startSettingsAutosave();
     // aggiornamento in tempo reale: il backend emette fs-changed (debounced)
-    listen("fs-changed", () => {
+    offFsChanged = await listen("fs-changed", () => {
       refreshTree();
       refreshStatus();
       reloadOpenFiles();
@@ -121,14 +131,17 @@
       if (layout.sidebarView === "docs") loadDocs(); // aggiorna l'indice Docs se visibile
     });
     // un terminale estratto torna nel pannello quando la sua finestra flottante si chiude
-    listen("term-redock", (e) => {
+    offRedock = await listen("term-redock", (e) => {
       const p = e.payload as { id: string; title: string; shell: string | null; from?: string };
+      // `from` = label della finestra che ha estratto il terminale. Nota: gli eventi Tauri sono
+      // per-processo e ogni istanza ("Nuova finestra") è un processo separato con una sola
+      // finestra "main", quindi oggi il filtro è sempre verificato; resta per chiarezza/futuro.
       try {
         if (p.from && p.from !== getCurrentWebviewWindow().label) return;
       } catch {
         /* */
       }
-      redockTerminal({ id: p.id, title: p.title, shell: p.shell });
+      void redockTerminal({ id: p.id, title: p.title, shell: p.shell });
     });
     try {
       const s = await invoke<{ dir: string | null; file: string | null; search: string | null }>(
@@ -158,6 +171,11 @@
   function onKey(e: KeyboardEvent) {
     if (isFloatingTerminal) return;
     if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    if (e.shiftKey && e.key.toLowerCase() === "o") {
+      e.preventDefault();
+      openSymbols(); // Ctrl/Cmd+Shift+O = vai al simbolo
+      return;
+    }
     switch (e.key) {
       case "b":
         e.preventDefault();
@@ -183,7 +201,7 @@
   }
 </script>
 
-<svelte:window onkeydown={onKey} />
+<svelte:window onkeydown={isFloatingTerminal ? undefined : onKey} />
 
 {#if isFloatingTerminal}
   <div class="floatshell">
@@ -232,6 +250,9 @@
 
   {#if quickopen.open}
     <QuickOpen />
+  {/if}
+  {#if symbols.open}
+    <SymbolPalette />
   {/if}
   {#if settingsUI.open}
     <Settings />

@@ -152,7 +152,9 @@
       fontFamily: monoStack(settings.fontMono),
       fontSize: settings.fontSize,
       lineHeight: 1.2,
-      cursorBlink: true,
+      // niente blink: il timer di lampeggio ri-mostra il cursore durante i ridisegni rapidi
+      // dei TUI (Claude), facendolo "saltare" sui caratteri aggiornati anche quando è nascosto.
+      cursorBlink: false,
       scrollback: 5000,
       allowProposedApi: true,
       theme,
@@ -173,6 +175,29 @@
     }
     // percorsi cliccabili (disattivati nella finestra flottante, che non ha un editor)
     if (enableLinks) term.registerLinkProvider(pathLinkProvider());
+
+    // Click destro = copia la selezione (se c'è) altrimenti incolla, stile terminale.
+    // In fase di cattura (true) così funziona anche quando un TUI come Claude attiva il
+    // mouse-reporting (altrimenti il click destro verrebbe inviato al programma).
+    host.addEventListener(
+      "contextmenu",
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (term?.hasSelection()) {
+          const sel = term.getSelection();
+          if (sel) void navigator.clipboard.writeText(sel).catch(() => {});
+          term.clearSelection();
+        } else {
+          void navigator.clipboard
+            .readText()
+            .then((t) => t && term?.paste(t))
+            .catch(() => {});
+        }
+      },
+      true,
+    );
+
     fitSafe();
 
     unlistenData = await listen<string>(`pty-data-${id}`, (e) => term?.write(b64ToBytes(e.payload)));
@@ -244,6 +269,13 @@
   }
   :global(.term .xterm) {
     height: 100%;
+  }
+  /* xterm usa una <textarea> nascosta per l'input: il browser vi disegna il PROPRIO caret,
+     che appare come un "secondo cursore" (e resta visibile/in movimento anche quando il
+     programma nasconde il cursore vero, es. mentre Claude pensa). Lo rendo invisibile:
+     resta solo il cursore gestito da xterm. */
+  :global(.term .xterm-helper-textarea) {
+    caret-color: transparent !important;
   }
   :global(.term .xterm-viewport)::-webkit-scrollbar {
     width: 11px;

@@ -45,30 +45,42 @@ export function addTerminal(opts: NewTerminal = {}): string {
   return id;
 }
 
-/** Toglie una tab dalla lista SENZA uccidere il PTY (per estrarla in finestra flottante). */
-export function removeTerminalKeepPty(id: string) {
-  const i = terminals.list.findIndex((t) => t.id === id);
-  if (i === -1) return;
+/** Rimuove la tab all'indice `i` e sistema la tab attiva. Dopo lo splice l'indice `i` è il
+ *  vicino di destra (e `i-1` quello di sinistra). Nasconde il pannello se non resta nulla. */
+function removeAt(i: number) {
+  const removed = terminals.list[i];
   terminals.list.splice(i, 1);
-  if (terminals.activeId === id) {
+  if (removed && terminals.activeId === removed.id) {
     terminals.activeId = terminals.list[i]?.id ?? terminals.list[i - 1]?.id ?? null;
   }
   if (terminals.list.length === 0) layout.terminalVisible = false;
 }
 
-/** Reincolla un terminale estratto: si ricollega al PTY esistente (attach), senza rispawn. */
-export function redockTerminal(s: { id: string; title: string; shell: string | null }) {
-  if (!terminals.list.some((t) => t.id === s.id)) {
-    terminals.list.push({
-      id: s.id,
-      title: s.title,
-      shell: s.shell,
-      cwd: null,
-      initCommand: null,
-      started: true,
-      attach: true,
-    });
+/** Toglie una tab dalla lista SENZA uccidere il PTY (per estrarla in finestra flottante). */
+export function removeTerminalKeepPty(id: string) {
+  const i = terminals.list.findIndex((t) => t.id === id);
+  if (i !== -1) removeAt(i);
+}
+
+/** Reincolla un terminale estratto: si ricollega al PTY esistente (attach), senza rispawn.
+ *  Non reincolla una tab morta: verifica prima che il PTY esista ancora nel backend. */
+export async function redockTerminal(s: { id: string; title: string; shell: string | null }) {
+  if (terminals.list.some((t) => t.id === s.id)) {
+    terminals.activeId = s.id;
+    layout.terminalVisible = true;
+    return;
   }
+  const alive = await invoke<boolean>("pty_alive", { id: s.id }).catch(() => false);
+  if (!alive) return; // PTY morto → niente tab zombie
+  terminals.list.push({
+    id: s.id,
+    title: s.title,
+    shell: s.shell,
+    cwd: null,
+    initCommand: null,
+    started: true,
+    attach: true,
+  });
   terminals.activeId = s.id;
   layout.terminalVisible = true;
 }
@@ -81,12 +93,7 @@ export function setActiveTerminal(id: string) {
 export async function closeTerminal(id: string) {
   await invoke("pty_kill", { id }).catch(() => {});
   const i = terminals.list.findIndex((t) => t.id === id);
-  if (i === -1) return;
-  terminals.list.splice(i, 1);
-  if (terminals.activeId === id) {
-    terminals.activeId = terminals.list[i]?.id ?? terminals.list[i - 1]?.id ?? null;
-  }
-  if (terminals.list.length === 0) layout.terminalVisible = false;
+  if (i !== -1) removeAt(i);
 }
 
 /** Garantisce almeno una tab (chiamata quando il pannello diventa visibile). */

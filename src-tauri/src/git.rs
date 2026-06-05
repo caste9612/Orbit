@@ -354,3 +354,50 @@ pub fn git_show(root: String, id: String) -> Result<String, String> {
     }
     Ok(out)
 }
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Upstream {
+    ahead: usize,
+    behind: usize,
+    upstream: Option<String>, // es. "origin/main"
+    has_remote: bool,
+}
+
+/// Ahead/behind del branch corrente rispetto al suo upstream (calcolo LOCALE, niente rete).
+#[tauri::command]
+pub fn git_upstream(root: String) -> Result<Upstream, String> {
+    let repo = open(&root)?;
+    let mut out = Upstream {
+        ahead: 0,
+        behind: 0,
+        upstream: None,
+        has_remote: repo.remotes().map(|r| !r.is_empty()).unwrap_or(false),
+    };
+    let head = match repo.head() {
+        Ok(h) if h.is_branch() => h,
+        _ => return Ok(out),
+    };
+    let local_oid = match head.target() {
+        Some(o) => o,
+        None => return Ok(out),
+    };
+    let branch = match repo.find_branch(head.shorthand().unwrap_or(""), BranchType::Local) {
+        Ok(b) => b,
+        Err(_) => return Ok(out),
+    };
+    let upstream = match branch.upstream() {
+        Ok(u) => u,
+        Err(_) => return Ok(out), // il branch non traccia alcun remoto
+    };
+    if let Ok(Some(name)) = upstream.name() {
+        out.upstream = Some(name.to_string());
+    }
+    if let Some(up_oid) = upstream.get().target() {
+        if let Ok((ahead, behind)) = repo.graph_ahead_behind(local_oid, up_oid) {
+            out.ahead = ahead;
+            out.behind = behind;
+        }
+    }
+    Ok(out)
+}

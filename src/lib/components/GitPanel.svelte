@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Icon from "./Icon.svelte";
+  import Backdrop from "./Backdrop.svelte";
   import {
     git,
     refreshStatus,
@@ -15,12 +16,22 @@
     setView,
     loadLog,
     showCommit,
+    gitFetch,
+    gitPull,
+    gitPush,
+    gitMerge,
   } from "../state/git.svelte";
   import { relativeTime } from "../util";
 
   let message = $state("");
   let branchOpen = $state(false);
+  let mergeOpen = $state(false);
   let error = $state("");
+
+  // Altri branch (locali) su cui fare merge nel corrente.
+  let mergeable = $derived(git.branches.filter((b) => b !== git.branch));
+  // Barra di sync: utile se c'è un remoto (fetch/pull/push) o un altro branch (merge).
+  let showSync = $derived(git.isRepo && (git.hasRemote || mergeable.length > 0));
 
   onMount(() => {
     refreshStatus();
@@ -30,6 +41,27 @@
   function doRefresh() {
     if (git.view === "history") loadLog();
     else refreshStatus();
+  }
+
+  function closeMenus() {
+    branchOpen = false;
+    mergeOpen = false;
+  }
+  function toggleBranch() {
+    branchOpen = !branchOpen;
+    mergeOpen = false;
+    if (branchOpen) loadBranches();
+  }
+  function toggleMerge() {
+    mergeOpen = !mergeOpen;
+    if (mergeOpen) {
+      branchOpen = false;
+      loadBranches();
+    }
+  }
+  function doMerge(name: string) {
+    mergeOpen = false;
+    gitMerge(name);
   }
 
   async function doCommit() {
@@ -53,14 +85,11 @@
 </script>
 
 <div class="git">
+  {#if branchOpen || mergeOpen}
+    <Backdrop onClose={closeMenus} z={50} />
+  {/if}
   <div class="branchbar">
-    <button
-      class="branch"
-      onclick={() => {
-        branchOpen = !branchOpen;
-        if (branchOpen) loadBranches();
-      }}
-    >
+    <button class="branch" onclick={toggleBranch}>
       <Icon name="git-branch" size={14} strokeWidth={1.7} />
       <span class="bname">{git.branch ?? "—"}</span>
       <Icon name="chevron-down" size={13} strokeWidth={1.8} />
@@ -83,6 +112,65 @@
       </div>
     {/if}
   </div>
+
+  {#if showSync}
+    <div class="syncbar">
+      {#if git.hasRemote}
+        <div
+          class="track"
+          title={git.upstream
+            ? `${git.behind} behind · ${git.ahead} ahead of ${git.upstream}`
+            : "Branch not tracking a remote"}
+        >
+          <span class="ab" class:on={git.behind > 0}><Icon name="arrow-down" size={11} strokeWidth={2.2} />{git.behind}</span>
+          <span class="ab" class:on={git.ahead > 0}><Icon name="arrow-up" size={11} strokeWidth={2.2} />{git.ahead}</span>
+        </div>
+      {/if}
+      <span class="grow"></span>
+      {#if git.hasRemote}
+        <button class="sbtn" title="Fetch (git fetch --all --prune)" aria-label="Fetch" onclick={gitFetch}>
+          <Icon name="cloud-download" size={15} strokeWidth={1.7} />
+        </button>
+        <button class="sbtn" class:hot={git.behind > 0} title="Pull (git pull)" aria-label="Pull" onclick={gitPull}>
+          <Icon name="download" size={15} strokeWidth={1.7} />
+        </button>
+        <button
+          class="sbtn"
+          class:hot={git.ahead > 0}
+          title={git.upstream ? "Push (git push)" : `Publish branch (git push -u origin ${git.branch ?? ""})`}
+          aria-label="Push"
+          onclick={gitPush}
+        >
+          <Icon name="upload" size={15} strokeWidth={1.7} />
+        </button>
+      {/if}
+      <button
+        class="sbtn"
+        class:on={mergeOpen}
+        title="Merge a branch into current"
+        aria-label="Merge branch"
+        disabled={mergeable.length === 0}
+        onclick={toggleMerge}
+      >
+        <Icon name="git-merge" size={15} strokeWidth={1.7} />
+      </button>
+
+      {#if mergeOpen}
+        <div class="dropdown merge">
+          <div class="dhead">Merge into <b>{git.branch ?? "—"}</b></div>
+          {#if mergeable.length === 0}
+            <div class="ditem empty">no other branches</div>
+          {/if}
+          {#each mergeable as b (b)}
+            <button class="ditem" onclick={() => doMerge(b)}>
+              <Icon name="git-merge" size={13} strokeWidth={1.8} />
+              {b}
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  {/if}
 
   <div class="viewtabs">
     <button class="vtab" class:on={git.view === "changes"} onclick={() => setView("changes")}>Changes</button>
@@ -242,7 +330,7 @@
     top: 38px;
     left: 8px;
     right: 8px;
-    z-index: 20;
+    z-index: 60; /* sopra il Backdrop (z=50) che chiude al click-fuori */
     background: var(--color-surface-3);
     border: 1px solid var(--color-line-strong);
     border-radius: 7px;
@@ -276,6 +364,81 @@
     width: 14px;
     display: inline-flex;
     color: var(--color-accent);
+  }
+
+  /* barra di sincronizzazione: ahead/behind + fetch/pull/push/merge */
+  .syncbar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 8px 6px;
+  }
+  .track {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--color-surface-1);
+    border: 1px solid var(--color-line);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink-subtle);
+  }
+  .ab {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+  }
+  .ab.on {
+    color: var(--color-ink);
+  }
+  .grow {
+    flex: 1;
+  }
+  .sbtn {
+    width: 28px;
+    height: 26px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    color: var(--color-ink-muted);
+    cursor: pointer;
+  }
+  .sbtn:hover:not(:disabled) {
+    background: var(--color-surface-3);
+    color: var(--color-ink);
+  }
+  .sbtn.hot {
+    color: var(--color-accent);
+  }
+  .sbtn.on {
+    background: var(--color-surface-3);
+    color: var(--color-ink);
+  }
+  .sbtn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .dropdown.merge {
+    top: 32px;
+    left: auto;
+    right: 8px;
+    min-width: 180px;
+    max-width: calc(100% - 16px);
+  }
+  .dhead {
+    padding: 4px 8px 6px;
+    font-size: 11px;
+    color: var(--color-ink-subtle);
+  }
+  .dhead b {
+    color: var(--color-ink-muted);
+    font-weight: 600;
   }
 
   .commitbox {

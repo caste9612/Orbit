@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import type { UnlistenFn } from "@tauri-apps/api/event";
   import Icon from "./Icon.svelte";
   import Logo from "./Logo.svelte";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
@@ -90,18 +91,21 @@
     { id: "git", icon: "git-branch", label: "Git" },
     { id: "search", icon: "search", label: "Search" },
     { id: "docs", icon: "book-open", label: "Docs" },
+    { id: "claude", icon: "message", label: "Chats" },
   ] as const;
 
+  let offResized: UnlistenFn | undefined;
   onMount(async () => {
     try {
       maximized = await win.isMaximized();
-      win.onResized(async () => {
+      offResized = await win.onResized(async () => {
         maximized = await win.isMaximized();
       });
     } catch {
       /* fuori dal contesto Tauri */
     }
   });
+  onDestroy(() => offResized?.());
 </script>
 
 <header class="topbar" data-tauri-drag-region>

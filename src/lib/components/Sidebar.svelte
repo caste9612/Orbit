@@ -4,6 +4,7 @@
   import GitPanel from "./GitPanel.svelte";
   import SearchView from "./SearchView.svelte";
   import DocsView from "./DocsView.svelte";
+  import ClaudeChatsView from "./ClaudeChatsView.svelte";
   import { layout, setFocusPanel } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog, startCreate } from "../state/explorer.svelte";
@@ -13,6 +14,7 @@
     git: "Source Control",
     search: "Search",
     docs: "Documentation",
+    claude: "Claude chats",
   };
   let title = $derived(
     layout.sidebarView === "explorer" && workspace.rootName
@@ -67,6 +69,15 @@
       {:else}
         <div class="empty">
           <p class="muted">No documentation.</p>
+          <p class="hint">Open a folder first.</p>
+        </div>
+      {/if}
+    {:else if layout.sidebarView === "claude"}
+      {#if workspace.rootPath}
+        <ClaudeChatsView />
+      {:else}
+        <div class="empty">
+          <p class="muted">No Claude sessions.</p>
           <p class="hint">Open a folder first.</p>
         </div>
       {/if}

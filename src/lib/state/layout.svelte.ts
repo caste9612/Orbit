@@ -1,7 +1,7 @@
 // Stato reattivo del layout della shell (Svelte 5 runes in modulo .svelte.ts).
 // Fonte unica di verità per visibilità e dimensioni dei pannelli.
 
-export type SidebarView = "explorer" | "git" | "search" | "docs";
+export type SidebarView = "explorer" | "git" | "search" | "docs" | "claude";
 export type FocusPanel = "sidebar" | "editor" | "terminal";
 
 export const layout = $state({
@@ -21,7 +21,7 @@ export function setFocusPanel(p: FocusPanel) {
 const SIDEBAR_MIN = 180;
 const SIDEBAR_MAX = 560;
 const TERMINAL_MIN = 280;
-const TERMINAL_MAX = 1000;
+const TERMINAL_MAX = 2400; // tetto generoso: l'editor mantiene comunque il suo min-width
 
 /** Click su una voce della top bar: seleziona la vista o, se già attiva, chiude la sidebar. */
 export function selectView(view: SidebarView) {

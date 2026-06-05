@@ -25,6 +25,7 @@
   import { orbitTheme, orbitHighlight } from "../editor/theme";
   import { indentGuides } from "../editor/indentGuides";
   import { gitGutter, setGitMarks, parseGitMarks } from "../editor/gitGutter";
+  import { setActiveEditor, clearActiveEditor } from "../editor/activeEditor";
   import { settings } from "../state/settings.svelte";
   import { git } from "../state/git.svelte";
   import { workspace } from "../state/workspace.svelte";
@@ -111,10 +112,15 @@
     });
     view = new EditorView({ state, parent: host });
     view.focus();
+    setActiveEditor(view); // editor attivo (per "Vai al simbolo")
+    view.dom.addEventListener("focusin", () => view && setActiveEditor(view));
     onCursor?.(1, 1); // posizione iniziale del cursore
     void loadLanguage();
     void loadGutter();
-    return () => view?.destroy();
+    return () => {
+      if (view) clearActiveEditor(view);
+      view?.destroy();
+    };
   });
 
   // reload esterno (rev cambiato): rimpiazza il doc preservando la vista, senza dirty
@@ -136,10 +142,21 @@
     view?.requestMeasure();
   });
 
-  // ricarica i marcatori git quando lo stato git cambia (refresh / save / modifica esterna)
+  // ricarica i marcatori git quando lo stato git cambia (refresh / save / modifica esterna),
+  // ma solo se QUESTO file è tra i cambiati (o lo era: per ripulire i marcatori al ritorno a
+  // "pulito"). Evita un git_diff per ogni editor aperto a ogni evento FS (hot path con Claude).
+  let hadMarks = false;
   $effect(() => {
     git.tick;
-    if (view) void loadGutter();
+    if (!view) return;
+    const rel = relPath();
+    const relN = rel ? normSlash(rel) : null;
+    const changed =
+      !!relN &&
+      (git.unstaged.some((e) => normSlash(e.path) === relN) ||
+        git.staged.some((e) => normSlash(e.path) === relN));
+    if (!changed && !hadMarks) return; // pulito e nessun marcatore da ripulire: niente IPC
+    void loadGutter();
   });
 
   // salto a una riga (da ricerca)
@@ -163,7 +180,10 @@
         view.dispatch({ effects: langConf.reconfigure(svelte()) });
         return;
       }
-      const desc = LanguageDescription.matchFilename(languages, name);
+      // alias estensione → grammatica già installata (contenuto noto, non in language-data)
+      const ext = name.toLowerCase().split(".").pop() ?? "";
+      const alias: Record<string, string> = { iml: "x.xml", jsonl: "x.json", map: "x.json" };
+      const desc = LanguageDescription.matchFilename(languages, alias[ext] ?? name);
       if (!desc) return;
       const support = await desc.load();
       view.dispatch({ effects: langConf.reconfigure(support) });
@@ -185,13 +205,17 @@
     const rel = relPath();
     if (!rel) {
       view.dispatch({ effects: setGitMarks.of([]) });
+      hadMarks = false;
       return;
     }
     try {
       const patch = await invoke<string>("git_diff", { root: workspace.rootPath, path: rel, staged: false });
-      view?.dispatch({ effects: setGitMarks.of(parseGitMarks(patch)) });
+      const marks = parseGitMarks(patch);
+      view?.dispatch({ effects: setGitMarks.of(marks) });
+      hadMarks = marks.length > 0;
     } catch {
       view?.dispatch({ effects: setGitMarks.of([]) });
+      hadMarks = false;
     }
   }
 </script>

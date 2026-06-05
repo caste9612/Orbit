@@ -57,37 +57,44 @@
   });
 
   // Estrae IL terminale attivo in una finestra flottante (stesso PTY: Claude continua a girare).
+  let detaching = false; // guardia sincrona contro doppio-click (eviterebbe due finestre)
   async function detach() {
-    const t = terminals.list.find((x) => x.id === terminals.activeId);
-    if (!t) return;
-    const existing = await WebviewWindow.getByLabel("term-float");
-    if (existing) {
-      await existing.setFocus();
-      return;
+    if (detaching) return;
+    detaching = true;
+    try {
+      const t = terminals.list.find((x) => x.id === terminals.activeId);
+      if (!t) return;
+      const existing = await WebviewWindow.getByLabel("term-float");
+      if (existing) {
+        await existing.setFocus();
+        return;
+      }
+      const params = new URLSearchParams({
+        float: t.id,
+        title: t.title,
+        shell: t.shell ?? "",
+        from: getCurrentWindow().label,
+      });
+      const url = new URL(window.location.href);
+      url.search = params.toString();
+      url.hash = "";
+      const w = new WebviewWindow("term-float", {
+        url: url.toString(),
+        title: "Orbit · Terminal",
+        width: 760,
+        height: 460,
+        minWidth: 360,
+        minHeight: 200,
+        alwaysOnTop: true,
+        decorations: false,
+      });
+      // togli la scheda dal pannello SOLO quando la finestra è creata (il PTY resta vivo);
+      // se la creazione fallisce la scheda resta dov'è (niente terminale orfano).
+      w.once("tauri://created", () => removeTerminalKeepPty(t.id));
+      w.once("tauri://error", (e) => console.error("finestra flottante:", e));
+    } finally {
+      detaching = false;
     }
-    const params = new URLSearchParams({
-      float: t.id,
-      title: t.title,
-      shell: t.shell ?? "",
-      from: getCurrentWindow().label,
-    });
-    const url = new URL(window.location.href);
-    url.search = params.toString();
-    url.hash = "";
-    const w = new WebviewWindow("term-float", {
-      url: url.toString(),
-      title: "Orbit · Terminal",
-      width: 760,
-      height: 460,
-      minWidth: 360,
-      minHeight: 200,
-      alwaysOnTop: true,
-      decorations: false,
-    });
-    // togli la scheda dal pannello SOLO quando la finestra è creata (il PTY resta vivo);
-    // se la creazione fallisce la scheda resta dov'è (niente terminale orfano).
-    w.once("tauri://created", () => removeTerminalKeepPty(t.id));
-    w.once("tauri://error", (e) => console.error("finestra flottante:", e));
   }
 
   function openShellMenu(e: MouseEvent) {

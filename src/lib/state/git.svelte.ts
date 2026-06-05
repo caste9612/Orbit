@@ -3,6 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { workspace, openDiff } from "./workspace.svelte";
 import { notify } from "./toast.svelte";
+import { addTerminal } from "./terminals.svelte";
+import { layout } from "./layout.svelte";
 import { basename, normSlash } from "../util";
 
 export interface StatusEntry {
@@ -31,6 +33,11 @@ export const git = $state({
   log: [] as CommitInfo[],
   logLoading: false,
   tick: 0, // incrementa a ogni refresh: segnale per ricaricare i marcatori nel gutter
+  // tracking vs remoto (calcolato in locale con libgit2, nessuna rete)
+  ahead: 0,
+  behind: 0,
+  upstream: null as string | null, // es. "origin/main"; null se il branch non traccia un remoto
+  hasRemote: false, // il repo ha almeno un remoto configurato
 });
 
 export async function refreshStatus() {
@@ -47,11 +54,70 @@ export async function refreshStatus() {
     git.staged = s.entries.filter((e) => e.staged);
     git.unstaged = s.entries.filter((e) => e.unstaged);
     git.tick++;
+    void loadUpstream(); // non bloccante: ahead/behind si aggiorna a parte, non rallenta il path caldo
   } catch (e) {
     console.error("git_status", e);
   } finally {
     git.loading = false;
   }
+}
+
+/** Ahead/behind vs il remoto tracciato (locale, via libgit2). */
+export async function loadUpstream() {
+  if (!workspace.rootPath) return;
+  try {
+    const u = await invoke<{ ahead: number; behind: number; upstream: string | null; hasRemote: boolean }>(
+      "git_upstream",
+      { root: workspace.rootPath },
+    );
+    git.ahead = u.ahead;
+    git.behind = u.behind;
+    git.upstream = u.upstream;
+    git.hasRemote = u.hasRemote;
+  } catch {
+    git.ahead = 0;
+    git.behind = 0;
+    git.upstream = null;
+    git.hasRemote = false;
+  }
+}
+
+// ── Operazioni di rete (fetch/pull/push/merge) ────────────────────────────────
+// Approccio ibrido: l'ahead/behind si calcola in locale con libgit2 (sopra), ma le
+// operazioni che toccano il remoto girano nel `git` CLI dentro una tab del terminale.
+// Così riusiamo l'autenticazione git già configurata dall'utente (credential manager,
+// chiavi SSH) e mostriamo l'output reale, senza trascinare openssl/libssh2 in libgit2.
+
+/** Lancia un comando git in una nuova tab del terminale, nella radice del progetto. */
+function runGit(label: string, command: string) {
+  if (!workspace.rootPath) return;
+  layout.terminalVisible = true;
+  addTerminal({ title: `git · ${label}`, cwd: workspace.rootPath, initCommand: command });
+}
+
+/** Scarica i riferimenti dal remoto (senza fondere), potando i rami spariti. */
+export function gitFetch() {
+  runGit("fetch", "git fetch --all --prune");
+}
+
+/** Aggiorna il branch corrente dal suo upstream. */
+export function gitPull() {
+  runGit("pull", "git pull");
+}
+
+/** Pubblica i commit locali. Se il branch non traccia un upstream, lo imposta su origin. */
+export function gitPush() {
+  const cmd = git.upstream
+    ? "git push"
+    : git.branch
+      ? `git push -u origin ${git.branch}`
+      : "git push";
+  runGit("push", cmd);
+}
+
+/** Fonde `branch` nel branch corrente. */
+export function gitMerge(branch: string) {
+  runGit("merge", `git merge ${branch}`);
 }
 
 export async function stage(path: string) {
@@ -68,9 +134,12 @@ export async function unstage(path: string) {
 
 export async function stageAll() {
   if (!workspace.rootPath) return;
-  for (const e of git.unstaged) {
-    await invoke("git_stage", { root: workspace.rootPath, path: e.path }).catch(() => {});
-  }
+  // in parallelo: una sola attesa invece di N round-trip IPC seriali
+  await Promise.all(
+    git.unstaged.map((e) =>
+      invoke("git_stage", { root: workspace.rootPath, path: e.path }).catch(() => {}),
+    ),
+  );
   await refreshStatus();
 }
 

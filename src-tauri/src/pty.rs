@@ -6,18 +6,27 @@ use base64::Engine;
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use std::collections::HashMap;
 use std::io::{Read, Write};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, State};
+
+// Contatore monotono: ogni spawn riceve un token unico, così il thread lettore rimuove
+// SOLO la propria sessione, mai una ri-creata sullo stesso id (difesa anti-eviction).
+static SPAWN_SEQ: AtomicU64 = AtomicU64::new(0);
 
 struct PtySession {
     master: Box<dyn MasterPty + Send>,
     writer: Box<dyn Write + Send>,
     child: Box<dyn portable_pty::Child + Send + Sync>,
+    token: u64,
 }
+
+type Sessions = Arc<Mutex<HashMap<String, PtySession>>>;
 
 #[derive(Default)]
 pub struct PtyManager {
-    sessions: Mutex<HashMap<String, PtySession>>,
+    // Arc: condiviso anche col thread lettore, che rimuove la sessione quando il PTY muore (EOF).
+    sessions: Sessions,
 }
 
 impl PtyManager {
@@ -128,7 +137,7 @@ pub fn pty_spawn(
     shell: Option<String>,
 ) -> Result<(), String> {
     // idempotente: se la sessione esiste già la teniamo viva (re-attach)
-    if state.sessions.lock().unwrap().contains_key(&id) {
+    if state.sessions.lock().map_err(|e| e.to_string())?.contains_key(&id) {
         return Ok(());
     }
 
@@ -162,6 +171,20 @@ pub fn pty_spawn(
 
     let app2 = app.clone();
     let id2 = id.clone();
+    let sessions = state.sessions.clone();
+    let token = SPAWN_SEQ.fetch_add(1, Ordering::Relaxed);
+
+    // inserisci la sessione PRIMA di avviare il lettore (evita la race con un'uscita immediata)
+    state.sessions.lock().map_err(|e| e.to_string())?.insert(
+        id,
+        PtySession {
+            master: pair.master,
+            writer,
+            child,
+            token,
+        },
+    );
+
     std::thread::spawn(move || {
         let mut buf = [0u8; 4096];
         let engine = base64::engine::general_purpose::STANDARD;
@@ -177,23 +200,21 @@ pub fn pty_spawn(
                 Err(_) => break,
             }
         }
+        // PTY chiuso (shell/claude usciti): rimuovi la sessione morta → niente tab zombie al redock.
+        // Solo se è ancora la NOSTRA sessione: un re-spawn sullo stesso id non va sfrattato.
+        if let Ok(mut s) = sessions.lock() {
+            if s.get(&id2).map(|sess| sess.token) == Some(token) {
+                s.remove(&id2);
+            }
+        }
         let _ = app2.emit(&format!("pty-exit-{}", id2), ());
     });
-
-    state.sessions.lock().unwrap().insert(
-        id,
-        PtySession {
-            master: pair.master,
-            writer,
-            child,
-        },
-    );
     Ok(())
 }
 
 #[tauri::command]
 pub fn pty_write(state: State<PtyManager>, id: String, data: String) -> Result<(), String> {
-    let mut sessions = state.sessions.lock().unwrap();
+    let mut sessions = state.sessions.lock().map_err(|e| e.to_string())?;
     if let Some(s) = sessions.get_mut(&id) {
         s.writer.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
         s.writer.flush().map_err(|e| e.to_string())?;
@@ -203,7 +224,7 @@ pub fn pty_write(state: State<PtyManager>, id: String, data: String) -> Result<(
 
 #[tauri::command]
 pub fn pty_resize(state: State<PtyManager>, id: String, cols: u16, rows: u16) -> Result<(), String> {
-    let sessions = state.sessions.lock().unwrap();
+    let sessions = state.sessions.lock().map_err(|e| e.to_string())?;
     if let Some(s) = sessions.get(&id) {
         s.master
             .resize(PtySize {
@@ -219,8 +240,15 @@ pub fn pty_resize(state: State<PtyManager>, id: String, cols: u16, rows: u16) ->
 
 #[tauri::command]
 pub fn pty_kill(state: State<PtyManager>, id: String) -> Result<(), String> {
-    if let Some(mut s) = state.sessions.lock().unwrap().remove(&id) {
+    if let Some(mut s) = state.sessions.lock().map_err(|e| e.to_string())?.remove(&id) {
         let _ = s.child.kill();
     }
     Ok(())
+}
+
+/// true se il PTY esiste ancora (vivo). La sessione è rimossa dalla mappa quando il PTY muore,
+/// quindi la presenza nella mappa equivale a "vivo". Usato per non reincollare tab morte.
+#[tauri::command]
+pub fn pty_alive(state: State<PtyManager>, id: String) -> bool {
+    state.sessions.lock().map(|s| s.contains_key(&id)).unwrap_or(false)
 }

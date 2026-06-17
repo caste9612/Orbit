@@ -3,9 +3,10 @@
   import Icon from "./Icon.svelte";
   import Switch from "./Switch.svelte";
   import Backdrop from "./Backdrop.svelte";
-  import { settings, closeSettings, MONO_FONTS, ACCENTS, type AccentName } from "../state/settings.svelte";
+  import { settings, closeSettings, MONO_FONTS, ACCENTS, THEMES, type AccentName, type ThemeName } from "../state/settings.svelte";
 
   const accentNames = Object.keys(ACCENTS) as AccentName[];
+  const themeNames = Object.keys(THEMES) as ThemeName[];
 </script>
 
 <Backdrop onClose={closeSettings} dim z={110} />
@@ -42,10 +43,38 @@
 
     <div class="row">
       <div class="label">
-        <span class="name">Accent color</span>
-        <span class="hint">Interface highlight</span>
+        <span class="name">Theme</span>
+        <span class="hint">Full color palette — editor included</span>
       </div>
       <div class="swatches">
+        {#each themeNames as tn (tn)}
+          {@const th = THEMES[tn]}
+          <button
+            class="theme-sw"
+            class:on={settings.theme === tn}
+            style="background:{th.vars['color-surface-1']}; box-shadow: inset 0 0 0 1px {th.vars['color-line-strong']}"
+            title={th.label}
+            aria-label={th.label}
+            onclick={() => (settings.theme = tn)}
+          >
+            <span class="tdot" style="background:{th.vars['color-accent']}"></span>
+          </button>
+        {/each}
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="label">
+        <span class="name">Accent color</span>
+        <span class="hint">Interface highlight — Auto follows the theme</span>
+      </div>
+      <div class="swatches">
+        <button
+          class="autoacc"
+          class:on={settings.accent === "auto"}
+          title="Match the theme's accent"
+          onclick={() => (settings.accent = "auto")}>Auto</button
+        >
         {#each accentNames as a (a)}
           <button
             class="swatch"
@@ -68,6 +97,18 @@
         checked={settings.claudeTerminal}
         onToggle={() => (settings.claudeTerminal = !settings.claudeTerminal)}
         label="Launch Claude in the default terminal"
+      />
+    </div>
+
+    <div class="row">
+      <div class="label">
+        <span class="name">Notify when a terminal needs you</span>
+        <span class="hint">A toast and a tab marker when a terminal rings the bell — e.g. <code>claude</code> finished or is waiting — while you're looking elsewhere</span>
+      </div>
+      <Switch
+        checked={settings.bellNotify}
+        onToggle={() => (settings.bellNotify = !settings.bellNotify)}
+        label="Notify when a terminal needs you"
       />
     </div>
 
@@ -204,6 +245,9 @@
   .swatches {
     display: flex;
     gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
   .swatch {
     width: 24px;
@@ -220,5 +264,49 @@
   .swatch.on {
     border-color: var(--color-ink);
     box-shadow: 0 0 0 2px var(--color-surface-2) inset;
+  }
+  /* preview di tema (anteprima viva: superficie editor + pallino accento del tema) */
+  .theme-sw {
+    width: 30px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: transform 90ms ease;
+  }
+  .theme-sw:hover {
+    transform: scale(1.08);
+  }
+  .theme-sw.on {
+    border-color: var(--color-accent);
+  }
+  .tdot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  /* chip "Auto": l'accento segue il tema (vedi anche gli swatch espliciti accanto) */
+  .autoacc {
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background: var(--color-surface-1);
+    color: var(--color-ink-muted);
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    cursor: pointer;
+    transition:
+      color 90ms ease,
+      border-color 90ms ease;
+  }
+  .autoacc:hover {
+    color: var(--color-ink);
+  }
+  .autoacc.on {
+    border-color: var(--color-accent);
+    color: var(--color-ink);
   }
 </style>

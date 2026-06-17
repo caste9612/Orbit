@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import Icon from "./Icon.svelte";
+  import FileGlyph from "./FileGlyph.svelte";
   import Self from "./MiniTree.svelte";
   import { openFile, activePath } from "../state/workspace.svelte";
   import { fileIcon } from "../util";
@@ -52,7 +53,7 @@
       {#if e.isDir}
         <span class="mic dir"><Icon name={open[e.path] ? "folder-open" : "folder"} size={14} strokeWidth={1.6} /></span>
       {:else}
-        <span class="mic" style="color:{fi.color}"><Icon name={fi.glyph} size={14} strokeWidth={1.7} /></span>
+        <span class="mic"><FileGlyph glyph={fi.glyph} color={fi.color} size={14} /></span>
       {/if}
       <span class="mname">{e.name}</span>
     </button>

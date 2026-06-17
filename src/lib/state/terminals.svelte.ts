@@ -3,6 +3,8 @@
 // così scrollback e shell si conservano quando si cambia tab.
 import { invoke } from "@tauri-apps/api/core";
 import { layout } from "./layout.svelte";
+import { settings } from "./settings.svelte";
+import { notify } from "./toast.svelte";
 
 export interface TermSession {
   id: string;
@@ -12,6 +14,7 @@ export interface TermSession {
   initCommand: string | null; // comando lanciato all'avvio (run config)
   started: boolean; // initCommand già inviato (evita ri-esecuzione al remount)
   attach: boolean; // true = si collega a un PTY esistente (terminale reincollato dalla finestra flottante)
+  needsAttention: boolean; // la bell ha suonato (Claude ha finito / aspetta input) mentre non lo guardavi
 }
 
 let counter = 0;
@@ -40,6 +43,7 @@ export function addTerminal(opts: NewTerminal = {}): string {
     initCommand: opts.initCommand ?? null,
     started: false,
     attach: false,
+    needsAttention: false,
   });
   terminals.activeId = id;
   return id;
@@ -80,6 +84,7 @@ export async function redockTerminal(s: { id: string; title: string; shell: stri
     initCommand: null,
     started: true,
     attach: true,
+    needsAttention: false,
   });
   terminals.activeId = s.id;
   layout.terminalVisible = true;
@@ -87,6 +92,29 @@ export async function redockTerminal(s: { id: string; title: string; shell: stri
 
 export function setActiveTerminal(id: string) {
   terminals.activeId = id;
+  clearAttention(id); // guardare la scheda azzera la richiesta d'attenzione
+}
+
+/** Azzera il pallino "attenzione" di una scheda (quando la guardi davvero). */
+export function clearAttention(id: string | null) {
+  if (!id) return;
+  const t = terminals.list.find((s) => s.id === id);
+  if (t) t.needsAttention = false;
+}
+
+/** La bell (BEL) del terminale `id` ha suonato: tipicamente Claude ha finito un turno o aspetta
+ *  input. Segnala attenzione (pallino sulla scheda + toast) SOLO se non stai già guardando quel
+ *  terminale; anti-spam: se è già segnalato non ripete il toast. Disattivabile da Impostazioni. */
+export function notifyTerminalBell(id: string) {
+  if (!settings.bellNotify) return;
+  const t = terminals.list.find((s) => s.id === id);
+  if (!t) return;
+  // stai già guardando QUESTO terminale? (scheda attiva + pannello visibile + finestra a fuoco)
+  const watching = terminals.activeId === id && layout.terminalVisible && document.hasFocus();
+  if (watching || t.needsAttention) return; // niente da segnalare / già segnalato
+  t.needsAttention = true;
+  // toast solo se la finestra è a fuoco: se non lo è non lo vedresti (lì servirebbe una notifica OS)
+  if (document.hasFocus()) notify(`${t.title} is waiting for you`, "info");
 }
 
 /** Chiude una tab: uccide il PTY e attiva un vicino; se era l'ultima nasconde il pannello. */

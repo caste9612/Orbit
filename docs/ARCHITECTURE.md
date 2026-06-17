@@ -56,7 +56,7 @@ Three kinds of frontend module, kept separate:
 | `workspace` | open folder, document pool (kinds: file/diff/image/pdf), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, … |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete) |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
-| `terminals` | terminal tabs (id/title/shell/cwd) + active tab |
+| `terminals` | terminal tabs (id/title/shell/cwd) + active tab; **bell attention** (`notifyTerminalBell` → tab marker + toast when a terminal needs you) |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
 | `claude` | Claude launcher + **shortcuts** + **wrappers** (`.orbit/claude.json`); opens `claude` in a terminal; the wrapper composer copies the composed prompt to the clipboard |
 | `shelf` | shelved folders by category (`.orbit/shelf.json`) |
@@ -66,7 +66,7 @@ Three kinds of frontend module, kept separate:
 | `claudeChats` | the project's recent Claude Code sessions (preview + turn count, from transcripts) + resume |
 | `scratch` | one‑click persistent scratchpad (`.orbit/scratch.md`) for notes/prompts |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
-| `settings` | font/size/accent/smooth‑caret/webgl/claude‑terminal (localStorage) + applies CSS vars |
+| `settings` | **theme** (4 full presets incl. light)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify** (localStorage) + applies CSS vars per theme |
 | `layout` | panel sizes/visibility + focused panel |
 | `persist` | per‑folder session save/restore (autosave via `$effect.root`); `switchFolder` swaps the workspace folder cleanly |
 | `toast` | transient notifications |
@@ -88,9 +88,13 @@ cursor). The editor uses soft **line wrapping** (gutter stays correct).
 
 `Editor.svelte` (CodeMirror) and `Terminal.svelte` (xterm) are loaded through
 `LazyEditor.svelte` / `LazyTerminal.svelte` (dynamic `import()`), so the startup chunk stays
-lean (~497 KB; the ~338 KB xterm and ~73 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
+lean (~475 KB; the ~338 KB xterm and ~73 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
 `settings.webgl` (off by default). **marked + DOMPurify** are likewise lazy (`markdown.ts`
 imports them on first render), so the Markdown feature adds nothing to the startup payload.
+A small generic **`Lazy.svelte`** wrapper (`load={() => import("./X.svelte")}`, props forwarded) does
+the same for the **overlays** (Settings, QuickOpen, SymbolPalette, WrapperComposer), the **viewers**
+(DiffView, AssetView, MarkdownView) and the **non‑default sidebar views** (Git/Search/Docs/Chats), so
+first paint loads only the Explorer + the active editor.
 
 ### Feature notes
 
@@ -195,10 +199,19 @@ commands (only Tauri plugin commands need permissions in `capabilities/`).
 ## Theming
 
 `src/app.css` holds every color/size token: surfaces, ink, accent, lines in a Tailwind `@theme`
-block, plus runtime‑overridable CSS variables in `:root` (`--color-bg`, `--accent-rgb`,
-`--editor-font-size`, `--caret-transition`, radii, shadows). Settings overrides these at runtime.
-The editor's own colors live in `lib/editor/theme.ts` (a CodeMirror theme + highlight style that
-reads the same CSS variables).
+block (defaults = **Orbit Dark**), plus runtime‑overridable CSS variables in `:root` (`--color-bg`,
+`--accent-rgb`, `--editor-font-size`, `--caret-transition`, the editor's `--cm-*`, radii, shadows).
+
+**Themes.** `settings.svelte.ts` defines `THEMES` (Orbit Dark / Eclipse / Slate / Orbit Light): each is
+a full set of CSS variables (all surfaces/lines/inks + bg + default accent + the editor `--cm-*`) that
+`applySettings` writes on `documentElement` — the accent‑preset mechanism extended to the whole palette.
+The accent can be **Auto** (follows the theme) or a preset (overrides). The editor picks a light/dark
+**HighlightStyle** via a `Compartment` (`editorTheme(light)` in `lib/editor/theme.ts`), reconfigured
+when the theme changes; its selection / active‑line / bracket read the `--cm-*` variables so they adapt.
+
+**File glyphs.** `FileGlyph.svelte` renders a file's icon from `fileIcon()` (`util.ts`): a dedicated SVG
+**symbol** (`lang:*`) for languages with a strong identity, a **monogram tile** (`tile:*`, fill/text
+derived from the language color at a single switch point), or a line‑art `Icon` fallback for non‑code.
 
 ## Conventions
 

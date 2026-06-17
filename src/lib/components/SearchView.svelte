@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
+  import FileGlyph from "./FileGlyph.svelte";
   import { search, setQuery, openResult } from "../state/search.svelte";
   import { fileIcon, basename } from "../util";
 
@@ -47,7 +48,7 @@
     {#each search.results as f (f.path)}
       {@const fi = fileIcon(f.rel)}
       <div class="fhead" title={f.rel}>
-        <span class="ic" style="color:{fi.color}"><Icon name={fi.glyph} size={14} strokeWidth={1.7} /></span>
+        <span class="ic"><FileGlyph glyph={fi.glyph} color={fi.color} size={14} /></span>
         <span class="fname">{basename(f.rel)}</span>
         <span class="fpath">{f.rel}</span>
         <span class="fcount">{f.matches.length}</span>

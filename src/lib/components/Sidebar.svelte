@@ -1,10 +1,7 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
   import Explorer from "./Explorer.svelte";
-  import GitPanel from "./GitPanel.svelte";
-  import SearchView from "./SearchView.svelte";
-  import DocsView from "./DocsView.svelte";
-  import ClaudeChatsView from "./ClaudeChatsView.svelte";
+  import Lazy from "./Lazy.svelte";
   import { layout, setFocusPanel } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog, startCreate } from "../state/explorer.svelte";
@@ -56,7 +53,7 @@
       {/if}
     {:else if layout.sidebarView === "git"}
       {#if workspace.rootPath}
-        <GitPanel />
+        <Lazy load={() => import("./GitPanel.svelte")} />
       {:else}
         <div class="empty">
           <p class="muted">No git repository.</p>
@@ -65,7 +62,7 @@
       {/if}
     {:else if layout.sidebarView === "docs"}
       {#if workspace.rootPath}
-        <DocsView />
+        <Lazy load={() => import("./DocsView.svelte")} />
       {:else}
         <div class="empty">
           <p class="muted">No documentation.</p>
@@ -74,7 +71,7 @@
       {/if}
     {:else if layout.sidebarView === "claude"}
       {#if workspace.rootPath}
-        <ClaudeChatsView />
+        <Lazy load={() => import("./ClaudeChatsView.svelte")} />
       {:else}
         <div class="empty">
           <p class="muted">No Claude sessions.</p>
@@ -82,7 +79,7 @@
         </div>
       {/if}
     {:else if workspace.rootPath}
-      <SearchView />
+      <Lazy load={() => import("./SearchView.svelte")} />
     {:else}
       <div class="empty">
         <p class="muted">Search in files</p>

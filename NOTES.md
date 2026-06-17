@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -1114,6 +1114,68 @@ Rilascio **v0.3.2** — novità rispetto alla v0.3.1:
 - Feedback al click sui pulsanti di rete (toast "git … → terminale") per confermare l'azione.
 
 Verifica: `svelte-check` 187 file 0/0; `cargo test` 8/8; `npm run tauri build` OK (MSI + NSIS + portable). Footprint reale aggiornato nel README (binario 5,3 MB, chunk d'avvio ~497 KB / ≈165 KB gz). Rilascio: v0.3.2 su GitHub.
+
+---
+
+## Milestone 32 — temi, glifi file per-linguaggio, notifica Claude, trim d'avvio (v0.4.0)
+
+Ciclo di feature dopo la v0.3.2 (companion Claude + look). Quattro interventi; **zero dipendenze
+runtime nuove** (solo SVG inline e i pacchetti già presenti).
+
+**Notifica "Claude ti aspetta"** (`terminals.svelte.ts`, `Terminal.svelte`, `TerminalPanel.svelte`, `settings`)
+- L'xterm espone `onBell`: Claude suona la *bell* a fine turno / quando attende input. Se il terminale
+  che ha suonato **non** è quello che stai guardando (scheda attiva + pannello visibile + finestra a
+  fuoco), Orbit segnala: **pallino accento pulsante** sulla scheda + **toast** (solo a finestra a
+  fuoco, altrimenti non lo vedresti). Si spegne aprendo la scheda o al ritorno a fuoco. Gating +
+  anti-spam: niente notifiche mentre ci stai già scrivendo (i BEL spurî di bash sono ignorati).
+  Toggle `bellNotify` in Impostazioni (ON di default). Limite: vale a pannello aperto (a pannello
+  chiuso l'xterm è smontato); coprire anche quel caso richiederebbe rilevare il BEL nel backend (PTY)
+  — rimandato.
+
+**Trim del chunk d'avvio** (`Lazy.svelte`, `App.svelte`, `EditorArea.svelte`, `Sidebar.svelte`)
+- Nuovo helper generico `Lazy.svelte` (`load={() => import("./X.svelte")}` + prop inoltrati, import una
+  volta sola): resi **lazy** gli overlay (Settings, WrapperComposer, QuickOpen, SymbolPalette), i
+  viewer (DiffView, AssetView, MarkdownView) e le viste sidebar non-default (Git, Search, Docs, Chat)
+  — l'Explorer resta eager. Entry **497 → 469 KB** (gz 165 → 156) + ~14 KB di CSS d'avvio in meno
+  (CSS per-componente splittato). Payoff pratico modesto (app locale), ma nello spirito del gate #1 e
+  soprattutto l'architettura giusta (non caricare ciò che non si mostra).
+
+**Temi completi (4 preset)** (`app.css`, `settings.svelte.ts`, `editor/theme.ts`, `Editor.svelte`, `Settings.svelte`)
+- Esteso il meccanismo degli ACCENTS a **temi interi**: ogni tema sovrascrive tutte le superfici/
+  linee/inchiostri + bg + accento di default + le variabili editor `--cm-*` (selezione/riga attiva/
+  bracket) come CSS vars su `documentElement`, persistite in localStorage. Preset: **Orbit Dark**
+  (default, firma), **Eclipse** (OLED), **Slate** (neutro), **Orbit Light** (chiaro). surface-3/4
+  derivati verso l'inchiostro per coerenza su scuro e chiaro; i token base di `app.css` ora valgono
+  Orbit Dark (niente flash pre-JS).
+- **Accento "Auto"** (nuovo default): segue l'accento del tema (così Eclipse è teal, ecc.); i 4 preset
+  (blu/viola/verde/teal) restano come override esplicito applicato dopo il tema.
+- **Tema chiaro**: nuova `HighlightStyle` chiara (palette VS Light+) in `editor/theme.ts`, scelta in
+  base al tema attivo via un Compartment in `Editor.svelte` (riconfigurato al cambio); selezione/riga
+  attiva/bracket dell'editor passano da hex fissi a `var(--cm-*)` → si adattano da soli. Selettore
+  Tema in Impostazioni con anteprima viva per preset; cambio **LIVE**.
+
+**Glifi file per-linguaggio (approccio ibrido)** (`util.ts`, `FileGlyph.svelte`, `Icon.svelte`, call-site)
+- Prima quasi tutti i linguaggi usavano lo stesso glifo `braces` cambiando solo colore. Nuovo
+  `FileGlyph.svelte`: (a) **simbolo SVG dedicato** per i linguaggi con identità (Rust esagono, Svelte
+  swoosh, Python dischi, Go/Vue chevron/doppia-V); (b) **tile monogramma** ≤2 caratteri per TS, JS,
+  JSON, C, C++, C#, Java, Ruby, PHP — fondo e testo ricavati dal colore-linguaggio con una ricetta a
+  **un solo punto di switch** (tenue ↔ pieno); (c) fallback line-art (`Icon`) per i tipi non-codice.
+  `fileIcon()` ora ritorna id `lang:*` / `tile:*`; Dockerfile passa da `database` a un glifo **box**
+  (container), CSS/SCSS/Less da `#` a **paintbrush**. Call-site aggiornati: albero, MiniTree, tab
+  editor, breadcrumb, Quick Open, Cerca.
+
+**Icona app + wordmark del brand (Jost Light)** (`src-tauri/icons/`, `app-icon.png`, `src/lib/assets/orbit-wordmark.svg`, `EditorArea.svelte`, `README.md`)
+- Nuova icona (pianeta con anello su gradiente viola→blu): set rigenerato con `tauri icon` da
+  `app-icon.png` (1024², sorgente versionata nel repo). Tolte di nuovo le icone Windows Store/MSIX
+  generate ma non usate da `bundle.icon` (coerente con M22). Wordmark "Orbit" in **Jost Light**
+  convertito in **tracciati vettoriali** (niente font a runtime) col gradiente del brand: usato
+  nell'hero del README (icona + wordmark grande + badge, stile OSS curato) e nella schermata di
+  benvenuto (sostituisce il testo Inter; bonus: ora visibile anche su Orbit Light, dove il vecchio
+  gradiente chiaro spariva).
+
+Verifica: `svelte-check` 189 file 0/0; `cargo test` 8/8; `vite build` ok (entry 474 KB / 158 KB gz).
+Nessuna dipendenza runtime nuova. README/ARCHITECTURE riallineati. Rilascio: **v0.4.0** su GitHub
+(NSIS + MSI + portable, build size-optimized).
 
 ---
 

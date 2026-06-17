@@ -1,5 +1,6 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
+  import FileGlyph from "./FileGlyph.svelte";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
   import MiniTree from "./MiniTree.svelte";
   import ShelfPicker from "./ShelfPicker.svelte";
@@ -240,8 +241,8 @@
                 <Icon name={n.expanded ? "folder-open" : "folder"} size={15} strokeWidth={1.6} />
               </span>
             {:else}
-              <span class="ic" style="color:{fi.color}">
-                <Icon name={fi.glyph} size={15} strokeWidth={1.7} />
+              <span class="ic">
+                <FileGlyph glyph={fi.glyph} color={fi.color} size={15} />
               </span>
             {/if}
             {#if renaming}

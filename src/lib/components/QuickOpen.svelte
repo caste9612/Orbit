@@ -1,6 +1,7 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
   import Icon from "./Icon.svelte";
+  import FileGlyph from "./FileGlyph.svelte";
   import Backdrop from "./Backdrop.svelte";
   import { quickopen, setQuery, move, choose, closePalette } from "../state/quickopen.svelte";
   import { fileIcon } from "../util";
@@ -71,7 +72,7 @@
           onclick={choose}
           onmouseenter={() => (quickopen.index = i)}
         >
-          <span class="ic" style="color:{fi.color}"><Icon name={fi.glyph} size={15} strokeWidth={1.7} /></span>
+          <span class="ic"><FileGlyph glyph={fi.glyph} color={fi.color} size={15} /></span>
           <span class="base">{baseOf(f.rel)}</span>
           <span class="dir">{dirOf(f.rel)}</span>
         </button>

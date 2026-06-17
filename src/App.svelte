@@ -8,11 +8,8 @@
   import StatusBar from "./lib/components/StatusBar.svelte";
   import Splitter from "./lib/components/Splitter.svelte";
   import Terminal from "./lib/components/LazyTerminal.svelte";
-  import QuickOpen from "./lib/components/QuickOpen.svelte";
-  import SymbolPalette from "./lib/components/SymbolPalette.svelte";
+  import Lazy from "./lib/components/Lazy.svelte";
   import Toaster from "./lib/components/Toaster.svelte";
-  import Settings from "./lib/components/Settings.svelte";
-  import WrapperComposer from "./lib/components/WrapperComposer.svelte";
   import Logo from "./lib/components/Logo.svelte";
   import Icon from "./lib/components/Icon.svelte";
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal } from "./lib/state/layout.svelte";
@@ -286,16 +283,16 @@
   </div>
 
   {#if quickopen.open}
-    <QuickOpen />
+    <Lazy load={() => import("./lib/components/QuickOpen.svelte")} />
   {/if}
   {#if symbols.open}
-    <SymbolPalette />
+    <Lazy load={() => import("./lib/components/SymbolPalette.svelte")} />
   {/if}
   {#if settingsUI.open}
-    <Settings />
+    <Lazy load={() => import("./lib/components/Settings.svelte")} />
   {/if}
   {#if wrapperUI.open}
-    <WrapperComposer />
+    <Lazy load={() => import("./lib/components/WrapperComposer.svelte")} />
   {/if}
   <Toaster />
 {/if}

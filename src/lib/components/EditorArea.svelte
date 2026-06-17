@@ -1,10 +1,10 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
+  import FileGlyph from "./FileGlyph.svelte";
   import Editor from "./LazyEditor.svelte";
-  import DiffView from "./DiffView.svelte";
-  import MarkdownView from "./MarkdownView.svelte";
-  import AssetView from "./AssetView.svelte";
+  import Lazy from "./Lazy.svelte";
   import Backdrop from "./Backdrop.svelte";
+  import orbitWordmark from "../assets/orbit-wordmark.svg";
   import { onMount, onDestroy } from "svelte";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
   import { fileIcon, relTo } from "../util";
@@ -182,7 +182,7 @@
 
 {#snippet welcome()}
   <div class="welcome">
-    <div class="mark">Orbit</div>
+    <img class="mark" src={orbitWordmark} alt="Orbit" draggable="false" />
     <div class="tagline">Lightweight IDE · companion for Claude Code</div>
     <ul class="hints">
       <li><kbd>Ctrl</kbd><kbd>K</kbd><span>Open folder</span></li>
@@ -220,7 +220,7 @@
                   ondragstart={(e) => e.preventDefault()}
                 >
                   <button type="button" class="sel" onclick={() => setActiveTab(g.id, path)} title={path}>
-                    <span class="ti" style="color:{fi.color}"><Icon name={fi.glyph} size={14} strokeWidth={1.6} /></span>
+                    <span class="ti"><FileGlyph glyph={fi.glyph} color={fi.color} size={14} /></span>
                     <span class="label">{f.name}</span>
                     {#if f.externallyChanged}
                       <span class="dot warn" aria-label="changed on disk"></span>
@@ -251,7 +251,7 @@
                 {#if i === parts.length - 1}
                   {@const fi = fileIcon(p)}
                   <span class="crumb">
-                    <span class="cci" style="color:{fi.color}"><Icon name={fi.glyph} size={13} strokeWidth={1.7} /></span>
+                    <span class="cci"><FileGlyph glyph={fi.glyph} color={fi.color} size={13} /></span>
                     {p}
                   </span>
                 {:else}
@@ -276,11 +276,12 @@
             {#if af}
               {#key g.id + "::" + af.path}
                 {#if af.kind === "diff"}
-                  <DiffView content={af.content} />
+                  <Lazy load={() => import("./DiffView.svelte")} content={af.content} />
                 {:else if af.kind === "image" || af.kind === "pdf"}
-                  <AssetView path={af.path} kind={af.kind} />
+                  <Lazy load={() => import("./AssetView.svelte")} path={af.path} kind={af.kind} />
                 {:else if isMd(af.name) && af.preview}
-                  <MarkdownView
+                  <Lazy
+                    load={() => import("./MarkdownView.svelte")}
                     content={af.content}
                     path={af.path}
                     onTaskToggle={(c: string) => {
@@ -346,7 +347,7 @@
           {@const fi = tabIcon(f)}
           <div class="tabmenu-row" class:active={grp.activePath === path}>
             <button class="tabmenu-sel" title={path} onclick={() => { setActiveTab(grp.id, path); tabMenu = null; }}>
-              <span class="ti" style="color:{fi.color}"><Icon name={fi.glyph} size={14} strokeWidth={1.6} /></span>
+              <span class="ti"><FileGlyph glyph={fi.glyph} color={fi.color} size={14} /></span>
               <span class="label">{f.name}</span>
               {#if f.externallyChanged}<span class="dot warn"></span>{:else if f.dirty}<span class="dot"></span>{/if}
             </button>
@@ -709,14 +710,9 @@
     transform: translateY(-6%);
   }
   .mark {
-    font-size: 58px;
-    font-weight: 750;
-    letter-spacing: -0.035em;
-    line-height: 1;
-    background: linear-gradient(120deg, #eaf0f8 0%, #9cc0ff 52%, #b69cff 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    height: 64px;
+    width: auto;
+    user-select: none;
   }
   .tagline {
     color: var(--color-ink-muted);

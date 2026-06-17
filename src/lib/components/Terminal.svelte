@@ -27,6 +27,8 @@
     attach?: boolean;
     /** percorsi cliccabili nell'output (disattivati nella finestra flottante: niente editor). */
     enableLinks?: boolean;
+    /** la bell (BEL) ha suonato: Claude ha finito un turno / aspetta input. */
+    onBell?: () => void;
   }
   let {
     id,
@@ -38,6 +40,7 @@
     onStart,
     attach = false,
     enableLinks = true,
+    onBell,
   }: Props = $props();
 
   // tema xterm allineato alla sintassi dell'editor (sfondo = editor #1e1e1e)
@@ -188,6 +191,9 @@
     }
     // percorsi cliccabili (disattivati nella finestra flottante, che non ha un editor)
     if (enableLinks) term.registerLinkProvider(pathLinkProvider());
+
+    // la bell (BEL) segnala "ho finito / aspetto input" — Claude la suona a fine turno: avvisa il parent
+    term.onBell(() => onBell?.());
 
     // Click destro = copia la selezione (se c'è) altrimenti incolla, stile terminale.
     // In fase di cattura (true) così funziona anche quando un TUI come Claude attiva il

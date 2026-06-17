@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import Icon from "./Icon.svelte";
   import Terminal from "./LazyTerminal.svelte";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
@@ -15,6 +15,8 @@
     closeTerminal,
     ensureTerminal,
     removeTerminalKeepPty,
+    notifyTerminalBell,
+    clearAttention,
   } from "../state/terminals.svelte";
 
   interface ShellInfo {
@@ -37,13 +39,25 @@
     return { icon: "terminal", color: "var(--color-ink-muted)" };
   }
 
+  // tornando a fuoco sull'app, la scheda attiva è "vista" → spegni il suo pallino d'attenzione
+  let offFocus: (() => void) | undefined;
+
   onMount(async () => {
     try {
       shells = await invoke<ShellInfo[]>("list_shells");
     } catch {
       shells = [];
     }
+    try {
+      offFocus = await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
+        if (focused) clearAttention(terminals.activeId);
+      });
+    } catch {
+      /* fuori dal contesto Tauri */
+    }
   });
+
+  onDestroy(() => offFocus?.());
 
   // Pannello mostrato senza terminali → crea una shell NORMALE (mai Claude: il default Claude
   // all'avvio è gestito una volta sola in App.svelte). Così l'icona terminale apre sempre una shell.
@@ -123,8 +137,9 @@
       {#each terminals.list as t (t.id)}
         {@const tv = tabVisual(t.shell, t.title)}
         <div class="tab" class:active={t.id === terminals.activeId}>
-          <button class="tab-main" title={t.title} onclick={() => setActiveTerminal(t.id)}>
+          <button class="tab-main" title={t.needsAttention ? `${t.title} — waiting for you` : t.title} onclick={() => setActiveTerminal(t.id)}>
             <span class="tic" style="color:{tv.color}"><Icon name={tv.icon} size={13} strokeWidth={1.8} /></span>
+            {#if t.needsAttention}<span class="attn" aria-hidden="true"></span>{/if}
             <span>{t.title}</span>
           </button>
           <button class="tab-close" title="Close terminal" aria-label="Close terminal" onclick={() => closeTerminal(t.id)}>
@@ -161,6 +176,7 @@
           attach={t.attach}
           initCommand={t.started ? null : t.initCommand}
           onStart={() => (t.started = true)}
+          onBell={() => notifyTerminalBell(t.id)}
         />
       </div>
     {/each}
@@ -249,6 +265,29 @@
     display: inline-flex;
     align-items: center;
     overflow: visible;
+  }
+  /* pallino "attenzione": il terminale ha suonato la bell (Claude finito / in attesa) e non lo guardi.
+     Pulsa in accento; sparisce appena la scheda diventa attiva (notifyTerminalBell azzera il flag). */
+  .tab-main .attn {
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    margin-left: -2px;
+    border-radius: 50%;
+    overflow: visible;
+    background: var(--color-accent);
+    animation: attn-pulse 1.6s ease-out infinite;
+  }
+  @keyframes attn-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.5);
+    }
+    70% {
+      box-shadow: 0 0 0 5px rgba(var(--accent-rgb), 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0);
+    }
   }
   .tab-close {
     display: grid;

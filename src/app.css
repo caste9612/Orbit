@@ -1,30 +1,31 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------ *
- * Token del tema dark — modellato su Visual Studio 2026:
- * grigi neutri, editor scuro, chrome (barre) più chiaro, accento blu VS.
+ * Token del tema — default "Orbit Dark" (firma del progetto).
+ * Questi sono i DEFAULT pre-JS: a runtime `settings.svelte.ts` li sovrascrive
+ * in base al tema scelto (Orbit Dark / Eclipse / Slate / Orbit Light).
  * ------------------------------------------------------------------ */
 @theme {
   /* superfici */
-  --color-surface-0: #2d2d30; /* chrome: top bar / status bar (più chiaro dell'editor, stile VS) */
-  --color-surface-1: #1e1e1e; /* editor (il più scuro) */
-  --color-surface-2: #252526; /* sidebar / pannelli */
-  --color-surface-3: #2f3033; /* hover */
-  --color-surface-4: #3a3d41; /* selezione / hover forte */
+  --color-surface-0: #1d2027; /* chrome: top bar / status bar */
+  --color-surface-1: #14161b; /* editor (il più scuro) */
+  --color-surface-2: #181b21; /* sidebar / pannelli */
+  --color-surface-3: #25282f; /* hover (derivato verso ink) */
+  --color-surface-4: #33363c; /* selezione / hover forte (derivato) */
 
   /* linee e bordi */
-  --color-line: #3a3a3f;
-  --color-line-strong: #4a4a50;
+  --color-line: #262a32;
+  --color-line-strong: #333845;
 
   /* testo */
-  --color-ink: #d4d4d4;
-  --color-ink-muted: #a0a0a0;
-  --color-ink-subtle: #6e7176;
+  --color-ink: #d7dbe2;
+  --color-ink-muted: #9aa1ad;
+  --color-ink-subtle: #636b78;
 
-  /* accento e stati (blu VS) */
-  --color-accent: #3b9dff;
-  --color-accent-2: #6b5bff;
-  --color-accent-soft: #094771; /* selezione blu VS */
+  /* accento e stati */
+  --color-accent: #4c8dff;
+  --color-accent-2: #7c5cff;
+  --color-accent-soft: #1a3354; /* selezione tenue */
   --color-danger: #f14c4c;
   --color-success: #4ec9b0;
   --color-warning: #cca700;
@@ -38,13 +39,20 @@
 
 /* raggi e ombre (custom props normali: usate in CSS scoped via var()) */
 :root {
-  --color-bg: #16181d; /* sfondo dietro i pannelli "card" (look Visual Studio 2026) */
+  --color-bg: #0e1014; /* sfondo dietro i pannelli "card" */
   --radius-sm: 4px;
   --radius: 6px;
   --radius-lg: 9px;
   --shadow-pop: 0 12px 34px rgba(0, 0, 0, 0.5);
   --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.3);
-  --accent-rgb: 59, 157, 255;
+  --accent-rgb: 76, 141, 255;
+
+  /* editor (CodeMirror): selezione / riga attiva / bracket — adattate per tema da settings.svelte.ts */
+  --cm-selection: #2a4163;
+  --cm-selection-match: #21344f;
+  --cm-active-line: rgba(255, 255, 255, 0.03);
+  --cm-bracket-bg: rgba(110, 168, 254, 0.18);
+  --cm-bracket-outline: rgba(110, 168, 254, 0.4);
 }
 
 /* ------------------------------------------------------------------ *
@@ -90,4 +98,14 @@ body {
 }
 *::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* tema chiaro: scrollbar coerenti (thumb più chiaro su fondo chiaro) */
+.theme-light *::-webkit-scrollbar-thumb {
+  background: #c2c6cf;
+  background-clip: padding-box;
+}
+.theme-light *::-webkit-scrollbar-thumb:hover {
+  background: #aab0bb;
+  background-clip: padding-box;
 }

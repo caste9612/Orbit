@@ -13,7 +13,6 @@
   import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
   import { search, searchKeymap, highlightSelectionMatches } from "@codemirror/search";
   import {
-    syntaxHighlighting,
     indentOnInput,
     bracketMatching,
     foldGutter,
@@ -22,11 +21,11 @@
     LanguageDescription,
   } from "@codemirror/language";
   import { languages } from "@codemirror/language-data";
-  import { orbitTheme, orbitHighlight } from "../editor/theme";
+  import { editorTheme } from "../editor/theme";
   import { indentGuides } from "../editor/indentGuides";
   import { gitGutter, setGitMarks, parseGitMarks } from "../editor/gitGutter";
   import { setActiveEditor, clearActiveEditor } from "../editor/activeEditor";
-  import { settings } from "../state/settings.svelte";
+  import { settings, isLightTheme } from "../state/settings.svelte";
   import { git } from "../state/git.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { invoke } from "@tauri-apps/api/core";
@@ -62,6 +61,7 @@
   let applyingExternal = false; // evita di marcare dirty durante un reload programmatico
   let lastRev = untrack(() => rev); // baseline iniziale (volutamente non reattivo)
   const langConf = new Compartment();
+  const themeConf = new Compartment(); // EditorView.theme + HighlightStyle (chiaro/scuro)
 
   onMount(() => {
     const state = EditorState.create({
@@ -83,8 +83,7 @@
         indentGuides,
         indentUnit.of("  "),
         langConf.of([]),
-        syntaxHighlighting(orbitHighlight),
-        orbitTheme,
+        themeConf.of(editorTheme(isLightTheme())),
         EditorState.readOnly.of(readonly),
         EditorView.editable.of(!readonly),
         keymap.of([
@@ -142,6 +141,12 @@
     settings.fontSize;
     settings.fontMono;
     view?.requestMeasure();
+  });
+
+  // cambio tema (Impostazioni): ricarica EditorView.theme + HighlightStyle (chiaro/scuro)
+  $effect(() => {
+    const light = isLightTheme();
+    view?.dispatch({ effects: themeConf.reconfigure(editorTheme(light)) });
   });
 
   // ricarica i marcatori git quando lo stato git cambia (refresh / save / modifica esterna),

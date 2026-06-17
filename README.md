@@ -1,4 +1,15 @@
-# Orbit
+<div align="center">
+  <img src="app-icon.png" width="128" alt="" />
+  <br />
+  <img src="src/lib/assets/orbit-wordmark.svg" alt="Orbit" width="300" />
+  <br /><br />
+  <strong>A lightweight, beautiful IDE — companion for Claude&nbsp;Code</strong>
+  <br /><br />
+  <img alt="Platform: Windows, macOS, Linux" src="https://img.shields.io/badge/platform-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-4c8dff?style=flat-square" />
+  <img alt="Built with Tauri 2 and Svelte 5" src="https://img.shields.io/badge/built%20with-Tauri%202%20%C2%B7%20Svelte%205-1f9c8a?style=flat-square" />
+  <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-7c5cff?style=flat-square" />
+  <img alt="Binary: ~5 MB" src="https://img.shields.io/badge/binary-~5%20MB-2f7ff0?style=flat-square" />
+</div>
 
 A **lightweight**, beautiful IDE built as a **companion for Claude Code**: edit code, browse
 the project, manage git, and keep Claude Code running in an integrated terminal — all in a
@@ -23,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~5 MB binary, ~220 MB RAM at rest (mostly the shared system
-  WebView — Orbit's own Rust core is ~30 MB), and a ~497 KB startup chunk (≈165 KB gzipped).
+  WebView — Orbit's own Rust core is ~30 MB), and a ~475 KB startup chunk (≈158 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -36,7 +47,8 @@ cross-platform desktop app that weighs almost nothing.
 ## Features
 
 **Files & navigation**
-- Virtualized, lazy file tree with type icons.
+- Virtualized, lazy file tree with **per-language type icons** — dedicated symbols for Rust, Svelte,
+  Python, Go and Vue, monogram tiles for TS/JS/JSON/C/C++/C#/Java/…, line-art for everything else.
 - File management from the context menu: new / rename / delete, **open to the side**, **open a
   terminal here**, **reveal in the OS file manager**, and copy path / relative path / name
   (inline editing for new / rename).
@@ -111,13 +123,18 @@ cross-platform desktop app that weighs almost nothing.
   **resumes** one in a terminal with a click (`claude --resume`).
 - A **Scratchpad** (📝 in the top bar) opens a persistent notes/prompts file (`.orbit/scratch.md`)
   to jot prompts and reuse them.
+- **Attention when a terminal needs you** — when a terminal rings the bell (e.g. `claude` finished a
+  turn or is waiting for input) while you're in another tab or window, Orbit marks the tab and shows
+  a toast, so you can fire Claude off and look away (toggle in Settings).
 
 **Workspace**
 - Session persistence per folder (reopens last folder, tabs and panel layout).
 - **Multiple instances** ("New window") for working on several projects at once — each window's
   title shows its project, so the instances are easy to tell apart in the taskbar and Alt‑Tab.
-- **Settings**: editor/terminal font and size, accent color presets, smooth-caret toggle, and
-  "launch Claude in the default terminal".
+- **Color themes**: four full themes — **Orbit Dark** (default), **Eclipse** (OLED), **Slate** and
+  **Orbit Light** — switched live; the accent can follow the theme (**Auto**) or use a preset.
+- **Settings**: theme, editor/terminal font and size, accent color, smooth-caret toggle, terminal GPU
+  rendering, "launch Claude in the default terminal", and "notify when a terminal needs you".
 
 ---
 
@@ -131,7 +148,7 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~3.8 MB |
 | NSIS setup | ~2.6 MB |
 | Frontend `dist/` | ~2.6 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~497 KB (≈165 KB gzipped) |
+| Startup JS chunk | ~475 KB (≈158 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own

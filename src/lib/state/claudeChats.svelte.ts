@@ -5,7 +5,8 @@ import { workspace } from "./workspace.svelte";
 
 export interface ClaudeSession {
   id: string; // id sessione (nome file .jsonl)
-  title: string; // primo messaggio utente "vero" (può essere vuoto)
+  preview: string; // ultimo messaggio utente "vero" (più distintivo del primo; può essere vuoto)
+  messages: number; // numero di turni utente nella sessione
   modified: number; // unix secondi (ultima modifica del transcript)
 }
 

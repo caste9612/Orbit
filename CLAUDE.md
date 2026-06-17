@@ -21,29 +21,52 @@ Quando l'utente chiede un modo per avviare/buildare/testare qualcosa, aggiungi o
 una voce in `.orbit/run.json`: Orbit ricarica il menu automaticamente.
 
 <!-- orbit:claude-config -->
-## Integrazione Claude (Orbit)
+## Orbit — IDE e integrazione Claude
 
-Orbit mostra un menu **Claude** con cui aprire Claude Code in una tab del terminale
-(nella radice del progetto) e lanciare *scorciatoie*: prompt predefiniti avviati come
-`claude "<prompt>"`. Comando, flag e scorciatoie vivono in `.orbit/claude.json`:
+Stai lavorando dentro **Orbit**, un IDE leggero (Tauri + Svelte) companion di Claude Code. Questa
+sezione — generata da Orbit (menu Claude → *Update CLAUDE.md for Claude*) — riassume cosa offre
+l'IDE e come configurarlo.
+
+### Menu Claude
+Apre `claude` nella radice del progetto e offre: *scorciatoie* (prompt fissi), *wrapper* (template
+con segnaposto `{{input}}`: scrivi il testo, lo componi e lo **copi negli appunti**) e le *chat*
+recenti del progetto (riprese con `claude --resume`). Tutto vive in `.orbit/claude.json`:
 
 ```json
 {
   "command": "claude",
   "args": "",
   "shortcuts": [
-    { "name": "Aggiorna documentazione", "icon": "book-open", "prompt": "Rileggi il progetto e aggiorna README e docs/…" },
-    { "name": "Esegui i test e correggi", "icon": "play", "prompt": "Esegui la suite di test e sistema i fallimenti, spiegandomi le cause." }
+    { "name": "Aggiorna documentazione", "icon": "book-open", "prompt": "Rileggi il progetto e aggiorna README e docs/…" }
+  ],
+  "wrappers": [
+    { "name": "Revisione codice", "icon": "search", "template": "Rivedi e segnala bug e migliorie:\n\n{{input}}" }
   ]
 }
 ```
 
-- `command`: come invocare la CLI di Claude (default `claude`).
-- `args`: flag liberi passati a Claude (es. `--model opus`); opzionale.
-- `shortcuts[].name`: etichetta nel menu Claude.
-- `shortcuts[].prompt`: prompt iniziale (una riga), passato a `claude` come argomento.
-- `shortcuts[].icon` (opzionale): nome icona (es. `doc`, `search`, `git-commit`, `play`).
+- `command` / `args`: come invocare la CLI (default `claude`) e flag liberi (es. `--model opus`).
+- `shortcuts[]`: `name` (etichetta nel menu), `prompt` (una riga, passato a `claude`), `icon` opz.
+- `wrappers[]`: `name`, `icon`, `template` con `{{input}}` (se manca, il testo va in coda); il
+  `template` può essere multiriga e il risultato composto si copia negli appunti.
 
-Quando l'utente chiede una scorciatoia per un compito ricorrente (aggiornare i docs,
-lanciare i test, fare release…), aggiungi una voce a `.orbit/claude.json`: Orbit ricarica
-il menu automaticamente.
+Quando l'utente chiede una scorciatoia o un wrapper per un compito ricorrente, aggiungi una voce
+a `.orbit/claude.json`: Orbit ricarica il menu automaticamente.
+
+### Cosa offre Orbit (per orientarti)
+- **Editor** multi-file con *split view*; *Vai al simbolo* (Ctrl/Cmd+Shift+O); anteprima Markdown;
+  viewer inline per **immagini e PDF**; si trascinano file da Esplora risorse per aprirli.
+- **Terminale** integrato (più tab, scelta shell) con **finestre flottanti** multiple; i percorsi
+  nell'output sono cliccabili (anche relativi).
+- **Git** locale: stato, diff, stage/unstage, commit, branch, cronologia, indicatore *ahead/behind*;
+  fetch/pull/push/merge girano nel terminale (riusano la tua autenticazione git).
+- **Esegui ▶**: comandi da `.orbit/run.json` (vedi la sezione dedicata).
+- **Scratchpad** (📝): `.orbit/scratch.md`, appunti/prompt persistenti.
+- **Scaffale**: cartelle messe da parte per categoria in `.orbit/shelf.json`.
+- Menu contestuali (editor e albero), decorazioni git nell'albero, vista **Docs** dei Markdown.
+
+### File `.orbit/` (committati e modificabili)
+- `run.json` — comandi del menu Esegui.
+- `claude.json` — comando, scorciatoie e wrapper Claude (sopra).
+- `shelf.json` — cartelle nello scaffale (preferenza personale, git-ignored).
+<!-- /orbit:claude-config -->

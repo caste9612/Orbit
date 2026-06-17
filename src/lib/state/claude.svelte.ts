@@ -14,6 +14,14 @@ export interface ClaudeShortcut {
   icon?: string;
 }
 
+// Wrapper: template di prompt con segnaposto `{{input}}` dove finisce ciò che scrivi tu.
+// Si compone nel composer e si copia negli appunti (poi lo incolli in Claude).
+export interface ClaudeWrapper {
+  name: string;
+  template: string;
+  icon?: string;
+}
+
 // Scorciatoie di default (usate se manca `.orbit/claude.json`). Prompt su una sola riga.
 const DEFAULT_SHORTCUTS: ClaudeShortcut[] = [
   {
@@ -36,18 +44,37 @@ const DEFAULT_SHORTCUTS: ClaudeShortcut[] = [
   },
 ];
 
+// Wrapper di default (usato se manca `.orbit/claude.json`). Template con `{{input}}`, multiriga ok.
+const DEFAULT_WRAPPERS: ClaudeWrapper[] = [
+  {
+    name: "Analizza log di test",
+    icon: "search",
+    template:
+      "Il team di test ci ha appena inviato una nuova cartella di log di una sessione di test.\n" +
+      "Analizza con cura il contenuto della cartella, ricordati di decomprimere anche eventuali altre cartelle zippate che potrebbero contenere log ulteriori.\n" +
+      "Cerchiamo di ricostruire quello che è successo da quello che dice il team di test, senza prenderlo per vero in modo assoluto, e dai log.\n\n{{input}}",
+  },
+];
+
 export const claude = $state({
   command: "claude", // come si invoca la CLI
   args: "", // flag liberi (es. "--model opus"); future-proof se i settings cambiano
   shortcuts: [...DEFAULT_SHORTCUTS] as ClaudeShortcut[],
+  wrappers: [...DEFAULT_WRAPPERS] as ClaudeWrapper[],
   loaded: false, // true se `.orbit/claude.json` esiste ed è valido
 });
 
+// Stato del composer dei wrapper (aperto dal menu Claude: scrivi → copia negli appunti).
+export const wrapperUI = $state({ open: false, wrapper: null as ClaudeWrapper | null });
+
 /** Legge `.orbit/claude.json`; se assente/invalido usa i default (menu sempre funzionante). */
 export async function loadClaudeConfig() {
-  const data = await readOrbitJson<{ command?: unknown; args?: unknown; shortcuts?: unknown }>(
-    "claude.json",
-  );
+  const data = await readOrbitJson<{
+    command?: unknown;
+    args?: unknown;
+    shortcuts?: unknown;
+    wrappers?: unknown;
+  }>("claude.json");
   if (!data) {
     resetDefaults();
     return;
@@ -64,6 +91,15 @@ export async function loadClaudeConfig() {
           icon: typeof s.icon === "string" ? s.icon : undefined,
         }))
     : [...DEFAULT_SHORTCUTS];
+  claude.wrappers = Array.isArray(data.wrappers)
+    ? data.wrappers
+        .filter((w: any) => w && typeof w.name === "string" && typeof w.template === "string")
+        .map((w: any) => ({
+          name: w.name,
+          template: w.template,
+          icon: typeof w.icon === "string" ? w.icon : undefined,
+        }))
+    : [...DEFAULT_WRAPPERS];
   claude.loaded = true;
 }
 
@@ -71,6 +107,7 @@ function resetDefaults() {
   claude.command = "claude";
   claude.args = "";
   claude.shortcuts = [...DEFAULT_SHORTCUTS];
+  claude.wrappers = [...DEFAULT_WRAPPERS];
   claude.loaded = false;
 }
 
@@ -98,6 +135,20 @@ export function runShortcut(s: ClaudeShortcut) {
   launchClaude(s.prompt, `Claude · ${s.name}`);
 }
 
+/** Sostituisce `{{input}}` nel template col testo dell'utente (se assente, lo accoda). */
+export function composeWrapper(template: string, input: string): string {
+  return template.includes("{{input}}")
+    ? template.split("{{input}}").join(input)
+    : `${template.trimEnd()}\n\n${input}`;
+}
+export function openWrapper(w: ClaudeWrapper) {
+  wrapperUI.wrapper = w;
+  wrapperUI.open = true;
+}
+export function closeWrapper() {
+  wrapperUI.open = false;
+}
+
 /** Riprende una sessione Claude esistente in una tab del terminale (`claude --resume <id>`). */
 export function resumeClaude(id: string) {
   const root = workspace.rootPath;
@@ -107,7 +158,7 @@ export function resumeClaude(id: string) {
 }
 
 const TEMPLATE = JSON.stringify(
-  { command: "claude", args: "", shortcuts: DEFAULT_SHORTCUTS },
+  { command: "claude", args: "", shortcuts: DEFAULT_SHORTCUTS, wrappers: DEFAULT_WRAPPERS },
   null,
   2,
 ) + "\n";
@@ -121,32 +172,55 @@ export async function openClaudeConfig() {
 
 const CLAUDE_SECTION = [
   "<!-- orbit:claude-config -->",
-  "## Integrazione Claude (Orbit)",
+  "## Orbit — IDE e integrazione Claude",
   "",
-  'Orbit mostra un menu **Claude** con cui aprire Claude Code in una tab del terminale',
-  "(nella radice del progetto) e lanciare *scorciatoie*: prompt predefiniti avviati come",
-  "`claude \"<prompt>\"`. Comando, flag e scorciatoie vivono in `.orbit/claude.json`:",
+  "Stai lavorando dentro **Orbit**, un IDE leggero (Tauri + Svelte) companion di Claude Code. Questa",
+  "sezione — generata da Orbit (menu Claude → *Update CLAUDE.md for Claude*) — riassume cosa offre",
+  "l'IDE e come configurarlo.",
+  "",
+  "### Menu Claude",
+  "Apre `claude` nella radice del progetto e offre: *scorciatoie* (prompt fissi), *wrapper* (template",
+  "con segnaposto `{{input}}`: scrivi il testo, lo componi e lo **copi negli appunti**) e le *chat*",
+  "recenti del progetto (riprese con `claude --resume`). Tutto vive in `.orbit/claude.json`:",
   "",
   "```json",
   "{",
   '  "command": "claude",',
   '  "args": "",',
   '  "shortcuts": [',
-  '    { "name": "Aggiorna documentazione", "icon": "book-open", "prompt": "Rileggi il progetto e aggiorna README e docs/…" },',
-  '    { "name": "Esegui i test e correggi", "icon": "play", "prompt": "Esegui la suite di test e sistema i fallimenti, spiegandomi le cause." }',
+  '    { "name": "Aggiorna documentazione", "icon": "book-open", "prompt": "Rileggi il progetto e aggiorna README e docs/…" }',
+  "  ],",
+  '  "wrappers": [',
+  '    { "name": "Revisione codice", "icon": "search", "template": "Rivedi e segnala bug e migliorie:\\n\\n{{input}}" }',
   "  ]",
   "}",
   "```",
   "",
-  "- `command`: come invocare la CLI di Claude (default `claude`).",
-  '- `args`: flag liberi passati a Claude (es. `--model opus`); opzionale.',
-  "- `shortcuts[].name`: etichetta nel menu Claude.",
-  "- `shortcuts[].prompt`: prompt iniziale (una riga), passato a `claude` come argomento.",
-  '- `shortcuts[].icon` (opzionale): nome icona (es. `doc`, `search`, `git-commit`, `play`).',
+  "- `command` / `args`: come invocare la CLI (default `claude`) e flag liberi (es. `--model opus`).",
+  "- `shortcuts[]`: `name` (etichetta nel menu), `prompt` (una riga, passato a `claude`), `icon` opz.",
+  "- `wrappers[]`: `name`, `icon`, `template` con `{{input}}` (se manca, il testo va in coda); il",
+  "  `template` può essere multiriga e il risultato composto si copia negli appunti.",
   "",
-  "Quando l'utente chiede una scorciatoia per un compito ricorrente (aggiornare i docs,",
-  "lanciare i test, fare release…), aggiungi una voce a `.orbit/claude.json`: Orbit ricarica",
-  "il menu automaticamente.",
+  "Quando l'utente chiede una scorciatoia o un wrapper per un compito ricorrente, aggiungi una voce",
+  "a `.orbit/claude.json`: Orbit ricarica il menu automaticamente.",
+  "",
+  "### Cosa offre Orbit (per orientarti)",
+  "- **Editor** multi-file con *split view*; *Vai al simbolo* (Ctrl/Cmd+Shift+O); anteprima Markdown;",
+  "  viewer inline per **immagini e PDF**; si trascinano file da Esplora risorse per aprirli.",
+  "- **Terminale** integrato (più tab, scelta shell) con **finestre flottanti** multiple; i percorsi",
+  "  nell'output sono cliccabili (anche relativi).",
+  "- **Git** locale: stato, diff, stage/unstage, commit, branch, cronologia, indicatore *ahead/behind*;",
+  "  fetch/pull/push/merge girano nel terminale (riusano la tua autenticazione git).",
+  "- **Esegui ▶**: comandi da `.orbit/run.json` (vedi la sezione dedicata).",
+  "- **Scratchpad** (📝): `.orbit/scratch.md`, appunti/prompt persistenti.",
+  "- **Scaffale**: cartelle messe da parte per categoria in `.orbit/shelf.json`.",
+  "- Menu contestuali (editor e albero), decorazioni git nell'albero, vista **Docs** dei Markdown.",
+  "",
+  "### File `.orbit/` (committati e modificabili)",
+  "- `run.json` — comandi del menu Esegui.",
+  "- `claude.json` — comando, scorciatoie e wrapper Claude (sopra).",
+  "- `shelf.json` — cartelle nello scaffale (preferenza personale, git-ignored).",
+  "<!-- /orbit:claude-config -->",
   "",
 ].join("\n");
 

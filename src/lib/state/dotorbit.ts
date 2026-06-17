@@ -46,9 +46,22 @@ export async function teachClaudeSection(marker: string, section: string) {
   } catch {
     existing = "";
   }
-  if (!existing.includes(marker)) {
-    const sep = existing.trim().length ? "\n\n" : "";
-    await invoke("write_file", { path: claudePath, content: existing + sep + section }).catch((e) =>
+  // `section` inizia con `<!-- marker -->` e finisce con `<!-- /marker -->`.
+  const start = `<!-- ${marker} -->`;
+  const end = `<!-- /${marker} -->`;
+  const si = existing.indexOf(start);
+  const ei = existing.indexOf(end);
+  let next: string;
+  if (si !== -1 && ei > si) {
+    next = existing.slice(0, si) + section + existing.slice(ei + end.length); // aggiorna
+  } else if (si === -1) {
+    next = existing.trim().length ? `${existing}\n\n${section}` : section; // accoda
+  } else {
+    void openFile(claudePath); // legacy (solo start marker): non tocco il resto del file
+    return;
+  }
+  if (next !== existing) {
+    await invoke("write_file", { path: claudePath, content: next }).catch((e) =>
       console.error("CLAUDE.md", e),
     );
   }

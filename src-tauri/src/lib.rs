@@ -19,13 +19,24 @@ struct Startup {
 
 #[tauri::command]
 fn startup() -> Startup {
+    // primo argomento CLI: una cartella (`lume /progetto`) o un FILE (apertura via "Apri con" di Windows)
+    let arg = std::env::args().nth(1);
+    let arg_file = arg.as_deref().filter(|a| Path::new(a).is_file()).map(str::to_string);
     let dir = std::env::var("LUME_DIR")
         .ok()
         .filter(|d| Path::new(d).is_dir())
-        .or_else(|| std::env::args().nth(1).filter(|a| Path::new(a).is_dir()));
+        .or_else(|| arg.as_deref().filter(|a| Path::new(a).is_dir()).map(str::to_string))
+        // file passato come argomento → apri la sua cartella come workspace
+        .or_else(|| {
+            arg_file
+                .as_deref()
+                .and_then(|f| Path::new(f).parent())
+                .map(|p| p.to_string_lossy().into_owned())
+        });
     let file = std::env::var("LUME_FILE")
         .ok()
-        .filter(|f| Path::new(f).is_file());
+        .filter(|f| Path::new(f).is_file())
+        .or(arg_file);
     let search = std::env::var("LUME_SEARCH")
         .ok()
         .filter(|s| !s.trim().is_empty());
@@ -352,18 +363,26 @@ fn reveal_path(path: String) -> Result<(), String> {
 #[serde(rename_all = "camelCase")]
 struct ClaudeSession {
     id: String,
-    title: String,
+    preview: String, // ULTIMO messaggio utente "vero" (più distintivo del primo)
+    messages: u32,   // numero di turni utente
     modified: u64,
 }
 
-/// Titolo di una sessione: primo messaggio utente "vero" del transcript (saltando i tag meta).
-fn session_title(path: &Path) -> String {
+/// Anteprima di una sessione: ULTIMO messaggio utente "vero" + numero di turni utente. Il primo
+/// messaggio è poco distintivo (spesso una scorciatoia identica o boilerplate di ripresa); l'ultimo
+/// dice "a che punto eri". Pre-filtro `"type":"user"` per non parsare le righe pesanti assistant/tool.
+fn session_preview(path: &Path) -> (String, u32) {
     use std::io::BufRead;
     let file = match std::fs::File::open(path) {
         Ok(f) => f,
-        Err(_) => return String::new(),
+        Err(_) => return (String::new(), 0),
     };
-    for line in std::io::BufReader::new(file).lines().take(500).flatten() {
+    let mut last = String::new();
+    let mut count: u32 = 0;
+    for line in std::io::BufReader::new(file).lines().flatten() {
+        if !line.contains("\"type\":\"user\"") {
+            continue;
+        }
         let v: serde_json::Value = match serde_json::from_str(&line) {
             Ok(v) => v,
             Err(_) => continue,
@@ -389,11 +408,19 @@ fn session_title(path: &Path) -> String {
         };
         let t = text.trim();
         if t.is_empty() || t.starts_with('<') {
-            continue; // salta system-reminder / tag / messaggi meta
+            continue; // system-reminder / tag / tool_result
         }
-        return t.lines().next().unwrap_or("").chars().take(100).collect();
+        let low = t.to_lowercase();
+        if low.starts_with("this session is being continued")
+            || low.starts_with("continue from where you left off")
+            || low.starts_with("caveat:")
+        {
+            continue; // boilerplate di ripresa/compaction
+        }
+        count += 1;
+        last = t.lines().next().unwrap_or("").chars().take(90).collect();
     }
-    String::new()
+    (last, count)
 }
 
 /// Sessioni Claude Code del progetto: transcript in ~/.claude/projects/<slug>/*.jsonl,
@@ -430,7 +457,8 @@ fn claude_sessions(root: String) -> Result<Vec<ClaudeSession>, String> {
             .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|d| d.as_secs())
             .unwrap_or(0);
-        out.push(ClaudeSession { id, title: session_title(&p), modified });
+        let (preview, messages) = session_preview(&p);
+        out.push(ClaudeSession { id, preview, messages, modified });
     }
     out.sort_by(|a, b| b.modified.cmp(&a.modified));
     Ok(out)

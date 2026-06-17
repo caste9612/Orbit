@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -1075,6 +1075,45 @@ paralleli: Rust/config, stato, componenti). Nessun bug grave; applicati i fix ut
   riuscita; `renameOpenPaths` rimappa anche immagini/PDF.
 
 Verifica: `svelte-check` 186 file 0/0; `cargo check`/`cargo test` ok (8/8); build release ok.
+
+---
+
+## Milestone 31 — titolo finestra, wrapper Claude, Open with, menu a sezioni (v0.3.2)
+
+Rilascio **v0.3.2** — novità rispetto alla v0.3.1:
+
+**Titolo finestra per progetto** (`App.svelte`, `capabilities/default.json`)
+- Un `$effect` imposta il titolo a `<progetto> — Orbit` (`setTitle`, permesso
+  `core:window:allow-set-title`): con più istanze, le anteprime nella taskbar e in Alt-Tab diventano
+  distinguibili invece di essere tutte "Orbit".
+
+**Wrapper Claude** (`claude.svelte.ts`, `WrapperComposer.svelte`, `TopBar.svelte`)
+- Template di prompt con segnaposto `{{input}}` in `.orbit/claude.json`. Dal menu Claude si apre il
+  composer: scrivi il prompt, vedi l'anteprima del testo composto e lo **copi negli appunti** (niente
+  shell → multiriga ok). Il menu Claude è diviso in sezioni **Prompts / Wrappers / Configuration**
+  (header non cliccabili in `ContextMenu`). Wrapper di default: *Analizza log di test* (analizza una
+  cartella di log della sessione di test, decomprimendo eventuali zip annidati).
+
+**Doc per Claude completa e rigenerabile** (`claude.svelte.ts`, `dotorbit.ts`, `CLAUDE.md`)
+- La sezione `orbit:claude-config` di CLAUDE.md ora descrive tutte le funzioni di Orbit (non solo le
+  scorciatoie) + il formato `.orbit/claude.json` (scorciatoie e wrapper). `teachClaudeSection`
+  **aggiorna** la sezione (start+end marker) invece di crearla soltanto.
+
+**Open with (Windows)** (`tauri.conf.json`, `lib.rs`)
+- `bundle.fileAssociations` registra Orbit come handler per i tipi comuni → compare nel menu "Apri
+  con" (registrato dall'**installer**, non da `tauri dev`). `startup()` apre anche un file passato
+  come argomento CLI (`orbit.exe "<file>"`) usando la sua cartella come workspace.
+
+**Chat Claude più riconoscibili** (`lib.rs`, `claudeChats.svelte.ts`, `ClaudeChatsView.svelte`)
+- L'anteprima di ogni sessione non è più il *primo* prompt (spesso identico tra chat) ma l'**ultimo
+  messaggio utente "vero"** + il **numero di turni** (`session_preview` salta i blocchi vuoti, di
+  sistema e di ripresa della conversazione). La vista resta compatta: anteprima fino a 2 righe e,
+  sotto, `tempo · N msg`.
+
+**Git** (`git.svelte.ts`)
+- Feedback al click sui pulsanti di rete (toast "git … → terminale") per confermare l'azione.
+
+Verifica: `svelte-check` 187 file 0/0; `cargo test` 8/8; `npm run tauri build` OK (MSI + NSIS + portable). Footprint reale aggiornato nel README (binario 5,3 MB, chunk d'avvio ~497 KB / ≈165 KB gz). Rilascio: v0.3.2 su GitHub.
 
 ---
 

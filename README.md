@@ -23,7 +23,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~5 MB binary, ~220 MB RAM at rest (mostly the shared system
-  WebView — Orbit's own Rust core is ~30 MB), and a ~170 KB startup payload.
+  WebView — Orbit's own Rust core is ~30 MB), and a ~497 KB startup chunk (≈165 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -46,6 +46,8 @@ cross-platform desktop app that weighs almost nothing.
   them — they sit at the bottom and stay browsable inline (`.orbit/shelf.json`).
 - **Quick Open** (`Ctrl/Cmd+P`) with fuzzy ranking, and full‑text **project search**.
 - **Drag in files**: drop files from your OS file manager onto the editor to open them.
+- On Windows, after install Orbit appears in a file's **"Open with"** menu, so you can open it
+  straight in Orbit.
 
 **Editor** (CodeMirror 6)
 - Lazy, multi-language syntax highlighting (~140 grammars loaded on demand, plus a dedicated
@@ -95,20 +97,25 @@ cross-platform desktop app that weighs almost nothing.
   add a run configuration and it appears in the menu.
 
 **Claude Code integration**
-- A **Claude menu** opens `claude` in a terminal at the project root, plus one-click **shortcuts**
-  (predefined prompts): update the docs, gather project context, or commit & push after reviewing
-  what to keep vs discard. Shortcuts run **interactively**, so you stay in control.
+- A **Claude menu** (grouped into *Prompts*, *Wrappers* and *Configuration*) opens `claude` in a
+  terminal at the project root, plus one-click **shortcuts** (predefined prompts): update the docs,
+  gather project context, or commit & push after reviewing what to keep. Shortcuts run
+  **interactively**, so you stay in control.
+- **Prompt wrappers**: pick a wrapper (a template with a `{{input}}` placeholder), type your prompt,
+  preview the composed text, and **copy it to the clipboard** to paste into Claude.
 - Configured in **`.orbit/claude.json`** (command, flags, shortcuts) — committed, and editable by
   Claude itself (the format is documented in `CLAUDE.md`), so you can just ask Claude to add one.
 - Optionally, the **default terminal launches Claude** instead of a plain shell (toggle in Settings).
-- A **Chats** view lists the project's recent Claude Code sessions (read from Claude's transcripts)
-  and **resumes** one in a terminal with a click (`claude --resume`).
+- A **Chats** view lists the project's recent Claude Code sessions (read from Claude's transcripts) —
+  each shown by its **latest message and turn count**, so they're easy to tell apart — and
+  **resumes** one in a terminal with a click (`claude --resume`).
 - A **Scratchpad** (📝 in the top bar) opens a persistent notes/prompts file (`.orbit/scratch.md`)
   to jot prompts and reuse them.
 
 **Workspace**
 - Session persistence per folder (reopens last folder, tabs and panel layout).
-- **Multiple instances** ("New window") for working on several projects at once.
+- **Multiple instances** ("New window") for working on several projects at once — each window's
+  title shows its project, so the instances are easy to tell apart in the taskbar and Alt‑Tab.
 - **Settings**: editor/terminal font and size, accent color presets, smooth-caret toggle, and
   "launch Claude in the default terminal".
 
@@ -120,11 +127,11 @@ Measured on Windows (size-optimized release build):
 
 | Item | Size |
 |---|---|
-| Portable `Orbit` binary | ~5 MB |
-| MSI installer | ~3.7 MB |
-| NSIS setup | ~2.5 MB |
-| Frontend `dist/` | ~2.3 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~170 KB (≈57 KB gzipped) |
+| Portable `Orbit` binary | ~5.3 MB |
+| MSI installer | ~3.8 MB |
+| NSIS setup | ~2.6 MB |
+| Frontend `dist/` | ~2.6 MB (most of it grammars loaded lazily) |
+| Startup JS chunk | ~497 KB (≈165 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own
@@ -170,8 +177,9 @@ lives in [NOTES.md](./NOTES.md).
 
 - `.orbit/run.json` — Run ▶ configurations (committed/shared). Format is documented to Claude in
   `CLAUDE.md` via "Set up for Claude".
-- `.orbit/claude.json` — Claude launcher command/flags + task shortcuts (committed/shared). Format
-  is documented to Claude in `CLAUDE.md` via the Claude menu's "Document shortcuts".
+- `.orbit/claude.json` — Claude launcher command/flags + task shortcuts + prompt wrappers
+  (committed/shared). Format is documented to Claude in `CLAUDE.md` via the Claude menu's
+  "Update CLAUDE.md for Claude".
 - `.orbit/shelf.json` — shelved folders by category (a personal view preference; git-ignored).
 
 ---

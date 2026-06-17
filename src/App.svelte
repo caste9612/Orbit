@@ -12,6 +12,7 @@
   import SymbolPalette from "./lib/components/SymbolPalette.svelte";
   import Toaster from "./lib/components/Toaster.svelte";
   import Settings from "./lib/components/Settings.svelte";
+  import WrapperComposer from "./lib/components/WrapperComposer.svelte";
   import Logo from "./lib/components/Logo.svelte";
   import Icon from "./lib/components/Icon.svelte";
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal } from "./lib/state/layout.svelte";
@@ -24,7 +25,7 @@
   import { quickopen, openPalette } from "./lib/state/quickopen.svelte";
   import { symbols, openSymbols } from "./lib/state/symbols.svelte";
   import { loadRunConfig } from "./lib/state/run.svelte";
-  import { loadClaudeConfig, launchClaude } from "./lib/state/claude.svelte";
+  import { loadClaudeConfig, launchClaude, wrapperUI } from "./lib/state/claude.svelte";
   import { loadShelf } from "./lib/state/shelf.svelte";
   import { loadDocs } from "./lib/state/docs.svelte";
   import { invalidateFiles } from "./lib/state/projectFiles";
@@ -34,12 +35,14 @@
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
   // Le finestre flottanti hanno label "term-float-<id>" e mostrano un terminale a tutta finestra.
-  let isFloatingTerminal = false;
-  try {
-    isFloatingTerminal = getCurrentWebviewWindow().label.startsWith("term-float");
-  } catch {
-    /* fuori dal contesto Tauri */
-  }
+  // const (calcolato una volta): non è reattivo, così può essere letto in un $effect senza warning.
+  const isFloatingTerminal = (() => {
+    try {
+      return getCurrentWebviewWindow().label.startsWith("term-float");
+    } catch {
+      return false; // fuori dal contesto Tauri
+    }
+  })();
 
   // parametri della finestra flottante: quale terminale (PTY) agganciare e chi l'ha estratto
   const fq = new URLSearchParams(window.location.search);
@@ -109,6 +112,16 @@
   onDestroy(() => {
     offFsChanged?.();
     offRedock?.();
+  });
+
+  // Titolo finestra = nome del progetto aperto → con più istanze di Orbit le anteprime nella
+  // taskbar di Windows (e Alt-Tab) diventano distinguibili invece di essere tutte "Orbit".
+  $effect(() => {
+    if (isFloatingTerminal) return;
+    const name = workspace.rootName;
+    void getCurrentWindow()
+      .setTitle(name ? `${name} — Orbit` : "Orbit")
+      .catch(() => {});
   });
 
   onMount(async () => {
@@ -280,6 +293,9 @@
   {/if}
   {#if settingsUI.open}
     <Settings />
+  {/if}
+  {#if wrapperUI.open}
+    <WrapperComposer />
   {/if}
   <Toaster />
 {/if}

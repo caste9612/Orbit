@@ -58,12 +58,12 @@ Three kinds of frontend module, kept separate:
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
 | `terminals` | terminal tabs (id/title/shell/cwd) + active tab |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
-| `claude` | Claude launcher + shortcuts (`.orbit/claude.json`); opens `claude` in a terminal tab |
+| `claude` | Claude launcher + **shortcuts** + **wrappers** (`.orbit/claude.json`); opens `claude` in a terminal; the wrapper composer copies the composed prompt to the clipboard |
 | `shelf` | shelved folders by category (`.orbit/shelf.json`) |
 | `search` | project text search (debounced) |
 | `quickopen` | Ctrl+P fuzzy file finder |
 | `symbols` | **Go to Symbol** palette (Ctrl+Shift+O): outline of the active editor + fuzzy filter |
-| `claudeChats` | the project's recent Claude Code sessions (from transcripts) + resume |
+| `claudeChats` | the project's recent Claude Code sessions (preview + turn count, from transcripts) + resume |
 | `scratch` | one‑click persistent scratchpad (`.orbit/scratch.md`) for notes/prompts |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
 | `settings` | font/size/accent/smooth‑caret/webgl/claude‑terminal (localStorage) + applies CSS vars |
@@ -88,7 +88,7 @@ cursor). The editor uses soft **line wrapping** (gutter stays correct).
 
 `Editor.svelte` (CodeMirror) and `Terminal.svelte` (xterm) are loaded through
 `LazyEditor.svelte` / `LazyTerminal.svelte` (dynamic `import()`), so the startup chunk stays
-small (~170 KB). The terminal WebGL renderer is a *further* dynamic import, gated on
+lean (~497 KB; the ~338 KB xterm and ~73 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
 `settings.webgl` (off by default). **marked + DOMPurify** are likewise lazy (`markdown.ts`
 imports them on first render), so the Markdown feature adds nothing to the startup payload.
 
@@ -108,13 +108,17 @@ imports them on first render), so the Markdown feature adds nothing to the start
   (`addTerminal({ cwd, initCommand })`). Config is `.orbit/claude.json` (command/args/shortcuts),
   Claude‑editable and documented in `CLAUDE.md`. With `settings.claudeTerminal` on (default), the
   **first terminal at startup** launches Claude (only at startup, in `App.svelte`); the terminal
-  icon / `+` always open a plain shell.
+  icon / `+` always open a plain shell. **Wrappers** are prompt templates with a `{{input}}`
+  placeholder: `WrapperComposer.svelte` substitutes your text and **copies the result to the
+  clipboard** (no shell → multiline is fine). The Claude menu is grouped into Prompts / Wrappers /
+  Configuration (section headers via `ContextMenu`'s `header` items).
 - **Go to symbol** — `editor/outline.ts` extracts an outline from CodeMirror's syntax tree
   (`ensureSyntaxTree`), `editor/activeEditor.ts` tracks the focused editor, and `symbols.svelte.ts`
   + `SymbolPalette.svelte` are the `Ctrl+Shift+O` fuzzy palette that jumps to a definition.
 - **Claude chats** — `claudeChats.svelte.ts` lists the project's Claude Code sessions; the backend
-  `claude_sessions` reads the `~/.claude/projects/<slug>/*.jsonl` transcripts (titling each from its
-  first user message), and clicking resumes one with `claude --resume <id>` (id validated as a UUID).
+  `claude_sessions` reads the `~/.claude/projects/<slug>/*.jsonl` transcripts (a short preview from
+  the last user message + a turn count), and clicking resumes one with `claude --resume <id>` (id
+  validated as a UUID).
 - **Git sync** — ahead/behind is computed locally with libgit2 (`git_upstream`, no network); the
   actual fetch/pull/push/merge run the `git` CLI in a terminal tab (reusing the user's git auth), so
   no openssl/libssh2 is pulled into the build.
@@ -144,6 +148,13 @@ imports them on first render), so the Markdown feature adds nothing to the start
   window) emits a global `term-redock` event that re‑attaches it (a dead PTY is reaped on EOF and
   `redockTerminal` checks `pty_alive` first, so a finished session never leaves a zombie tab). The
   float window wears the app's own chrome (`decorations: false` + a custom title bar).
+- **Per‑project window title** — an `$effect` in `App.svelte` sets the window title to
+  `<project> — Orbit` via `getCurrentWindow().setTitle` (capability `core:window:allow-set-title`),
+  so multiple instances are distinguishable in the taskbar / Alt‑Tab.
+- **Open with (Windows)** — `bundle.fileAssociations` registers Orbit as a handler for common file
+  types, so it shows up in the OS "Open with" menu (registered by the **installer**, not `tauri dev`).
+  `startup()` opens a file passed as the first CLI argument (`orbit.exe "<file>"`) and uses its
+  parent folder as the workspace.
 
 ## Backend & IPC
 
@@ -155,7 +166,8 @@ frontend calls them with `invoke("name", {args})`. Areas:
 - **Session** (`lib.rs`): `load_state`/`save_state` (keyed per folder).
 - **Window** (`lib.rs`): `open_new_window`.
 - **Misc** (`lib.rs`): `reveal_path` (show a path in the OS file manager), `claude_sessions` (list
-  the project's Claude Code transcripts, each titled from its first user message).
+  the project's Claude Code transcripts, each with a preview from its **last** user message + a turn
+  count — `session_preview`).
 - **Git** (`git.rs`): `git_status`, `git_diff`, `git_stage`, `git_unstage`, `git_commit`,
   `git_branches`, `git_checkout_branch`, `git_create_branch`, `git_discard`, `git_log`, `git_show`.
 - **Terminal** (`pty.rs`): `pty_spawn`, `pty_write`, `pty_resize`, `pty_kill`, `pty_alive`, `list_shells`;

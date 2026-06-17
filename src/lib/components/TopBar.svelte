@@ -14,6 +14,7 @@
     claude,
     launchClaude,
     runShortcut,
+    openWrapper,
     openClaudeConfig,
     teachClaudeConfig,
   } from "../state/claude.svelte";
@@ -69,21 +70,22 @@
     const items: MenuItem[] = [
       { label: "Open Claude here", icon: "sparkles", onClick: () => launchClaude() },
     ];
-    claude.shortcuts.forEach((s, i) => {
-      items.push({
-        label: s.name,
-        icon: s.icon ?? "play",
-        separatorBefore: i === 0,
-        onClick: () => runShortcut(s),
-      });
-    });
-    items.push({
-      label: "Configure (.orbit/claude.json)",
-      icon: "braces",
-      separatorBefore: true,
-      onClick: openClaudeConfig,
-    });
-    items.push({ label: "Document shortcuts (CLAUDE.md)", icon: "doc", onClick: teachClaudeConfig });
+    if (claude.shortcuts.length) {
+      items.push({ label: "Prompts", header: true, separatorBefore: true });
+      claude.shortcuts.forEach((s) =>
+        items.push({ label: s.name, icon: s.icon ?? "play", onClick: () => runShortcut(s) }),
+      );
+    }
+    if (claude.wrappers.length) {
+      // i wrapper aprono il composer (scrivi → copia negli appunti); "…" = chiedono input
+      items.push({ label: "Wrappers (compose + copy)", header: true, separatorBefore: true });
+      claude.wrappers.forEach((w) =>
+        items.push({ label: `${w.name}…`, icon: w.icon ?? "type", onClick: () => openWrapper(w) }),
+      );
+    }
+    items.push({ label: "Configuration", header: true, separatorBefore: true });
+    items.push({ label: "Edit .orbit/claude.json", icon: "braces", onClick: openClaudeConfig });
+    items.push({ label: "Update CLAUDE.md for Claude", icon: "doc", onClick: teachClaudeConfig });
     return items;
   }
 

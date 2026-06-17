@@ -8,7 +8,8 @@
     icon?: string;
     danger?: boolean;
     separatorBefore?: boolean;
-    onClick: () => void;
+    header?: boolean; // riga-titolo di sezione (non cliccabile)
+    onClick?: () => void;
   }
 
   interface Props {
@@ -28,19 +29,23 @@
 
   function pick(item: MenuItem) {
     onClose();
-    item.onClick();
+    item.onClick?.();
   }
 </script>
 
 <Backdrop {onClose} z={90} closeOnRightClick />
 
 <div class="menu" style="left:{left}px; top:{top}px; width:{W}px" role="menu" transition:scale={{ duration: 90, start: 0.97, opacity: 0.3 }}>
-  {#each items as item (item.label)}
+  {#each items as item, i (i)}
     {#if item.separatorBefore}<div class="sep"></div>{/if}
-    <button class="item" class:danger={item.danger} role="menuitem" onclick={() => pick(item)}>
-      <span class="ic">{#if item.icon}<Icon name={item.icon} size={14} strokeWidth={1.7} />{/if}</span>
-      <span class="lbl">{item.label}</span>
-    </button>
+    {#if item.header}
+      <div class="mhead">{item.label}</div>
+    {:else}
+      <button class="item" class:danger={item.danger} role="menuitem" onclick={() => pick(item)}>
+        <span class="ic">{#if item.icon}<Icon name={item.icon} size={14} strokeWidth={1.7} />{/if}</span>
+        <span class="lbl">{item.label}</span>
+      </button>
+    {/if}
   {/each}
 </div>
 
@@ -97,5 +102,14 @@
     height: 1px;
     margin: 4px 6px;
     background: var(--color-line);
+  }
+  .mhead {
+    padding: 4px 9px 2px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--color-ink-subtle);
+    user-select: none;
   }
 </style>

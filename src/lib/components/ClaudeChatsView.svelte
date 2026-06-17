@@ -31,11 +31,11 @@
   {:else}
     <div class="list">
       {#each claudeChats.sessions as s (s.id)}
-        <button class="chat" title={"Resume " + s.id} onclick={() => resumeClaude(s.id)}>
+        <button class="chat" title={s.preview || s.id} onclick={() => resumeClaude(s.id)}>
           <span class="ci"><Icon name="sparkles" size={14} strokeWidth={1.6} /></span>
           <span class="meta">
-            <span class="title">{s.title || "(untitled session)"}</span>
-            <span class="when">{s.modified ? relativeTime(s.modified) : ""}</span>
+            <span class="title">{s.preview || "(empty session)"}</span>
+            <span class="when">{s.modified ? relativeTime(s.modified) : ""}{s.messages ? ` · ${s.messages} msg` : ""}</span>
           </span>
           <span class="go" aria-hidden="true"><Icon name="play" size={12} strokeWidth={2} /></span>
         </button>
@@ -120,8 +120,11 @@
   .title {
     font-size: 12.5px;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* fino a 2 righe: più contesto per distinguere le chat */
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.35;
   }
   .when {
     font-size: 11px;

@@ -4,7 +4,7 @@ import { confirm } from "@tauri-apps/plugin-dialog";
 import { workspace, openDiff } from "./workspace.svelte";
 import { notify } from "./toast.svelte";
 import { addTerminal } from "./terminals.svelte";
-import { layout } from "./layout.svelte";
+import { layout, setFocusPanel } from "./layout.svelte";
 import { basename, normSlash } from "../util";
 
 export interface StatusEntry {
@@ -90,9 +90,14 @@ export async function loadUpstream() {
 
 /** Lancia un comando git in una nuova tab del terminale, nella radice del progetto. */
 function runGit(label: string, command: string) {
-  if (!workspace.rootPath) return;
+  if (!workspace.rootPath) {
+    notify("Nessuna cartella aperta", "error");
+    return;
+  }
   layout.terminalVisible = true;
+  setFocusPanel("terminal"); // porta il terminale in primo piano: senza, la tab si apre a destra e sembra "non succede nulla"
   addTerminal({ title: `git · ${label}`, cwd: workspace.rootPath, initCommand: command });
+  notify(`git ${label} → eseguito nel terminale`, "info", 2200);
 }
 
 /** Scarica i riferimenti dal remoto (senza fondere), potando i rami spariti. */

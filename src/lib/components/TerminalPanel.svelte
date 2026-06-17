@@ -214,6 +214,7 @@
     border-top: 2px solid transparent;
     color: var(--color-ink-muted);
     flex: 0 0 auto;
+    min-width: 120px; /* schede uniformi → X di chiusura allineate */
     max-width: 180px;
   }
   .tab:not(.active):hover {
@@ -221,8 +222,8 @@
   }
   .tab.active {
     color: var(--color-ink);
-    border-top-color: var(--color-accent);
-    background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface-1));
+    border-top-color: transparent;
+    background: rgba(var(--accent-rgb), 0.18); /* prova: evidenzia tutto il rettangolo, non solo il bordo */
   }
   .tab-main {
     display: inline-flex;
@@ -235,6 +236,7 @@
     color: inherit;
     font-size: 12px;
     cursor: pointer;
+    flex: 1; /* riempie la scheda → la X resta ancorata al bordo destro */
     min-width: 0;
   }
   .tab-main span {

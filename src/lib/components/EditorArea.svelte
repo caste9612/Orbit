@@ -464,8 +464,8 @@
     background: var(--color-surface-3);
   }
   .tab.active {
-    background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface-1));
-    border-top-color: var(--color-accent);
+    background: rgba(var(--accent-rgb), 0.18); /* prova: evidenzia tutto il rettangolo, non solo il bordo */
+    border-top-color: transparent;
   }
   .tab.dragging {
     opacity: 0.4; /* feedback: scheda in trascinamento (manca il "ghost" nativo dell'HTML5 DnD) */
@@ -475,6 +475,7 @@
     align-items: center;
     gap: 7px;
     height: 100%;
+    flex: 1; /* riempie la scheda → la X resta sempre ancorata al bordo destro, allineata */
     min-width: 0; /* permette al nome di troncarsi quando la tab si stringe */
     padding: 0 6px 0 12px;
     background: transparent;

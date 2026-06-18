@@ -33,7 +33,7 @@ src-tauri/
   src/pty.rs          # terminal/PTY commands
   src/watcher.rs      # file watcher (emits "fs-changed")
   src/symbols.rs      # heuristic project symbol scanner (scan_symbols) — no LSP, std only
-  src/winstate.rs     # main-window geometry persistence (save on close, restore in setup())
+  src/winsession.rs   # multi-window session: per-window registry, reopen-all + close-all, geometry (replaces winstate)
   tauri.conf.json     # window, bundle, productName "Orbit"
   capabilities/       # Tauri permission capabilities
 docs/                 # this doc + screenshot
@@ -191,12 +191,22 @@ first paint loads only the Explorer + the active editor.
 - **Per‑project window title** — an `$effect` in `App.svelte` sets the window title to
   `<project> — Orbit` via `getCurrentWindow().setTitle` (capability `core:window:allow-set-title`),
   so multiple instances are distinguishable in the taskbar / Alt‑Tab.
-- **Window geometry** — `winstate.rs` (Rust only, no plugin) saves the `main` window's
-  position / size / maximized to `window.json` on `CloseRequested` (with an `ExitRequested`
-  safety net) and restores it in `.setup()`. The window is created `visible: false` and shown
-  after positioning (no jump from the default centered spot); it tracks the last *normal* (non‑max)
-  geometry and guards against restoring onto a now‑disconnected monitor (off‑screen). Applies only
-  to `main` — `term-float-*` windows stay ephemeral.
+- **Multi‑window session** — `winsession.rs` (Rust only, no plugin) makes the separate Orbit processes
+  cooperate so you can **close all** windows at once and **reopen them all at their positions** (the
+  instances stay one process each; see NOTES M36 for why not single‑process — WebView2 is already shared,
+  so the RAM saving would be marginal). Each window writes its own **`windows/<id>.json`** (folder +
+  geometry, id = `pid‑nanos`) in `app_config_dir` — **one file per window**, so concurrent processes never
+  race on a shared file; writes are atomic via a **per‑process** temp. Geometry is captured on **blur**
+  (`Focused(false)`) and before snapshots — not only on close, else the restored position would be the
+  opening one — tracking the last *normal* (non‑max) geom and guarding against off‑screen monitors.
+  **Reopen‑all:** a *bare* launch (no folder from CLI/env) restores `windows-restore.json` — this instance
+  opens the first entry and **re‑spawns** the rest (geometry passed via `ORBIT_WIN_*` env); a launch *with*
+  a folder opens only that. The decision is the pure, tested `plan()`. **Close‑all:** `close_all_windows`
+  snapshots the live set → restore, then bumps a token in `windows-control.json`; every instance runs a
+  `notify` watcher on the config dir (event‑driven, no polling) and exits on a newer token. **Crash
+  recovery:** `prune_dead()` at startup drops entries whose pid is dead (`pid_alive`, cfg‑gated: Win32
+  `OpenProcess` / Unix `kill(pid,0)`), so a crashed window never blocks restore. Applies to `main`;
+  `term-float-*` windows stay ephemeral. The window is created `visible: false` and shown after positioning.
 - **Open with (Windows)** — `bundle.fileAssociations` registers Orbit as a handler for common file
   types, so it shows up in the OS "Open with" menu (registered by the **installer**, not `tauri dev`).
   `startup()` opens a file passed as the first CLI argument (`orbit.exe "<file>"`) and uses its
@@ -210,7 +220,8 @@ frontend calls them with `invoke("name", {args})`. Areas:
 - **Filesystem** (`lib.rs`): `read_dir`, `read_file`, `write_file`, `create_file`,
   `create_dir`, `rename_path`, `delete_path`, `list_files`, `search_in_project`, `resolve_existing`, `startup`.
 - **Session** (`lib.rs`): `load_state`/`save_state` (keyed per folder).
-- **Window** (`lib.rs`): `open_new_window`.
+- **Window** (`lib.rs` + `winsession.rs`): `open_new_window`; `winsession::register_window` (a window
+  records its folder + geometry in the per‑window registry) and `winsession::close_all_windows`.
 - **Misc** (`lib.rs`): `reveal_path` (show a path in the OS file manager), `claude_sessions` (list
   the project's Claude Code transcripts, each with a preview from its **last** user message + a turn
   count — `session_preview`).
@@ -235,8 +246,10 @@ commands (only Tauri plugin commands need permissions in `capabilities/`).
 - **Session** (per folder): `save_state(key=folder, data)` → `app_config_dir()/sessions/<hash>.json`
   + `last_session.txt` (editor groups + tabs + active group + panel layout). Restored on launch
   (`persist.loadSession`; reads legacy single‑group sessions too).
-- **Window geometry** (app‑global): the main window's position / size / maximized state →
-  `app_config_dir()/window.json`, written on close and restored in `setup()` (`winstate.rs`).
+- **Multi‑window session** (app‑global, `winsession.rs`): `app_config_dir()/windows/<id>.json` (one
+  per live window: folder + geometry), `windows-restore.json` (snapshot to reopen on a bare launch),
+  `windows-control.json` (close‑all token). Each process writes only its own files → race‑free across
+  the separate instances.
 - **Settings** (app‑global): `localStorage["orbit.settings"]`, applied as CSS variables on
   `document.documentElement`. (Per WebView origin: dev and the installed app have separate stores.)
 - **Project config** (committed/shared): `.orbit/run.json` (run configs) and `.orbit/claude.json`

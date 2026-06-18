@@ -86,6 +86,8 @@
         title: t.title,
         shell: t.shell ?? "",
         from: getCurrentWindow().label,
+        root: workspace.rootName ?? "", // snapshot per il badge della finestra flottante
+        branch: workspace.branch ?? "",
       });
       const url = new URL(window.location.href);
       url.search = params.toString();

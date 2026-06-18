@@ -116,7 +116,8 @@
   }
   .mdbody {
     max-width: 820px;
-    margin: 0 auto;
+    margin: 0;
+    display: flow-root; /* BFC: il corpo affianca l'outline flottante senza scorrerci sotto */
     padding: 32px 40px 80px;
     color: var(--color-ink);
     font-family: var(--font-sans);

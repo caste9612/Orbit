@@ -482,6 +482,7 @@ pub fn run() {
         .manage(winsession::LastNormal::default())
         .manage(winsession::WinId::default())
         .manage(winsession::OpenFolder::default())
+        .manage(winsession::QuitState::default())
         .setup(|app| {
             // ripristina la geometria della finestra principale (e l'intera sessione, se avvio nudo) e la mostra
             let handle = app.handle().clone();
@@ -496,6 +497,8 @@ pub fn run() {
                     }
                 }
             }
+            // watcher per il "chiudi tutte" (un'altra istanza può chiedere a questa di uscire)
+            winsession::start_quit_watcher(&handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -513,6 +516,7 @@ pub fn run() {
             save_state,
             open_new_window,
             winsession::register_window,
+            winsession::close_all_windows,
             reveal_path,
             resolve_existing,
             claude_sessions,

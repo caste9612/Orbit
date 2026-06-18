@@ -13,8 +13,10 @@
 // Questo modulo è anche l'unico responsabile della geometria della finestra "main" (prima lo era
 // winstate.rs): la salva PER-FINESTRA nel registro invece che in un window.json globale (che con più
 // istanze si sovrascriveva a vicenda). Si applica solo a "main"; le flottanti del terminale restano effimere.
+use notify::Watcher;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, WebviewWindow, WindowEvent};
 
@@ -52,6 +54,15 @@ pub struct WinId(pub Mutex<String>);
 // (avvio nudo con set salvato): letta da `startup()` per dire al frontend cosa aprire.
 #[derive(Default)]
 pub struct OpenFolder(pub Mutex<Option<String>>);
+
+// Coordinamento "chiudi tutte": `quitting` = questo processo sta uscendo per un chiudi-tutte (così
+// la sua on_close non riscrive il ripristino, già salvato da chi ha avviato); `baseline` = il token
+// del file di controllo letto all'avvio (un token più alto = un altro processo ha chiesto la chiusura).
+#[derive(Default)]
+pub struct QuitState {
+    quitting: AtomicBool,
+    baseline: AtomicU64,
+}
 
 // --- geometria (helper) -----------------------------------------------------
 
@@ -192,10 +203,15 @@ fn on_close(app: &AppHandle, win: &WebviewWindow) {
         }
         e.maximized = maximized;
     }
-    // snapshot del set VIVO (questa finestra inclusa) → set di ripristino
-    if let Some(rp) = restore_path(app) {
-        if !v.is_empty() {
-            save_atomic(&rp, &v);
+    // snapshot del set VIVO (questa finestra inclusa) → ripristino. SALTATO durante un "chiudi tutte":
+    // in quel caso lo snapshot completo l'ha già scritto chi ha avviato la chiusura (altrimenti ogni
+    // finestra che esce lo rimpicciolirebbe fino a lasciarne una sola).
+    let quitting = app.state::<QuitState>().quitting.load(Ordering::SeqCst);
+    if !quitting {
+        if let Some(rp) = restore_path(app) {
+            if !v.is_empty() {
+                save_atomic(&rp, &v);
+            }
         }
     }
     // rimuovi la propria voce dal set vivo
@@ -234,9 +250,35 @@ fn spawn_instance(exe: &Path, e: &WinEntry) {
     let _ = cmd.spawn();
 }
 
-/// Inizializza la finestra "main": installa il tracking della geometria, decide se applicare una
-/// geometria (env), aprire una sola cartella (arg) o RIPRISTINARE l'intera sessione (avvio nudo),
-/// poi mostra la finestra. `arg_dir` = cartella passata da CLI/env (None = avvio nudo).
+/// Cosa fare con la finestra "main" all'avvio (logica pura, testata in isolamento).
+enum RestorePlan {
+    ApplyEnv(WinGeom),                            // figlio del ripristino: applica la geometria via env
+    OpenArgOnly,                                  // avvio con cartella: apre solo quella
+    Restore { first: WinEntry, spawn: Vec<WinEntry> }, // avvio nudo: ripristina la sessione
+    Nothing,                                      // avvio nudo senza set, o sessione già viva
+}
+
+/// Decide il piano d'avvio. Priorità: env (figlio) → cartella da CLI (apri-una) → avvio nudo
+/// (ripristina, ma solo se NON c'è già una sessione viva: evita di duplicare finestre).
+fn plan(arg_dir: Option<&str>, env_geom: Option<WinGeom>, live: &[WinEntry], restore: &[WinEntry]) -> RestorePlan {
+    if let Some(g) = env_geom {
+        return RestorePlan::ApplyEnv(g);
+    }
+    if arg_dir.is_some() {
+        return RestorePlan::OpenArgOnly;
+    }
+    if !live.is_empty() {
+        return RestorePlan::Nothing; // un'altra sessione è già aperta → non ripristinare
+    }
+    match restore.split_first() {
+        Some((first, rest)) => RestorePlan::Restore { first: first.clone(), spawn: rest.to_vec() },
+        None => RestorePlan::Nothing,
+    }
+}
+
+/// Inizializza la finestra "main": installa il tracking della geometria, decide il piano d'avvio
+/// (geometria env / apri-cartella / ripristina sessione) e mostra la finestra.
+/// `arg_dir` = cartella passata da CLI/env (None = avvio nudo).
 pub fn init(app: &AppHandle, win: &WebviewWindow, arg_dir: Option<String>) {
     // tracking geometria + salvataggio alla chiusura
     let w = win.clone();
@@ -247,34 +289,23 @@ pub fn init(app: &AppHandle, win: &WebviewWindow, arg_dir: Option<String>) {
         _ => {}
     });
 
-    // 1) geometria via env → figlio di un ripristino (o Nuova finestra con geometria): applica e mostra
-    if let Some(g) = geom_from_env() {
-        apply_geom(win, g);
-        let _ = win.show();
-        return;
-    }
-    // 2) avvio CON cartella → apre solo quella; niente ripristino
-    if arg_dir.is_some() {
-        let _ = win.show();
-        return;
-    }
-    // 3) avvio NUDO → ripristina il set salvato, ma SOLO se non c'è già una sessione viva
-    //    (set vivo vuoto): evita di duplicare finestre se l'utente lancia una seconda istanza nuda.
     let live = open_path(app).map(|p| load(&p)).unwrap_or_default();
-    if live.is_empty() {
-        let set = restore_path(app).map(|p| load(&p)).unwrap_or_default();
-        if let Some(first) = set.first().cloned() {
+    let restore = restore_path(app).map(|p| load(&p)).unwrap_or_default();
+    match plan(arg_dir.as_deref(), geom_from_env(), &live, &restore) {
+        RestorePlan::ApplyEnv(g) => apply_geom(win, g),
+        RestorePlan::Restore { first, spawn } => {
             apply_geom(
                 win,
                 WinGeom { x: first.x, y: first.y, width: first.width, height: first.height, maximized: first.maximized },
             );
             *app.state::<OpenFolder>().0.lock().unwrap_or_else(|e| e.into_inner()) = Some(first.folder.clone());
             if let Ok(exe) = std::env::current_exe() {
-                for e in set.iter().skip(1) {
+                for e in &spawn {
                     spawn_instance(&exe, e);
                 }
             }
         }
+        RestorePlan::OpenArgOnly | RestorePlan::Nothing => {}
     }
     let _ = win.show();
 }
@@ -289,4 +320,134 @@ pub fn restore_folder(app: &AppHandle) -> Option<String> {
 /// Rete di sicurezza all'uscita: salva come una chiusura normale (idempotente).
 pub fn save_on_exit(app: &AppHandle, win: &WebviewWindow) {
     on_close(app, win);
+}
+
+// --- "chiudi tutte" (coordinamento tra processi) ----------------------------
+// Un file di controllo (windows-control.json) contiene un token monotòno. "Chiudi tutte" lo
+// incrementa: ogni istanza ha un watcher `notify` sulla cartella di config e, vedendo un token più
+// alto del proprio baseline d'avvio, esce. Event-driven (niente polling), zero dipendenze nuove.
+
+fn control_path(app: &AppHandle) -> Option<PathBuf> {
+    app.path().app_config_dir().ok().map(|d| d.join("windows-control.json"))
+}
+
+fn read_token(app: &AppHandle) -> u64 {
+    control_path(app)
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| s.trim().parse().ok())
+        .unwrap_or(0)
+}
+
+fn write_token(app: &AppHandle, token: u64) {
+    let Some(p) = control_path(app) else { return };
+    if let Some(parent) = p.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let tmp = p.with_extension("tmp");
+    if std::fs::write(&tmp, token.to_string()).is_ok() {
+        let _ = std::fs::rename(&tmp, &p);
+    }
+}
+
+fn now_token() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(1)
+}
+
+/// Avvia l'uscita di QUESTO processo per un "chiudi tutte" (idempotente).
+fn begin_quit(app: &AppHandle) {
+    let qs = app.state::<QuitState>();
+    if qs.quitting.swap(true, Ordering::SeqCst) {
+        return; // già in chiusura
+    }
+    let a = app.clone();
+    let _ = app.run_on_main_thread(move || a.exit(0));
+}
+
+/// Comando "Chiudi tutte le finestre": salva lo snapshot completo per il ripristino, poi fa uscire
+/// questa istanza e segnala a tutte le altre di uscire (bump del token di controllo).
+#[tauri::command]
+pub fn close_all_windows(app: AppHandle) {
+    if let (Some(op), Some(rp)) = (open_path(&app), restore_path(&app)) {
+        let live = load(&op);
+        if !live.is_empty() {
+            save_atomic(&rp, &live);
+        }
+    }
+    write_token(&app, now_token()); // sblocca i watcher delle altre istanze
+    begin_quit(&app);
+}
+
+/// Watcher del file di controllo: se un'altra istanza ha chiesto il "chiudi tutte" (token oltre il
+/// baseline d'avvio), questa istanza esce. Un watcher `notify` per processo sulla cartella di config.
+pub fn start_quit_watcher(app: &AppHandle) {
+    app.state::<QuitState>().baseline.store(read_token(app), Ordering::SeqCst);
+    let Some(cdir) = control_path(app).and_then(|p| p.parent().map(|d| d.to_path_buf())) else { return };
+    let app2 = app.clone();
+    std::thread::spawn(move || {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let Ok(mut watcher) = notify::recommended_watcher(move |res| { let _ = tx.send(res); }) else { return };
+        if watcher.watch(&cdir, notify::RecursiveMode::NonRecursive).is_err() {
+            return;
+        }
+        // il watcher resta vivo finché il loop consuma `rx` (tx vive dentro il watcher)
+        for res in rx {
+            if res.is_err() {
+                continue;
+            }
+            let qs = app2.state::<QuitState>();
+            if read_token(&app2) > qs.baseline.load(Ordering::SeqCst) {
+                begin_quit(&app2);
+                break;
+            }
+        }
+        drop(watcher);
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn entry(folder: &str) -> WinEntry {
+        WinEntry { folder: folder.into(), x: 0, y: 0, width: 1280, height: 800, maximized: false, id: folder.into() }
+    }
+
+    #[test]
+    fn env_geom_ha_precedenza() {
+        // un figlio del ripristino (geometria via env) applica quella, ignorando arg/registro
+        let g = WinGeom { x: 1, y: 2, width: 300, height: 400, maximized: true };
+        assert!(matches!(plan(Some("/x"), Some(g), &[entry("/a")], &[entry("/b")]), RestorePlan::ApplyEnv(_)));
+    }
+
+    #[test]
+    fn avvio_con_cartella_apre_solo_quella() {
+        assert!(matches!(plan(Some("/x"), None, &[], &[entry("/a"), entry("/b")]), RestorePlan::OpenArgOnly));
+    }
+
+    #[test]
+    fn avvio_nudo_con_sessione_viva_non_ripristina() {
+        // se c'è già una sessione aperta (set vivo non vuoto), un avvio nudo non duplica nulla
+        assert!(matches!(plan(None, None, &[entry("/a")], &[entry("/a"), entry("/b")]), RestorePlan::Nothing));
+    }
+
+    #[test]
+    fn avvio_nudo_senza_set_non_fa_nulla() {
+        assert!(matches!(plan(None, None, &[], &[]), RestorePlan::Nothing));
+    }
+
+    #[test]
+    fn avvio_nudo_ripristina_la_prima_e_spawna_il_resto() {
+        match plan(None, None, &[], &[entry("/a"), entry("/b"), entry("/c")]) {
+            RestorePlan::Restore { first, spawn } => {
+                assert_eq!(first.folder, "/a");
+                assert_eq!(spawn.len(), 2);
+                assert_eq!(spawn[0].folder, "/b");
+                assert_eq!(spawn[1].folder, "/c");
+            }
+            _ => panic!("atteso RestorePlan::Restore"),
+        }
+    }
 }

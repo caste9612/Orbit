@@ -230,3 +230,22 @@ export function fileIcon(name: string): FileIcon {
   const ext = lower.includes(".") ? lower.slice(lower.lastIndexOf(".") + 1) : "";
   return BY_EXT[ext] ?? { glyph: "file", color: "#8b929e" };
 }
+
+// Script di shell eseguibili da Orbit ("Run"): estensione → comando, con {f} = nome file quotato
+// (lanciato nella cartella del file). Comandi orientati a Windows (target primario); `bash` per
+// .sh/.bash usa Git Bash/WSL/Unix. `.bat` e `.cmd` sono la stessa famiglia batch (cmd /c).
+const RUNNERS: Record<string, string> = {
+  ps1: "powershell -NoProfile -ExecutionPolicy Bypass -File {f}",
+  cmd: "cmd /c {f}",
+  bat: "cmd /c {f}",
+  sh: "bash {f}",
+  bash: "bash {f}",
+};
+
+/** Comando per eseguire un file script (dato il nome), o null se il tipo non è eseguibile. */
+export function runCommand(name: string): string | null {
+  const lower = name.toLowerCase();
+  const ext = lower.includes(".") ? lower.slice(lower.lastIndexOf(".") + 1) : "";
+  const tpl = RUNNERS[ext];
+  return tpl ? tpl.replace("{f}", `"${name}"`) : null;
+}

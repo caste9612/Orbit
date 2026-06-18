@@ -19,11 +19,12 @@
   } from "../state/explorer.svelte";
   import { openFile, openInNewGroup, workspace, activePath } from "../state/workspace.svelte";
   import { addTerminal } from "../state/terminals.svelte";
+  import { runFile } from "../state/run.svelte";
   import { layout } from "../state/layout.svelte";
   import { decorations } from "../state/git.svelte";
   import { shelf, relOf, isHidden, byCategory, shelveFolder } from "../state/shelf.svelte";
   import { notify } from "../state/toast.svelte";
-  import { fileIcon, basename, dirname, joinPath, normSlash, relTo } from "../util";
+  import { fileIcon, basename, dirname, joinPath, normSlash, relTo, runCommand } from "../util";
   import { invoke } from "@tauri-apps/api/core";
 
   // Lista virtuale ad altezza fissa: rende solo le righe nel viewport (+overscan).
@@ -175,6 +176,11 @@
       );
     } else if (hasNoise) {
       items.push({ label: "Shelve noise folders", icon: "archive", separatorBefore: true, onClick: shelveNoise });
+    }
+    // file eseguibile (script): "Run" in cima al menu
+    if (node && !node.entry.isDir && runCommand(node.entry.name)) {
+      items.unshift({ label: "Run", icon: "play", onClick: () => runFile(node.entry.path) });
+      items[1].separatorBefore = true; // divisore subito dopo "Run"
     }
     return items;
   }

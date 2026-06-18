@@ -7,7 +7,8 @@
   import orbitWordmark from "../assets/orbit-wordmark.svg";
   import { onMount, onDestroy } from "svelte";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
-  import { fileIcon, relTo } from "../util";
+  import { fileIcon, relTo, runCommand } from "../util";
+  import { runFile } from "../state/run.svelte";
   import { layout, setFocusPanel } from "../state/layout.svelte";
   import {
     workspace,
@@ -258,6 +259,12 @@
                   <span class="crumb dim">{p}</span>
                 {/if}
               {/each}
+              {#if runCommand(af.name)}
+                <button class="runbtn" onclick={() => af && runFile(af.path)} title="Run this file">
+                  <Icon name="play" size={12} strokeWidth={2} />
+                  <span>Run</span>
+                </button>
+              {/if}
               {#if isMd(af.name)}
                 <button
                   class="mdtoggle"
@@ -594,6 +601,31 @@
   .mdtoggle.on {
     color: var(--color-accent);
     border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-line));
+  }
+  /* pulsante "Run" per i file script (.ps1/.cmd/.bat/.sh) — verde all'hover */
+  .runbtn {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 19px;
+    padding: 0 9px;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-line);
+    border-radius: 5px;
+    color: var(--color-ink-muted);
+    font-size: 11px;
+    font-weight: 550;
+    cursor: pointer;
+    transition:
+      background 90ms ease,
+      color 90ms ease,
+      border-color 90ms ease;
+  }
+  .runbtn:hover {
+    color: var(--color-success);
+    background: var(--color-surface-3);
+    border-color: color-mix(in srgb, var(--color-success) 45%, var(--color-line));
   }
 
   .surface {

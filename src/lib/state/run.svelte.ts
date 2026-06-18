@@ -4,7 +4,7 @@
 import { workspace, openFile } from "./workspace.svelte";
 import { addTerminal } from "./terminals.svelte";
 import { layout } from "./layout.svelte";
-import { joinPath } from "../util";
+import { basename, dirname, joinPath, runCommand } from "../util";
 import { readOrbitJson, ensureOrbitFile, teachClaudeSection } from "./dotorbit";
 
 export interface RunConfig {
@@ -44,6 +44,19 @@ export function runConfig(cfg: RunConfig) {
   const cwd = cfg.cwd && cfg.cwd !== "." ? joinPath(root, cfg.cwd) : root;
   layout.terminalVisible = true;
   addTerminal({ title: cfg.name, initCommand: cfg.command, cwd });
+}
+
+/** Esegue uno script (.ps1/.cmd/.bat/.sh/.bash) in una nuova tab del terminale, nella sua cartella. */
+export function runFile(path: string) {
+  const cmd = runCommand(basename(path));
+  if (!cmd) return;
+  layout.terminalVisible = true;
+  addTerminal({ title: `▶ ${basename(path)}`, cwd: dirname(path), initCommand: cmd });
+}
+
+/** True se il file è uno script eseguibile da Orbit (per mostrare l'azione Run). */
+export function isRunnable(name: string): boolean {
+  return runCommand(name) !== null;
 }
 
 const TEMPLATE = `{

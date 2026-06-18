@@ -8,18 +8,23 @@
   import { wsPalette, setWsQuery, moveWs, chooseWs, closeWsPalette, codeIndex } from "../state/codeIndex.svelte";
 
   let list: HTMLDivElement | undefined;
+  let kbNav = false; // l'ultimo cambio di selezione è da tastiera? (solo allora scrolliamo in vista)
 
   $effect(() => {
     wsPalette.index;
+    if (!kbNav) return; // col mouse (hover) NON forziamo lo scroll: darebbe la sensazione di "lotta"
+    kbNav = false;
     list?.querySelector(".row.sel")?.scrollIntoView({ block: "nearest" });
   });
 
   function onKey(e: KeyboardEvent) {
     if (e.key === "ArrowDown") {
       e.preventDefault();
+      kbNav = true;
       moveWs(1);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      kbNav = true;
       moveWs(-1);
     } else if (e.key === "Enter") {
       e.preventDefault();
@@ -64,6 +69,9 @@
           <span class="loc">{s.file}:{s.line}</span>
         </button>
       {/each}
+      {#if wsPalette.total > wsPalette.results.length}
+        <div class="msg more">+{wsPalette.total - wsPalette.results.length} more — refine your search</div>
+      {/if}
     {/if}
   </div>
 </div>
@@ -121,6 +129,11 @@
     padding: 14px 12px;
     color: var(--color-ink-subtle);
     font-size: 13px;
+  }
+  .msg.more {
+    padding: 8px 12px;
+    text-align: center;
+    font-size: 11.5px;
   }
   .row {
     display: flex;

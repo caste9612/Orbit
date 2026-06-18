@@ -477,8 +477,16 @@ pub fn run() {
         .manage(winstate::LastNormal::default())
         .setup(|app| {
             // ripristina posizione/dimensione/maximized della finestra principale e la mostra
-            if let Some(win) = app.get_webview_window("main") {
-                winstate::init(&win);
+            match app.get_webview_window("main") {
+                Some(win) => winstate::init(&win),
+                None => {
+                    // non dovrebbe accadere (la finestra in config ha label "main"); ma con visible:false
+                    // una finestra mai mostrata sarebbe irrecuperabile (decorations off) → mostra ciò che c'è.
+                    eprintln!("winstate: finestra 'main' non trovata; mostro le finestre disponibili");
+                    for (_, w) in app.webview_windows() {
+                        let _ = w.show();
+                    }
+                }
             }
             Ok(())
         })

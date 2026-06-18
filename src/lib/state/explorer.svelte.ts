@@ -159,7 +159,7 @@ export async function revealInTree(path: string) {
       let nodes = tree.roots;
       // espande ogni cartella antenata (tutti i segmenti tranne l'ultimo, che è il file)
       for (let i = 0; i < segs.length - 1; i++) {
-        const node = nodes.find((n) => n.entry.isDir && n.entry.name === segs[i]);
+        const node = nodes.find((n) => n.entry.isDir && n.entry.name.toLowerCase() === segs[i].toLowerCase());
         if (!node) break; // antenato non in albero (es. cartella nello scaffale): ci fermiamo qui
         node.expanded = true;
         if (!node.loaded) await loadChildren(node);

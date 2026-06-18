@@ -30,6 +30,7 @@ export const wsPalette = $state({
   open: false,
   query: "",
   results: [] as ProjectSymbol[],
+  total: 0, // quanti simboli combaciano in tutto (results è troncato a CAP) → mostra "+N ancora"
   index: 0,
   pickLabel: "",
   source: null as ProjectSymbol[] | null, // lista fissa (definizioni omonime / implementatori); null = tutti
@@ -37,6 +38,7 @@ export const wsPalette = $state({
 
 const CAP = 500;
 let scanToken = 0;
+let scanPending = false; // una ri-scansione richiesta mentre un'altra è in corso (la eseguiamo dopo)
 
 // ---- scan + cache ----------------------------------------------------------
 
@@ -67,7 +69,11 @@ async function loadCache() {
 
 export async function rescan() {
   const root = workspace.rootPath;
-  if (!root || codeIndex.scanning) return;
+  if (!root) return;
+  if (codeIndex.scanning) {
+    scanPending = true; // scansione già in corso: ne faremo un'altra appena finisce (es. cambio cartella)
+    return;
+  }
   const token = ++scanToken;
   codeIndex.scanning = true;
   try {
@@ -80,6 +86,10 @@ export async function rescan() {
     console.error("scan_symbols", e);
   } finally {
     if (token === scanToken) codeIndex.scanning = false;
+    if (scanPending) {
+      scanPending = false;
+      void rescan(); // riparte sulla cartella CORRENTE (può essere cambiata durante la scansione)
+    }
   }
 }
 
@@ -115,6 +125,7 @@ function filterWs() {
   const source = wsPalette.source ?? codeIndex.symbols;
   const q = wsPalette.query.trim().toLowerCase();
   if (!q) {
+    wsPalette.total = source.length;
     wsPalette.results = source.slice(0, CAP);
     return;
   }
@@ -124,6 +135,7 @@ function filterWs() {
     if (n >= 0) scored.push({ s, n });
   }
   scored.sort((a, b) => b.n - a.n);
+  wsPalette.total = scored.length;
   wsPalette.results = scored.slice(0, CAP).map((x) => x.s);
 }
 
@@ -196,7 +208,11 @@ export async function goToDefinition(word: string) {
   if (!word) return;
   const defs = defsFor(word);
   if (defs.length === 0) {
-    notify(`Nessuna definizione per "${word}"`, "info");
+    // a indice ancora in costruzione, "nessuna definizione" sarebbe fuorviante
+    notify(
+      codeIndex.scanning || !codeIndex.loaded ? "Indexing project symbols…" : `No definition for "${word}"`,
+      "info",
+    );
     return;
   }
   if (defs.length === 1) {

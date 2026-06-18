@@ -109,7 +109,7 @@
         onclick={() => rescan()}
       >
         <span class="idxic"><Icon name={codeIndex.scanning ? "refresh" : "code"} size={12} strokeWidth={1.8} /></span>
-        <span>{codeIndex.scanning ? "Indexing…" : `${codeIndex.symbols.length} symbols`}</span>
+        <span>{codeIndex.scanning ? "Indexing…" : `${codeIndex.symbols.length} symbol${codeIndex.symbols.length === 1 ? "" : "s"}`}</span>
       </button>
     {/if}
     {#if isFile}

@@ -49,6 +49,9 @@
   const floatShell = fq.get("shell") || null;
   const floatTitle = fq.get("title") || "Terminal";
   const floatFrom = fq.get("from") ?? "";
+  // snapshot (al momento dell'estrazione) di cartella e branch, per il badge della finestra flottante
+  const floatRoot = fq.get("root") ?? "";
+  const floatBranch = fq.get("branch") ?? "";
 
   // unlisten dell'handler di chiusura della finestra flottante (hoisted: lo usa anche il close)
   let floatUnlisten: (() => void) | undefined;
@@ -74,6 +77,18 @@
       await getCurrentWindow().destroy();
     } catch {
       /* */
+    }
+  }
+
+  // finestra flottante: pin "sempre in primo piano". Nasce attiva (alwaysOnTop:true alla creazione);
+  // il toggle la accende/spegne a runtime con setAlwaysOnTop.
+  let floatPinned = $state(true);
+  async function toggleFloatPin() {
+    floatPinned = !floatPinned;
+    try {
+      await getCurrentWindow().setAlwaysOnTop(floatPinned);
+    } catch (e) {
+      console.error("setAlwaysOnTop", e);
     }
   }
 
@@ -138,7 +153,8 @@
     if (isFloatingTerminal) return;
     if (!settings.revealActive) return;
     const f = activeFile();
-    if (f && f.kind === "file") {
+    // file/image/pdf hanno un path reale sul disco; "diff" è un id sintetico → da non rivelare
+    if (f && f.kind !== "diff") {
       const p = f.path; // letto in modo tracciato: l'effetto ri-rivela al cambio di file
       untrack(() => void revealInTree(p));
     }
@@ -227,6 +243,13 @@
     if (isFloatingTerminal) return;
     const cmd = matchCommand(e);
     if (!cmd) return;
+    // Le scorciatoie SENZA Ctrl/Cmd (F12, Alt+←/→) non vanno rubate al terminale o ai campi di testo
+    // (ci si scrive/naviga dentro); quelle con Ctrl/Cmd restano globali ovunque (stile VS Code).
+    // L'editor CodeMirror NON è escluso: lì F12=vai-alla-definizione e Alt+frecce=cronologia sono voluti.
+    if (!(e.ctrlKey || e.metaKey)) {
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, .xterm")) return;
+    }
     e.preventDefault();
     switch (cmd) {
       case "quickOpen":
@@ -276,7 +299,26 @@
         <Logo size={14} />
         <span>{floatTitle}</span>
       </div>
+      {#if floatRoot}
+        <div class="fws" data-tauri-drag-region>
+          <span class="fwsname">{floatRoot}</span>
+          {#if floatBranch}
+            <span class="fwssep"></span>
+            <span class="fwsbranch"><Icon name="git-branch" size={10} strokeWidth={1.8} />{floatBranch}</span>
+          {/if}
+        </div>
+      {/if}
       <div class="fctrls">
+        <button
+          class="fc pin"
+          class:on={floatPinned}
+          title={floatPinned ? "Always on top: on (click to unpin)" : "Always on top: off (click to pin)"}
+          aria-label="Toggle always on top"
+          aria-pressed={floatPinned}
+          onclick={toggleFloatPin}
+        >
+          <Icon name="pin" size={14} strokeWidth={1.7} />
+        </button>
         <button class="fc dock" title="Dock to main window" aria-label="Dock to main window" onclick={dockFloatTerminal}>
           <Icon name="panel-bottom" size={15} strokeWidth={1.6} />
         </button>
@@ -374,6 +416,41 @@
     gap: 8px;
     font-size: 12px;
     color: var(--color-ink-muted);
+    flex: 0 0 auto;
+  }
+  /* badge cartella + branch (snapshot), come la top bar della finestra principale */
+  .fws {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 50%;
+    height: 20px;
+    padding: 0 10px;
+    background: var(--color-surface-1);
+    border: 1px solid var(--color-line);
+    border-radius: 7px;
+    font-size: 11.5px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .fwsname {
+    color: #eaeef3;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .fwssep {
+    flex: 0 0 auto;
+    width: 1px;
+    height: 11px;
+    background: var(--color-line-strong);
+  }
+  .fwsbranch {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-ink-muted);
   }
   .fctrls {
     display: flex;
@@ -393,6 +470,13 @@
   .fc:hover {
     background: var(--color-surface-3);
     color: var(--color-ink);
+  }
+  .fc.pin.on {
+    color: var(--color-accent);
+  }
+  .fc.pin.on:hover {
+    color: var(--color-accent);
+    background: rgba(var(--accent-rgb), 0.16);
   }
   .fc.close:hover {
     background: #e81123;

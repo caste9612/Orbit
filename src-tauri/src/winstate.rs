@@ -75,7 +75,7 @@ fn restore(win: &WebviewWindow) {
 /// fallback) + lo stato massimizzato attuale. Idempotente: si può chiamare più volte all'uscita.
 pub fn save(win: &WebviewWindow, last: &LastNormal) {
     let maximized = win.is_maximized().unwrap_or(false);
-    let normal = *last.0.lock().unwrap();
+    let normal = *last.0.lock().unwrap_or_else(|e| e.into_inner());
     let (x, y, width, height) = match normal.or_else(|| current_geom(win)) {
         Some(g) => g,
         None => return,
@@ -104,7 +104,7 @@ pub fn init(win: &WebviewWindow) {
             if !maxed && !mind {
                 if let Some(g @ (x, y, _, _)) = current_geom(&w) {
                     if x > -30000 && y > -30000 {
-                        *w.app_handle().state::<LastNormal>().0.lock().unwrap() = Some(g);
+                        *w.app_handle().state::<LastNormal>().0.lock().unwrap_or_else(|e| e.into_inner()) = Some(g);
                     }
                 }
             }

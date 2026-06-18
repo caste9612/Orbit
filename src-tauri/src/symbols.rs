@@ -122,16 +122,25 @@ fn trail_ident(s: &str) -> &str {
     &s[start..]
 }
 
+/// True se il carattere "di parola" TERMINA appena prima dell'offset di byte `at` (sicuro con UTF-8:
+/// niente reinterpretazione di un singolo byte come char accanto a identificatori non-ASCII).
+fn word_before(t: &str, at: usize) -> bool {
+    t[..at].chars().next_back().map_or(false, is_word)
+}
+/// True se un carattere "di parola" INIZIA all'offset di byte `at`.
+fn word_at(t: &str, at: usize) -> bool {
+    t[at..].chars().next().map_or(false, is_word)
+}
+
 /// Sottostringa dopo la parola-chiave `kw` (confini di parola) SOLO se ciò che la precede sulla riga
 /// sono modificatori ammessi o nulla → evita falsi positivi dentro stringhe/espressioni.
 fn decl_after<'a>(t: &'a str, kw: &str, allowed: &[&str]) -> Option<&'a str> {
-    let bytes = t.as_bytes();
     let mut from = 0;
     while let Some(rel) = t[from..].find(kw) {
         let at = from + rel;
-        let before_ok = at == 0 || !is_word(bytes[at - 1] as char);
+        let before_ok = at == 0 || !word_before(t, at);
         let aft = at + kw.len();
-        let after_ok = aft == t.len() || !is_word(bytes[aft] as char);
+        let after_ok = aft == t.len() || !word_at(t, aft);
         if before_ok && after_ok {
             let prefix = t[..at].trim();
             if prefix.split_whitespace().all(|w| allowed.contains(&w)) {
@@ -145,13 +154,12 @@ fn decl_after<'a>(t: &'a str, kw: &str, allowed: &[&str]) -> Option<&'a str> {
 
 /// Parola-chiave come parola, con QUALSIASI prefisso (per `extends`/`implements`/`for`/`impl`).
 fn after_word_anyprefix<'a>(t: &'a str, kw: &str) -> Option<&'a str> {
-    let bytes = t.as_bytes();
     let mut from = 0;
     while let Some(rel) = t[from..].find(kw) {
         let at = from + rel;
-        let before_ok = at == 0 || !is_word(bytes[at - 1] as char);
+        let before_ok = at == 0 || !word_before(t, at);
         let aft = at + kw.len();
-        let after_ok = aft == t.len() || !is_word(bytes[aft] as char);
+        let after_ok = aft == t.len() || !word_at(t, aft);
         if before_ok && after_ok {
             return Some(t[aft..].trim_start());
         }

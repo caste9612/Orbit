@@ -27,8 +27,13 @@ export function relTo(abs: string, root: string | null): string {
   const a = abs.replace(/\\/g, "/");
   if (!root) return a;
   const r = normSlash(root);
-  if (a === r) return "";
-  return a.startsWith(r + "/") ? a.slice(r.length + 1) : a;
+  // confronto case-insensitive: su Windows/macOS il filesystem ignora maiuscole/minuscole e il casing
+  // del path attivo può divergere da quello dell'albero (es. apertura via drag-drop / "Apri con").
+  // Lo slice usa però `a` originale, per preservare il casing reale del file.
+  const al = a.toLowerCase();
+  const rl = r.toLowerCase();
+  if (al === rl) return "";
+  return al.startsWith(rl + "/") ? a.slice(r.length + 1) : a;
 }
 
 export interface FileIcon {

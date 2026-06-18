@@ -4,7 +4,7 @@
   import Lazy from "./Lazy.svelte";
   import { layout, setFocusPanel } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
-  import { openFolderDialog, startCreate } from "../state/explorer.svelte";
+  import { openFolderDialog, startCreate, collapseAll } from "../state/explorer.svelte";
   import { settings } from "../state/settings.svelte";
 
   const titles: Record<string, string> = {
@@ -35,6 +35,9 @@
           onclick={() => (settings.revealActive = !settings.revealActive)}
         >
           <Icon name="crosshair" size={15} strokeWidth={1.7} />
+        </button>
+        <button class="act" title="Collapse all folders" aria-label="Collapse all folders" onclick={collapseAll}>
+          <Icon name="collapse-all" size={15} strokeWidth={1.7} />
         </button>
         <button class="act" title="New File" aria-label="New File" onclick={() => startCreate(workspace.rootPath!, "file")}>
           <Icon name="file-plus" size={15} strokeWidth={1.7} />

@@ -59,6 +59,18 @@ export async function toggle(n: TreeNode) {
   if (n.expanded && !n.loaded) await loadChildren(n);
 }
 
+/** Chiude tutte le cartelle dell'albero (Collapse all); i figli restano caricati per riaprire in fretta. */
+export function collapseAll() {
+  const walk = (nodes: TreeNode[]) => {
+    for (const n of nodes) {
+      if (!n.entry.isDir) continue;
+      n.expanded = false;
+      if (n.children.length) walk(n.children);
+    }
+  };
+  walk(tree.roots);
+}
+
 async function loadChildren(n: TreeNode) {
   try {
     const entries = await invoke<FsEntry[]>("read_dir", { path: n.entry.path });

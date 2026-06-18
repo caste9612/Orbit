@@ -176,6 +176,47 @@ fn load_restore(app: &AppHandle) -> Vec<WinEntry> {
         .unwrap_or_default()
 }
 
+// --- liveness dei pid (recupero post-crash) ---------------------------------
+
+/// pid estratto dall'id "pid-nanos".
+fn pid_of(id: &str) -> Option<u32> {
+    id.split('-').next().and_then(|s| s.parse().ok())
+}
+
+#[cfg(windows)]
+fn pid_alive(pid: u32) -> bool {
+    use windows_sys::Win32::Foundation::CloseHandle;
+    use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
+    // OpenProcess fallisce (handle null) se il processo non esiste più.
+    unsafe {
+        let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if h.is_null() {
+            return false;
+        }
+        CloseHandle(h);
+        true
+    }
+}
+
+#[cfg(unix)]
+fn pid_alive(pid: u32) -> bool {
+    // kill(pid, 0): 0 = esiste; EPERM = esiste ma senza permesso (vivo); ESRCH = non esiste.
+    let r = unsafe { libc::kill(pid as libc::pid_t, 0) };
+    r == 0 || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
+}
+
+/// Rimuove dal set vivo i file di processi non più attivi: un crash li lasciava lì e, risultando il
+/// set "non vuoto", bloccava per sempre il "riapri tutte". Chiamata all'avvio.
+fn prune_dead(app: &AppHandle) {
+    for e in load_live(app) {
+        if !pid_of(&e.id).map(pid_alive).unwrap_or(false) {
+            if let Some(p) = entry_path(app, &e.id) {
+                let _ = std::fs::remove_file(p);
+            }
+        }
+    }
+}
+
 fn new_id() -> String {
     let pid = std::process::id();
     let nanos = std::time::SystemTime::now()
@@ -323,6 +364,7 @@ pub fn init(app: &AppHandle, win: &WebviewWindow, arg_dir: Option<String>) {
         _ => {}
     });
 
+    prune_dead(app); // scarta i file di processi morti (crash): altrimenti bloccherebbero il ripristino
     let live = load_live(app);
     let restore = load_restore(app);
     match plan(arg_dir.as_deref(), geom_from_env(), &live, &restore) {
@@ -472,6 +514,24 @@ mod tests {
     #[test]
     fn avvio_nudo_senza_set_non_fa_nulla() {
         assert!(matches!(plan(None, None, &[], &[]), RestorePlan::Nothing));
+    }
+
+    #[test]
+    fn pid_of_estrae_il_pid() {
+        assert_eq!(pid_of("41212-1781784334144348100"), Some(41212));
+        assert_eq!(pid_of("nondigits"), None);
+    }
+
+    #[test]
+    fn pid_corrente_e_vivo() {
+        // il processo di test stesso deve risultare vivo
+        assert!(pid_alive(std::process::id()));
+    }
+
+    #[test]
+    fn pid_inesistente_non_e_vivo() {
+        // un pid certamente inesistente NON deve risultare vivo (altrimenti prune_dead non pota)
+        assert!(!pid_alive(999_999));
     }
 
     #[test]

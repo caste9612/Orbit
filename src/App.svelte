@@ -241,7 +241,7 @@
   <div class="floatshell">
     <header class="floatbar" data-tauri-drag-region>
       <div class="fbrand" data-tauri-drag-region>
-        <Logo size={14} gid="floatGrad" />
+        <Logo size={14} />
         <span>{floatTitle}</span>
       </div>
       <div class="fctrls">

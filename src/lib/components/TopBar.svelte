@@ -113,7 +113,7 @@
 
 <header class="topbar" data-tauri-drag-region>
   <div class="brand" data-tauri-drag-region>
-    <Logo size={18} gid="topGrad" />
+    <Logo size={18} />
   </div>
 
   <nav class="views">

@@ -1345,7 +1345,8 @@ presenti** nell'albero come transitive → costo di compilazione nullo. Nient'al
 Verifica: `cargo test` **22/22** (logica `plan`, `pid_of`, liveness); `svelte-check` 195/0/0. **Verificato
 a runtime**: 2 finestre spostate → chiudi-tutte → riavvio nudo → riaperte alle posizioni; stato "da
 crash" fabbricato → potatura + ripristino. Nessuna regressione RAM/CPU (core invariato; +1 thread watcher
-event-driven). Prima del rilascio: bump versione (**v0.6.0**) + build installer.
+event-driven). Rilasciato in **v0.5.1** (insieme al pulsante Collapse all; numero patch per scelta
+dell'utente anche se è una feature — semver "impuro" accettato consapevolmente).
 
 ---
 

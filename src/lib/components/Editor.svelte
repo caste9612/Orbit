@@ -32,6 +32,7 @@
   import { basename, normSlash, relTo } from "../util";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
   import { openSymbols } from "../state/symbols.svelte";
+  import { goToDefinition } from "../state/codeIndex.svelte";
 
   interface Props {
     doc: string;
@@ -80,6 +81,23 @@
         highlightActiveLine(),
         highlightSelectionMatches(),
         search({ top: true }),
+        EditorView.domEventHandlers({
+          mousedown(e, v) {
+            // Ctrl/Cmd+click = Vai alla definizione del simbolo cliccato
+            if ((e.ctrlKey || e.metaKey) && e.button === 0) {
+              const pos = v.posAtCoords({ x: e.clientX, y: e.clientY });
+              if (pos != null) {
+                const w = v.state.wordAt(pos);
+                if (w) {
+                  e.preventDefault();
+                  void goToDefinition(v.state.sliceDoc(w.from, w.to));
+                  return true;
+                }
+              }
+            }
+            return false;
+          },
+        }),
         indentGuides,
         indentUnit.of("  "),
         langConf.of([]),

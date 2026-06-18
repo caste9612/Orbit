@@ -5,6 +5,7 @@
   import { layout, setFocusPanel } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog, startCreate } from "../state/explorer.svelte";
+  import { settings } from "../state/settings.svelte";
 
   const titles: Record<string, string> = {
     explorer: "Explorer",
@@ -25,6 +26,16 @@
     <span class="title">{title}</span>
     {#if layout.sidebarView === "explorer" && workspace.rootPath}
       <div class="acts">
+        <button
+          class="act"
+          class:on={settings.revealActive}
+          title={settings.revealActive ? "Following active file — click to stop" : "Follow active file in tree"}
+          aria-label="Follow active file in tree"
+          aria-pressed={settings.revealActive}
+          onclick={() => (settings.revealActive = !settings.revealActive)}
+        >
+          <Icon name="crosshair" size={15} strokeWidth={1.7} />
+        </button>
         <button class="act" title="New File" aria-label="New File" onclick={() => startCreate(workspace.rootPath!, "file")}>
           <Icon name="file-plus" size={15} strokeWidth={1.7} />
         </button>
@@ -144,6 +155,9 @@
   .act:hover {
     color: var(--color-ink);
     background: var(--color-surface-3);
+  }
+  .act.on {
+    color: var(--color-accent);
   }
   .body {
     flex: 1;

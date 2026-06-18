@@ -4,6 +4,7 @@
   import Switch from "./Switch.svelte";
   import Backdrop from "./Backdrop.svelte";
   import { settings, closeSettings, MONO_FONTS, ACCENTS, THEMES, type AccentName, type ThemeName } from "../state/settings.svelte";
+  import { openShortcuts } from "../state/keybindings.svelte";
 
   const accentNames = Object.keys(ACCENTS) as AccentName[];
   const themeNames = Object.keys(THEMES) as ThemeName[];
@@ -135,6 +136,14 @@
         label="Terminal GPU rendering"
       />
     </div>
+
+    <div class="row">
+      <div class="label">
+        <span class="name">Keyboard shortcuts</span>
+        <span class="hint">Preset (Orbit / Visual Studio / IntelliJ) and full reference</span>
+      </div>
+      <button class="control" onclick={openShortcuts}>View &amp; presets…</button>
+    </div>
   </div>
 </div>
 
@@ -181,6 +190,8 @@
   }
   .body {
     padding: 6px 14px 14px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
   }
   .row {
     display: flex;
@@ -308,5 +319,9 @@
   .autoacc.on {
     border-color: var(--color-accent);
     color: var(--color-ink);
+  }
+  /* "View & presets…" usa lo stile .control (come i select) ma è un button */
+  button.control {
+    cursor: pointer;
   }
 </style>

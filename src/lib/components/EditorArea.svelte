@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
   import FileGlyph from "./FileGlyph.svelte";
+  import RelatedBar from "./RelatedBar.svelte";
   import Editor from "./LazyEditor.svelte";
   import Lazy from "./Lazy.svelte";
   import Backdrop from "./Backdrop.svelte";
@@ -277,6 +278,10 @@
                 </button>
               {/if}
             </div>
+          {/if}
+
+          {#if af && af.kind === "file" && g.id === workspace.activeGroupId}
+            <RelatedBar path={af.path} />
           {/if}
 
           <div class="surface" class:center={!af}>

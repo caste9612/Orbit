@@ -85,6 +85,10 @@ export const THEMES: Record<string, Theme> = {
 };
 export type ThemeName = keyof typeof THEMES;
 
+// Preset di scorciatoie: Orbit (default), Visual Studio, IntelliJ. Il registro dei comandi e il
+// dispatch vivono in keybindings.svelte.ts; qui si persiste solo quale preset è attivo.
+export type KeymapName = "orbit" | "vs" | "intellij";
+
 /** True se il tema attivo è chiaro (l'editor sceglie la HighlightStyle di conseguenza). */
 export function isLightTheme(): boolean {
   return !!THEMES[settings.theme]?.light;
@@ -96,6 +100,8 @@ export function themeAccent(): string {
 
 export const settings = $state({
   theme: "dark" as ThemeName,
+  keymap: "orbit" as KeymapName, // preset scorciatoie (Orbit / Visual Studio / IntelliJ)
+  revealActive: false, // "segui il file attivo": espande l'albero e seleziona il file corrente
   fontMono: "JetBrains Mono",
   fontSize: 13,
   accent: "auto" as AccentName | "auto", // "auto" = accento del tema; altrimenti un preset sovrascrive
@@ -151,6 +157,8 @@ export function loadSettings() {
     if (raw) {
       const s = JSON.parse(raw);
       if (typeof s.theme === "string" && s.theme in THEMES) settings.theme = s.theme;
+      if (s.keymap === "orbit" || s.keymap === "vs" || s.keymap === "intellij") settings.keymap = s.keymap;
+      if (typeof s.revealActive === "boolean") settings.revealActive = s.revealActive;
       if (typeof s.fontMono === "string") settings.fontMono = s.fontMono;
       if (typeof s.fontSize === "number") settings.fontSize = s.fontSize;
       if (typeof s.accent === "string" && (s.accent === "auto" || s.accent in ACCENTS)) settings.accent = s.accent;
@@ -171,6 +179,8 @@ export function startSettingsAutosave() {
     $effect(() => {
       const data = JSON.stringify({
         theme: settings.theme,
+        keymap: settings.keymap,
+        revealActive: settings.revealActive,
         fontMono: settings.fontMono,
         fontSize: settings.fontSize,
         accent: settings.accent,

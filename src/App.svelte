@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, untrack } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import TopBar from "./lib/components/TopBar.svelte";
   import Sidebar from "./lib/components/Sidebar.svelte";
@@ -15,8 +15,8 @@
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal } from "./lib/state/layout.svelte";
   import { listen, emit } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { openFolderDialog, refreshTree } from "./lib/state/explorer.svelte";
-  import { workspace, openFile, saveActive, reloadOpenFiles } from "./lib/state/workspace.svelte";
+  import { openFolderDialog, refreshTree, revealInTree } from "./lib/state/explorer.svelte";
+  import { workspace, openFile, saveActive, reloadOpenFiles, activeFile } from "./lib/state/workspace.svelte";
   import { setQuery } from "./lib/state/search.svelte";
   import { refreshStatus } from "./lib/state/git.svelte";
   import { quickopen, openPalette } from "./lib/state/quickopen.svelte";
@@ -29,6 +29,8 @@
   import { loadSettings, startSettingsAutosave, settingsUI, nudgeFontSize, settings } from "./lib/state/settings.svelte";
   import { loadSession, startAutosave } from "./lib/state/persist.svelte";
   import { redockTerminal, terminals } from "./lib/state/terminals.svelte";
+  import { initIndex, scheduleRescan, wsPalette, openWsPalette, navBack, navForward, goToDefinitionAtCursor } from "./lib/state/codeIndex.svelte";
+  import { matchCommand, shortcutsUI } from "./lib/state/keybindings.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
   // Le finestre flottanti hanno label "term-float-<id>" e mostrano un terminale a tutta finestra.
@@ -121,6 +123,27 @@
       .catch(() => {});
   });
 
+  // Indice simboli del progetto ("rubrica"): (ri)costruito quando cambia la cartella aperta.
+  $effect(() => {
+    if (isFloatingTerminal) return;
+    workspace.rootPath; // dipendenza reattiva: re-inizializza al cambio cartella
+    void initIndex();
+  });
+
+  // "Segui il file attivo": se il toggle è attivo, espande l'albero e porta in vista il file
+  // corrente a ogni cambio di tab/gruppo (e quando lo si attiva). Segue anche go-to-definition/ricerca.
+  // `untrack`: revealInTree muove `tree`/`reveal` (incl. `reveal.seq++`); senza untrack quelle
+  // letture/scritture diventerebbero dipendenze dell'effetto → auto-invalidazione → loop infinito.
+  $effect(() => {
+    if (isFloatingTerminal) return;
+    if (!settings.revealActive) return;
+    const f = activeFile();
+    if (f && f.kind === "file") {
+      const p = f.path; // letto in modo tracciato: l'effetto ri-rivela al cambio di file
+      untrack(() => void revealInTree(p));
+    }
+  });
+
   onMount(async () => {
     loadSettings(); // applica font/dimensione/accento/caret (anche nella finestra flottante)
     if (isFloatingTerminal) {
@@ -154,6 +177,7 @@
       loadShelf(); // ricarica lo scaffale se Claude tocca .orbit/shelf.json
       invalidateFiles(); // l'elenco file cachato (Docs/Quick Open) non è più aggiornato
       if (layout.sidebarView === "docs") loadDocs(); // aggiorna l'indice Docs se visibile
+      scheduleRescan(); // aggiorna la rubrica dei simboli del progetto (debounced)
     });
     // un terminale estratto torna nel pannello quando la sua finestra flottante si chiude
     offRedock = await listen("term-redock", (e) => {
@@ -198,34 +222,42 @@
     workspace.ready = true; // sessione caricata: il pannello può creare una shell normale se serve
   });
 
+  // Dispatch tastiera centralizzato: il tasto premuto → comando (secondo il preset attivo) → azione.
   function onKey(e: KeyboardEvent) {
     if (isFloatingTerminal) return;
-    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-    if (e.shiftKey && e.key.toLowerCase() === "o") {
-      e.preventDefault();
-      openSymbols(); // Ctrl/Cmd+Shift+O = vai al simbolo
-      return;
-    }
-    switch (e.key) {
-      case "b":
-        e.preventDefault();
-        toggleSidebar();
-        break;
-      case "`":
-        e.preventDefault();
-        toggleTerminal();
-        break;
-      case "k":
-        e.preventDefault();
-        openFolderDialog();
-        break;
-      case "p":
-        e.preventDefault();
+    const cmd = matchCommand(e);
+    if (!cmd) return;
+    e.preventDefault();
+    switch (cmd) {
+      case "quickOpen":
         openPalette();
         break;
-      case "s":
-        e.preventDefault();
+      case "workspaceSymbols":
+        openWsPalette();
+        break;
+      case "fileSymbols":
+        openSymbols();
+        break;
+      case "goToDefinition":
+        goToDefinitionAtCursor();
+        break;
+      case "navBack":
+        navBack();
+        break;
+      case "navForward":
+        navForward();
+        break;
+      case "save":
         saveActive();
+        break;
+      case "openFolder":
+        openFolderDialog();
+        break;
+      case "toggleSidebar":
+        toggleSidebar();
+        break;
+      case "toggleTerminal":
+        toggleTerminal();
         break;
     }
   }
@@ -288,8 +320,14 @@
   {#if symbols.open}
     <Lazy load={() => import("./lib/components/SymbolPalette.svelte")} />
   {/if}
+  {#if wsPalette.open}
+    <Lazy load={() => import("./lib/components/WorkspaceSymbols.svelte")} />
+  {/if}
   {#if settingsUI.open}
     <Lazy load={() => import("./lib/components/Settings.svelte")} />
+  {/if}
+  {#if shortcutsUI.open}
+    <Lazy load={() => import("./lib/components/ShortcutsDialog.svelte")} />
   {/if}
   {#if wrapperUI.open}
     <Lazy load={() => import("./lib/components/WrapperComposer.svelte")} />

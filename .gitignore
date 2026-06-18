@@ -10,6 +10,9 @@ node_modules
 # scratchpad: note/prompt personali (file di lavoro, non condiviso)
 .orbit/scratch.md
 
+# indice simboli: cache generata della "rubrica" del codice (per-macchina)
+.orbit/index/
+
 # sistema
 .DS_Store
 Thumbs.db

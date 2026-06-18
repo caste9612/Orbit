@@ -5,6 +5,7 @@
   import { workspace, editorStatus, activeFile } from "../state/workspace.svelte";
   import { git, checkout, loadBranches, createBranch } from "../state/git.svelte";
   import { langLabel } from "../util";
+  import { codeIndex, rescan } from "../state/codeIndex.svelte";
 
   let af = $derived(activeFile());
   let isFile = $derived(!!af && af.kind === "file");
@@ -100,6 +101,17 @@
     </div>
   </div>
   <div class="right">
+    {#if workspace.rootPath}
+      <button
+        class="seg idx"
+        class:scanning={codeIndex.scanning}
+        title={codeIndex.scanning ? "Indexing project symbols…" : "Project symbols — click to re-scan"}
+        onclick={() => rescan()}
+      >
+        <span class="idxic"><Icon name={codeIndex.scanning ? "refresh" : "code"} size={12} strokeWidth={1.8} /></span>
+        <span>{codeIndex.scanning ? "Indexing…" : `${codeIndex.symbols.length} symbols`}</span>
+      </button>
+    {/if}
     {#if isFile}
       <span class="seg static">Ln {editorStatus.line}, Col {editorStatus.col}</span>
       <span class="seg static">{eol}</span>
@@ -151,6 +163,20 @@
   }
   .seg.static {
     cursor: default;
+  }
+  .idxic {
+    display: inline-flex;
+  }
+  .idx.scanning {
+    color: var(--color-accent);
+  }
+  .idx.scanning .idxic {
+    animation: idxspin 0.9s linear infinite;
+  }
+  @keyframes idxspin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .popup {

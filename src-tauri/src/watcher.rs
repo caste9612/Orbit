@@ -13,6 +13,12 @@ pub struct WatchState {
 
 // Cartelle rumorose/pesanti da ignorare (riduce eventi e, su Linux, il numero di watch).
 fn is_excluded(p: &Path) -> bool {
+    // cache dell'indice simboli: scriverla NON deve ri-scatenare lo scan (eviterebbe un loop).
+    // Le altre .orbit/*.json (run/claude/shelf) restano osservate.
+    let s = p.to_string_lossy();
+    if s.contains(".orbit/index") || s.contains(".orbit\\index") {
+        return true;
+    }
     p.components().any(|c| {
         matches!(
             c.as_os_str().to_str(),

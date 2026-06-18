@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import Icon from "./Icon.svelte";
   import FileGlyph from "./FileGlyph.svelte";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
@@ -8,6 +9,7 @@
     tree,
     toggle,
     flatten,
+    reveal,
     edit,
     startCreate,
     startRename,
@@ -52,6 +54,7 @@
   let rows = $derived(buildRows(flatten(tree.roots).filter((n) => !isHidden(relOf(n.entry.path)))));
   let scrollTop = $state(0);
   let viewportH = $state(600);
+  let treeEl: HTMLDivElement;
 
   let start = $derived(Math.max(0, Math.floor(scrollTop / ROW) - OVERSCAN));
   let end = $derived(Math.min(rows.length, Math.ceil((scrollTop + viewportH) / ROW) + OVERSCAN));
@@ -93,6 +96,23 @@
 
   function onScroll(e: Event) {
     scrollTop = (e.currentTarget as HTMLElement).scrollTop;
+  }
+
+  // "Segui il file attivo": dopo che l'albero è stato espanso (reveal.seq), porta la riga in vista.
+  // tick() attende che `rows` rifletta l'espansione prima di calcolare l'indice nella lista virtuale.
+  $effect(() => {
+    reveal.seq;
+    const target = reveal.target;
+    if (!target) return;
+    void tick().then(() => bringIntoView(target));
+  });
+  function bringIntoView(path: string) {
+    if (!treeEl) return;
+    const idx = rows.findIndex((r) => r.kind === "node" && r.node.entry.path === path);
+    if (idx < 0) return;
+    const top = idx * ROW;
+    if (top < scrollTop) treeEl.scrollTop = top;
+    else if (top + ROW > scrollTop + viewportH) treeEl.scrollTop = top + ROW - viewportH;
   }
   function activate(n: TreeNode) {
     if (n.entry.isDir) toggle(n);
@@ -195,6 +215,7 @@
 <div class="explorer-root">
   <div
     class="tree"
+    bind:this={treeEl}
     onscroll={onScroll}
     bind:clientHeight={viewportH}
     oncontextmenu={(e) => openMenu(e, null)}

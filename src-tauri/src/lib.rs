@@ -1,7 +1,9 @@
 // Orbit — backend Tauri: filesystem, sessione, git, pty, watcher.
 mod git;
 mod pty;
+mod symbols;
 mod watcher;
+mod winstate;
 
 use serde::Serialize;
 use std::hash::{Hash, Hasher};
@@ -472,6 +474,14 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(pty::PtyManager::default())
         .manage(watcher::WatchState::default())
+        .manage(winstate::LastNormal::default())
+        .setup(|app| {
+            // ripristina posizione/dimensione/maximized della finestra principale e la mostra
+            if let Some(win) = app.get_webview_window("main") {
+                winstate::init(&win);
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             startup,
             read_dir,
@@ -507,7 +517,8 @@ pub fn run() {
             pty::pty_kill,
             pty::pty_alive,
             pty::list_shells,
-            watcher::watch_start
+            watcher::watch_start,
+            symbols::scan_symbols
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -515,6 +526,10 @@ pub fn run() {
             // all'uscita: termina i PTY (niente shell/claude orfani in background)
             if let tauri::RunEvent::ExitRequested { .. } = event {
                 app.state::<pty::PtyManager>().kill_all();
+                // rete di sicurezza se CloseRequested non ha salvato (es. app.exit())
+                if let Some(win) = app.get_webview_window("main") {
+                    winstate::save(&win, &app.state::<winstate::LastNormal>());
+                }
             }
         });
 }

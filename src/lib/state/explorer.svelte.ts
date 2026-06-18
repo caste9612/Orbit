@@ -1,7 +1,7 @@
 // Albero file: lazy per directory; la UI virtualizza il rendering.
 import { invoke } from "@tauri-apps/api/core";
 import { open, confirm } from "@tauri-apps/plugin-dialog";
-import { basename, dirname, joinPath } from "../util";
+import { basename, dirname, joinPath, relTo } from "../util";
 import { workspace, renameOpenPaths, closeUnder } from "./workspace.svelte";
 import { refreshStatus } from "./git.svelte";
 import { loadRunConfig } from "./run.svelte";
@@ -128,6 +128,49 @@ function findNode(nodes: TreeNode[], path: string): TreeNode | undefined {
     }
   }
   return undefined;
+}
+
+// ---- "Segui il file attivo" (reveal) ----------------------------------------
+// Segnale transitorio per la UI dell'albero: a ogni incremento di `seq` l'Explorer porta `target`
+// in vista. Il toggle PERSISTITO vive in settings.revealActive; qui sta solo la logica d'espansione.
+export const reveal = $state({ target: "", seq: 0 });
+
+// Guardia di rientro: una sola "reveal" in volo per volta; le richieste sovrapposte aggiornano
+// solo il bersaglio pendente (l'ultima vince). Evita scan/espansioni concorrenti e qualsiasi rientro.
+let revealPending: string | null = null;
+let revealRunning = false;
+
+/** Espande l'albero fino al file `path` (caricando i figli mancanti lungo il percorso) e chiede lo
+ *  scroll in vista. Cammina per NOME di segmento → robusto ai separatori del path. NB: va invocata
+ *  fuori dal tracking reattivo (es. `untrack`), perché muove `tree`/`reveal`. */
+export async function revealInTree(path: string) {
+  revealPending = path;
+  if (revealRunning) return; // una run è già attiva: prenderà `revealPending` aggiornato
+  revealRunning = true;
+  try {
+    while (revealPending !== null) {
+      const target = revealPending;
+      revealPending = null;
+      const root = workspace.rootPath;
+      if (!root) break;
+      const rel = relTo(target, root);
+      if (!rel) continue;
+      const segs = rel.split("/").filter(Boolean);
+      let nodes = tree.roots;
+      // espande ogni cartella antenata (tutti i segmenti tranne l'ultimo, che è il file)
+      for (let i = 0; i < segs.length - 1; i++) {
+        const node = nodes.find((n) => n.entry.isDir && n.entry.name === segs[i]);
+        if (!node) break; // antenato non in albero (es. cartella nello scaffale): ci fermiamo qui
+        node.expanded = true;
+        if (!node.loaded) await loadChildren(node);
+        nodes = node.children;
+      }
+      reveal.target = target;
+      reveal.seq++;
+    }
+  } finally {
+    revealRunning = false;
+  }
 }
 
 // ---- Gestione file: editing inline (crea/rinomina) + elimina ----------------

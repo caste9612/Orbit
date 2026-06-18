@@ -1,8 +1,11 @@
 // Sessione multi-finestra (modello "C+": più processi indipendenti + registro condiviso).
 // Ogni istanza di Orbit è un processo separato con una finestra "main". Per poter
-// "riaprire tutte le finestre" dopo un riavvio teniamo due file in app_config_dir:
-//   - windows-open.json    : il set VIVO (le finestre aperte ORA); ogni istanza mantiene la sua voce.
-//   - windows-restore.json : il set da RIAPRIRE al prossimo avvio "nudo" (snapshot).
+// "riaprire tutte le finestre" dopo un riavvio teniamo, in app_config_dir:
+//   - windows/<id>.json    : il set VIVO, UN FILE PER FINESTRA. Ogni processo scrive/cancella SOLO il
+//                            proprio file → niente race né file temp condiviso tra processi.
+//   - windows-restore.json : il set da RIAPRIRE al prossimo avvio "nudo" (snapshot, scritto da una sola
+//                            istanza alla volta: chi chiude per ultimo, o chi avvia il "chiudi tutte").
+//   - windows-control.json : token per il "chiudi tutte" (vedi in fondo).
 //
 // Regola che evita ogni IPC tra processi (e quindi zero dipendenze, niente liveness dei pid):
 //   - avvio "NUDO" (Orbit lanciato da menu/taskbar, senza cartella) → RIPRISTINA il set salvato:
@@ -119,31 +122,58 @@ fn track_normal(win: &WebviewWindow, last: &LastNormal) {
 
 // --- registro (file) --------------------------------------------------------
 
-fn open_path(app: &AppHandle) -> Option<PathBuf> {
-    app.path().app_config_dir().ok().map(|d| d.join("windows-open.json"))
+fn windows_dir(app: &AppHandle) -> Option<PathBuf> {
+    app.path().app_config_dir().ok().map(|d| d.join("windows"))
+}
+fn entry_path(app: &AppHandle, id: &str) -> Option<PathBuf> {
+    windows_dir(app).map(|d| d.join(format!("{}.json", id)))
 }
 fn restore_path(app: &AppHandle) -> Option<PathBuf> {
     app.path().app_config_dir().ok().map(|d| d.join("windows-restore.json"))
 }
 
-fn load(path: &Path) -> Vec<WinEntry> {
-    std::fs::read_to_string(path)
-        .ok()
-        .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default()
-}
-
-/// Scrittura atomica (temp + rename): più processi possono scrivere → evita letture "strappate".
-/// Le perdite di update logiche (last-writer-wins) sono innocue per posizioni di finestre.
-fn save_atomic(path: &Path, v: &[WinEntry]) {
-    let Ok(json) = serde_json::to_string(v) else { return };
+/// Scrittura atomica con file temp UNICO PER PROCESSO (pid+nanos): istanze concorrenti non
+/// corrompono lo stesso temp; il rename finale è atomico → niente letture "strappate".
+fn atomic_write(path: &Path, data: &[u8]) {
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
-    let tmp = path.with_extension("json.tmp");
-    if std::fs::write(&tmp, json).is_ok() {
+    let uniq = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let tmp = path.with_file_name(format!(".tmp-{}-{}", std::process::id(), uniq));
+    if std::fs::write(&tmp, data).is_ok() {
         let _ = std::fs::rename(&tmp, path);
     }
+}
+
+fn write_json_atomic<T: Serialize>(path: &Path, val: &T) {
+    if let Ok(json) = serde_json::to_string(val) {
+        atomic_write(path, json.as_bytes());
+    }
+}
+
+/// Set VIVO = tutti i file windows/*.json (uno per finestra). Ordinato per id (≈ ordine di creazione).
+fn load_live(app: &AppHandle) -> Vec<WinEntry> {
+    let Some(dir) = windows_dir(app) else { return Vec::new() };
+    let Ok(rd) = std::fs::read_dir(&dir) else { return Vec::new() };
+    let mut out: Vec<WinEntry> = rd
+        .flatten()
+        .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("json"))
+        .filter_map(|e| std::fs::read_to_string(e.path()).ok())
+        .filter_map(|s| serde_json::from_str(&s).ok())
+        .collect();
+    out.sort_by(|a, b| a.id.cmp(&b.id));
+    out
+}
+
+/// Set da RIPRISTINARE (snapshot single-file).
+fn load_restore(app: &AppHandle) -> Vec<WinEntry> {
+    restore_path(app)
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
 }
 
 fn new_id() -> String {
@@ -173,50 +203,51 @@ pub fn register_window(app: AppHandle, window: WebviewWindow, folder: String) {
     let (x, y, width, height) = current_geom(&window).unwrap_or((100, 100, 1280, 800));
     let maximized = window.is_maximized().unwrap_or(false);
     let entry = WinEntry { folder, x, y, width, height, maximized, id: id.clone() };
-    if let Some(p) = open_path(&app) {
-        let mut v = load(&p);
-        v.retain(|e| e.id != id);
-        v.push(entry);
-        save_atomic(&p, &v);
+    if let Some(p) = entry_path(&app, &id) {
+        write_json_atomic(&p, &entry);
     }
 }
 
-/// Alla chiusura della finestra: aggiorna la geometria finale, fa lo SNAPSHOT del set vivo nel file
-/// di ripristino, poi rimuove la propria voce dal set vivo. Idempotente (se già rimossa, non fa nulla).
+/// Aggiorna la geometria nel PROPRIO file (read-modify-write del solo file di questa finestra: niente
+/// race tra processi). Chiamata sul blur, prima dello snapshot del "chiudi tutte" e alla chiusura.
+fn update_own_geom(app: &AppHandle, win: &WebviewWindow) {
+    let id = this_id(app);
+    let Some(p) = entry_path(app, &id) else { return };
+    let Ok(s) = std::fs::read_to_string(&p) else { return }; // non ancora registrata
+    let Ok(mut entry) = serde_json::from_str::<WinEntry>(&s) else { return };
+    // geometria = ultima "normale" tracciata, o quella corrente
+    let normal = *app.state::<LastNormal>().0.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((x, y, w, h)) = normal.or_else(|| current_geom(win)) {
+        entry.x = x;
+        entry.y = y;
+        entry.width = w;
+        entry.height = h;
+    }
+    entry.maximized = win.is_maximized().unwrap_or(false);
+    write_json_atomic(&p, &entry);
+}
+
+/// Alla chiusura: salva la geometria finale nel proprio file, fa lo SNAPSHOT del set vivo nel file di
+/// ripristino (salvo durante un "chiudi tutte"), poi cancella il proprio file. Idempotente.
 fn on_close(app: &AppHandle, win: &WebviewWindow) {
     let id = this_id(app);
-    let Some(p) = open_path(app) else { return };
-    let mut v = load(&p);
-    if !v.iter().any(|e| e.id == id) {
+    let Some(p) = entry_path(app, &id) else { return };
+    if !p.exists() {
         return; // già gestita (es. CloseRequested poi ExitRequested)
     }
-    // geometria finale = ultima "normale" tracciata, o quella corrente
-    let normal = *app.state::<LastNormal>().0.lock().unwrap_or_else(|e| e.into_inner());
-    let geom = normal.or_else(|| current_geom(win));
-    let maximized = win.is_maximized().unwrap_or(false);
-    if let Some(e) = v.iter_mut().find(|e| e.id == id) {
-        if let Some((x, y, w, h)) = geom {
-            e.x = x;
-            e.y = y;
-            e.width = w;
-            e.height = h;
-        }
-        e.maximized = maximized;
-    }
-    // snapshot del set VIVO (questa finestra inclusa) → ripristino. SALTATO durante un "chiudi tutte":
-    // in quel caso lo snapshot completo l'ha già scritto chi ha avviato la chiusura (altrimenti ogni
-    // finestra che esce lo rimpicciolirebbe fino a lasciarne una sola).
+    update_own_geom(app, win); // geometria finale nel proprio file (incluso nello snapshot sotto)
+    // snapshot del set VIVO → ripristino. SALTATO durante un "chiudi tutte": lo snapshot completo
+    // l'ha già scritto chi ha avviato la chiusura (altrimenti ogni finestra che esce lo rimpicciolirebbe).
     let quitting = app.state::<QuitState>().quitting.load(Ordering::SeqCst);
     if !quitting {
-        if let Some(rp) = restore_path(app) {
-            if !v.is_empty() {
-                save_atomic(&rp, &v);
+        let live = load_live(app);
+        if !live.is_empty() {
+            if let Some(rp) = restore_path(app) {
+                write_json_atomic(&rp, &live);
             }
         }
     }
-    // rimuovi la propria voce dal set vivo
-    v.retain(|e| e.id != id);
-    save_atomic(&p, &v);
+    let _ = std::fs::remove_file(&p); // rimuovi il proprio file dal set vivo
 }
 
 // --- avvio / ripristino -----------------------------------------------------
@@ -285,12 +316,15 @@ pub fn init(app: &AppHandle, win: &WebviewWindow, arg_dir: Option<String>) {
     let app2 = app.clone();
     win.on_window_event(move |event| match event {
         WindowEvent::Moved(_) | WindowEvent::Resized(_) => track_normal(&w, app2.state::<LastNormal>().inner()),
+        // perdita di fuoco → salva la geometria corrente nel proprio file (così "chiudi tutte" e il
+        // ripristino vedono dove la finestra è ORA, non dove era stata aperta).
+        WindowEvent::Focused(false) => update_own_geom(&app2, &w),
         WindowEvent::CloseRequested { .. } => on_close(&app2, &w),
         _ => {}
     });
 
-    let live = open_path(app).map(|p| load(&p)).unwrap_or_default();
-    let restore = restore_path(app).map(|p| load(&p)).unwrap_or_default();
+    let live = load_live(app);
+    let restore = load_restore(app);
     match plan(arg_dir.as_deref(), geom_from_env(), &live, &restore) {
         RestorePlan::ApplyEnv(g) => apply_geom(win, g),
         RestorePlan::Restore { first, spawn } => {
@@ -339,13 +373,8 @@ fn read_token(app: &AppHandle) -> u64 {
 }
 
 fn write_token(app: &AppHandle, token: u64) {
-    let Some(p) = control_path(app) else { return };
-    if let Some(parent) = p.parent() {
-        let _ = std::fs::create_dir_all(parent);
-    }
-    let tmp = p.with_extension("tmp");
-    if std::fs::write(&tmp, token.to_string()).is_ok() {
-        let _ = std::fs::rename(&tmp, &p);
+    if let Some(p) = control_path(app) {
+        atomic_write(&p, token.to_string().as_bytes());
     }
 }
 
@@ -370,13 +399,20 @@ fn begin_quit(app: &AppHandle) {
 /// questa istanza e segnala a tutte le altre di uscire (bump del token di controllo).
 #[tauri::command]
 pub fn close_all_windows(app: AppHandle) {
-    if let (Some(op), Some(rp)) = (open_path(&app), restore_path(&app)) {
-        let live = load(&op);
-        if !live.is_empty() {
-            save_atomic(&rp, &live);
+    // 1) la finestra che avvia ha il fuoco: salva la SUA geometria corrente nel proprio file
+    //    (le altre l'hanno già salvata perdendo il fuoco quando l'utente ha cliccato qui).
+    if let Some(win) = app.get_webview_window("main") {
+        update_own_geom(&app, &win);
+    }
+    // 2) snapshot del set vivo completo → ripristino (così tornano tutte alle posizioni correnti)
+    let live = load_live(&app);
+    if !live.is_empty() {
+        if let Some(rp) = restore_path(&app) {
+            write_json_atomic(&rp, &live);
         }
     }
-    write_token(&app, now_token()); // sblocca i watcher delle altre istanze
+    // 3) segnala alle altre istanze di uscire, poi esci anche tu
+    write_token(&app, now_token());
     begin_quit(&app);
 }
 

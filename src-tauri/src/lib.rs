@@ -3,7 +3,7 @@ mod git;
 mod pty;
 mod symbols;
 mod watcher;
-mod winstate;
+mod winsession;
 
 use serde::Serialize;
 use std::hash::{Hash, Hasher};
@@ -19,22 +19,27 @@ struct Startup {
     search: Option<String>,
 }
 
-#[tauri::command]
-fn startup() -> Startup {
-    // primo argomento CLI: una cartella (`lume /progetto`) o un FILE (apertura via "Apri con" di Windows)
+/// Cartella passata da CLI/env: LUME_DIR, oppure il primo arg se è una cartella (`lume /progetto`),
+/// oppure la cartella del file passato come arg (apertura via "Apri con" di Windows).
+fn cli_dir() -> Option<String> {
     let arg = std::env::args().nth(1);
     let arg_file = arg.as_deref().filter(|a| Path::new(a).is_file()).map(str::to_string);
-    let dir = std::env::var("LUME_DIR")
+    std::env::var("LUME_DIR")
         .ok()
         .filter(|d| Path::new(d).is_dir())
         .or_else(|| arg.as_deref().filter(|a| Path::new(a).is_dir()).map(str::to_string))
-        // file passato come argomento → apri la sua cartella come workspace
-        .or_else(|| {
-            arg_file
-                .as_deref()
-                .and_then(|f| Path::new(f).parent())
-                .map(|p| p.to_string_lossy().into_owned())
-        });
+        .or_else(|| arg_file.as_deref().and_then(|f| Path::new(f).parent()).map(|p| p.to_string_lossy().into_owned()))
+}
+
+#[tauri::command]
+fn startup(app: AppHandle) -> Startup {
+    // se questa istanza è la "restoratrice" di una sessione (avvio nudo con set salvato), apre la
+    // cartella della sua voce invece dell'ultima sessione singola.
+    if let Some(dir) = winsession::restore_folder(&app) {
+        return Startup { dir: Some(dir), file: None, search: None };
+    }
+    let arg = std::env::args().nth(1);
+    let arg_file = arg.as_deref().filter(|a| Path::new(a).is_file()).map(str::to_string);
     let file = std::env::var("LUME_FILE")
         .ok()
         .filter(|f| Path::new(f).is_file())
@@ -42,7 +47,7 @@ fn startup() -> Startup {
     let search = std::env::var("LUME_SEARCH")
         .ok()
         .filter(|s| !s.trim().is_empty());
-    Startup { dir, file, search }
+    Startup { dir: cli_dir(), file, search }
 }
 
 #[derive(Serialize)]
@@ -474,15 +479,18 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(pty::PtyManager::default())
         .manage(watcher::WatchState::default())
-        .manage(winstate::LastNormal::default())
+        .manage(winsession::LastNormal::default())
+        .manage(winsession::WinId::default())
+        .manage(winsession::OpenFolder::default())
         .setup(|app| {
-            // ripristina posizione/dimensione/maximized della finestra principale e la mostra
+            // ripristina la geometria della finestra principale (e l'intera sessione, se avvio nudo) e la mostra
+            let handle = app.handle().clone();
             match app.get_webview_window("main") {
-                Some(win) => winstate::init(&win),
+                Some(win) => winsession::init(&handle, &win, cli_dir()),
                 None => {
                     // non dovrebbe accadere (la finestra in config ha label "main"); ma con visible:false
                     // una finestra mai mostrata sarebbe irrecuperabile (decorations off) → mostra ciò che c'è.
-                    eprintln!("winstate: finestra 'main' non trovata; mostro le finestre disponibili");
+                    eprintln!("winsession: finestra 'main' non trovata; mostro le finestre disponibili");
                     for (_, w) in app.webview_windows() {
                         let _ = w.show();
                     }
@@ -504,6 +512,7 @@ pub fn run() {
             load_state,
             save_state,
             open_new_window,
+            winsession::register_window,
             reveal_path,
             resolve_existing,
             claude_sessions,
@@ -536,7 +545,7 @@ pub fn run() {
                 app.state::<pty::PtyManager>().kill_all();
                 // rete di sicurezza se CloseRequested non ha salvato (es. app.exit())
                 if let Some(win) = app.get_webview_window("main") {
-                    winstate::save(&win, &app.state::<winstate::LastNormal>());
+                    winsession::save_on_exit(app, &win);
                 }
             }
         });

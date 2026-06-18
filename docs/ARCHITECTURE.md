@@ -56,7 +56,7 @@ Three kinds of frontend module, kept separate:
 | Module | Owns |
 |---|---|
 | `workspace` | open folder, document pool (kinds: file/diff/image/pdf), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, … |
-| `explorer` | the lazy file tree + inline file ops (new/rename/delete) |
+| `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file") |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
 | `terminals` | terminal tabs (id/title/shell/cwd) + active tab; **bell attention** (`notifyTerminalBell` → tab marker + toast when a terminal needs you) |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
@@ -70,7 +70,7 @@ Three kinds of frontend module, kept separate:
 | `claudeChats` | the project's recent Claude Code sessions (preview + turn count, from transcripts) + resume |
 | `scratch` | one‑click persistent scratchpad (`.orbit/scratch.md`) for notes/prompts |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
-| `settings` | **theme** (4 full presets incl. light)/**keymap** (shortcut preset)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify** (localStorage) + applies CSS vars per theme |
+| `settings` | **theme** (4 full presets incl. light)/**keymap** (shortcut preset)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify**/**reveal‑active** (follow active file) (localStorage) + applies CSS vars per theme |
 | `layout` | panel sizes/visibility + focused panel |
 | `persist` | per‑folder session save/restore (autosave via `$effect.root`); `switchFolder` swaps the workspace folder cleanly |
 | `toast` | transient notifications |
@@ -92,7 +92,7 @@ cursor). The editor uses soft **line wrapping** (gutter stays correct).
 
 `Editor.svelte` (CodeMirror) and `Terminal.svelte` (xterm) are loaded through
 `LazyEditor.svelte` / `LazyTerminal.svelte` (dynamic `import()`), so the startup chunk stays
-lean (~475 KB; the ~338 KB xterm and ~73 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
+lean (~493 KB; the ~338 KB xterm and ~75 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
 `settings.webgl` (off by default). **marked + DOMPurify** are likewise lazy (`markdown.ts`
 imports them on first render), so the Markdown feature adds nothing to the startup payload.
 A small generic **`Lazy.svelte`** wrapper (`load={() => import("./X.svelte")}`, props forwarded) does
@@ -135,6 +135,13 @@ first paint loads only the Explorer + the active editor.
   history (`Alt+←/→`). `RelatedBar.svelte` (under the breadcrumb) shows `contextAt`'s enclosing symbol
   (type › method) with clickable base types / implementers and `KindBadge.svelte` monograms; it reserves
   its height when the file has symbols (no layout shift) and empties when the cursor is outside a symbol.
+- **Follow active file (reveal)** — `settings.revealActive` (the ⌖ toggle in the explorer toolbar)
+  drives an `$effect` in `App.svelte` that calls `explorer.revealInTree(activeFile.path)`: it expands
+  the active file's ancestor folders (matched by segment name, case‑insensitive, lazy‑loading as
+  needed) and a transient `reveal {target, seq}` signal tells `Explorer.svelte` to scroll the row into
+  view (only when off‑screen). The effect wraps the call in **`untrack`** because `revealInTree`
+  mutates `tree`/`reveal` (incl. `reveal.seq++`) — otherwise those reads/writes would become effect
+  dependencies and self‑invalidate into a loop; `revealInTree` also has a re‑entrancy/coalescing guard.
 - **Keyboard shortcuts** — `keybindings.svelte.ts` is a single command **registry** with a key per
   preset (Orbit / Visual Studio / IntelliJ, `settings.keymap`); `App.svelte`'s window `keydown` runs
   `matchCommand(e)` → action, so the active preset applies everywhere (Go‑to‑definition moved from the
@@ -176,7 +183,11 @@ first paint loads only the Explorer + the active editor.
   (the live session keeps running) and removes the tab from the panel; **Dock** (or closing the
   window) emits a global `term-redock` event that re‑attaches it (a dead PTY is reaped on EOF and
   `redockTerminal` checks `pty_alive` first, so a finished session never leaves a zombie tab). The
-  float window wears the app's own chrome (`decorations: false` + a custom title bar).
+  float window wears the app's own chrome (`decorations: false` + a custom title bar). Its bar also
+  shows a **folder + branch badge** — a snapshot passed as URL params (`root`/`branch`) at detach,
+  since the float webview doesn't run git itself — and a **pin** that toggles the window's
+  *always‑on‑top* at runtime (`getCurrentWindow().setAlwaysOnTop`, capability
+  `core:window:allow-set-always-on-top`; the window is still created with `alwaysOnTop: true`).
 - **Per‑project window title** — an `$effect` in `App.svelte` sets the window title to
   `<project> — Orbit` via `getCurrentWindow().setTitle` (capability `core:window:allow-set-title`),
   so multiple instances are distinguishable in the taskbar / Alt‑Tab.

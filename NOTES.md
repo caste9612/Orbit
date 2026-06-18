@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script-in-sviluppo)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -1206,7 +1206,7 @@ coinvolto); nessun cambio alle capabilities (le chiamate alla finestra sono lato
 
 ---
 
-## Milestone 34 — navigazione del codice, scorciatoie configurabili, esegui script (in sviluppo)
+## Milestone 34 — navigazione del codice, scorciatoie configurabili, esegui script
 
 Ciclo dopo la v0.4.0, **non ancora rilasciato** (in attesa di altre feature in lavorazione in
 parallelo). **Zero dipendenze runtime nuove** e nessun comando Rust nuovo salvo `scan_symbols`.
@@ -1259,7 +1259,48 @@ Obiettivo: orientarsi nella codebase (da un metodo/classe alla sua definizione, 
 
 Verifica: `svelte-check` 195 file 0/0; `cargo test` **14/14** (filesystem + estrazione simboli per
 linguaggio + flag abstract). Zero dipendenze runtime nuove. README/ARCHITECTURE riallineati.
-**Non rilasciato**: la prossima release attende le feature secondarie in sviluppo in parallelo.
+Confluisce nella **release v0.5.0** insieme a M33 e M35 (vedi M35 per il bump di versione e i gate pre-release).
+
+---
+
+## Milestone 35 — segui il file attivo, badge + pin del terminale flottante (v0.5.0)
+
+Le "feature secondarie in sviluppo in parallelo" attese da M34: chiudono il ciclo e diventano la
+**release v0.5.0**, che pubblica anche M33 (la finestra ricorda posizione/dimensione) e M34
+(navigazione del codice, scorciatoie configurabili, esegui-script), finora non rilasciati.
+**Zero dipendenze nuove**; un solo permesso capability nuovo (always-on-top della finestra).
+
+**Segui il file attivo (reveal)** (`settings.svelte.ts`, `explorer.svelte.ts`, `App.svelte`, `Explorer.svelte`, `Sidebar.svelte`, `Icon.svelte`)
+- Toggle **⌖** nella barra dell'explorer (persistito in `settings.revealActive`): quando è attivo,
+  aprendo o cambiando file l'albero **espande gli antenati** fino al file attivo e ne porta la riga
+  **in vista** (come il *reveal* di VS Code). Vale anche per Quick Open, ricerca e vai-alla-definizione.
+- `revealInTree` (in `explorer`) cammina il path **per nome di segmento** (case-insensitive →
+  robusto ai separatori e al case di Windows), caricando i figli lazy mancanti; un **segnale
+  transitorio** `reveal {target, seq}` chiede a `Explorer.svelte` lo scroll nella lista virtuale, e
+  solo se la riga è fuori dal viewport. Guardia di **rientro/coalescing** (l'ultima richiesta vince).
+- **Trappola Svelte 5 evitata**: l'`$effect` in `App.svelte` che segue il file attivo invoca
+  `revealInTree` dentro **`untrack`**, perché la funzione muove `tree`/`reveal` (incluso
+  `reveal.seq++`, un read-modify-write). Senza `untrack` quelle letture/scritture diventano
+  dipendenze dell'effetto → **auto-invalidazione → loop infinito** (bug introdotto, colto e corretto).
+
+**Terminale flottante: badge cartella+branch e pin always-on-top** (`App.svelte`, `TerminalPanel.svelte`, `Icon.svelte`, `capabilities/default.json`)
+- La barra della finestra flottante mostra ora un **badge cartella + branch** (stesso look della top
+  bar). Il webview flottante non gira git per conto suo: i valori sono uno **snapshot** passato come
+  **URL param** (`root`/`branch`) al momento dello stacco (in `detach`).
+- **Pin 📌** per accendere/spegnere il *sempre in primo piano* a runtime
+  (`getCurrentWindow().setAlwaysOnTop`). La finestra nasce ancora con `alwaysOnTop: true` e il pin
+  parte attivo. Richiede il permesso **`core:window:allow-set-always-on-top`** in
+  `capabilities/default.json` (le capabilities sono compile-time → serve un rebuild Rust).
+
+**Preview Markdown allineata a sinistra** (`MarkdownView.svelte`)
+- Il corpo della reading-mode passa da **centrato** (`margin: 0 auto`) ad **allineato a sinistra** +
+  `display: flow-root` (BFC): l'**outline** flottante a destra ha così il suo spazio e il corpo gli si
+  affianca invece di scorrergli sotto (prima h1/tabelle/righe a tutta larghezza ci finivano sotto).
+
+Verifica: `svelte-check` 195 file 0/0; `cargo test` 14/14; **build release** size-optimized ok —
+entry 493 KB (165 gz), portable 5,4 MB, MSI 3,9 MB, NSIS 2,7 MB. Zero dipendenze runtime nuove.
+Bump versione → **v0.5.0** (`package.json`, `package-lock.json` ×2, `Cargo.toml`, `Cargo.lock`,
+`tauri.conf.json`). Rilascio **v0.5.0** su GitHub (NSIS + MSI + portable).
 
 ---
 

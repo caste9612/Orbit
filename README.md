@@ -34,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~5 MB binary, ~220 MB RAM at rest (mostly the shared system
-  WebView — Orbit's own Rust core is ~30 MB), and a ~475 KB startup chunk (≈158 KB gzipped).
+  WebView — Orbit's own Rust core is ~30 MB), and a ~493 KB startup chunk (≈165 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -56,6 +56,9 @@ cross-platform desktop app that weighs almost nothing.
   see exactly what changed — including what Claude just touched).
 - **Shelf**: set aside uninteresting folders by category to declutter the tree without losing
   them — they sit at the bottom and stay browsable inline (`.orbit/shelf.json`).
+- **Follow active file**: an optional toggle (⌖ in the explorer toolbar) that auto‑expands the tree
+  to the active file and reveals it as you switch tabs, Quick‑Open a file, or jump to a definition
+  (VS Code's *reveal*).
 - **Quick Open** (`Ctrl/Cmd+P`) with fuzzy ranking, and full‑text **project search**.
 - **Drag in files**: drop files from your OS file manager onto the editor to open them.
 - On Windows, after install Orbit appears in a file's **"Open with"** menu, so you can open it
@@ -103,9 +106,9 @@ cross-platform desktop app that weighs almost nothing.
   WSL, bash/zsh…).
 - **Clickable file paths** in the output — open at the line; relative paths resolve against the
   terminal's folder or the project root.
-- **Pop out** terminals into always-on-top **floating windows** that carry the live session
-  (`claude` keeps running) — detach **several** at once — with the app's own chrome, and **dock**
-  any back with one click.
+- **Pop out** terminals into **floating windows** that carry the live session (`claude` keeps
+  running) — detach **several** at once — with the app's own chrome: a **pin** toggles *always‑on‑top*
+  on/off, a badge shows the project **folder + branch**, and you can **dock** any back with one click.
 
 **Git** (local, via libgit2)
 - Status, diff, stage/unstage, commit, branch switch/create (from the status bar too), discard
@@ -161,11 +164,11 @@ Measured on Windows (size-optimized release build):
 
 | Item | Size |
 |---|---|
-| Portable `Orbit` binary | ~5.3 MB |
-| MSI installer | ~3.8 MB |
-| NSIS setup | ~2.6 MB |
-| Frontend `dist/` | ~2.6 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~475 KB (≈158 KB gzipped) |
+| Portable `Orbit` binary | ~5.4 MB |
+| MSI installer | ~3.9 MB |
+| NSIS setup | ~2.7 MB |
+| Frontend `dist/` | ~3.1 MB (most of it grammars loaded lazily) |
+| Startup JS chunk | ~493 KB (≈165 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own

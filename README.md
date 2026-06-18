@@ -76,6 +76,17 @@ cross-platform desktop app that weighs almost nothing.
   an unsaved file asks **Save / Don't save / Cancel**.
 - Live status bar: line:column, language, end-of-line.
 
+**Code navigation** (heuristic, no language server)
+- A background **symbol index** of the whole project — classes, interfaces, structs, enums, methods,
+  functions and more — for C#/Java, TypeScript/JavaScript/Svelte, Python, Rust and Go. Built by a
+  hand‑rolled Rust scanner (no LSP), cached under `.orbit/index/` and refreshed live as files change.
+- **Go to definition** (`F12`, or `Ctrl/Cmd+click`) jumps across files; ambiguous names show a picker.
+- **Project symbols** (`Ctrl/Cmd+T`): fuzzy‑jump to any symbol in the project.
+- A **related bar** under the breadcrumb shows the symbol around the cursor (type › method) with its
+  **base types / interfaces** and **implementers** (click to jump), plus kind badges (class,
+  interface, abstract, method…).
+- **Back / forward** navigation history (`Alt+←/→`).
+
 **Markdown & docs**
 - Per-file **toggle** between source and a clean **reading-mode preview** (no split view) —
   `README` files open in preview by default.
@@ -107,6 +118,8 @@ cross-platform desktop app that weighs almost nothing.
 - Define commands in `.orbit/run.json` and launch them in a terminal tab with one click. Use
   **"Set up for Claude"** to document the format in `CLAUDE.md`, so you can simply ask Claude to
   add a run configuration and it appears in the menu.
+- **Run a script file directly**: scripts (`.ps1`, `.cmd`/`.bat`, `.sh`) get a **Run ▶** action in
+  the file tree's context menu and in the editor toolbar — launched in a terminal in the file's folder.
 
 **Claude Code integration**
 - A **Claude menu** (grouped into *Prompts*, *Wrappers* and *Configuration*) opens `claude` in a
@@ -129,12 +142,16 @@ cross-platform desktop app that weighs almost nothing.
 
 **Workspace**
 - Session persistence per folder (reopens last folder, tabs and panel layout).
+- **Remembers its window**: Orbit reopens at the same position, size and maximized state where you
+  left it (restored to a connected monitor — never off-screen).
 - **Multiple instances** ("New window") for working on several projects at once — each window's
   title shows its project, so the instances are easy to tell apart in the taskbar and Alt‑Tab.
 - **Color themes**: four full themes — **Orbit Dark** (default), **Eclipse** (OLED), **Slate** and
   **Orbit Light** — switched live; the accent can follow the theme (**Auto**) or use a preset.
-- **Settings**: theme, editor/terminal font and size, accent color, smooth-caret toggle, terminal GPU
-  rendering, "launch Claude in the default terminal", and "notify when a terminal needs you".
+- **Keyboard shortcut presets**: switch the keymap between **Orbit**, **Visual Studio** and
+  **IntelliJ**, with a full searchable reference (Settings → Keyboard shortcuts).
+- **Settings**: theme, keymap preset, editor/terminal font and size, accent color, smooth-caret toggle,
+  terminal GPU rendering, "launch Claude in the default terminal", and "notify when a terminal needs you".
 
 ---
 
@@ -181,12 +198,18 @@ lives in [NOTES.md](./NOTES.md).
 | Key | Action |
 |---|---|
 | `Ctrl/Cmd+P` | Quick open file by name |
+| `Ctrl/Cmd+T` | Project symbols (across the whole project) |
 | `Ctrl/Cmd+Shift+O` | Go to symbol in the active file |
+| `F12` / `Ctrl/Cmd+click` | Go to definition |
+| `Alt+←` / `Alt+→` | Navigate back / forward |
 | `Ctrl/Cmd+F` | Find / replace (within the focused editor) |
 | `Ctrl/Cmd+S` | Save the active file |
 | `Ctrl/Cmd+K` | Open folder |
 | `Ctrl/Cmd+B` | Toggle sidebar |
 | ``Ctrl/Cmd+` `` | Toggle terminal |
+
+> These are the **Orbit** preset; switch to **Visual Studio** or **IntelliJ** keymaps in
+> Settings → Keyboard shortcuts.
 
 ---
 
@@ -198,6 +221,7 @@ lives in [NOTES.md](./NOTES.md).
   (committed/shared). Format is documented to Claude in `CLAUDE.md` via the Claude menu's
   "Update CLAUDE.md for Claude".
 - `.orbit/shelf.json` — shelved folders by category (a personal view preference; git-ignored).
+- `.orbit/index/` — cached project symbol index for code navigation (rebuilt automatically; git-ignored).
 
 ---
 

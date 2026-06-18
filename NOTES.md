@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script-in-sviluppo)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -1176,6 +1176,90 @@ runtime nuove** (solo SVG inline e i pacchetti già presenti).
 Verifica: `svelte-check` 189 file 0/0; `cargo test` 8/8; `vite build` ok (entry 474 KB / 158 KB gz).
 Nessuna dipendenza runtime nuova. README/ARCHITECTURE riallineati. Rilascio: **v0.4.0** su GitHub
 (NSIS + MSI + portable, build size-optimized).
+
+---
+
+## Milestone 33 — la finestra ricorda posizione e dimensione
+
+Fix companion-quotidiano: Orbit ripartiva sempre **centrato a 1280×800**, ignorando dove l'avevi
+lasciato. Ora posizione, dimensione e stato massimizzato si salvano all'uscita e si ripristinano
+all'avvio. **Zero dipendenze nuove** (solo `std` + `serde` + le API finestra di Tauri), coerente
+col gate #1 — scelta esplicita di non usare `tauri-plugin-window-state`.
+
+**Persistenza geometria** (`src-tauri/src/winstate.rs` nuovo, `lib.rs`, `tauri.conf.json`)
+- **Salvataggio** in `window.json` accanto alle sessioni (`app_config_dir`, come `save_state`):
+  x/y/larghezza/altezza + flag massimizzato. Scritto su `CloseRequested` (la finestra esiste
+  ancora) e, come rete di sicurezza, su `ExitRequested`.
+- **Ripristino** in `.setup()`: applica dimensione/posizione alla finestra `main`, poi `maximize()`
+  se serve. La config ora crea la finestra `visible: false` e `winstate` la **mostra** dopo averla
+  posizionata → sparisce il "salto" dalla posizione centrata di default a quella salvata.
+- **Geometria "normale" tracciata** sui `Moved`/`Resized` (scartando max/min e le coordinate
+  sentinella −32000 di Windows da minimizzata): è ciò che si salva, così ripristinando e poi
+  de-massimizzando la finestra torna a una dimensione sensata.
+- **Guardia anti off-screen**: se la barra del titolo cadrebbe su un monitor ora scollegato,
+  ripristina la dimensione ma non la posizione (con le decorazioni native off, una finestra fuori
+  da ogni schermo sarebbe irraggiungibile). Si applica **solo** alla finestra `main`: le flottanti
+  del terminale (`term-float-*`, create a runtime) restano effimere.
+
+Verifica: `cargo check` pulito; `cargo test` 14/14. Nessuna modifica frontend (`svelte-check` non
+coinvolto); nessun cambio alle capabilities (le chiamate alla finestra sono lato Rust).
+
+---
+
+## Milestone 34 — navigazione del codice, scorciatoie configurabili, esegui script (in sviluppo)
+
+Ciclo dopo la v0.4.0, **non ancora rilasciato** (in attesa di altre feature in lavorazione in
+parallelo). **Zero dipendenze runtime nuove** e nessun comando Rust nuovo salvo `scan_symbols`.
+
+**Logo in-app = nuova icona** (`Logo.svelte`)
+- Il mark mostrato nell'UI (barra superiore + finestra flottante del terminale) era rimasto il
+  vecchio glifo: ora è la **nuova icona dell'app** (pianeta con anello), coerente con l'icona OS e
+  con l'hero del README.
+
+**Esegui un file script con un click** (`util.ts`, `run.svelte.ts`, `Explorer.svelte`, `EditorArea.svelte`)
+- Complemento delle run-config (M13): i file **eseguibili** (`.ps1`, `.cmd`/`.bat`, `.sh`/`.bash`)
+  hanno un'azione **Run ▶** nel menu contestuale dell'albero e un pulsante nella barra dell'editor.
+  `runFile` apre una **tab terminale** nella cartella del file e invia il comando con l'interprete
+  giusto (`runCommand` in `util.ts`: mappa estensione→interprete); `isRunnable` decide chi è
+  lanciabile. Zero comandi Rust nuovi (riusa il modello terminali con `cwd`/`initCommand`).
+
+**Navigazione del codice — euristica, niente LSP** (`symbols.rs`, `codeIndex.svelte.ts`, `RelatedBar.svelte`, `KindBadge.svelte`, `WorkspaceSymbols.svelte`, `StatusBar.svelte`)
+Obiettivo: orientarsi nella codebase (da un metodo/classe alla sua definizione, vedere le gerarchie)
+**senza** un language server — coerente coi gate (leggerezza, niente processi pesanti).
+- **Scanner Rust `scan_symbols`** (`symbols.rs`, **solo std**, niente crate `regex`, niente LSP):
+  percorre il progetto ed estrae i simboli con parser a mano per linguaggio — **C#/Java**,
+  **TS/JS/JSX/TSX/Svelte/mjs/cjs**, **Python**, **Rust**, **Go**. `Symbol { name, kind, file, line,
+  container, bases, isAbstract }`: tipi (class/interface/struct/enum/record/trait), metodi, funzioni,
+  proprietà, più le **basi** (extends/implements) e il flag **astratto**. Coperto da `cargo test`
+  (estrazione per linguaggio + flag abstract).
+- **Rubrica cache-ata** (`codeIndex.svelte.ts`): l'indice è salvato in **`.orbit/index/symbols.json`**
+  (git-ignored) → si carica **all'istante** all'apertura e poi si **ri-scansiona in background**;
+  `scheduleRescan` (debounced 800ms) si aggancia a `fs-changed`. Il watcher **esclude `.orbit/index`**
+  per non innescare un loop di scansione. Indicatore di stato nella status bar ("N symbols" / "Indexing…").
+- **Vai alla definizione** (`F12` / **Ctrl+click** nell'editor): la parola sotto il cursore →
+  `defsFor` → salto; con più definizioni omonime apre una palette in modalità "scegli definizione".
+  Il salto registra la posizione per la **cronologia** (`Alt+←/→`, stack avanti/indietro).
+- **Simboli del progetto** (`Ctrl+T`, `WorkspaceSymbols.svelte`): palette fuzzy su tutti i simboli.
+- **Barra dei correlati** sotto la breadcrumb (`RelatedBar.svelte`): mostra il simbolo che **contiene
+  il cursore** (Tipo › Metodo, nearest-preceding nel file) con **chip** per implementa/estende
+  (cliccabili → definizione) e per gli **implementatori** del tipo; `contextAt` calcola il contesto.
+  **Badge di tipo monogramma** (`KindBadge.svelte`: C/I/S/E/R/T/M/ƒ/P, tipi astratti col bordo
+  tratteggiato) per leggere la gerarchia a colpo d'occhio. La barra **riserva l'altezza** quando il
+  file ha simboli (niente salto di layout) e si **svuota** quando il cursore è fuori da un simbolo
+  (scelta utente: meglio vuota che mostrare il simbolo "vecchio").
+
+**Scorciatoie configurabili + riepilogo** (`keybindings.svelte.ts`, `settings.svelte.ts`, `App.svelte`, `Settings.svelte`, `ShortcutsDialog.svelte`)
+- **Registro centrale dei comandi** (`COMMANDS`) con un tasto **per preset**; il dispatch da tastiera
+  è **unico** in `App.svelte` (`matchCommand(e)` → azione), così i preset valgono ovunque (F12 spostato
+  dalla keymap di CodeMirror al livello finestra). `FIXED` elenca le scorciatoie editor/mouse non
+  configurabili per il solo riepilogo.
+- **Preset**: **Orbit** (default), **Visual Studio**, **IntelliJ** (`settings.keymap`, persistito).
+- **Pannello "Keyboard shortcuts"** (`ShortcutsDialog.svelte`): aperto da Impostazioni con **un click**
+  (così non sporca i Settings); selettore del preset + elenco completo raggruppato per categoria.
+
+Verifica: `svelte-check` 195 file 0/0; `cargo test` **14/14** (filesystem + estrazione simboli per
+linguaggio + flag abstract). Zero dipendenze runtime nuove. README/ARCHITECTURE riallineati.
+**Non rilasciato**: la prossima release attende le feature secondarie in sviluppo in parallelo.
 
 ---
 

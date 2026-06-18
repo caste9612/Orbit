@@ -32,6 +32,8 @@ src-tauri/
   src/git.rs          # git commands (libgit2)
   src/pty.rs          # terminal/PTY commands
   src/watcher.rs      # file watcher (emits "fs-changed")
+  src/symbols.rs      # heuristic project symbol scanner (scan_symbols) — no LSP, std only
+  src/winstate.rs     # main-window geometry persistence (save on close, restore in setup())
   tauri.conf.json     # window, bundle, productName "Orbit"
   capabilities/       # Tauri permission capabilities
 docs/                 # this doc + screenshot
@@ -63,10 +65,12 @@ Three kinds of frontend module, kept separate:
 | `search` | project text search (debounced) |
 | `quickopen` | Ctrl+P fuzzy file finder |
 | `symbols` | **Go to Symbol** palette (Ctrl+Shift+O): outline of the active editor + fuzzy filter |
+| `codeIndex` | **project symbol index** (the "address book") from `scan_symbols`, cached in `.orbit/index/`: **Go to definition** (F12/Ctrl+click), **Project symbols** palette (Ctrl+T), the related‑bar context (`contextAt`), and back/forward nav history |
+| `keybindings` | central **command registry** + keyboard matcher/dispatch, with per‑preset keys (Orbit/VS/IntelliJ) and the shortcuts‑reference panel |
 | `claudeChats` | the project's recent Claude Code sessions (preview + turn count, from transcripts) + resume |
 | `scratch` | one‑click persistent scratchpad (`.orbit/scratch.md`) for notes/prompts |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
-| `settings` | **theme** (4 full presets incl. light)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify** (localStorage) + applies CSS vars per theme |
+| `settings` | **theme** (4 full presets incl. light)/**keymap** (shortcut preset)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify** (localStorage) + applies CSS vars per theme |
 | `layout` | panel sizes/visibility + focused panel |
 | `persist` | per‑folder session save/restore (autosave via `$effect.root`); `switchFolder` swaps the workspace folder cleanly |
 | `toast` | transient notifications |
@@ -92,7 +96,8 @@ lean (~475 KB; the ~338 KB xterm and ~73 KB CodeMirror chunks load on demand). T
 `settings.webgl` (off by default). **marked + DOMPurify** are likewise lazy (`markdown.ts`
 imports them on first render), so the Markdown feature adds nothing to the startup payload.
 A small generic **`Lazy.svelte`** wrapper (`load={() => import("./X.svelte")}`, props forwarded) does
-the same for the **overlays** (Settings, QuickOpen, SymbolPalette, WrapperComposer), the **viewers**
+the same for the **overlays** (Settings, QuickOpen, SymbolPalette, WorkspaceSymbols, ShortcutsDialog,
+WrapperComposer), the **viewers**
 (DiffView, AssetView, MarkdownView) and the **non‑default sidebar views** (Git/Search/Docs/Chats), so
 first paint loads only the Explorer + the active editor.
 
@@ -119,6 +124,26 @@ first paint loads only the Explorer + the active editor.
 - **Go to symbol** — `editor/outline.ts` extracts an outline from CodeMirror's syntax tree
   (`ensureSyntaxTree`), `editor/activeEditor.ts` tracks the focused editor, and `symbols.svelte.ts`
   + `SymbolPalette.svelte` are the `Ctrl+Shift+O` fuzzy palette that jumps to a definition.
+- **Code navigation (project‑wide, heuristic)** — `symbols.rs`'s `scan_symbols` walks the project and
+  extracts symbols with a hand‑rolled per‑language parser (C#/Java, TS/JS/JSX/Svelte, Python, Rust, Go;
+  types, methods, functions, properties + base types and an `abstract` flag) — **no LSP, no `regex`
+  crate**. `codeIndex.svelte.ts` caches the result in `.orbit/index/symbols.json` (loads instantly,
+  re‑scans in the background; `scheduleRescan` is debounced on `fs-changed`, and the watcher excludes
+  `.orbit/index` to avoid a rescan loop). **Go to definition** (`goToDefinitionAtCursor` via F12, or
+  Ctrl+click in `Editor.svelte`) resolves the word under the cursor (a picker if names collide);
+  **Project symbols** is the `Ctrl+T` palette (`WorkspaceSymbols.svelte`); jumps push a back/forward
+  history (`Alt+←/→`). `RelatedBar.svelte` (under the breadcrumb) shows `contextAt`'s enclosing symbol
+  (type › method) with clickable base types / implementers and `KindBadge.svelte` monograms; it reserves
+  its height when the file has symbols (no layout shift) and empties when the cursor is outside a symbol.
+- **Keyboard shortcuts** — `keybindings.svelte.ts` is a single command **registry** with a key per
+  preset (Orbit / Visual Studio / IntelliJ, `settings.keymap`); `App.svelte`'s window `keydown` runs
+  `matchCommand(e)` → action, so the active preset applies everywhere (Go‑to‑definition moved from the
+  CodeMirror keymap to this window‑level dispatch). `ShortcutsDialog.svelte` (opened from Settings)
+  shows the preset picker + a grouped reference (configurable commands + the fixed editor/mouse ones).
+- **Run a script file** — `run.svelte.ts`'s `runFile` opens a terminal in the file's folder and runs an
+  executable script (`.ps1`/`.cmd`/`.bat`/`.sh`); `isRunnable` + `runCommand` (`util.ts`) map the
+  extension to its interpreter. Surfaced from the tree context menu (`Explorer.svelte`) and the editor
+  toolbar (`EditorArea.svelte`); reuses the terminal model (`cwd`/`initCommand`), no new Rust command.
 - **Claude chats** — `claudeChats.svelte.ts` lists the project's Claude Code sessions; the backend
   `claude_sessions` reads the `~/.claude/projects/<slug>/*.jsonl` transcripts (a short preview from
   the last user message + a turn count), and clicking resumes one with `claude --resume <id>` (id
@@ -155,6 +180,12 @@ first paint loads only the Explorer + the active editor.
 - **Per‑project window title** — an `$effect` in `App.svelte` sets the window title to
   `<project> — Orbit` via `getCurrentWindow().setTitle` (capability `core:window:allow-set-title`),
   so multiple instances are distinguishable in the taskbar / Alt‑Tab.
+- **Window geometry** — `winstate.rs` (Rust only, no plugin) saves the `main` window's
+  position / size / maximized to `window.json` on `CloseRequested` (with an `ExitRequested`
+  safety net) and restores it in `.setup()`. The window is created `visible: false` and shown
+  after positioning (no jump from the default centered spot); it tracks the last *normal* (non‑max)
+  geometry and guards against restoring onto a now‑disconnected monitor (off‑screen). Applies only
+  to `main` — `term-float-*` windows stay ephemeral.
 - **Open with (Windows)** — `bundle.fileAssociations` registers Orbit as a handler for common file
   types, so it shows up in the OS "Open with" menu (registered by the **installer**, not `tauri dev`).
   `startup()` opens a file passed as the first CLI argument (`orbit.exe "<file>"`) and uses its
@@ -176,9 +207,12 @@ frontend calls them with `invoke("name", {args})`. Areas:
   `git_branches`, `git_checkout_branch`, `git_create_branch`, `git_discard`, `git_log`, `git_show`.
 - **Terminal** (`pty.rs`): `pty_spawn`, `pty_write`, `pty_resize`, `pty_kill`, `pty_alive`, `list_shells`;
   streams output as `pty-data-<id>` events.
+- **Symbols** (`symbols.rs`): `scan_symbols(root)` — heuristic project‑wide symbol scan (std only, no
+  LSP / no `regex`); returns `Symbol { name, kind, file, line, container, bases, isAbstract }`.
 - **Watcher** (`watcher.rs`): `watch_start`; emits a debounced **`fs-changed`** event that the
   frontend listens to (refresh tree + git + reload open files + run config + Claude config + shelf
-  + Docs index when visible).
+  + Docs index when visible + symbol re‑scan). The watch ignores `.orbit/index` so caching the symbol
+  index never re‑triggers itself.
 
 **Adding a command:** write `#[tauri::command] fn foo(...) -> Result<T, String>` in the right
 `*.rs`, add `foo` (or `module::foo`) to the `generate_handler!` list in `lib.rs`, then call
@@ -190,11 +224,13 @@ commands (only Tauri plugin commands need permissions in `capabilities/`).
 - **Session** (per folder): `save_state(key=folder, data)` → `app_config_dir()/sessions/<hash>.json`
   + `last_session.txt` (editor groups + tabs + active group + panel layout). Restored on launch
   (`persist.loadSession`; reads legacy single‑group sessions too).
+- **Window geometry** (app‑global): the main window's position / size / maximized state →
+  `app_config_dir()/window.json`, written on close and restored in `setup()` (`winstate.rs`).
 - **Settings** (app‑global): `localStorage["orbit.settings"]`, applied as CSS variables on
   `document.documentElement`. (Per WebView origin: dev and the installed app have separate stores.)
 - **Project config** (committed/shared): `.orbit/run.json` (run configs) and `.orbit/claude.json`
   (Claude launcher command/args + shortcuts). `.orbit/shelf.json` is a personal view preference and
-  is git‑ignored.
+  is git‑ignored, as is `.orbit/index/symbols.json` (the rebuildable symbol‑navigation cache).
 
 ## Theming
 

@@ -29,6 +29,15 @@ base64 = "0.22"
 # file watcher (albero + git in tempo reale)
 notify = "6"
 
+# Liveness dei pid: recupero post-crash della sessione multi-finestra (scarta le voci di processi
+# morti, che altrimenti bloccherebbero il "riapri tutte"). Versioni GIÀ presenti nell'albero come
+# dipendenze transitive → costo di compilazione nullo. Cfg-gated per piattaforma.
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_Threading"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 # Profilo release ottimizzato per footprint minimo (gate #1: leggerezza).
 [profile.release]
 opt-level = "s"   # ottimizza per dimensione

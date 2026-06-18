@@ -28,6 +28,8 @@
     check: `<path d="M20 6 9 17l-5-5"/>`,
     play: `<polygon points="6 3 20 12 6 21 6 3"/>`,
     "new-window": `<rect width="12" height="12" x="3" y="9" rx="2"/><path d="M9 9V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-4"/>`,
+    // chiudi tutte le finestre di Orbit (finestre impilate + una x sulla davanti)
+    "windows-close": `<rect width="13" height="13" x="3" y="8" rx="2"/><path d="M8 8V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-3"/><path d="m7.5 13 4 4"/><path d="m11.5 13-4 4"/>`,
     sparkles: `<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>`,
     message: `<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>`,
     // azioni gestione file (menu contestuale albero)

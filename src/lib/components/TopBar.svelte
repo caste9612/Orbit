@@ -33,6 +33,14 @@
       console.error("nuova finestra", e);
     }
   }
+  // Chiude tutte le finestre di Orbit (anche le altre istanze): salva il set per riaprirle al prossimo avvio.
+  async function closeAll() {
+    try {
+      await invoke("close_all_windows");
+    } catch (e) {
+      console.error("chiudi tutte", e);
+    }
+  }
   let maximized = $state(false);
   let changed = $derived(changedCount()); // file modificati → badge sul pulsante Git
 
@@ -170,6 +178,9 @@
     </button>
     <button class="view only" title="New window (another folder)" aria-label="New window" onclick={newWindow}>
       <Icon name="new-window" size={15} strokeWidth={1.7} />
+    </button>
+    <button class="view only" title="Close all Orbit windows (reopen on next launch)" aria-label="Close all windows" onclick={closeAll}>
+      <Icon name="windows-close" size={15} strokeWidth={1.7} />
     </button>
     <button class="view only" title="Settings" aria-label="Settings" onclick={openSettings}>
       <Icon name="settings" size={15} strokeWidth={1.7} />

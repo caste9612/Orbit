@@ -138,6 +138,14 @@
       .catch(() => {});
   });
 
+  // Registro multi-finestra: comunica al backend la cartella aperta, così un avvio "nudo" può
+  // riaprire tutte le finestre della sessione precedente. Reattivo al cambio cartella; mai per le flottanti.
+  $effect(() => {
+    if (isFloatingTerminal) return;
+    const folder = workspace.rootPath;
+    if (folder) void invoke("register_window", { folder });
+  });
+
   // Indice simboli del progetto ("rubrica"): (ri)costruito quando cambia la cartella aperta.
   $effect(() => {
     if (isFloatingTerminal) return;

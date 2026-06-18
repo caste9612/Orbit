@@ -149,6 +149,10 @@ cross-platform desktop app that weighs almost nothing.
   left it (restored to a connected monitor — never off-screen).
 - **Multiple instances** ("New window") for working on several projects at once — each window's
   title shows its project, so the instances are easy to tell apart in the taskbar and Alt‑Tab.
+- **Close all / reopen all windows**: with several windows open, **Close all** (top bar) closes every
+  Orbit window at once, and the next launch **reopens them all at their previous positions**. Each
+  window stays its own process; a tiny shared registry in the app config dir coordinates them (no extra
+  runtime), and windows left by a crash are pruned so restore keeps working.
 - **Color themes**: four full themes — **Orbit Dark** (default), **Eclipse** (OLED), **Slate** and
   **Orbit Light** — switched live; the accent can follow the theme (**Auto**) or use a preset.
 - **Keyboard shortcut presets**: switch the keymap between **Orbit**, **Visual Studio** and

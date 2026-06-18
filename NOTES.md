@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -1301,6 +1301,51 @@ Verifica: `svelte-check` 195 file 0/0; `cargo test` 14/14; **build release** siz
 entry 493 KB (165 gz), portable 5,4 MB, MSI 3,9 MB, NSIS 2,7 MB. Zero dipendenze runtime nuove.
 Bump versione → **v0.5.0** (`package.json`, `package-lock.json` ×2, `Cargo.toml`, `Cargo.lock`,
 `tauri.conf.json`). Rilascio **v0.5.0** su GitHub (NSIS + MSI + portable).
+
+---
+
+## Milestone 36 — finestre multiple: chiudi tutte e riapri tutte (C+)
+
+Le istanze multiple ("Nuova finestra") restano **processi separati**; mancavano due cose: **chiuderle
+tutte** con un'azione e **riaprirle tutte alle loro posizioni** al riavvio. Aggiunte con un **registro
+condiviso** (approccio "C+"), senza passare a single-process. Branch dedicato, sviluppo a fasi (F0–F3).
+
+**Perché NON single-process (misura prima di decidere).** Ipotesi iniziale: un solo processo con N
+finestre risparmierebbe molta RAM. Misura reale (private working set): **1 fin 249 MB · 2 fin 351 MB ·
+3 fin 427 MB** (~+90 MB/finestra). Scoperta: le istanze separate **condividono già** lo stack WebView2
+(stessa user-data-folder, stesso bundle id → gpu/browser/utility NON duplicati); il +90 MB è quasi tutto
+renderer+GPU, **identico anche in single-process**. Quindi single-process avrebbe risparmiato solo
+~5–15 MB/finestra → non vale costo/rischio del refactor. Script ripetibile: `scripts/measure-orbit-ram.ps1`.
+
+**Registro: un file per finestra** (`src-tauri/src/winsession.rs`, che SOSTITUISCE `winstate.rs`). In
+`app_config_dir`:
+- `windows/<id>.json` — set VIVO, **un file per finestra** (id = `pid-nanos`). Ogni processo scrive/
+  cancella SOLO il proprio file → niente race. Scrittura atomica con file-temp **unico per processo**.
+  (Un primo tentativo con un unico `windows-open.json` condiviso si corrompeva: read-modify-write e
+  file-temp condivisi tra processi → file rotto + update persi. Il test a runtime l'ha stanato.)
+- `windows-restore.json` — snapshot da riaprire. `windows-control.json` — token per il "chiudi tutte".
+
+**Riapri-tutte** (nessun IPC). Regola: **avvio nudo** (senza cartella da CLI/env) → ripristina il set
+(questa istanza apre la prima voce e **ri-spawna** le altre passando la geometria via env `ORBIT_WIN_*`);
+**avvio con cartella** (Nuova finestra, `orbit <path>`, Apri-con) → apre solo quella. La geometria è
+catturata sul **blur** (`Focused(false)`) e prima dello snapshot, non solo alla chiusura (altrimenti si
+ripristinerebbe la posizione d'apertura). La decisione d'avvio è in `plan()` (puro, testato).
+
+**Chiudi-tutte.** Comando `close_all_windows`: snapshot del set → ripristino, poi uscita; segnala alle
+altre istanze via **token** nel file di controllo. Ogni istanza ha un **watcher `notify`** sulla cartella
+di config (event-driven, niente polling): visto un token oltre il baseline d'avvio, esce. Pulsante in TopBar.
+
+**Recupero post-crash.** Un crash lascia un `windows/<id>.json` orfano che, risultando il set "vivo" non
+vuoto, bloccherebbe il ripristino. All'avvio `prune_dead()` scarta le voci il cui **pid non è più attivo**
+(`pid_alive`: cfg-gated — Windows `OpenProcess`, Unix `kill(pid,0)`).
+
+**Dipendenze:** `windows-sys` (cfg windows) + `libc` (cfg unix) solo per la liveness — versioni **già
+presenti** nell'albero come transitive → costo di compilazione nullo. Nient'altro; nessun single-process.
+
+Verifica: `cargo test` **22/22** (logica `plan`, `pid_of`, liveness); `svelte-check` 195/0/0. **Verificato
+a runtime**: 2 finestre spostate → chiudi-tutte → riavvio nudo → riaperte alle posizioni; stato "da
+crash" fabbricato → potatura + ripristino. Nessuna regressione RAM/CPU (core invariato; +1 thread watcher
+event-driven). Prima del rilascio: bump versione (**v0.6.0**) + build installer.
 
 ---
 

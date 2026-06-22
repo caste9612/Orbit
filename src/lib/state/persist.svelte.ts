@@ -2,9 +2,11 @@
 // le rispettive tab e tab attiva, gruppo attivo e stato dei pannelli, in un JSON nella config
 // dir dell'app (comandi Rust load_state/save_state). Zero dipendenze.
 import { invoke } from "@tauri-apps/api/core";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { workspace, fileByPath, restoreGroups, resetDocs } from "./workspace.svelte";
 import { openRoot } from "./explorer.svelte";
 import { layout, type SidebarView } from "./layout.svelte";
+import { syncActiveTerminalToRoot } from "./terminals.svelte";
 
 interface SavedGroup {
   tabs: string[];
@@ -122,10 +124,20 @@ export async function saveSessionNow() {
  *  la sessione appena salvata con uno stato vuoto. */
 export async function switchFolder(path: string) {
   if (!path || path === workspace.rootPath) return;
+  // avvisa se ci sono modifiche non salvate: cambiare cartella le scarterebbe (resetDocs)
+  const dirty = workspace.openFiles.filter((f) => f.dirty).length;
+  if (dirty > 0) {
+    const ok = await confirm(
+      `${dirty === 1 ? "1 file has" : `${dirty} files have`} unsaved changes that switching folder will discard. Continue?`,
+      { title: "Unsaved changes", kind: "warning" },
+    );
+    if (!ok) return;
+  }
   await saveSessionNow(); // 1. preserva le tab della cartella corrente (sotto la sua chiave)
   workspace.rootPath = null; // 2. sospende l'autosave (niente clobber durante lo scambio)
   resetDocs(); // 3. via i documenti della cartella precedente
   await loadSession(path); // 4. ripristina la nuova cartella (apre comunque se senza sessione)
+  syncActiveTerminalToRoot(workspace.rootPath); // 5. mostra le schede terminale di QUESTA repo
 }
 
 /** Attiva il salvataggio automatico (debounced) a ogni cambio di sessione/layout.

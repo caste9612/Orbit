@@ -27,6 +27,9 @@
   let shells = $state<ShellInfo[]>([]);
   let shellMenu = $state<{ x: number; y: number } | null>(null);
 
+  // Schede della repo ATTIVA (le altre restano montate ma nascoste → PTY/scrollback vivi).
+  let visibleTabs = $derived(terminals.list.filter((t) => t.root === workspace.rootPath));
+
   // icona + colore identità per tipo di terminale (Claude in accento ✨, shell coi loro colori)
   function tabVisual(shell: string | null, title: string): { icon: string; color: string } {
     const s = `${shell ?? ""} ${title}`.toLowerCase();
@@ -136,7 +139,7 @@
 <section class="terminal-panel" class:focused={layout.focusPanel === "terminal"} style="width:{layout.terminalWidth}px" onpointerdown={() => setFocusPanel("terminal")}>
   <header class="head">
     <div class="tabs">
-      {#each terminals.list as t (t.id)}
+      {#each visibleTabs as t (t.id)}
         {@const tv = tabVisual(t.shell, t.title)}
         <div class="tab" class:active={t.id === terminals.activeId}>
           <button class="tab-main" title={t.needsAttention ? `${t.title} — waiting for you` : t.title} onclick={() => setActiveTerminal(t.id)}>

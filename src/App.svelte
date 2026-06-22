@@ -31,6 +31,7 @@
   import { redockTerminal, terminals } from "./lib/state/terminals.svelte";
   import { initIndex, scheduleRescan, wsPalette, openWsPalette, navBack, navForward, goToDefinitionAtCursor } from "./lib/state/codeIndex.svelte";
   import { matchCommand, shortcutsUI } from "./lib/state/keybindings.svelte";
+  import { loadFolders, addFolder } from "./lib/state/folders.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
   // Le finestre flottanti hanno label "term-float-<id>" e mostrano un terminale a tutta finestra.
@@ -143,7 +144,10 @@
   $effect(() => {
     if (isFloatingTerminal) return;
     const folder = workspace.rootPath;
-    if (folder) void invoke("register_window", { folder });
+    if (folder) {
+      void invoke("register_window", { folder });
+      untrack(() => addFolder(folder)); // ogni cartella aperta entra nel selettore repo (no dep su folders.list)
+    }
   });
 
   // Indice simboli del progetto ("rubrica"): (ri)costruito quando cambia la cartella aperta.
@@ -191,6 +195,7 @@
     }
     addWheelZoom();
     startSettingsAutosave();
+    loadFolders(); // ripristina l'elenco repo del selettore (top bar)
     // aggiornamento in tempo reale: il backend emette fs-changed (debounced)
     offFsChanged = await listen("fs-changed", () => {
       refreshTree();

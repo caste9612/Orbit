@@ -8,6 +8,7 @@
   import { layout, selectView, toggleTerminal } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog } from "../state/explorer.svelte";
+  import { folders, openFromList } from "../state/folders.svelte";
   import { changedCount } from "../state/git.svelte";
   import { run, runConfig, openConfig, teachClaude } from "../state/run.svelte";
   import {
@@ -48,6 +49,26 @@
   function menuPos(e: MouseEvent) {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     return { x: r.left, y: r.bottom + 4 };
+  }
+
+  // selettore repo (la barra col nome progetto): elenca le cartelle aperte + "Add folder…"
+  let folderMenu = $state<{ x: number; y: number } | null>(null);
+  function openFolderMenu(e: MouseEvent) {
+    folderMenu = menuPos(e);
+  }
+  function folderMenuItems(): MenuItem[] {
+    const items: MenuItem[] = folders.list.map((f) => ({
+      label: f.name,
+      icon: f.path === workspace.rootPath ? "folder-open" : "folder",
+      onClick: () => void openFromList(f.path),
+    }));
+    items.push({
+      label: "Add folder…",
+      icon: "folder-plus",
+      separatorBefore: items.length > 0,
+      onClick: openFolderDialog,
+    });
+    return items;
   }
 
   let runMenu = $state<{ x: number; y: number } | null>(null);
@@ -151,13 +172,14 @@
 
   <div class="spacer" data-tauri-drag-region>
     {#if workspace.rootName}
-      <div class="ws" data-tauri-drag-region>
+      <button class="ws" onclick={openFolderMenu} title="Switch repository">
         <span class="wsname">{workspace.rootName}</span>
         {#if workspace.branch}
           <span class="wssep"></span>
           <span class="wsbranch"><Icon name="git-branch" size={11} strokeWidth={1.8} />{workspace.branch}</span>
         {/if}
-      </div>
+        <span class="wschev"><Icon name="chevron-down" size={12} strokeWidth={2} /></span>
+      </button>
     {/if}
   </div>
 
@@ -205,6 +227,9 @@
 {/if}
 {#if claudeMenu}
   <ContextMenu x={claudeMenu.x} y={claudeMenu.y} items={claudeMenuItems()} onClose={() => (claudeMenu = null)} />
+{/if}
+{#if folderMenu}
+  <ContextMenu x={folderMenu.x} y={folderMenu.y} items={folderMenuItems()} onClose={() => (folderMenu = null)} />
 {/if}
 
 <style>
@@ -294,13 +319,26 @@
     gap: 8px;
     max-width: 100%;
     height: 21px;
-    padding: 0 11px;
+    padding: 0 9px;
     background: var(--color-surface-1);
     border: 1px solid var(--color-line);
     border-radius: 7px;
     font-size: 12px;
+    font-family: inherit;
+    color: inherit;
     white-space: nowrap;
     overflow: hidden;
+    cursor: pointer;
+    transition: background 90ms ease, border-color 90ms ease;
+  }
+  .ws:hover {
+    background: var(--color-surface-3);
+    border-color: var(--color-line-strong);
+  }
+  .ws .wschev {
+    flex: 0 0 auto;
+    display: inline-flex;
+    color: var(--color-ink-subtle);
   }
   .wsname {
     color: #eaeef3;

@@ -5,12 +5,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { layout } from "./layout.svelte";
 import { settings } from "./settings.svelte";
 import { notify } from "./toast.svelte";
+import { workspace } from "./workspace.svelte";
 
 export interface TermSession {
   id: string;
   title: string;
   shell: string | null; // null = shell default di piattaforma
   cwd: string | null; // cartella di lavoro (null = radice del workspace)
+  root: string | null; // repo (workspace.rootPath) di appartenenza → il pannello filtra per repo attiva
   initCommand: string | null; // comando lanciato all'avvio (run config)
   started: boolean; // initCommand già inviato (evita ri-esecuzione al remount)
   attach: boolean; // true = si collega a un PTY esistente (terminale reincollato dalla finestra flottante)
@@ -24,6 +26,10 @@ export const terminals = $state({
   activeId: null as string | null,
 });
 
+// Scheda attiva RICORDATA per repo (chiave = root path): cambiando repo si ripristina quella giusta.
+const activeByRoot: Record<string, string> = {};
+const sameRoot = (a: string | null, b: string | null) => a === b;
+
 export interface NewTerminal {
   shell?: string | null;
   title?: string;
@@ -35,17 +41,20 @@ export interface NewTerminal {
 export function addTerminal(opts: NewTerminal = {}): string {
   counter += 1;
   const id = `term-${counter}`;
+  const root = workspace.rootPath;
   terminals.list.push({
     id,
     title: opts.title ?? `Terminal ${counter}`,
     shell: opts.shell ?? null,
     cwd: opts.cwd ?? null,
+    root,
     initCommand: opts.initCommand ?? null,
     started: false,
     attach: false,
     needsAttention: false,
   });
   terminals.activeId = id;
+  if (root) activeByRoot[root] = id;
   return id;
 }
 
@@ -55,7 +64,8 @@ function removeAt(i: number) {
   const removed = terminals.list[i];
   terminals.list.splice(i, 1);
   if (removed && terminals.activeId === removed.id) {
-    terminals.activeId = terminals.list[i]?.id ?? terminals.list[i - 1]?.id ?? null;
+    // attiva una scheda DELLA STESSA repo (le tab di altre repo non c'entrano)
+    syncActiveTerminalToRoot(removed.root);
   }
   if (terminals.list.length === 0) layout.terminalVisible = false;
 }
@@ -76,23 +86,37 @@ export async function redockTerminal(s: { id: string; title: string; shell: stri
   }
   const alive = await invoke<boolean>("pty_alive", { id: s.id }).catch(() => false);
   if (!alive) return; // PTY morto → niente tab zombie
+  const root = workspace.rootPath;
   terminals.list.push({
     id: s.id,
     title: s.title,
     shell: s.shell,
     cwd: null,
+    root,
     initCommand: null,
     started: true,
     attach: true,
     needsAttention: false,
   });
   terminals.activeId = s.id;
+  if (root) activeByRoot[root] = s.id;
   layout.terminalVisible = true;
 }
 
 export function setActiveTerminal(id: string) {
   terminals.activeId = id;
+  const t = terminals.list.find((s) => s.id === id);
+  if (t?.root) activeByRoot[t.root] = id; // ricorda la scelta per questa repo
   clearAttention(id); // guardare la scheda azzera la richiesta d'attenzione
+}
+
+/** Cambiando repo: attiva la scheda terminale di QUELLA repo (l'ultima usata lì, o la prima, o
+ *  nessuna). Le schede delle altre repo restano vive ma nascoste (il pannello filtra per root). */
+export function syncActiveTerminalToRoot(root: string | null) {
+  const visible = terminals.list.filter((t) => sameRoot(t.root, root));
+  const remembered = root ? activeByRoot[root] : undefined;
+  terminals.activeId =
+    remembered && visible.some((t) => t.id === remembered) ? remembered : (visible[0]?.id ?? null);
 }
 
 /** Azzera il pallino "attenzione" di una scheda (quando la guardi davvero). */

@@ -32,7 +32,8 @@ pub struct WinGeom {
     pub maximized: bool,
 }
 
-// Una finestra nel registro: cartella aperta + geometria + id univoco di questa finestra-processo.
+// Una finestra nel registro: cartella aperta + geometria + id univoco di questa finestra-processo +
+// `key` = chiave di sessione STABILE (vedi WinKey).
 #[derive(Serialize, Deserialize, Clone)]
 pub struct WinEntry {
     pub folder: String,
@@ -42,6 +43,8 @@ pub struct WinEntry {
     pub height: u32,
     pub maximized: bool,
     pub id: String,
+    #[serde(default)] // voci vecchie (pre-0.7.1) senza key → "" → ne riceve una nuova al register
+    pub key: String,
 }
 
 // Ultima geometria "normale" (non massimizzata/minimizzata), aggiornata sui Moved/Resized: è ciò che
@@ -52,6 +55,13 @@ pub struct LastNormal(pub Mutex<Option<(i32, i32, u32, u32)>>);
 // Id (pid + nanos) assegnato alla finestra di QUESTO processo al primo register_window.
 #[derive(Default)]
 pub struct WinId(pub Mutex<String>);
+
+// Chiave di sessione STABILE di questa finestra. A differenza di `id` (pid-nanos, cambia a ogni
+// processo) sopravvive al riapri-tutte: viene passata via env ORBIT_WIN_KEY al respawn e persiste in
+// windows-restore. Il frontend la usa come prefisso della chiave di sessione (`<key>|<folder>`), così
+// due finestre sulla STESSA cartella hanno sessioni distinte → niente clobbering di tab/layout/repos.
+#[derive(Default)]
+pub struct WinKey(pub Mutex<String>);
 
 // Cartella che la finestra di questo processo deve aprire quando è la "restoratrice" di una sessione
 // (avvio nudo con set salvato): letta da `startup()` per dire al frontend cosa aprire.
@@ -236,6 +246,37 @@ fn this_id(app: &AppHandle) -> String {
     s.clone()
 }
 
+fn new_key() -> String {
+    // unica al momento della creazione; resa STABILE dalla persistenza in windows-restore + env.
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    format!("k{}-{}", std::process::id(), nanos)
+}
+
+/// Chiave di sessione STABILE della finestra di questo processo (impostata da `init`).
+pub fn this_key(app: &AppHandle) -> String {
+    let st = app.state::<WinKey>();
+    let mut s = st.0.lock().unwrap_or_else(|e| e.into_inner());
+    if s.is_empty() {
+        *s = new_key();
+    }
+    s.clone()
+}
+
+/// Sceglie la chiave stabile della finestra: env (figlio del respawn) → chiave della voce ripristinata
+/// (avvio nudo) → nuova. Pura, testabile.
+fn resolve_key(env_key: Option<String>, restore_first_key: Option<&str>) -> String {
+    if let Some(k) = env_key.filter(|k| !k.is_empty()) {
+        return k;
+    }
+    if let Some(k) = restore_first_key.filter(|k| !k.is_empty()) {
+        return k.to_string();
+    }
+    new_key()
+}
+
 /// Il frontend, risolta la cartella di lavoro, registra questa finestra nel set vivo.
 /// Richiamabile anche al cambio cartella (idempotente: aggiorna la voce per id).
 #[tauri::command]
@@ -243,7 +284,7 @@ pub fn register_window(app: AppHandle, window: WebviewWindow, folder: String) {
     let id = this_id(&app);
     let (x, y, width, height) = current_geom(&window).unwrap_or((100, 100, 1280, 800));
     let maximized = window.is_maximized().unwrap_or(false);
-    let entry = WinEntry { folder, x, y, width, height, maximized, id: id.clone() };
+    let entry = WinEntry { folder, x, y, width, height, maximized, id: id.clone(), key: this_key(&app) };
     if let Some(p) = entry_path(&app, &id) {
         write_json_atomic(&p, &entry);
     }
@@ -318,7 +359,8 @@ fn spawn_instance(exe: &Path, e: &WinEntry) {
         .env("ORBIT_WIN_Y", e.y.to_string())
         .env("ORBIT_WIN_W", e.width.to_string())
         .env("ORBIT_WIN_H", e.height.to_string())
-        .env("ORBIT_WIN_MAX", if e.maximized { "1" } else { "0" });
+        .env("ORBIT_WIN_MAX", if e.maximized { "1" } else { "0" })
+        .env("ORBIT_WIN_KEY", &e.key); // chiave di sessione stabile → la finestra riapre la SUA sessione
     let _ = cmd.spawn();
 }
 
@@ -367,7 +409,15 @@ pub fn init(app: &AppHandle, win: &WebviewWindow, arg_dir: Option<String>) {
     prune_dead(app); // scarta i file di processi morti (crash): altrimenti bloccherebbero il ripristino
     let live = load_live(app);
     let restore = load_restore(app);
-    match plan(arg_dir.as_deref(), geom_from_env(), &live, &restore) {
+    let the_plan = plan(arg_dir.as_deref(), geom_from_env(), &live, &restore);
+    // chiave di sessione STABILE della finestra: env (figlio del respawn) → voce ripristinata → nuova.
+    let restore_first_key = match &the_plan {
+        RestorePlan::Restore { first, .. } => Some(first.key.clone()),
+        _ => None,
+    };
+    let key = resolve_key(std::env::var("ORBIT_WIN_KEY").ok(), restore_first_key.as_deref());
+    *app.state::<WinKey>().0.lock().unwrap_or_else(|e| e.into_inner()) = key;
+    match the_plan {
         RestorePlan::ApplyEnv(g) => apply_geom(win, g),
         RestorePlan::Restore { first, spawn } => {
             apply_geom(
@@ -490,7 +540,19 @@ mod tests {
     use super::*;
 
     fn entry(folder: &str) -> WinEntry {
-        WinEntry { folder: folder.into(), x: 0, y: 0, width: 1280, height: 800, maximized: false, id: folder.into() }
+        WinEntry { folder: folder.into(), x: 0, y: 0, width: 1280, height: 800, maximized: false, id: folder.into(), key: format!("key-{}", folder) }
+    }
+
+    #[test]
+    fn resolve_key_priorita() {
+        // env (figlio del respawn) ha la precedenza assoluta
+        assert_eq!(resolve_key(Some("envK".into()), Some("restoreK")), "envK");
+        // niente env → usa la chiave della voce ripristinata (avvio nudo)
+        assert_eq!(resolve_key(None, Some("restoreK")), "restoreK");
+        assert_eq!(resolve_key(Some("".into()), Some("restoreK")), "restoreK"); // env vuoto = assente
+        // niente env né voce → ne genera una nuova (non vuota, prefisso "k")
+        let k = resolve_key(None, None);
+        assert!(k.starts_with('k') && k.len() > 3);
     }
 
     #[test]

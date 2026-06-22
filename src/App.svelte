@@ -27,11 +27,11 @@
   import { loadDocs } from "./lib/state/docs.svelte";
   import { invalidateFiles } from "./lib/state/projectFiles";
   import { loadSettings, startSettingsAutosave, settingsUI, nudgeFontSize, settings } from "./lib/state/settings.svelte";
-  import { loadSession, startAutosave } from "./lib/state/persist.svelte";
+  import { loadSession, startAutosave, setWinKey } from "./lib/state/persist.svelte";
   import { redockTerminal, terminals } from "./lib/state/terminals.svelte";
   import { initIndex, scheduleRescan, wsPalette, openWsPalette, navBack, navForward, goToDefinitionAtCursor } from "./lib/state/codeIndex.svelte";
   import { matchCommand, shortcutsUI } from "./lib/state/keybindings.svelte";
-  import { loadFolders, addFolder, cycleRepo, selectRepoIndex } from "./lib/state/folders.svelte";
+  import { addFolder, cycleRepo, selectRepoIndex } from "./lib/state/folders.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
   // Le finestre flottanti hanno label "term-float-<id>" e mostrano un terminale a tutta finestra.
@@ -213,7 +213,6 @@
     }
     addWheelZoom();
     startSettingsAutosave();
-    loadFolders(); // ripristina l'elenco repo del selettore (top bar)
     // aggiornamento in tempo reale: il backend emette fs-changed (debounced)
     offFsChanged = await listen("fs-changed", () => {
       refreshTree();
@@ -249,13 +248,14 @@
       /* fuori dal contesto Tauri */
     }
     try {
-      const s = await invoke<{ dir: string | null; file: string | null; search: string | null }>(
+      const s = await invoke<{ dir: string | null; file: string | null; search: string | null; winKey: string }>(
         "startup",
       );
+      setWinKey(s.winKey); // chiave di sessione per-finestra (prima di qualunque loadSession)
       if (s.dir) {
         // avvio esplicito (arg CLI / env, es. "Nuova finestra"): apre quella cartella
-        // ripristinandone la sessione (tab/layout) se esiste, altrimenti fresca
-        await loadSession(s.dir);
+        // ripristinandone la sessione (tab/layout + lista repo della finestra) se esiste, altrimenti fresca
+        await loadSession(s.dir, { repos: true });
         if (s.file) await openFile(s.file);
         if (s.search) {
           layout.sidebarView = "search";
@@ -263,8 +263,8 @@
           setQuery(s.search);
         }
       } else {
-        // nessun avvio esplicito: ripristina l'ultima sessione
-        await loadSession();
+        // nessun avvio esplicito: ripristina l'ultima sessione (con la sua lista repo)
+        await loadSession(undefined, { repos: true });
       }
     } catch (e) {
       console.error("startup", e);

@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -1506,6 +1506,39 @@ salvavano entrambi → guardia: dentro l'editor salva solo CodeMirror); conferma
 
 Verifica finale: `svelte-check` 198/0/0, `cargo test` 24/24, build release verificato a runtime (apre le
 cartelle — lo scenario che il bug rompeva). Rilasciato in **v0.7.0**.
+
+---
+
+## Milestone 39 — multi-finestra + multi-cartella: lista repo e sessioni PER-FINESTRA (v0.7.1)
+
+Bugfix dell'interazione tra il **selettore repo** (M37, più cartelle in una finestra) e le **istanze
+multiple** (M14/M36). Le istanze condividono la **user-data-folder di WebView2** (stesso bundle id) →
+condividono `localStorage` e la cartella di config. La M37 teneva la lista repo in `localStorage`
+globale (letta una volta, scritta intera, senza sync) → tra finestre: **clobbering** (last-writer-wins →
+repo persi) e **staleness** (una finestra non vedeva i cambi dell'altra). E le sessioni, keyed per
+CARTELLA, si **sovrascrivevano** quando la stessa cartella era aperta in due finestre.
+
+**Lista repo PER-FINESTRA.** Via `localStorage` per la lista repo: ora vive solo nello `$state` in
+memoria di ciascuna finestra, persistita nella **sessione della cartella attiva** (campo `repos`).
+`loadSession({repos:true})` la risemina all'avvio della finestra; uno *switch* di cartella NON la
+sostituisce (resta quella della finestra). Le **impostazioni** (tema/keymap) restano globali di proposito.
+
+**Sessioni PER-FINESTRA.** Chiave di sessione da `<folder>` a `<winKey>|<folder>`, dove `winKey` è una
+**chiave finestra stabile** assegnata dal backend (`winsession::WinKey`): a differenza dell'`id`
+(pid-nanos, cambia a ogni processo) sopravvive al riapri-tutte — passata via env `ORBIT_WIN_KEY` al
+respawn, persistita in `windows-restore.json` (campo `key` su `WinEntry`, `#[serde(default)]` per
+retrocompat) e restituita al frontend da `startup()`. Due finestre sulla STESSA cartella → `winKey`
+diverse → file di sessione distinti → niente clobbering (tab/layout/repos). `load_state`/`save_state`
+non cambiano (hashano una stringa qualsiasi): la chiave la compone il frontend.
+
+Verifica: `cargo test` **25/25** (nuovo `resolve_key_priorita`: env → voce ripristinata → nuova),
+`svelte-check` 198/0/0. **Runtime:** 2 istanze su cartelle diverse → repo bar indipendenti (`[IDE]` vs
+`[docs]`, non più `[IDE,docs]`); 2 istanze sulla STESSA cartella → `key` distinte nel registro + 2 file
+di sessione separati. `close-all`/`reopen-all` (M36) NON ri-testato a runtime (chiuderebbe anche le
+finestre di lavoro dell'utente): coperto dai test `plan`/`resolve_key` + logica invariata (geom+key via
+env). **Limite residuo accettato:** `last_session.txt` (avvio "nudo" senza set da ripristinare) resta
+globale → il fallback può caricare la sessione di un'altra finestra; caso raro, non distruttivo (chiave
+diversa al salvataggio). Rilasciato in **v0.7.1**.
 
 ---
 

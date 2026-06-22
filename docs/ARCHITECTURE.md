@@ -56,7 +56,7 @@ Three kinds of frontend module, kept separate:
 | Module | Owns |
 |---|---|
 | `workspace` | open folder, document pool (kinds: file/diff/image/pdf), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), markdown `preview` default from `settings.mdMode`, … |
-| `folders` | the **open repositories** list for the top‑bar switcher (localStorage `orbit.folders`, app‑global); `addFolder`/`removeFolder`/`openFromList`/`cycleRepo`/`selectRepoIndex` — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
+| `folders` | the **open repositories** list for the top‑bar switcher — **per‑window**: in‑memory `$state` only (NOT global localStorage, which is shared across instances and caused clobbering), persisted in the active folder's session as `repos` and reseeded by `loadSession({repos:true})` at window startup; `addFolder`/`removeFolder`/`setFolders`/`openFromList`/`cycleRepo`/`selectRepoIndex` — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file") |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
 | `terminals` | terminal tabs (id/title/shell/cwd) + active tab; **bell attention** (`notifyTerminalBell` → tab marker + toast when a terminal needs you); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive) |
@@ -73,7 +73,7 @@ Three kinds of frontend module, kept separate:
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
 | `settings` | **theme** (4 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
 | `layout` | panel sizes/visibility + focused panel |
-| `persist` | per‑folder session save/restore (autosave via `$effect.root`); `switchFolder` swaps the workspace folder cleanly |
+| `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; `switchFolder` swaps the active folder cleanly (keeps the window's repo list) |
 | `toast` | transient notifications |
 
 State is plain **Svelte 5 runes**: `export const x = $state({...})`; components reading those
@@ -198,7 +198,8 @@ first paint loads only the Explorer + the active editor.
   `input`/`textarea`, and `.cm-editor` for text drag).
 - **Repositories (top‑bar switcher)** — Orbit keeps the model **single‑active‑root** (`workspace.rootPath`
   is one string, used ~98× across 24 files) and adds a *list* on top: `folders.svelte.ts` holds the open
-  repos (persisted in `localStorage["orbit.folders"]`, app‑global) and the top bar (`TopBar.svelte`) shows
+  repos **per‑window** (in‑memory `$state`, persisted in the active folder's session as `repos` — NOT global
+  localStorage, which is shared across instances → see NOTES M39) and the top bar (`TopBar.svelte`) shows
   them as **inline tabs**. Switching reuses `persist.switchFolder`, so there's **no Rust and no refactor**
   of the single‑root model — one active repo at a time, not simultaneous multi‑root (deliberately; see
   NOTES M37). `switchFolder(path)`: confirms unsaved edits, `saveSessionNow()`, `rootPath=null` (suspends
@@ -290,13 +291,17 @@ commands (only Tauri plugin commands need permissions in `capabilities/`).
 
 ## Persistence
 
-- **Session** (per folder): `save_state(key=folder, data)` → `app_config_dir()/sessions/<hash>.json`
-  + `last_session.txt` (editor groups + tabs + active group + panel layout). Restored on launch
-  (`persist.loadSession`; reads legacy single‑group sessions too).
+- **Session** (per **window**, keyed `<winKey>\|<folder>`): `save_state(key, data)` →
+  `app_config_dir()/sessions/<hash>.json` + `last_session.txt` (editor groups + tabs + active group +
+  panel layout + the window's repo list `repos`). `winKey` is the stable per‑window key from `startup()`
+  (`winsession::WinKey`), so the **same folder open in two windows doesn't clobber** (M39). Restored on
+  launch (`persist.loadSession`; reads legacy single‑group sessions too). `last_session.txt` (bare‑launch
+  fallback) stays global.
 - **Multi‑window session** (app‑global, `winsession.rs`): `app_config_dir()/windows/<id>.json` (one
-  per live window: folder + geometry), `windows-restore.json` (snapshot to reopen on a bare launch),
-  `windows-control.json` (close‑all token). Each process writes only its own files → race‑free across
-  the separate instances.
+  per live window: folder + geometry + **`key`** = stable session key), `windows-restore.json` (snapshot
+  to reopen on a bare launch, carries `key` per entry), `windows-control.json` (close‑all token). Each
+  process writes only its own files → race‑free. The stable `key` survives reopen‑all: passed to respawned
+  windows via env `ORBIT_WIN_KEY` (see `WinKey`/`resolve_key`), so each reopened window restores ITS session.
 - **Settings** (app‑global): `localStorage["orbit.settings"]`, applied as CSS variables on
   `document.documentElement`. (Per WebView origin: dev and the installed app have separate stores.)
 - **Project config** (committed/shared): `.orbit/run.json` (run configs) and `.orbit/claude.json`

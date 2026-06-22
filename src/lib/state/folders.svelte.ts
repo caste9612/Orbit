@@ -1,7 +1,8 @@
 // Elenco delle cartelle/repo "aperte" nel selettore in top bar + switch rapido. La repo ATTIVA è
-// `workspace.rootPath`; qui teniamo solo l'elenco (persistito in localStorage, app-global) e le azioni.
-// Cambiare repo riusa `switchFolder` (salva/ripristina la sessione per-cartella) → zero refactor del
-// modello single-root, zero comandi Rust nuovi.
+// `workspace.rootPath`. La lista è **per-finestra**: vive solo in questo `$state` (NON in localStorage,
+// che è condiviso tra tutte le istanze Orbit → causava clobbering/staleness tra finestre). La
+// persistenza avviene nella **sessione della cartella attiva** (campo `repos`, vedi persist.serialize):
+// l'autosave di sessione la salva, e `loadSession({repos:true})` la risemina all'avvio della finestra.
 import { workspace } from "./workspace.svelte";
 import { switchFolder } from "./persist.svelte";
 import { basename } from "../util";
@@ -13,44 +14,24 @@ export interface FolderEntry {
 
 export const folders = $state({ list: [] as FolderEntry[] });
 
-const KEY = "orbit.folders";
-
-/** Carica la lista da localStorage (app-global, condivisa tra finestre). */
-export function loadFolders() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return;
-    const arr = JSON.parse(raw);
-    if (Array.isArray(arr)) {
-      folders.list = arr
-        .filter((e) => e && typeof e.path === "string")
-        .map((e) => ({ path: e.path as string, name: (e.name as string) || basename(e.path) }));
-    }
-  } catch {
-    /* localStorage non disponibile / JSON invalido */
-  }
-}
-
-function save() {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(folders.list));
-  } catch {
-    /* no-op */
-  }
+/** Rimpiazza la lista (dai `repos` della sessione, all'avvio finestra). Dedup + preserva l'ordine. */
+export function setFolders(paths: string[]) {
+  const seen = new Set<string>();
+  folders.list = paths
+    .filter((p) => typeof p === "string" && p && !seen.has(p) && (seen.add(p), true))
+    .map((p) => ({ path: p, name: basename(p) || p }));
 }
 
 /** Aggiunge una cartella alla lista (dedup per path; le nuove in fondo). Idempotente: la chiama
- *  l'effetto su `rootPath`, così ogni cartella aperta entra da sola nel selettore. */
+ *  l'effetto su `rootPath`, così ogni cartella aperta entra da sola nel selettore. La persistenza
+ *  la fa l'autosave di sessione (che serializza `folders.list` in `repos`). */
 export function addFolder(path: string) {
   if (!path || folders.list.some((e) => e.path === path)) return;
   folders.list.push({ path, name: basename(path) || path });
-  save();
 }
 
 function drop(path: string) {
-  const before = folders.list.length;
   folders.list = folders.list.filter((e) => e.path !== path);
-  if (folders.list.length !== before) save();
 }
 
 /** Toglie una cartella dal selettore. Se è la repo ATTIVA, prima passa a una vicina (come chiudere

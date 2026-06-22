@@ -13,10 +13,12 @@ use tauri::{AppHandle, Manager};
 /// Cartella/file da aprire all'avvio: da variabili LUME_DIR/LUME_FILE oppure dal
 /// primo argomento CLI (così si può lanciare `lume /percorso/progetto`).
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct Startup {
     dir: Option<String>,
     file: Option<String>,
     search: Option<String>,
+    win_key: String, // chiave di sessione STABILE di questa finestra (vedi winsession::WinKey)
 }
 
 /// Cartella passata da CLI/env: LUME_DIR, oppure il primo arg se è una cartella (`lume /progetto`),
@@ -33,10 +35,11 @@ fn cli_dir() -> Option<String> {
 
 #[tauri::command]
 fn startup(app: AppHandle) -> Startup {
+    let win_key = winsession::this_key(&app); // chiave stabile (impostata da winsession::init)
     // se questa istanza è la "restoratrice" di una sessione (avvio nudo con set salvato), apre la
     // cartella della sua voce invece dell'ultima sessione singola.
     if let Some(dir) = winsession::restore_folder(&app) {
-        return Startup { dir: Some(dir), file: None, search: None };
+        return Startup { dir: Some(dir), file: None, search: None, win_key };
     }
     let arg = std::env::args().nth(1);
     let arg_file = arg.as_deref().filter(|a| Path::new(a).is_file()).map(str::to_string);
@@ -47,7 +50,7 @@ fn startup(app: AppHandle) -> Startup {
     let search = std::env::var("LUME_SEARCH")
         .ok()
         .filter(|s| !s.trim().is_empty());
-    Startup { dir: cli_dir(), file, search }
+    Startup { dir: cli_dir(), file, search, win_key }
 }
 
 #[derive(Serialize)]
@@ -481,6 +484,7 @@ pub fn run() {
         .manage(watcher::WatchState::default())
         .manage(winsession::LastNormal::default())
         .manage(winsession::WinId::default())
+        .manage(winsession::WinKey::default())
         .manage(winsession::OpenFolder::default())
         .manage(winsession::QuitState::default())
         .setup(|app| {

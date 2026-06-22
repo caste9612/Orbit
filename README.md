@@ -160,7 +160,9 @@ cross-platform desktop app that weighs almost nothing.
   one click apart. Switching the active repo swaps *everything* — tree, git, branch, search, Run/Claude
   menus, and the **terminal tabs** (each repo keeps its own live PTYs). Each repo also restores its own
   open editor tabs. Cycle with `Ctrl+Tab` / `Ctrl+Shift+Tab`, jump with `Ctrl+1…9`, and when the tabs
-  don't all fit a **`…`** menu lists them; the top bar stays usable down to its minimum width.
+  don't all fit a **`…`** menu lists them; the top bar stays usable down to its minimum width. The
+  repository list **and sessions are per‑window**: open windows don't share or overwrite each other's
+  repo tabs, and the same folder can be open in two windows without their tabs/layout clobbering.
 - **Remembers its window**: Orbit reopens at the same position, size and maximized state where you
   left it (restored to a connected monitor — never off-screen).
 - **Multiple instances** ("New window") for working on several projects at once — each window's

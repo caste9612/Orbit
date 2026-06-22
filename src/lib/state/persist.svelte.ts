@@ -7,8 +7,20 @@ import { workspace, fileByPath, restoreGroups, resetDocs } from "./workspace.sve
 import { openRoot } from "./explorer.svelte";
 import { layout, type SidebarView } from "./layout.svelte";
 import { syncActiveTerminalToRoot } from "./terminals.svelte";
+import { folders, setFolders } from "./folders.svelte";
 import { notify } from "./toast.svelte";
 import { basename } from "../util";
+
+// Chiave di sessione PER-FINESTRA: la sessione è keyed `<winKey>|<folder>` invece che `<folder>`, così
+// due finestre sulla STESSA cartella non si sovrascrivono tab/layout/repos. `winKey` è la chiave
+// stabile della finestra (dal backend, vedi winsession::WinKey), impostata da App allo startup.
+let winKey = "";
+export function setWinKey(k: string) {
+  winKey = k || "";
+}
+function sessionKey(folder: string): string {
+  return winKey ? `${winKey}|${folder}` : folder; // fallback legacy se winKey non disponibile
+}
 
 interface SavedGroup {
   tabs: string[];
@@ -18,6 +30,7 @@ interface SavedGroup {
 interface Session {
   v: number;
   root: string | null;
+  repos?: string[]; // lista repo della FINESTRA (selettore top bar) — per-finestra, non globale
   groups?: SavedGroup[]; // v2: split view
   activeGroup?: number;
   files?: string[]; // v1 (legacy): un solo gruppo
@@ -44,6 +57,7 @@ function serialize(): string {
   const data: Session = {
     v: 2,
     root: workspace.rootPath,
+    repos: folders.list.map((f) => f.path), // la lista repo della finestra vive nella sua sessione
     groups,
     activeGroup,
     layout: {
@@ -59,11 +73,16 @@ function serialize(): string {
 
 /** Ripristina una sessione. Con `rootHint` carica quella della cartella indicata (e la
  *  apre comunque se non c'è sessione salvata); senza, ripristina l'ultima cartella usata.
- *  Sessioni keyed per-cartella → due istanze su progetti diversi non si sovrascrivono. */
-export async function loadSession(rootHint?: string): Promise<boolean> {
+ *  Sessioni keyed per-cartella → due istanze su progetti diversi non si sovrascrivono.
+ *  `opts.repos`: rinsemina la lista repo della finestra dai `repos` salvati (SOLO all'avvio
+ *  finestra; uno switch di cartella NON deve sostituire la lista repo della finestra corrente). */
+export async function loadSession(
+  rootHint?: string,
+  opts: { repos?: boolean } = {},
+): Promise<boolean> {
   let raw: string | null = null;
   try {
-    raw = await invoke<string | null>("load_state", { key: rootHint ?? null });
+    raw = await invoke<string | null>("load_state", { key: rootHint ? sessionKey(rootHint) : null });
   } catch {
     raw = null;
   }
@@ -71,6 +90,7 @@ export async function loadSession(rootHint?: string): Promise<boolean> {
     if (rootHint) {
       try {
         await openRoot(rootHint);
+        if (opts.repos) setFolders([rootHint]); // nessuna sessione → lista = solo questa cartella
         return true;
       } catch {
         return false;
@@ -82,7 +102,10 @@ export async function loadSession(rootHint?: string): Promise<boolean> {
   try {
     s = JSON.parse(raw);
   } catch {
-    if (rootHint) await openRoot(rootHint).catch(() => {});
+    if (rootHint) {
+      await openRoot(rootHint).catch(() => {});
+      if (opts.repos) setFolders([rootHint]);
+    }
     return false;
   }
 
@@ -101,6 +124,7 @@ export async function loadSession(rootHint?: string): Promise<boolean> {
   } catch {
     return false;
   }
+  if (opts.repos) setFolders(s.repos?.length ? s.repos : [root]); // lista repo della finestra
 
   if (Array.isArray(s.groups) && s.groups.length) {
     await restoreGroups(s.groups, s.activeGroup ?? 0);
@@ -115,7 +139,7 @@ export async function loadSession(rootHint?: string): Promise<boolean> {
 export async function saveSessionNow() {
   const root = workspace.rootPath;
   if (!root) return;
-  await invoke("save_state", { key: root, data: serialize() }).catch((e) =>
+  await invoke("save_state", { key: sessionKey(root), data: serialize() }).catch((e) =>
     console.error("save_state", e),
   );
 }
@@ -168,12 +192,13 @@ export function startAutosave() {
   $effect.root(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     $effect(() => {
-      const root = workspace.rootPath; // dipendenza + chiave
+      const root = workspace.rootPath; // dipendenza
       const data = serialize(); // legge i campi reattivi → dipendenze tracciate
       if (!root) return; // niente cartella aperta → niente da persistere
+      const key = sessionKey(root); // chiave per-finestra (<winKey>|<folder>)
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
-        void invoke("save_state", { key: root, data }).catch((e) => console.error("save_state", e));
+        void invoke("save_state", { key, data }).catch((e) => console.error("save_state", e));
       }, 400);
     });
   });

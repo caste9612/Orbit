@@ -21,6 +21,7 @@ pub struct Symbol {
 #[derive(Clone, Copy)]
 enum Lang {
     CSharpLike, // C# / Java
+    Cpp,        // C / C++
     Ts,         // TS/JS/Svelte
     Python,
     Rust,
@@ -30,6 +31,7 @@ enum Lang {
 fn lang_for_ext(ext: &str) -> Option<Lang> {
     Some(match ext {
         "cs" | "java" => Lang::CSharpLike,
+        "cpp" | "cxx" | "cc" | "c++" | "hpp" | "hxx" | "hh" | "h++" | "c" | "h" => Lang::Cpp,
         "ts" | "tsx" | "js" | "jsx" | "mts" | "cts" | "mjs" | "cjs" | "svelte" => Lang::Ts,
         "py" => Lang::Python,
         "rs" => Lang::Rust,
@@ -210,6 +212,7 @@ fn extract(lang: Lang, content: &str, file: &str, out: &mut Vec<Symbol>) {
         }
         match lang {
             Lang::CSharpLike => cs(t, file, line, &mut container, out),
+            Lang::Cpp => cpp(t, file, line, &mut container, out),
             Lang::Ts => ts(t, file, line, &mut container, out),
             Lang::Python => py(raw, t, file, line, &mut container, out),
             Lang::Rust => rs(t, file, line, &mut container, out),
@@ -294,6 +297,54 @@ fn cs(t: &str, file: &str, line: u32, container: &mut String, out: &mut Vec<Symb
         if !name.is_empty() && !is_control_kw(name) {
             push(out, name, "method", file, line, container, vec![]);
         }
+    }
+}
+
+// ---- C / C++ ----------------------------------------------------------------
+// Solo std, euristico e CONSERVATIVO: tipi da class/struct/union/enum a inizio riga; funzioni/metodi
+// solo da righe che APRONO un corpo (terminano con '{' o ':' della init-list) con un identificatore
+// valido prima della '(' e un "ritorno" davanti → niente chiamate (terminano con ';') né if/for/while.
+const CPP_TYPE_MODS: &[&str] = &["typedef"];
+
+fn cpp(t: &str, file: &str, line: u32, container: &mut String, out: &mut Vec<Symbol>) {
+    if t.starts_with("//") || t.starts_with('*') || t.starts_with("/*") || t.starts_with('#') {
+        return; // commenti e direttive del preprocessore
+    }
+    // tipi: class / struct / union / enum (anche "enum class Foo" / "enum struct Foo")
+    for kw in ["class", "struct", "union", "enum"] {
+        if let Some(rest) = decl_after(t, kw, CPP_TYPE_MODS) {
+            let rest = rest
+                .strip_prefix("class ")
+                .or_else(|| rest.strip_prefix("struct "))
+                .unwrap_or(rest)
+                .trim_start();
+            let name = lead_ident(rest);
+            if !name.is_empty() && !is_control_kw(name) {
+                let kind = if kw == "union" { "struct" } else { kw };
+                push(out, name, kind, file, line, container, vec![]);
+                *container = name.to_string();
+                return;
+            }
+        }
+    }
+    // funzioni/metodi: solo se la riga apre un corpo ('{' finale) o è una init-list di costruttore (':')
+    let code = t.split("//").next().unwrap_or(t).trim_end();
+    if !code.ends_with('{') && !code.ends_with(':') {
+        return;
+    }
+    if let Some(pos) = t.find('(') {
+        let head = &t[..pos];
+        let name = trail_ident(head);
+        if name.is_empty() || is_control_kw(name) {
+            return;
+        }
+        let qualified = head.contains("::"); // Class::method(...)
+        // serve un tipo di ritorno (≥2 token) o la qualifica: distingue da una chiamata "foo() {"
+        if !qualified && head.trim().split_whitespace().count() < 2 {
+            return;
+        }
+        let kind = if qualified || !container.is_empty() { "method" } else { "function" };
+        push(out, name, kind, file, line, container, vec![]);
     }
 }
 
@@ -529,6 +580,39 @@ mod tests {
         extract(Lang::CSharpLike, "public abstract class Base { }\npublic class Impl : Base { }", "a.cs", &mut out);
         assert!(out.iter().find(|s| s.name == "Base").unwrap().is_abstract);
         assert!(!out.iter().find(|s| s.name == "Impl").unwrap().is_abstract);
+    }
+
+    #[test]
+    fn cpp_types_and_functions() {
+        let src = concat!(
+            "class Widget : public Base {\n",
+            "  int compute(int x) {\n",
+            "};\n",
+            "struct Point {};\n",
+            "enum class Color { Red, Green };\n",
+            "int main() {\n",
+            "void Widget::draw() {\n",
+        );
+        let mut out = vec![];
+        extract(Lang::Cpp, src, "a.cpp", &mut out);
+        let n = names(&out);
+        assert!(n.contains(&"Widget"));
+        assert!(n.contains(&"Point"));
+        assert!(n.contains(&"Color"));
+        assert!(n.contains(&"compute"));
+        assert!(n.contains(&"main"));
+        assert!(n.contains(&"draw"));
+        assert_eq!(out.iter().find(|s| s.name == "Widget").unwrap().kind, "class");
+        assert_eq!(out.iter().find(|s| s.name == "Point").unwrap().kind, "struct");
+        assert_eq!(out.iter().find(|s| s.name == "Color").unwrap().kind, "enum");
+    }
+
+    #[test]
+    fn cpp_no_false_positive_on_calls_and_control() {
+        let src = "if (ready) {\n  doThing(x);\n  return compute(y);\n}\nfor (int i = 0; i < n; i++) {\n";
+        let mut out = vec![];
+        extract(Lang::Cpp, src, "a.cpp", &mut out);
+        assert!(out.is_empty(), "chiamate e costrutti di controllo non sono simboli: {:?}", names(&out));
     }
 
     #[test]

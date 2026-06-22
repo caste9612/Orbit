@@ -24,7 +24,7 @@ src/
     components/       # UI (Svelte components)
     state/            # reactive state + actions (Svelte 5 runes in .svelte.ts);
                       #   plain .ts helpers: dotorbit.ts (.orbit config), projectFiles.ts (list_files cache)
-    editor/           # CodeMirror extensions (theme, indent guides, git gutter) + outline.ts (symbols), activeEditor.ts
+    editor/           # CodeMirror extensions (theme, indent guides, git gutter, semantic overlay) + outline.ts (symbols), activeEditor.ts
     util.ts           # pure helpers (paths, file icons, language label, time)
     markdown.ts       # Markdown → sanitized HTML (marked + DOMPurify, lazy) + heading TOC
 src-tauri/
@@ -55,23 +55,23 @@ Three kinds of frontend module, kept separate:
 
 | Module | Owns |
 |---|---|
-| `workspace` | open folder, document pool (kinds: file/diff/image/pdf), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, … |
+| `workspace` | open folder, document pool (kinds: file/diff/image/pdf), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), markdown `preview` default from `settings.mdMode`, … |
 | `folders` | the **open repositories** list for the top‑bar switcher (localStorage `orbit.folders`, app‑global); `addFolder`/`removeFolder`/`openFromList`/`cycleRepo`/`selectRepoIndex` — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file") |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
 | `terminals` | terminal tabs (id/title/shell/cwd) + active tab; **bell attention** (`notifyTerminalBell` → tab marker + toast when a terminal needs you); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive) |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
-| `claude` | Claude launcher + **shortcuts** + **wrappers** (`.orbit/claude.json`); opens `claude` in a terminal; the wrapper composer copies the composed prompt to the clipboard |
+| `claude` | Claude launcher + **shortcuts** + **wrappers** (`.orbit/claude.json`); opens `claude` in a terminal; the wrapper composer copies the composed prompt to the clipboard; **quick add/remove** of prompts & wrappers (`ClaudePrompts.svelte` → writes `claude.json`); invalid JSON **warns** (toast) and keeps the menu instead of silently resetting |
 | `shelf` | shelved folders by category (`.orbit/shelf.json`) |
 | `search` | project text search (debounced) |
 | `quickopen` | Ctrl+P fuzzy file finder |
 | `symbols` | **Go to Symbol** palette (Ctrl+Shift+O): outline of the active editor + fuzzy filter |
-| `codeIndex` | **project symbol index** (the "address book") from `scan_symbols`, cached in `.orbit/index/`: **Go to definition** (F12/Ctrl+click), **Project symbols** palette (Ctrl+T), the related‑bar context (`contextAt`), and back/forward nav history |
-| `keybindings` | central **command registry** + keyboard matcher/dispatch, with per‑preset keys (Orbit/VS/IntelliJ) and the shortcuts‑reference panel |
+| `codeIndex` | **project symbol index** (the "address book") from `scan_symbols`, cached in `.orbit/index/`: **Go to definition** (F12/Ctrl+click), **Project symbols** palette (Ctrl+T), the related‑bar context (`contextAt`), the **semantic‑overlay name sets** (`semSets`/`semIndex` → type & function names for the editor overlay), and the **back/forward nav history** (records jumps *and* file/tab switches; `nav` counts drive the top‑bar arrows) |
+| `keybindings` | central **command registry** + keyboard matcher/dispatch, with per‑preset keys (Orbit/VS/IntelliJ) **plus a user‑built `custom` keymap** (`settings.customKeys`, rebind per command) and the shortcuts‑reference panel; `keyStringFromEvent` captures a rebind, `conflictKeys` flags duplicates |
 | `claudeChats` | the project's recent Claude Code sessions (preview + turn count, from transcripts) + resume |
 | `scratch` | one‑click persistent scratchpad (`.orbit/scratch.md`) for notes/prompts |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
-| `settings` | **theme** (4 full presets incl. light)/**keymap** (shortcut preset)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify**/**reveal‑active** (follow active file) (localStorage) + applies CSS vars per theme |
+| `settings` | **theme** (4 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
 | `layout` | panel sizes/visibility + focused panel |
 | `persist` | per‑folder session save/restore (autosave via `$effect.root`); `switchFolder` swaps the workspace folder cleanly |
 | `toast` | transient notifications |
@@ -93,7 +93,7 @@ cursor). The editor uses soft **line wrapping** (gutter stays correct).
 
 `Editor.svelte` (CodeMirror) and `Terminal.svelte` (xterm) are loaded through
 `LazyEditor.svelte` / `LazyTerminal.svelte` (dynamic `import()`), so the startup chunk stays
-lean (~493 KB; the ~338 KB xterm and ~75 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
+lean (~492 KB; the ~338 KB xterm and ~75 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
 `settings.webgl` (off by default). **marked + DOMPurify** are likewise lazy (`markdown.ts`
 imports them on first render), so the Markdown feature adds nothing to the startup payload.
 A small generic **`Lazy.svelte`** wrapper (`load={() => import("./X.svelte")}`, props forwarded) does
@@ -108,7 +108,8 @@ first paint loads only the Explorer + the active editor.
   access, so a malicious README must not run scripts). `MarkdownView.svelte` is a reading‑mode
   preview with a heading TOC, interactive task lists (writing back to the source), and clickable
   internal links / anchors. `EditorArea` shows a per‑file **source ⇄ preview** toggle for `.md`
-  (state `OpenFile.preview`, default on for `README`).
+  (state `OpenFile.preview`); the initial value comes from `settings.mdMode` — `readme` (README‑only,
+  the default), `preview` (all `.md`) or `source`.
 - **Docs view** — `docs.svelte.ts` builds a **hierarchical tree** of the project's Markdown
   (root `README` + `docs/**`) via `list_files`, ordered by numeric prefix, with cleaned titles and
   `_`‑folders de‑emphasized. `DocsView.svelte` renders it (a recursive snippet); clicking a page
@@ -121,19 +122,39 @@ first paint loads only the Explorer + the active editor.
   icon / `+` always open a plain shell. **Wrappers** are prompt templates with a `{{input}}`
   placeholder: `WrapperComposer.svelte` substitutes your text and **copies the result to the
   clipboard** (no shell → multiline is fine). The Claude menu is grouped into Prompts / Wrappers /
-  Configuration (section headers via `ContextMenu`'s `header` items).
+  Configuration (section headers via `ContextMenu`'s `header` items). *Add / remove prompts…* opens
+  `ClaudePrompts.svelte`, a lightweight add‑form + delete list that writes `.orbit/claude.json` (via
+  `addShortcut`/`removeShortcut`/`addWrapper`/`removeWrapper`). Loading uses `readOrbitConfig`, which
+  distinguishes *absent* from *invalid* JSON: an invalid `run.json`/`claude.json` shows a toast and keeps
+  the current menu instead of silently resetting to defaults (run/claude configs reload live on `fs-changed`).
+- **Autosave** — `settings.autosave` (on by default, IntelliJ‑style) saves dirty docs on **window blur**
+  (`getCurrentWindow().onFocusChanged` in `App.svelte`) and on **tab/file switch** (an `$effect` tracking
+  `activePath()` saves the doc being left). `workspace.savePath(path, { auto:true })` is silent and **skips
+  files changed on disk** (conflict) so autosave never clobbers an external edit; `autosaveAll` saves all.
 - **Go to symbol** — `editor/outline.ts` extracts an outline from CodeMirror's syntax tree
   (`ensureSyntaxTree`), `editor/activeEditor.ts` tracks the focused editor, and `symbols.svelte.ts`
   + `SymbolPalette.svelte` are the `Ctrl+Shift+O` fuzzy palette that jumps to a definition.
+- **Semantic highlighting overlay** — `editor/semanticHighlight.ts` is a CodeMirror `ViewPlugin` that
+  colors identifiers matching a known project **type** (`cm-sem-type`, teal) or **method/function**
+  (`cm-sem-func`, gold) — VS‑style — so even languages with only a lexical grammar (notably **C#** via the
+  legacy `clike` stream parser, and **C/C++**) get type/method coloring for *the user's own* code, with no
+  LSP. Name sets come from the symbol index (`codeIndex.semSets`); it decorates only the visible range,
+  skips string/comment nodes (`syntaxTree`) and files with no language, and re‑decorates on a `semIndex`
+  bump (an empty `view.dispatch({})` nudge from `Editor.svelte`). Heuristic (by name, not scope‑aware);
+  colors are `!important` in `editorTheme` to win over the lexical color.
 - **Code navigation (project‑wide, heuristic)** — `symbols.rs`'s `scan_symbols` walks the project and
-  extracts symbols with a hand‑rolled per‑language parser (C#/Java, TS/JS/JSX/Svelte, Python, Rust, Go;
-  types, methods, functions, properties + base types and an `abstract` flag) — **no LSP, no `regex`
-  crate**. `codeIndex.svelte.ts` caches the result in `.orbit/index/symbols.json` (loads instantly,
+  extracts symbols with a hand‑rolled per‑language parser (C#/Java, **C/C++**, TS/JS/JSX/Svelte, Python,
+  Rust, Go; types, methods, functions, properties + base types and an `abstract` flag) — **no LSP, no
+  `regex` crate**. The C/C++ path is conservative (types from `class`/`struct`/`union`/`enum`; functions
+  only from body‑opening lines to avoid matching calls). `codeIndex.svelte.ts` caches the result in `.orbit/index/symbols.json` (loads instantly,
   re‑scans in the background; `scheduleRescan` is debounced on `fs-changed`, and the watcher excludes
   `.orbit/index` to avoid a rescan loop). **Go to definition** (`goToDefinitionAtCursor` via F12, or
   Ctrl+click in `Editor.svelte`) resolves the word under the cursor (a picker if names collide);
-  **Project symbols** is the `Ctrl+T` palette (`WorkspaceSymbols.svelte`); jumps push a back/forward
-  history (`Alt+←/→`). `RelatedBar.svelte` (under the breadcrumb) shows `contextAt`'s enclosing symbol
+  **Project symbols** is the `Ctrl+T` palette (`WorkspaceSymbols.svelte`). A **back/forward history**
+  (top‑bar arrows + `Alt+←/→`) records both jumps and file/tab switches: `workspace` calls a synchronous
+  `beforeNavigate(dest)` hook before changing the active file (in `openFile`/`openInNewGroup`/`setActiveTab`),
+  which `codeIndex` uses to push the leaving position; `navBack`/`navForward` suppress recording of their
+  own move and pre‑set the current position to dodge async races. `RelatedBar.svelte` (under the breadcrumb) shows `contextAt`'s enclosing symbol
   (type › method) with clickable base types / implementers and `KindBadge.svelte` monograms; it reserves
   its height when the file has symbols (no layout shift) and empties when the cursor is outside a symbol.
 - **Follow active file (reveal)** — `settings.revealActive` (the ⌖ toggle in the explorer toolbar)
@@ -146,8 +167,12 @@ first paint loads only the Explorer + the active editor.
 - **Keyboard shortcuts** — `keybindings.svelte.ts` is a single command **registry** with a key per
   preset (Orbit / Visual Studio / IntelliJ, `settings.keymap`); `App.svelte`'s window `keydown` runs
   `matchCommand(e)` → action, so the active preset applies everywhere (Go‑to‑definition moved from the
-  CodeMirror keymap to this window‑level dispatch). `ShortcutsDialog.svelte` (opened from Settings)
-  shows the preset picker + a grouped reference (configurable commands + the fixed editor/mouse ones).
+  CodeMirror keymap to this window‑level dispatch). A **Custom** keymap is built from any base preset
+  (`createCustom`) and stored as `settings.customKeys`; in `ShortcutsDialog.svelte` each configurable
+  command is then click‑to‑rebind — the capture listener runs in the **capture phase** (so rebinding e.g.
+  `Ctrl+P` doesn't trigger the command), `keyStringFromEvent` rejects bare non‑function keys, and
+  `conflictKeys` highlights duplicates. `ShortcutsDialog.svelte` (opened from Settings) shows the preset
+  picker (incl. Custom) + a grouped reference (configurable commands + the fixed editor/mouse ones).
 - **Run a script file** — `run.svelte.ts`'s `runFile` opens a terminal in the file's folder and runs an
   executable script (`.ps1`/`.cmd`/`.bat`/`.sh`); `isRunnable` + `runCommand` (`util.ts`) map the
   extension to its interpreter. Surfaced from the tree context menu (`Explorer.svelte`) and the editor
@@ -250,8 +275,9 @@ frontend calls them with `invoke("name", {args})`. Areas:
   `git_branches`, `git_checkout_branch`, `git_create_branch`, `git_discard`, `git_log`, `git_show`.
 - **Terminal** (`pty.rs`): `pty_spawn`, `pty_write`, `pty_resize`, `pty_kill`, `pty_alive`, `list_shells`;
   streams output as `pty-data-<id>` events.
-- **Symbols** (`symbols.rs`): `scan_symbols(root)` — heuristic project‑wide symbol scan (std only, no
-  LSP / no `regex`); returns `Symbol { name, kind, file, line, container, bases, isAbstract }`.
+- **Symbols** (`symbols.rs`): `scan_symbols(root)` — heuristic project‑wide symbol scan (C#/Java, C/C++,
+  TS/JS/Svelte, Python, Rust, Go; std only, no LSP / no `regex`); returns
+  `Symbol { name, kind, file, line, container, bases, isAbstract }`.
 - **Watcher** (`watcher.rs`): `watch_start`; emits a debounced **`fs-changed`** event that the
   frontend listens to (refresh tree + git + reload open files + run config + Claude config + shelf
   + Docs index when visible + symbol re‑scan). The watch ignores `.orbit/index` so caching the symbol

@@ -127,6 +127,30 @@
 
     <div class="row">
       <div class="label">
+        <span class="name">Autosave</span>
+        <span class="hint">Save edited files on focus loss and when switching tabs (IntelliJ-style)</span>
+      </div>
+      <Switch
+        checked={settings.autosave}
+        onToggle={() => (settings.autosave = !settings.autosave)}
+        label="Autosave"
+      />
+    </div>
+
+    <div class="row">
+      <div class="label">
+        <span class="name">Open Markdown as</span>
+        <span class="hint">Default view for <code>.md</code> files — preview, source, or preview for READMEs only</span>
+      </div>
+      <select class="control" bind:value={settings.mdMode}>
+        <option value="readme">README only</option>
+        <option value="preview">Preview</option>
+        <option value="source">Source</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <div class="label">
         <span class="name">Terminal GPU rendering (WebGL)</span>
         <span class="hint">Sharper text — uses noticeably more memory</span>
       </div>

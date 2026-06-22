@@ -16,13 +16,13 @@
   import { listen, emit } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { openFolderDialog, refreshTree, revealInTree } from "./lib/state/explorer.svelte";
-  import { workspace, openFile, saveActive, reloadOpenFiles, activeFile } from "./lib/state/workspace.svelte";
+  import { workspace, openFile, saveActive, savePath, autosaveAll, reloadOpenFiles, activeFile, activePath } from "./lib/state/workspace.svelte";
   import { setQuery } from "./lib/state/search.svelte";
   import { refreshStatus } from "./lib/state/git.svelte";
   import { quickopen, openPalette } from "./lib/state/quickopen.svelte";
   import { symbols, openSymbols } from "./lib/state/symbols.svelte";
   import { loadRunConfig } from "./lib/state/run.svelte";
-  import { loadClaudeConfig, launchClaude, wrapperUI } from "./lib/state/claude.svelte";
+  import { loadClaudeConfig, launchClaude, wrapperUI, promptsUI } from "./lib/state/claude.svelte";
   import { loadShelf } from "./lib/state/shelf.svelte";
   import { loadDocs } from "./lib/state/docs.svelte";
   import { invalidateFiles } from "./lib/state/projectFiles";
@@ -124,9 +124,25 @@
   // unlisten degli eventi globali della finestra principale (vivono quanto la finestra)
   let offFsChanged: (() => void) | undefined;
   let offRedock: (() => void) | undefined;
+  let offFocus: (() => void) | undefined;
   onDestroy(() => {
     offFsChanged?.();
     offRedock?.();
+    offFocus?.();
+  });
+
+  // Autosave (stile IntelliJ) — cambio tab/file: salva il documento che stai LASCIANDO.
+  // `activePath()` è letto in modo tracciato → l'effetto rigira a ogni cambio; il salvataggio del
+  // file precedente è in `untrack` (non legge dipendenze nuove, evita auto-invalidazioni).
+  let prevActivePath: string | null = null;
+  $effect(() => {
+    if (isFloatingTerminal) return;
+    const p = activePath();
+    const leaving = prevActivePath;
+    prevActivePath = p;
+    if (settings.autosave && leaving && leaving !== p) {
+      untrack(() => void savePath(leaving, { auto: true }));
+    }
   });
 
   // Titolo finestra = nome del progetto aperto → con più istanze di Orbit le anteprime nella
@@ -153,8 +169,10 @@
   // Indice simboli del progetto ("rubrica"): (ri)costruito quando cambia la cartella aperta.
   $effect(() => {
     if (isFloatingTerminal) return;
-    workspace.rootPath; // dipendenza reattiva: re-inizializza al cambio cartella
-    void initIndex();
+    workspace.rootPath; // UNICA dipendenza: re-inizializza al cambio cartella
+    // untrack: initIndex legge/scrive codeIndex.symbols (via rebuildSemSets); senza untrack quel
+    // read/write nello stesso effetto = loop infinito (effect_update_depth_exceeded → reattività rotta).
+    untrack(() => void initIndex());
   });
 
   // "Segui il file attivo": se il toggle è attivo, espande l'albero e porta in vista il file
@@ -221,6 +239,15 @@
       }
       void redockTerminal({ id: p.id, title: p.title, shell: p.shell });
     });
+    // Autosave (stile IntelliJ) — focus della finestra perso (Alt-Tab, click sul terminale flottante,
+    // un'altra app): salva tutti i file modificati così Claude vede sempre l'ultima versione.
+    try {
+      offFocus = await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
+        if (!focused && settings.autosave) void autosaveAll();
+      });
+    } catch {
+      /* fuori dal contesto Tauri */
+    }
     try {
       const s = await invoke<{ dir: string | null; file: string | null; search: string | null }>(
         "startup",
@@ -262,6 +289,10 @@
     }
     const cmd = matchCommand(e);
     if (!cmd) return;
+    // Ctrl+S dentro l'editor: lo salva GIÀ il keymap di CodeMirror (Mod-s). Senza questa guardia
+    // l'evento risale a window e salverebbe una SECONDA volta → doppio toast. Fuori dall'editor
+    // (albero, diff, nessun editor) gestisce questo dispatch globale.
+    if (cmd === "save" && (e.target as HTMLElement | null)?.closest(".cm-editor")) return;
     // Le scorciatoie SENZA Ctrl/Cmd (F12, Alt+←/→) non vanno rubate al terminale o ai campi di testo
     // (ci si scrive/naviga dentro); quelle con Ctrl/Cmd restano globali ovunque (stile VS Code).
     // L'editor CodeMirror NON è escluso: lì F12=vai-alla-definizione e Alt+frecce=cronologia sono voluti.
@@ -398,6 +429,9 @@
   {/if}
   {#if wrapperUI.open}
     <Lazy load={() => import("./lib/components/WrapperComposer.svelte")} />
+  {/if}
+  {#if promptsUI.open}
+    <Lazy load={() => import("./lib/components/ClaudePrompts.svelte")} />
   {/if}
   <Toaster />
 {/if}

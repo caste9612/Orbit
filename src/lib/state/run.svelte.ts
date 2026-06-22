@@ -5,7 +5,8 @@ import { workspace, openFile } from "./workspace.svelte";
 import { addTerminal } from "./terminals.svelte";
 import { layout } from "./layout.svelte";
 import { basename, dirname, joinPath, runCommand } from "../util";
-import { readOrbitJson, ensureOrbitFile, teachClaudeSection } from "./dotorbit";
+import { readOrbitConfig, ensureOrbitFile, teachClaudeSection } from "./dotorbit";
+import { notify } from "./toast.svelte";
 
 export interface RunConfig {
   name: string;
@@ -18,10 +19,18 @@ export const run = $state({
   loaded: false, // true se `.orbit/run.json` esiste ed è valido
 });
 
-/** Legge `.orbit/run.json` e aggiorna l'elenco (no-op se assente/invalido). */
+let runInvalid = false; // per non ripetere il toast a ogni fs-changed finché il file resta rotto
+
+/** Legge `.orbit/run.json` e aggiorna l'elenco. Avvisa se il JSON è rotto (senza svuotare il menu). */
 export async function loadRunConfig() {
-  const data = await readOrbitJson<{ configurations?: unknown }>("run.json");
-  if (!data) {
+  const { data, status } = await readOrbitConfig<{ configurations?: unknown }>("run.json");
+  if (status === "invalid") {
+    if (!runInvalid) notify("`.orbit/run.json`: JSON non valido — menu Esegui invariato", "error", 3500);
+    runInvalid = true;
+    return; // tieni le config correnti: meglio del menu vuoto
+  }
+  runInvalid = false;
+  if (status === "absent" || !data) {
     run.configs = [];
     run.loaded = false;
     return;

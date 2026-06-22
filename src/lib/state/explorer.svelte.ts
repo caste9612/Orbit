@@ -57,10 +57,21 @@ export async function openRoot(path: string) {
 /** Mostra il folder-picker nativo e cambia cartella (preservando/ripristinando le sessioni).
  *  Import dinamico di persist per evitare il ciclo statico (persist importa già da qui). */
 export async function openFolderDialog() {
-  const sel = await open({ directory: true, multiple: false });
-  if (typeof sel !== "string") return;
-  const { switchFolder } = await import("./persist.svelte");
-  await switchFolder(sel);
+  let sel: unknown;
+  try {
+    sel = await open({ directory: true, multiple: false });
+  } catch (e) {
+    notify(`Folder picker failed: ${e}`, "error");
+    return;
+  }
+  if (typeof sel !== "string") return; // annullato
+  try {
+    const { switchFolder } = await import("./persist.svelte");
+    await switchFolder(sel);
+  } catch (e) {
+    notify(`Open folder failed: ${e}`, "error"); // non lasciare il fallimento muto
+    console.error("openFolderDialog", e);
+  }
 }
 
 export async function toggle(n: TreeNode) {

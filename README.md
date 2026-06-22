@@ -34,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~5 MB binary, ~220 MB RAM at rest (mostly the shared system
-  WebView — Orbit's own Rust core is ~30 MB), and a ~493 KB startup chunk (≈165 KB gzipped).
+  WebView — Orbit's own Rust core is ~30 MB), and a ~492 KB startup chunk (≈168 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -67,6 +67,12 @@ cross-platform desktop app that weighs almost nothing.
 **Editor** (CodeMirror 6)
 - Lazy, multi-language syntax highlighting (~140 grammars loaded on demand, plus a dedicated
   Svelte pack).
+- **Semantic highlighting overlay**: identifiers matching a known project **type** are colored teal
+  and known **methods/functions** gold (VS-style), driven by the project symbol index — so even
+  languages with only a lexical grammar (e.g. **C#**, **C/C++**) get type/method coloring for *your*
+  code, without a language server. (Heuristic, by name; skips strings/comments.)
+- **Autosave** (optional, on by default): saves edited files when the window loses focus and when you
+  switch tabs (IntelliJ-style); it never overwrites a file changed on disk underneath you.
 - Indentation guides, breadcrumb, find & replace (`Ctrl/Cmd+F`), smooth caret.
 - **Go to symbol** (`Ctrl/Cmd+Shift+O`): fuzzy‑jump to functions, classes, methods and more in the
   active file (extracted from the editor's syntax tree).
@@ -81,18 +87,20 @@ cross-platform desktop app that weighs almost nothing.
 
 **Code navigation** (heuristic, no language server)
 - A background **symbol index** of the whole project — classes, interfaces, structs, enums, methods,
-  functions and more — for C#/Java, TypeScript/JavaScript/Svelte, Python, Rust and Go. Built by a
-  hand‑rolled Rust scanner (no LSP), cached under `.orbit/index/` and refreshed live as files change.
+  functions and more — for C#/Java, **C/C++**, TypeScript/JavaScript/Svelte, Python, Rust and Go. Built
+  by a hand‑rolled Rust scanner (no LSP), cached under `.orbit/index/` and refreshed live as files change.
 - **Go to definition** (`F12`, or `Ctrl/Cmd+click`) jumps across files; ambiguous names show a picker.
 - **Project symbols** (`Ctrl/Cmd+T`): fuzzy‑jump to any symbol in the project.
 - A **related bar** under the breadcrumb shows the symbol around the cursor (type › method) with its
   **base types / interfaces** and **implementers** (click to jump), plus kind badges (class,
   interface, abstract, method…).
-- **Back / forward** navigation history (`Alt+←/→`).
+- **Back / forward** navigation history — arrows in the top bar plus `Alt+←/→`. Browser-style: it
+  records both code jumps (go-to-definition) **and** file/tab switches, so it returns to wherever you
+  last were.
 
 **Markdown & docs**
-- Per-file **toggle** between source and a clean **reading-mode preview** (no split view) —
-  `README` files open in preview by default.
+- Per-file **toggle** between source and a clean **reading-mode preview** (no split view). The
+  default for `.md` files is a Setting — **Source**, **Preview**, or **READMEs only** (the default).
 - The preview adds a floating **outline (TOC)**, **interactive task lists** (ticking a box writes
   back to the source), and clickable internal links / heading anchors. Rendered HTML is sanitized.
 - A dedicated **Docs** view organizes the project's Markdown (root `README` + everything under
@@ -131,8 +139,11 @@ cross-platform desktop app that weighs almost nothing.
   **interactively**, so you stay in control.
 - **Prompt wrappers**: pick a wrapper (a template with a `{{input}}` placeholder), type your prompt,
   preview the composed text, and **copy it to the clipboard** to paste into Claude.
+- **Add / remove** prompts and wrappers from a lightweight in-app panel (Claude menu → *Add / remove
+  prompts…*) — it writes `.orbit/claude.json` for you and the menu reloads.
 - Configured in **`.orbit/claude.json`** (command, flags, shortcuts) — committed, and editable by
-  Claude itself (the format is documented in `CLAUDE.md`), so you can just ask Claude to add one.
+  Claude itself (the format is documented in `CLAUDE.md`), so you can just ask Claude to add one. If
+  that file ever has invalid JSON, Orbit keeps the current menu and warns instead of silently resetting.
 - Optionally, the **default terminal launches Claude** instead of a plain shell (toggle in Settings).
 - A **Chats** view lists the project's recent Claude Code sessions (read from Claude's transcripts) —
   each shown by its **latest message and turn count**, so they're easy to tell apart — and
@@ -161,8 +172,10 @@ cross-platform desktop app that weighs almost nothing.
 - **Color themes**: four full themes — **Orbit Dark** (default), **Eclipse** (OLED), **Slate** and
   **Orbit Light** — switched live; the accent can follow the theme (**Auto**) or use a preset.
 - **Keyboard shortcut presets**: switch the keymap between **Orbit**, **Visual Studio** and
-  **IntelliJ**, with a full searchable reference (Settings → Keyboard shortcuts).
-- **Settings**: theme, keymap preset, editor/terminal font and size, accent color, smooth-caret toggle,
+  **IntelliJ**, or build a **Custom** keymap from any preset by rebinding individual commands (with
+  conflict warnings) — full reference in Settings → Keyboard shortcuts.
+- **Settings**: theme, keymap preset (incl. Custom), editor/terminal font and size, accent color,
+  smooth-caret toggle, **autosave**, **default Markdown view** (source / preview / READMEs only),
   terminal GPU rendering, "launch Claude in the default terminal", and "notify when a terminal needs you".
 
 ---
@@ -173,11 +186,11 @@ Measured on Windows (size-optimized release build):
 
 | Item | Size |
 |---|---|
-| Portable `Orbit` binary | ~5.4 MB |
-| MSI installer | ~3.9 MB |
+| Portable `Orbit` binary | ~5.5 MB |
+| MSI installer | ~4.0 MB |
 | NSIS setup | ~2.7 MB |
-| Frontend `dist/` | ~3.1 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~493 KB (≈165 KB gzipped) |
+| Frontend `dist/` | ~2.7 MB (most of it grammars loaded lazily) |
+| Startup JS chunk | ~492 KB (≈168 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own
@@ -222,8 +235,8 @@ lives in [NOTES.md](./NOTES.md).
 | `Ctrl/Cmd+B` | Toggle sidebar |
 | ``Ctrl/Cmd+` `` | Toggle terminal |
 
-> These are the **Orbit** preset; switch to **Visual Studio** or **IntelliJ** keymaps in
-> Settings → Keyboard shortcuts.
+> These are the **Orbit** preset; switch to **Visual Studio** / **IntelliJ**, or make a **Custom**
+> keymap by rebinding individual commands, in Settings → Keyboard shortcuts.
 
 ---
 

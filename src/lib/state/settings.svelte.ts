@@ -85,9 +85,15 @@ export const THEMES: Record<string, Theme> = {
 };
 export type ThemeName = keyof typeof THEMES;
 
-// Preset di scorciatoie: Orbit (default), Visual Studio, IntelliJ. Il registro dei comandi e il
-// dispatch vivono in keybindings.svelte.ts; qui si persiste solo quale preset è attivo.
-export type KeymapName = "orbit" | "vs" | "intellij";
+// Preset di scorciatoie: Orbit (default), Visual Studio, IntelliJ — più "custom" (mappa
+// personalizzata che l'utente costruisce partendo da una base, vedi `customKeys`). Il registro
+// dei comandi e il dispatch vivono in keybindings.svelte.ts; qui si persiste solo l'attivo.
+export type KeymapBase = "orbit" | "vs" | "intellij";
+export type KeymapName = KeymapBase | "custom";
+
+// Apertura predefinita dei file Markdown: anteprima per i soli README (default, comportamento
+// storico), oppure sempre anteprima / sempre sorgente. Letto da workspace.loadDoc.
+export type MarkdownMode = "readme" | "preview" | "source";
 
 /** True se il tema attivo è chiaro (l'editor sceglie la HighlightStyle di conseguenza). */
 export function isLightTheme(): boolean {
@@ -100,7 +106,8 @@ export function themeAccent(): string {
 
 export const settings = $state({
   theme: "dark" as ThemeName,
-  keymap: "orbit" as KeymapName, // preset scorciatoie (Orbit / Visual Studio / IntelliJ)
+  keymap: "orbit" as KeymapName, // preset scorciatoie (Orbit / Visual Studio / IntelliJ / Custom)
+  customKeys: null as Record<string, string> | null, // mappa CommandId→tasto del preset "custom" (null = non creato)
   revealActive: false, // "segui il file attivo": espande l'albero e seleziona il file corrente
   fontMono: "JetBrains Mono",
   fontSize: 13,
@@ -109,6 +116,8 @@ export const settings = $state({
   webgl: false, // GPU rendering del terminale: OFF di default (più leggero ~85 MB)
   claudeTerminal: true, // il terminale di default avvia Claude (companion di Claude Code)
   bellNotify: true, // avvisa quando un terminale suona la bell (Claude ha finito / aspetta) e non lo guardi
+  autosave: true, // salva i file modificati su perdita di focus e cambio tab (stile IntelliJ)
+  mdMode: "readme" as MarkdownMode, // apertura .md: anteprima solo per i README (default)
 });
 
 export const MIN_FONT = 10;
@@ -157,7 +166,13 @@ export function loadSettings() {
     if (raw) {
       const s = JSON.parse(raw);
       if (typeof s.theme === "string" && s.theme in THEMES) settings.theme = s.theme;
-      if (s.keymap === "orbit" || s.keymap === "vs" || s.keymap === "intellij") settings.keymap = s.keymap;
+      if (s.keymap === "orbit" || s.keymap === "vs" || s.keymap === "intellij" || s.keymap === "custom") settings.keymap = s.keymap;
+      if (s.customKeys && typeof s.customKeys === "object") {
+        const m: Record<string, string> = {};
+        for (const [k, v] of Object.entries(s.customKeys)) if (typeof v === "string") m[k] = v;
+        settings.customKeys = Object.keys(m).length ? m : null;
+      }
+      if (settings.keymap === "custom" && !settings.customKeys) settings.keymap = "orbit"; // custom senza mappa → base
       if (typeof s.revealActive === "boolean") settings.revealActive = s.revealActive;
       if (typeof s.fontMono === "string") settings.fontMono = s.fontMono;
       if (typeof s.fontSize === "number") settings.fontSize = s.fontSize;
@@ -166,6 +181,8 @@ export function loadSettings() {
       if (typeof s.webgl === "boolean") settings.webgl = s.webgl;
       if (typeof s.claudeTerminal === "boolean") settings.claudeTerminal = s.claudeTerminal;
       if (typeof s.bellNotify === "boolean") settings.bellNotify = s.bellNotify;
+      if (typeof s.autosave === "boolean") settings.autosave = s.autosave;
+      if (s.mdMode === "readme" || s.mdMode === "preview" || s.mdMode === "source") settings.mdMode = s.mdMode;
     }
   } catch {
     /* localStorage non disponibile o JSON invalido */
@@ -180,6 +197,7 @@ export function startSettingsAutosave() {
       const data = JSON.stringify({
         theme: settings.theme,
         keymap: settings.keymap,
+        customKeys: settings.customKeys,
         revealActive: settings.revealActive,
         fontMono: settings.fontMono,
         fontSize: settings.fontSize,
@@ -188,6 +206,8 @@ export function startSettingsAutosave() {
         webgl: settings.webgl,
         claudeTerminal: settings.claudeTerminal,
         bellNotify: settings.bellNotify,
+        autosave: settings.autosave,
+        mdMode: settings.mdMode,
       });
       applySettings();
       try {

@@ -3,10 +3,13 @@
 // Comando, flag e scorciatoie vivono in `.orbit/claude.json` (committato, modificabile
 // anche da Claude stesso): l'IDE documenta il formato in CLAUDE.md. Claude parte sempre
 // INTERATTIVO nel terminale, così l'utente supervisiona (cruciale per commit/push).
+import { invoke } from "@tauri-apps/api/core";
 import { workspace, openFile } from "./workspace.svelte";
 import { addTerminal } from "./terminals.svelte";
 import { layout } from "./layout.svelte";
-import { readOrbitJson, ensureOrbitFile, teachClaudeSection } from "./dotorbit";
+import { readOrbitConfig, ensureOrbitFile, teachClaudeSection } from "./dotorbit";
+import { notify } from "./toast.svelte";
+import { joinPath } from "../util";
 
 export interface ClaudeShortcut {
   name: string;
@@ -67,15 +70,23 @@ export const claude = $state({
 // Stato del composer dei wrapper (aperto dal menu Claude: scrivi → copia negli appunti).
 export const wrapperUI = $state({ open: false, wrapper: null as ClaudeWrapper | null });
 
-/** Legge `.orbit/claude.json`; se assente/invalido usa i default (menu sempre funzionante). */
+let claudeInvalid = false; // per non ripetere il toast a ogni fs-changed finché il file resta rotto
+
+/** Legge `.orbit/claude.json`. File assente → default; JSON rotto → avvisa e tiene il menu com'è. */
 export async function loadClaudeConfig() {
-  const data = await readOrbitJson<{
+  const { data, status } = await readOrbitConfig<{
     command?: unknown;
     args?: unknown;
     shortcuts?: unknown;
     wrappers?: unknown;
   }>("claude.json");
-  if (!data) {
+  if (status === "invalid") {
+    if (!claudeInvalid) notify("`.orbit/claude.json`: JSON non valido — menu Claude invariato", "error", 3500);
+    claudeInvalid = true;
+    return; // tieni shortcut/wrapper correnti: meglio del reset ai default a sorpresa
+  }
+  claudeInvalid = false;
+  if (status === "absent" || !data) {
     resetDefaults();
     return;
   }
@@ -147,6 +158,56 @@ export function openWrapper(w: ClaudeWrapper) {
 }
 export function closeWrapper() {
   wrapperUI.open = false;
+}
+
+// ---- quick add / delete di prompt e wrapper (pannello "Prompts & Wrappers") --------------------
+
+// Stato del mini-pannello: aggiungi al volo un prompt/wrapper o cancellane uno (scrive claude.json).
+export const promptsUI = $state({ open: false });
+export function openPrompts() {
+  promptsUI.open = true;
+}
+export function closePrompts() {
+  promptsUI.open = false;
+}
+
+/** Serializza lo stato corrente in `.orbit/claude.json` (lo crea se manca) e segna `loaded`. */
+async function saveClaudeConfig() {
+  const root = workspace.rootPath;
+  if (!root) return;
+  const dir = joinPath(root, ".orbit");
+  const content =
+    JSON.stringify(
+      { command: claude.command, args: claude.args, shortcuts: claude.shortcuts, wrappers: claude.wrappers },
+      null,
+      2,
+    ) + "\n";
+  try {
+    await invoke("create_dir", { path: dir }).catch(() => {});
+    await invoke("write_file", { path: joinPath(dir, "claude.json"), content });
+    claude.loaded = true;
+    claudeInvalid = false; // ciò che abbiamo scritto è valido per costruzione
+  } catch (e) {
+    notify(`Salvataggio di claude.json non riuscito: ${e}`, "error");
+    console.error("claude.json", e);
+  }
+}
+
+export function addShortcut(s: ClaudeShortcut) {
+  claude.shortcuts = [...claude.shortcuts, s];
+  void saveClaudeConfig();
+}
+export function removeShortcut(index: number) {
+  claude.shortcuts = claude.shortcuts.filter((_, i) => i !== index);
+  void saveClaudeConfig();
+}
+export function addWrapper(w: ClaudeWrapper) {
+  claude.wrappers = [...claude.wrappers, w];
+  void saveClaudeConfig();
+}
+export function removeWrapper(index: number) {
+  claude.wrappers = claude.wrappers.filter((_, i) => i !== index);
+  void saveClaudeConfig();
 }
 
 /** Riprende una sessione Claude esistente in una tab del terminale (`claude --resume <id>`). */

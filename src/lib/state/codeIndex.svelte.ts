@@ -2,8 +2,9 @@
 //  - Vai alla definizione (F12 / Ctrl+click)  - Simboli del progetto (Ctrl+T)  - cronologia (Alt+←/→).
 // I simboli arrivano dal comando Rust `scan_symbols` (euristico, niente LSP); la rubrica è cache-ata
 // in `.orbit/index/symbols.json` (git-ignored): si carica all'istante e si ri-scansiona in background.
+import { untrack } from "svelte";
 import { invoke } from "@tauri-apps/api/core";
-import { workspace, openFileAt, editorStatus, activeFile } from "./workspace.svelte";
+import { workspace, openFileAt, editorStatus, activeFile, setBeforeNavigate } from "./workspace.svelte";
 import { orbitPath } from "./dotorbit";
 import { joinPath } from "../util";
 import { notify } from "./toast.svelte";
@@ -40,6 +41,36 @@ const CAP = 500;
 let scanToken = 0;
 let scanPending = false; // una ri-scansione richiesta mentre un'altra è in corso (la eseguiamo dopo)
 
+// ---- overlay semantico (colora identificatori = tipi/metodi noti, come VS) ------------------
+// L'highlight di CodeMirror è solo lessicale (per C# è un parser legacy → tipi/metodi tuoi non
+// colorati). Usiamo l'indice del progetto per colorare gli identificatori che corrispondono a un
+// tipo (teal) o a una funzione/metodo (oro) noti. I Set sono ricostruiti a ogni cambio indice;
+// `semIndex.version` segnala all'editor di ridisegnare le decorazioni.
+const SEM_TYPE_KINDS = new Set(["class", "interface", "struct", "enum", "record", "trait", "type"]);
+const SEM_FUNC_KINDS = new Set(["method", "function", "fn"]);
+let typeSet = new Set<string>();
+let funcSet = new Set<string>();
+export const semIndex = $state({ version: 0 });
+export function semSets(): { typeSet: Set<string>; funcSet: Set<string> } {
+  return { typeSet, funcSet };
+}
+function rebuildSemSets() {
+  const types = new Set<string>();
+  const funcs = new Set<string>();
+  // untrack: rebuildSemSets può essere chiamato da initIndex DENTRO un $effect; senza untrack la
+  // lettura di codeIndex.symbols diventerebbe dipendenza dell'effetto che la scrive → loop.
+  untrack(() => {
+    for (const s of codeIndex.symbols) {
+      if (s.name.length < 2) continue; // niente identificatori di 1 carattere (rumore)
+      if (SEM_TYPE_KINDS.has(s.kind)) types.add(s.name);
+      else if (SEM_FUNC_KINDS.has(s.kind)) funcs.add(s.name);
+    }
+  });
+  typeSet = types;
+  funcSet = funcs;
+  semIndex.version++;
+}
+
 // ---- scan + cache ----------------------------------------------------------
 
 /** Carica la cache (istantaneo) e poi ri-scansiona in background. Chiamato al cambio cartella. */
@@ -47,6 +78,7 @@ export async function initIndex() {
   if (!workspace.rootPath) {
     codeIndex.symbols = [];
     codeIndex.loaded = false;
+    rebuildSemSets();
     return;
   }
   await loadCache();
@@ -61,6 +93,7 @@ async function loadCache() {
     if (Array.isArray(arr)) {
       codeIndex.symbols = arr;
       codeIndex.loaded = true;
+      rebuildSemSets();
     }
   } catch {
     /* nessuna cache: si popola al primo scan */
@@ -81,6 +114,7 @@ export async function rescan() {
     if (token !== scanToken || workspace.rootPath !== root) return; // scan superato / cartella cambiata
     codeIndex.symbols = syms;
     codeIndex.loaded = true;
+    rebuildSemSets();
     void saveCache(root, syms);
   } catch (e) {
     console.error("scan_symbols", e);
@@ -251,8 +285,11 @@ export function goToDefinitionAtCursor() {
 export async function jumpTo(sym: ProjectSymbol) {
   const root = workspace.rootPath;
   if (!root) return;
-  recordNav(); // salva la posizione corrente prima di saltare
-  await openFileAt(joinPath(root, sym.file), sym.line);
+  const target = joinPath(root, sym.file);
+  const cur = activeFile();
+  // cross-file: lo registra l'hook in openFile. Stesso file (l'hook lo salta) → registro qui.
+  if (cur && cur.kind === "file" && cur.path === target) pushCurrent();
+  await openFileAt(target, sym.line);
 }
 
 // ---- cronologia di navigazione (Alt+←/→) -----------------------------------
@@ -262,30 +299,57 @@ interface Pos {
 }
 const back: Pos[] = [];
 const fwd: Pos[] = [];
+let navigating = false; // true mentre navBack/navForward saltano → non ri-registrare quel movimento
+
+// Conteggi REATTIVI delle due pile (gli array sono plain) → la TopBar accende/spegne le frecce.
+export const nav = $state({ back: 0, fwd: 0 });
+function syncNav() {
+  nav.back = back.length;
+  nav.fwd = fwd.length;
+}
 
 function currentPos(): Pos | null {
   const f = activeFile();
   if (!f || f.kind !== "file") return null;
   return { path: f.path, line: editorStatus.line || 1 };
 }
-function recordNav() {
+
+/** Spinge la posizione corrente nella pila "indietro" (e azzera "avanti": è un nuovo ramo). */
+function pushCurrent() {
   const p = currentPos();
   if (!p) return;
   back.push(p);
   if (back.length > 100) back.shift();
   fwd.length = 0;
+  syncNav();
 }
+
+// Hook registrato in workspace: chiamato PRIMA di cambiare file/tab attivo (apertura, cambio tab, split).
+function recordOnNavigate(dest: string) {
+  if (navigating) return; // il movimento viene da navBack/navForward: non creare nuove voci
+  const cur = currentPos();
+  if (!cur || cur.path === dest) return; // niente attivo o stesso file → non è un "indietro" utile
+  pushCurrent();
+}
+setBeforeNavigate(recordOnNavigate);
+
 export function navBack() {
   const target = back.pop();
   if (!target) return;
   const cur = currentPos();
   if (cur) fwd.push(cur);
+  syncNav();
+  navigating = true; // sopprime la registrazione del salto (gira nel prefisso sync di openFileAt)
   void openFileAt(target.path, target.line);
+  navigating = false;
 }
 export function navForward() {
   const target = fwd.pop();
   if (!target) return;
   const cur = currentPos();
   if (cur) back.push(cur);
+  syncNav();
+  navigating = true;
   void openFileAt(target.path, target.line);
+  navigating = false;
 }

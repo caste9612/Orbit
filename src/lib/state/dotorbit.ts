@@ -20,6 +20,30 @@ export async function readOrbitJson<T = unknown>(file: string): Promise<T | null
   }
 }
 
+export type OrbitConfigStatus = "absent" | "ok" | "invalid";
+
+/**
+ * Come readOrbitJson ma distingue file ASSENTE da file PRESENTE-ma-INVALIDO: così chi carica una
+ * config (run/claude) può avvisare l'utente di un JSON rotto invece di azzerare i menu in silenzio.
+ */
+export async function readOrbitConfig<T = unknown>(
+  file: string,
+): Promise<{ data: T | null; status: OrbitConfigStatus }> {
+  const p = orbitPath(file);
+  if (!p) return { data: null, status: "absent" };
+  let text: string;
+  try {
+    text = await invoke<string>("read_file", { path: p });
+  } catch {
+    return { data: null, status: "absent" }; // file non c'è (o non leggibile): è il caso normale
+  }
+  try {
+    return { data: JSON.parse(text) as T, status: "ok" };
+  } catch {
+    return { data: null, status: "invalid" }; // c'è ma il JSON è rotto
+  }
+}
+
 /** Garantisce l'esistenza di `.orbit/<file>` (col template) e ne ritorna il path. */
 export async function ensureOrbitFile(file: string, template: string): Promise<string | null> {
   const root = workspace.rootPath;

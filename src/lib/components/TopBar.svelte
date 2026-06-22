@@ -10,16 +10,19 @@
   import { openFolderDialog } from "../state/explorer.svelte";
   import { folders, openFromList, removeFolder } from "../state/folders.svelte";
   import { changedCount } from "../state/git.svelte";
+  import { nav, navBack, navForward } from "../state/codeIndex.svelte";
+  import { keyForId } from "../state/keybindings.svelte";
   import { run, runConfig, openConfig, teachClaude } from "../state/run.svelte";
   import {
     claude,
     launchClaude,
     runShortcut,
     openWrapper,
+    openPrompts,
     openClaudeConfig,
     teachClaudeConfig,
   } from "../state/claude.svelte";
-  import { open as openDialog } from "@tauri-apps/plugin-dialog";
+  import { open as openDialog, confirm } from "@tauri-apps/plugin-dialog";
   import { invoke } from "@tauri-apps/api/core";
   import { openSettings } from "../state/settings.svelte";
   import { openScratch } from "../state/scratch";
@@ -35,7 +38,13 @@
     }
   }
   // Chiude tutte le finestre di Orbit (anche le altre istanze): salva il set per riaprirle al prossimo avvio.
+  // Azione distruttiva su TUTTE le istanze → chiede conferma prima.
   async function closeAll() {
+    const ok = await confirm(
+      "Close all Orbit windows (every instance)? They'll reopen at their positions on next launch.",
+      { title: "Close all windows", kind: "warning" },
+    );
+    if (!ok) return;
     try {
       await invoke("close_all_windows");
     } catch (e) {
@@ -44,6 +53,8 @@
   }
   let maximized = $state(false);
   let changed = $derived(changedCount()); // file modificati → badge sul pulsante Git
+  let backKey = $derived(keyForId("navBack")); // scorciatoia attiva (dipende dal preset) → tooltip
+  let fwdKey = $derived(keyForId("navForward"));
 
   // top bar stretta / molte repo: la fila di tab scorre; tieni la tab ATTIVA sempre in vista
   let repobarEl = $state<HTMLElement>();
@@ -130,6 +141,7 @@
       );
     }
     items.push({ label: "Configuration", header: true, separatorBefore: true });
+    items.push({ label: "Add / remove prompts…", icon: "plus", onClick: openPrompts });
     items.push({ label: "Edit .orbit/claude.json", icon: "braces", onClick: openClaudeConfig });
     items.push({ label: "Update CLAUDE.md for Claude", icon: "doc", onClick: teachClaudeConfig });
     return items;
@@ -176,6 +188,12 @@
       </button>
     {/each}
     <span class="sep"></span>
+    <button class="navbtn" disabled={nav.back === 0} title={`Back (${backKey})`} aria-label="Navigate back" onclick={navBack}>
+      <Icon name="arrow-left" size={15} strokeWidth={1.8} />
+    </button>
+    <button class="navbtn" disabled={nav.fwd === 0} title={`Forward (${fwdKey})`} aria-label="Navigate forward" onclick={navForward}>
+      <Icon name="arrow-right" size={15} strokeWidth={1.8} />
+    </button>
     <button
       class="view only"
       class:active={layout.terminalVisible}
@@ -198,7 +216,7 @@
                 <Icon name={active ? "folder-open" : "folder"} size={12} strokeWidth={1.8} />
                 <span class="rt-name">{f.name}</span>
                 {#if active && workspace.branch}
-                  <span class="rt-branch"><Icon name="git-branch" size={10} strokeWidth={1.8} />{workspace.branch}</span>
+                  <span class="rt-branch" title={workspace.branch}><Icon name="git-branch" size={10} strokeWidth={1.8} /><span class="rt-bname">{workspace.branch}</span></span>
                 {/if}
               </button>
               <button class="rt-close" title={active ? "Remove (switch to a neighbor)" : "Remove from list"} aria-label="Remove from list" onclick={() => removeFolder(f.path)}>
@@ -235,9 +253,6 @@
         <Icon name="play" size={14} strokeWidth={1.8} />
       </button>
     {/if}
-    <button class="view only" title="Open folder (Ctrl+K)" aria-label="Open folder" onclick={openFolderDialog}>
-      <Icon name="folder-open" size={15} strokeWidth={1.7} />
-    </button>
     <button class="view only" title="New window (another folder)" aria-label="New window" onclick={newWindow}>
       <Icon name="new-window" size={15} strokeWidth={1.7} />
     </button>
@@ -291,6 +306,30 @@
     margin-right: 5px;
     border-right: 1px solid var(--color-line);
     height: 18px;
+  }
+
+  /* frecce indietro/avanti (cronologia di navigazione) — accanto al toggle terminale */
+  .navbtn {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 23px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-ink-muted);
+    cursor: pointer;
+    transition:
+      background 100ms ease,
+      color 100ms ease;
+  }
+  .navbtn:hover:not(:disabled) {
+    background: var(--color-surface-3);
+    color: var(--color-ink);
+  }
+  .navbtn:disabled {
+    opacity: 0.3;
+    cursor: default;
   }
 
   .views {
@@ -417,13 +456,23 @@
     white-space: nowrap;
   }
   .rt-branch {
-    flex: 0 0 auto;
+    flex: 0 1 auto; /* può restringersi: un branch lungo NON deve sacrificare il nome del repo */
+    min-width: 0;
+    max-width: 96px; /* tetto: oltre, il nome branch tronca con ellissi (vedi .rt-bname) */
     display: inline-flex;
     align-items: center;
     gap: 4px;
     padding-left: 2px;
     color: var(--color-ink-muted);
     font-size: 11px;
+  }
+  .rt-branch :global(svg) {
+    flex: 0 0 auto; /* l'icona del branch non si comprime */
+  }
+  .rt-bname {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .rt-close {
     display: grid;

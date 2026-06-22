@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -1407,6 +1407,105 @@ Verifica: `svelte-check` **196/0/0**; top bar verificata via **PrintWindow** a 7
 sotto soglia; switch tra repo e terminali per-repo provati a runtime su cartelle di test. La gestione
 "cartella sparita" è verificata con `svelte-check` ma non a runtime (richiederebbe automazione UI sulla
 tab morta). **Da rilasciare in v0.6.0** (feature → minor bump) dopo revisione utente.
+
+---
+
+## Milestone 38 — autosave, quick-prompt, keymap custom, default markdown, nav indietro/avanti, highlight semantico C#/C++ (v0.7.0)
+
+Lotto di rifiniture richieste dall'utente. **Quasi tutto frontend** (HMR), con **una sola aggiunta Rust**
+(scanner C++). Zero dipendenze nuove.
+
+**Reload live di `.orbit/*.json` — c'era già; aggiunto il feedback sul JSON rotto.** Il reload dei menu
+Esegui/Claude su `fs-changed` esisteva dal M (v0.2.0); mancava il caso "JSON non valido": prima
+`readOrbitJson` falliva in silenzio e `claude.json` invalido **resettava il menu ai default** senza
+avviso. Nuovo `readOrbitConfig` (in `dotorbit.ts`) distingue **assente** da **presente-ma-invalido**:
+su invalido i loader (`run`/`claude`) mostrano un **toast** e **tengono il menu corrente** (niente reset
+a sorpresa). Toast deduplicato (un flag per loader) per non ripeterlo a ogni evento FS.
+
+**Quick add / remove di prompt e wrapper** (`ClaudePrompts.svelte`, scelta utente: *quick-add leggero +
+quick-delete*, non un gestore completo). Mini-pannello dal menu Claude (*Add / remove prompts…*): toggle
+Prompt/Wrapper, nome + testo (+ icona opzionale), **Add**, e cestino su ogni voce. Scrive
+`.orbit/claude.json` (lo crea se manca: materializza i default) via `addShortcut`/`removeShortcut`/
+`addWrapper`/`removeWrapper` + `saveClaudeConfig`. Il menu si aggiorna (stato reattivo + watcher).
+
+**Autosave stile IntelliJ** (`settings.autosave`, **ON di default**; scelta utente: *focus perso + cambio
+tab*). Salva i documenti modificati su **blur della finestra** (`getCurrentWindow().onFocusChanged` in
+`App.svelte` — Alt-Tab, click sul terminale flottante, altra app) e al **cambio tab/file** (`$effect` che
+traccia `activePath()` e salva quello che si lascia, in `untrack`). `savePath(path, {auto:true})` è
+silenzioso e **salta i file in conflitto** (modificati anche su disco) → l'autosave non calpesta mai un
+edit esterno; il Ctrl+S manuale resta com'era. Ottimo da companion: passando al terminale dove gira
+Claude, lui vede già l'ultima versione.
+
+**Preset scorciatoie "Custom"** (scelta utente: *preset Custom da una base, originali intatti*).
+`settings.keymap` ora include `"custom"` + `settings.customKeys` (mappa CommandId→tasto, persistita).
+`KeymapBase` (orbit/vs/intellij) resta il tipo delle chiavi nei COMMANDS; il resolver `activeKey` usa
+`customKeys` quando il preset è custom. In *Settings → Keyboard shortcuts*: **Customize…** duplica il
+preset attivo (`createCustom`), poi ogni comando è **click-to-rebind** ("Press keys…", Esc annulla);
+**Delete** rimuove il custom; i conflitti sono evidenziati (`conflictKeys`). La cattura tasti gira in
+**capture-phase** su window (precede il dispatch globale → rebindare es. `Ctrl+P` non apre il quick-open)
+e `keyStringFromEvent` rifiuta i tasti "nudi" non-funzione (niente lettere senza modificatori).
+
+**Default di apertura Markdown** (`settings.mdMode`: `readme`/`preview`/`source`, default `readme` =
+comportamento storico). `workspace.loadDoc` calcola `preview` iniziale da qui (solo per i `.md`). Select
+nei Settings.
+
+**Frecce indietro/avanti in top bar + cronologia "stile browser"** (scelta utente: *anche cambi
+file/tab*). Le scorciatoie `Alt+←/→` esistevano (`navBack`/`navForward`); aggiunti i **pulsanti** ◀▶ in
+top bar (icone nuove `arrow-left`/`arrow-right`, abilitati da conteggi reattivi `nav`, tooltip con la
+scorciatoia attiva). La cronologia ora registra **anche i cambi file/tab**, non solo i salti go-to-def:
+`workspace` chiama un hook **sincrono** `beforeNavigate(dest)` PRIMA di cambiare file attivo (in
+`openFile`/`openInNewGroup`/`setActiveTab`); `codeIndex` lo usa per registrare la posizione lasciata.
+Niente effect reattivi (soffrivano di **race async**): `navBack`/`navForward` sopprimono la registrazione
+del proprio salto (flag `navigating`). Dedup per-file (stesso file / solo cursore → niente voce). Nessun
+ciclo di import (workspace espone l'hook, codeIndex lo registra).
+
+**Icona "Apri cartella" doppia** — rimossa dalla **top bar** (scelta utente), tenuta nell'header Explorer;
+`Ctrl+K` e il "+" della repo bar restano. (`openFolderDialog` → `switchFolder`, tre accessi erano
+ridondanti.)
+
+**Highlight semantico C#/C++** (scelta utente: *overlay dall'indice simboli*). Diagnosi: l'highlight di
+CodeMirror è solo **lessicale**; C# usa il parser **legacy `clike`** (StreamLanguage) → tipi/metodi tuoi
+non colorati, "molto diverso da VS"; C++ usa la grammatica Lezer `lang-cpp` (meglio, ma comunque senza
+semantica). VS usa Roslyn/IntelliSense (semantico) → senza LSP non si eguaglia. Soluzione **senza LSP**:
+`editor/semanticHighlight.ts`, un `ViewPlugin` che colora gli identificatori che combaciano con un **tipo
+noto** (teal, `cm-sem-type`) o **metodo/funzione noto** (oro, `cm-sem-func`) **dell'indice del progetto**
+(`codeIndex.semSets`). Decora solo il range visibile, **salta stringhe/commenti** (via `syntaxTree`) e i
+file senza linguaggio; si ridisegna al bump di `semIndex.version` (nudge `view.dispatch({})` da
+`Editor.svelte`). Colori `!important` in `editorTheme` per prevalere sul colore lessicale. **Euristico**
+(per nome, non scope-aware): colora solo i simboli **dichiarati nel progetto** (non i tipi di
+framework/BCL), e una variabile locale omonima di un tipo verrebbe colorata — è il prezzo del "senza LSP".
+**Scanner C++ aggiunto** (`symbols.rs`, `Lang::Cpp`, est. cpp/cxx/cc/hpp/hh/h++/c/h): tipi da
+`class`/`struct`/`union`/`enum` (anche `enum class`), funzioni/metodi **solo** da righe che aprono un corpo
+(`{` finale o `:` init-list di costruttore), con identificatore valido prima della `(` e un "ritorno"
+davanti → conservativo, evita di catturare chiamate (terminano con `;`) e i costrutti di controllo. C# era
+già coperto. +2 unit test C++.
+
+Verifica: `svelte-check` **198/0/0**; `cargo test` **24/24** (i 2 test C++ nuovi, incl. il no-falsi-positivi
+su chiamate/controlli). **Build release** size-optimized ok (1m32s): **orbit.exe 5,46 MB**, **MSI
+3,96 MB**, **NSIS 2,74 MB**, entry **492 KB (≈168 gz)**, `dist/` 2,71 MB. Bump → **v0.7.0** (minor: lotto
+di feature). Doc allineati (questo NOTES + README + ARCHITECTURE).
+
+**Revisione/test utente — bug release-breaking trovato e corretto.** L'overlay semantico introduceva un
+**loop reattivo**: `rebuildSemSets()` LEGGE `codeIndex.symbols` ed era chiamato (via `initIndex`) DENTRO
+l'`$effect` di App che lo SCRIVE (`codeIndex.symbols = []`, ramo "nessuna cartella") → Svelte rileva
+read+write dello stesso stato → `effect_update_depth_exceeded` → **spegne TUTTA la reattività della UI**.
+Sintomo: `openRoot` impostava `rootPath` nell'oggetto, ma nessun effetto/template si aggiornava → l'app
+restava su "No folder open" e l'apertura cartella "non funzionava" (apriva, ma la UI non reagiva).
+**Fix:** `untrack` attorno a `void initIndex()` (l'effetto dipende SOLO da `rootPath`) e attorno alla
+lettura di `codeIndex.symbols` in `rebuildSemSets` (come la guardia di `revealInTree`). Diagnosi
+complicata dal fatto che tutte le istanze Orbit condividono lo stesso **identifier** (`com.visialab.lume`)
+→ stessa config (registro multi-finestra + sessioni) e i file diagnostici venivano scritti da più build
+di test insieme → confermato che NON era interferenza tra istanze con un **build isolato** (identifier
+separato). Lezione: un `$effect` non deve leggere uno stato che — anche indirettamente, via funzioni
+chiamate al suo interno — scrive; avvolgere in `untrack` ciò che non è una vera dipendenza.
+
+**Ritocchi post-review:** frecce **indietro/avanti** spostate accanto al toggle terminale (dopo il
+separatore); **badge branch** in top bar troncato (`max-width`+ellissi+tooltip) così un branch lungo non
+sacrifica il nome del repo; **doppio toast su Ctrl+S** corretto (CodeMirror `Mod-s` E il dispatch globale
+salvavano entrambi → guardia: dentro l'editor salva solo CodeMirror); conferma su **"Close all windows"**.
+
+Verifica finale: `svelte-check` 198/0/0, `cargo test` 24/24, build release verificato a runtime (apre le
+cartelle — lo scenario che il bug rompeva). Rilasciato in **v0.7.0**.
 
 ---
 

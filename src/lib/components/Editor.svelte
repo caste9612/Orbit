@@ -24,6 +24,7 @@
   import { editorTheme } from "../editor/theme";
   import { indentGuides } from "../editor/indentGuides";
   import { gitGutter, setGitMarks, parseGitMarks } from "../editor/gitGutter";
+  import { semanticHighlight } from "../editor/semanticHighlight";
   import { setActiveEditor, clearActiveEditor } from "../editor/activeEditor";
   import { settings, isLightTheme } from "../state/settings.svelte";
   import { git } from "../state/git.svelte";
@@ -32,7 +33,7 @@
   import { basename, normSlash, relTo } from "../util";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
   import { openSymbols } from "../state/symbols.svelte";
-  import { goToDefinition } from "../state/codeIndex.svelte";
+  import { goToDefinition, semIndex } from "../state/codeIndex.svelte";
 
   interface Props {
     doc: string;
@@ -70,6 +71,7 @@
       extensions: [
         lineNumbers(),
         gitGutter(),
+        semanticHighlight,
         foldGutter(),
         highlightActiveLineGutter(),
         highlightSpecialChars(),
@@ -182,6 +184,13 @@
         git.staged.some((e) => normSlash(e.path) === relN));
     if (!changed && !hadMarks) return; // pulito e nessun marcatore da ripulire: niente IPC
     void loadGutter();
+  });
+
+  // overlay semantico: quando l'indice simboli cambia (scan/cambio cartella), "tocca" l'editor con
+  // una transazione vuota così il ViewPlugin ricostruisce le decorazioni anche senza scroll/modifica.
+  $effect(() => {
+    semIndex.version;
+    untrack(() => view?.dispatch({}));
   });
 
   // salto a una riga (da ricerca)

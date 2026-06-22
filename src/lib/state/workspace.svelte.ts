@@ -4,6 +4,24 @@
 import { invoke } from "@tauri-apps/api/core";
 import { basename, assetKind } from "../util";
 import { notify } from "./toast.svelte";
+import { settings } from "./settings.svelte";
+
+// Hook cronologia di navigazione (indietro/avanti): codeIndex registra qui una funzione che salva
+// la posizione CORRENTE prima che cambi il file/tab attivo. `dest` = path di destinazione (per non
+// registrare i "non-movimenti", es. riattivare il file già attivo). Niente import di codeIndex →
+// nessun ciclo. Chiamato in modo SINCRONO (prima di ogni await) dai punti di navigazione sotto.
+let beforeNav: ((dest: string) => void) | null = null;
+export function setBeforeNavigate(fn: (dest: string) => void) {
+  beforeNav = fn;
+}
+
+/** Anteprima iniziale per un documento: solo per i markdown, secondo l'impostazione `mdMode`. */
+function initialPreview(name: string): boolean {
+  if (!/\.(md|markdown)$/i.test(name)) return false; // l'anteprima ha senso solo sui markdown
+  if (settings.mdMode === "preview") return true;
+  if (settings.mdMode === "source") return false;
+  return /^readme\.(md|markdown)$/i.test(name); // "readme": anteprima per i soli README
+}
 
 export interface OpenFile {
   path: string; // chiave univoca del documento (per i diff è un id sintetico)
@@ -140,12 +158,13 @@ async function loadDoc(path: string) {
     rev: 0,
     externallyChanged: false,
     gotoLine: null,
-    preview: /^readme\.(md|markdown)$/i.test(name),
+    preview: initialPreview(name),
   });
 }
 
 /** Apre un file in un gruppo (default: quello attivo) e lo rende attivo. */
 export async function openFile(path: string, groupId?: string) {
+  beforeNav?.(path); // cronologia: registra la posizione che stiamo lasciando (sincrono, pre-await)
   await loadDoc(path);
   const g = (groupId ? groupById(groupId) : undefined) ?? ensureActiveGroup();
   if (!g.tabs.includes(path)) g.tabs.push(path);
@@ -202,6 +221,7 @@ export function setPreview(path: string, on: boolean) {
 export function setActiveTab(groupId: string, path: string) {
   const g = groupById(groupId);
   if (!g) return;
+  beforeNav?.(path); // cronologia: cambio tab → registra il file lasciato
   g.activePath = path;
   workspace.activeGroupId = groupId;
 }
@@ -289,6 +309,7 @@ export function splitWithTab(fromGroupId: string, path: string) {
 
 /** Apre un file in un NUOVO gruppo affiancato (split) — usato da "Apri di lato" dell'albero. */
 export async function openInNewGroup(path: string) {
+  beforeNav?.(path); // cronologia: registra la posizione lasciata
   await loadDoc(path); // carica prima: niente gruppo vuoto lampeggiante durante l'await
   const g: EditorGroup = { id: newGroupId(), tabs: [path], activePath: path };
   workspace.groups.push(g);
@@ -340,15 +361,20 @@ export function updateContent(path: string, content: string) {
   }
 }
 
-/** Salva su disco un documento (se modificato e non in sola lettura). */
-export async function savePath(path: string) {
+/**
+ * Salva su disco un documento (se modificato e non in sola lettura).
+ * `auto`: salvataggio automatico (focus perso / cambio tab) → niente toast di conferma e NON
+ * sovrascrive un file modificato anche su disco (conflitto): quello resta da risolvere a mano.
+ */
+export async function savePath(path: string, opts: { auto?: boolean } = {}) {
   const f = fileByPath(path);
   if (!f || f.readonly || !f.dirty || f.kind !== "file") return;
+  if (opts.auto && f.externallyChanged) return; // conflitto: l'autosave non calpesta gli edit esterni
   try {
     await invoke("write_file", { path: f.path, content: f.content });
     f.dirty = false;
     f.externallyChanged = false;
-    notify(`${f.name} saved`, "success", 1500);
+    if (!opts.auto) notify(`${f.name} saved`, "success", 1500);
   } catch (e) {
     notify(`Save failed: ${e}`, "error");
     console.error("save", e);
@@ -359,6 +385,15 @@ export async function savePath(path: string) {
 export async function saveActive() {
   const f = activeFile();
   if (f) await savePath(f.path);
+}
+
+/** Autosave (stile IntelliJ): salva tutti i documenti modificati, senza toast né conflitti. */
+export async function autosaveAll() {
+  for (const f of workspace.openFiles) {
+    if (f.dirty && !f.readonly && f.kind === "file" && !f.externallyChanged) {
+      await savePath(f.path, { auto: true });
+    }
+  }
 }
 
 /** Ricarica dal disco i documenti aperti cambiati esternamente (es. da Claude). */

@@ -1,7 +1,7 @@
 // Registro CENTRALE delle scorciatoie di Orbit: fonte unica per il dispatch (App.svelte) e per il
 // riepilogo in Impostazioni. Ogni comando ha un tasto per preset (Orbit / Visual Studio / IntelliJ);
 // il preset attivo è `settings.keymap`. Niente dipendenze: il matcher confronta il KeyboardEvent.
-import { settings, type KeymapName } from "./settings.svelte";
+import { settings, type KeymapBase } from "./settings.svelte";
 
 export type CommandId =
   | "quickOpen"
@@ -21,7 +21,7 @@ export interface Command {
   id: CommandId;
   label: string;
   category: string;
-  keys: Record<KeymapName, string>; // tasto per ciascun preset (formato "Ctrl+Shift+O", "F12", "Alt+ArrowLeft")
+  keys: Record<KeymapBase, string>; // tasto per ciascun preset BASE (formato "Ctrl+Shift+O", "F12", "Alt+ArrowLeft")
 }
 
 // I tasti usano solo combinazioni "matchabili" via KeyboardEvent (niente simboli che cambiano con
@@ -51,15 +51,28 @@ export const FIXED: { label: string; key: string; category: string }[] = [
   { label: "Switch to repository 1–9", key: "Ctrl+1…9", category: "Navigation" },
 ];
 
+/** Tasto attivo per un comando: dal preset "custom" se attivo (fallback Orbit), altrimenti dalla base. */
+function activeKey(cmd: Command): string {
+  const km = settings.keymap;
+  if (km === "custom") return settings.customKeys?.[cmd.id] ?? cmd.keys.orbit;
+  return cmd.keys[km];
+}
+
 /** Tasto attivo (preset corrente) per un comando. */
 export function keyFor(cmd: Command): string {
-  return cmd.keys[settings.keymap];
+  return activeKey(cmd);
+}
+
+/** Tasto attivo, già formattato (frecce come simboli), per un id comando — per i tooltip. */
+export function keyForId(id: CommandId): string {
+  const c = COMMANDS.find((x) => x.id === id);
+  return c ? formatKey(activeKey(c)) : "";
 }
 
 /** Comando il cui tasto (preset attivo) corrisponde all'evento, o null. */
 export function matchCommand(e: KeyboardEvent): CommandId | null {
   for (const c of COMMANDS) {
-    if (eventMatches(e, c.keys[settings.keymap])) return c.id;
+    if (eventMatches(e, activeKey(c))) return c.id;
   }
   return null;
 }
@@ -94,14 +107,80 @@ export function closeShortcuts() {
   shortcutsUI.open = false;
 }
 
+// ---- riepilogo + preset "Custom" --------------------------------------------------------------
+
+export interface ShortcutRow {
+  id?: CommandId; // presente solo per i comandi configurabili (ribindabili in modalità custom)
+  label: string;
+  key: string; // tasto grezzo ("Ctrl+Shift+O") — il pannello applica formatKey per la resa
+}
+
 /** Comandi (configurabili) + fissi, raggruppati per categoria, col tasto attivo — per il pannello. */
-export function shortcutGroups(): { category: string; items: { label: string; key: string }[] }[] {
-  const groups = new Map<string, { label: string; key: string }[]>();
-  const add = (category: string, label: string, key: string) => {
+export function mergedGroups(): { category: string; items: ShortcutRow[] }[] {
+  const groups = new Map<string, ShortcutRow[]>();
+  const add = (category: string, row: ShortcutRow) => {
     if (!groups.has(category)) groups.set(category, []);
-    groups.get(category)!.push({ label, key: formatKey(key) });
+    groups.get(category)!.push(row);
   };
-  for (const c of COMMANDS) add(c.category, c.label, keyFor(c));
-  for (const f of FIXED) add(f.category, f.label, f.key);
+  for (const c of COMMANDS) add(c.category, { id: c.id, label: c.label, key: activeKey(c) });
+  for (const f of FIXED) add(f.category, { label: f.label, key: f.key });
   return [...groups.entries()].map(([category, items]) => ({ category, items }));
+}
+
+/** True se esiste una mappa "Custom" (creata dall'utente). */
+export function hasCustom(): boolean {
+  return settings.customKeys != null;
+}
+
+/** Crea (o ricrea) la mappa "Custom" copiando un preset base, e la attiva. */
+export function createCustom(base: KeymapBase) {
+  const map: Record<string, string> = {};
+  for (const c of COMMANDS) map[c.id] = c.keys[base];
+  settings.customKeys = map;
+  settings.keymap = "custom";
+}
+
+/** Elimina la mappa Custom e torna a un preset base. */
+export function deleteCustom(base: KeymapBase = "orbit") {
+  settings.customKeys = null;
+  settings.keymap = base;
+}
+
+/** Riassegna il tasto di un comando nel preset Custom (lo crea da Orbit se mancante). */
+export function setCustomKey(id: CommandId, key: string) {
+  const map: Record<string, string> = { ...(settings.customKeys ?? {}) };
+  if (!settings.customKeys) for (const c of COMMANDS) map[c.id] = c.keys.orbit;
+  map[id] = key;
+  settings.customKeys = map;
+}
+
+/** Tasti (normalizzati) usati da più di un comando nel preset attivo → per evidenziare i conflitti. */
+export function conflictKeys(): Set<string> {
+  const count = new Map<string, number>();
+  for (const c of COMMANDS) {
+    const k = activeKey(c).toLowerCase();
+    count.set(k, (count.get(k) ?? 0) + 1);
+  }
+  const dup = new Set<string>();
+  for (const [k, n] of count) if (n > 1) dup.add(k);
+  return dup;
+}
+
+/**
+ * Costruisce la stringa-tasto ("Ctrl+Shift+O") da un KeyboardEvent durante il rebinding.
+ * Ritorna null se l'evento non è (ancora) una scorciatoia valida: solo modificatori, spazio, o un
+ * tasto "nudo" che non sia una F-key/freccia (eviterebbe di rompere la digitazione normale).
+ */
+export function keyStringFromEvent(e: KeyboardEvent): string | null {
+  const k = e.key;
+  if (k === "Control" || k === "Shift" || k === "Alt" || k === "Meta" || k === " ") return null;
+  const parts: string[] = [];
+  if (e.ctrlKey || e.metaKey) parts.push("Ctrl");
+  if (e.shiftKey) parts.push("Shift");
+  if (e.altKey) parts.push("Alt");
+  const main = k.length === 1 ? k.toUpperCase() : k; // "a"→"A", "1"→"1"; "ArrowLeft"/"F12" invariati
+  const bareOk = /^F\d{1,2}$/.test(main) || main.startsWith("Arrow");
+  if (parts.length === 0 && !bareOk) return null; // tasto nudo non-funzione: rifiuta
+  parts.push(main);
+  return parts.join("+");
 }

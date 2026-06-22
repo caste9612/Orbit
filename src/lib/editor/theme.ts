@@ -170,9 +170,19 @@ export const orbitHighlightLight = HighlightStyle.define([
   { tag: t.invalid, color: "#cd3131" },
 ]);
 
+// Colori dell'overlay semantico (vedi editor/semanticHighlight.ts): tipi in teal, funzioni/metodi
+// in oro, come VS Code. `!important` perché devono prevalere sul colore lessicale dell'highlighter
+// (es. in C# un nome di classe sarebbe altrimenti un identificatore azzurro generico).
+function semanticTheme(light: boolean) {
+  return EditorView.theme({
+    ".cm-sem-type": { color: `${light ? "#267f99" : "#4ec9b0"} !important` },
+    ".cm-sem-func": { color: `${light ? "#795e26" : "#dcdcaa"} !important` },
+  });
+}
+
 /** Estensioni di tema (EditorView.theme + HighlightStyle) per la modalità chiaro/scuro attiva. */
 export function editorTheme(light: boolean): Extension {
   return light
-    ? [orbitThemeLight, syntaxHighlighting(orbitHighlightLight)]
-    : [orbitThemeDark, syntaxHighlighting(orbitHighlight)];
+    ? [orbitThemeLight, syntaxHighlighting(orbitHighlightLight), semanticTheme(true)]
+    : [orbitThemeDark, syntaxHighlighting(orbitHighlight), semanticTheme(false)];
 }

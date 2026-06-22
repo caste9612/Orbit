@@ -1,6 +1,6 @@
 {
   "name": "orbit",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Orbit — a lightweight IDE, companion for Claude Code",
   "type": "module",
   "private": true,

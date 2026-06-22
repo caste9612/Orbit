@@ -34,6 +34,16 @@ export function setQuery(q: string) {
   timer = setTimeout(run, 250);
 }
 
+/** Azzera la ricerca: al cambio cartella i risultati/query del repo precedente non devono restare. */
+export function resetSearch() {
+  if (timer) clearTimeout(timer);
+  search.query = "";
+  search.results = [];
+  search.count = 0;
+  search.running = false;
+  search.done = false;
+}
+
 async function run() {
   if (!workspace.rootPath || !search.query.trim()) return;
   search.running = true;

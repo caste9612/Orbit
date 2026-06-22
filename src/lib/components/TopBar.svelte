@@ -45,6 +45,13 @@
   let maximized = $state(false);
   let changed = $derived(changedCount()); // file modificati → badge sul pulsante Git
 
+  // top bar stretta / molte repo: la fila di tab scorre; tieni la tab ATTIVA sempre in vista
+  let repobarEl = $state<HTMLElement>();
+  $effect(() => {
+    workspace.rootPath; // dipendenza: rieffettua al cambio repo
+    repobarEl?.querySelector(".repotab.active")?.scrollIntoView({ inline: "nearest", block: "nearest" });
+  });
+
   // posizione di un menu a tendina, appena sotto il pulsante che l'ha aperto
   function menuPos(e: MouseEvent) {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -152,7 +159,7 @@
 
   <div class="spacer" data-tauri-drag-region>
     {#if workspace.rootName}
-      <div class="repobar">
+      <div class="repobar" bind:this={repobarEl}>
         {#each folders.list as f (f.path)}
           {@const active = f.path === workspace.rootPath}
           <div class="repotab" class:active>

@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -1347,6 +1347,66 @@ a runtime**: 2 finestre spostate → chiudi-tutte → riavvio nudo → riaperte 
 crash" fabbricato → potatura + ripristino. Nessuna regressione RAM/CPU (core invariato; +1 thread watcher
 event-driven). Rilasciato in **v0.5.1** (insieme al pulsante Collapse all; numero patch per scelta
 dell'utente anche se è una feature — semver "impuro" accettato consapevolmente).
+
+---
+
+## Milestone 37 — selettore repo in top bar: più cartelle aperte, una attiva (v0.6.0)
+
+Tenere aperte **più cartelle/repo** e cambiare la **attiva** da un selettore in top bar, con tutto
+il resto dell'IDE (albero, git, branch, ricerca, terminali, Esegui, Claude, scaffale) che riflette la
+repo scelta. Branch dedicato, frontend-only.
+
+**Perché QUESTO e non il multi-root simultaneo.** Il multi-root *vero* (N radici insieme in una
+finestra) era stato valutato e **rimandato**: `rootPath` è single-string usato ~98× in 24 file →
+refactor invasivo e rischioso. Qui invece teniamo il modello **single-active-root** identico e
+aggiungiamo solo un **elenco** di cartelle + uno switch: una sola repo attiva alla volta. Dà il ~90%
+del valore (avere i progetti a portata di clic) con ~1% del costo. **Zero Rust, zero dipendenze,
+zero refactor** del modello esistente.
+
+**Riuso di `switchFolder`.** Lo swap completo già esisteva (M14, istanze multiple): salva la sessione
+corrente, `rootPath=null` (sospende l'autosave), `resetDocs`, `loadSession(nuova)` → `openRoot` →
+albero/watcher/git/branch/run/claude/scaffale. Il selettore non fa che chiamarlo. La lista vive in
+`folders.svelte.ts`, **persistita in localStorage** (`orbit.folders`, app-global → condivisa tra
+finestre); ogni cartella aperta vi entra da sola (effetto su `rootPath` → `addFolder`).
+
+**UI: tab inline, non un dropdown.** Primo tentativo con menu a tendina; feedback utente: "un click in
+più ogni volta". Rifatto con **tab inline** nello spacer della top bar (1 click per cambiare): tab
+attiva evidenziata col branch, "+" per aggiungere, scroll orizzontale con **autoscroll sulla tab
+attiva**, e un "**…**" che apre TUTTE le repo quando le tab non entrano (overflow rilevato via
+`ResizeObserver`+`MutationObserver`).
+
+**Context-aware: reazioni al cambio root CENTRALIZZATE in `openRoot`.** Prima alcune viste restavano
+"del repo precedente" (ricerca, Docs, chat Claude, cache file di Quick Open). Ora `openRoot` — il punto
+UNICO d'apertura cartella — resetta ricerca, invalida la cache file e ricarica Docs/chat se sono la
+vista attiva. Al **cambio** repo si forza la vista **Explorer** + sidebar visibile (deterministico:
+niente Docs/Chat "a sorpresa" ereditati dalla vista salvata di quel repo; lo *startup* invece rispetta
+la vista salvata).
+
+**Terminali per-repo.** Ogni `TermSession` è taggato con `root`; `TerminalPanel` filtra la **barra tab**
+per la repo attiva, ma **tutti** i terminali restano montati (PTY e scrollback vivi). Una mappa
+`activeByRoot` ricorda il terminale attivo per ciascuna repo e lo ripristina allo switch.
+
+**Scorciatoie.** `Ctrl+Tab` / `Ctrl+Shift+Tab` ciclano le repo; `Ctrl+1…9` salta alla n-esima
+(registro `keybindings.svelte.ts` + dispatch in `App.svelte`).
+
+**Robustezza.**
+- *Finestra stretta* (la minWidth reale è **720 logici**): le parti fisse (nav con label, azioni) non
+  si comprimevano e spingevano i **controlli finestra fuori schermo a destra**. Ora `actions`/`wctrls`
+  sono `flex-shrink:0` (mai tagliati), la compressione la assorbe solo la repobar (scroll), e **sotto
+  980px logici il nav diventa solo-icone** (recupera ~185px di label) → a 720 ci sta tutto, *close*
+  incluso. "+"/"…" stanno **fuori** dalla striscia che scorre → sempre raggiungibili.
+- *Cartella sparita*: cliccare una repo spostata/eliminata lasciava la finestra **vuota**. `switchFolder`
+  ora ritorna `SwitchResult` (`switched`|`cancelled`|`failed`): su `failed` **ripristina la cartella
+  precedente** (niente finestra vuota) + toast; il chiamante toglie la voce morta dal selettore.
+  `openRoot` legge `read_dir` PRIMA di toccare `rootPath` → nessuno stato a metà.
+
+**Dipendenze:** **nessuna**. Solo `switchFolder` (esistente) + localStorage + CSS responsive.
+
+Verifica: `svelte-check` **196/0/0**; top bar verificata via **PrintWindow** a 720/960/1280 px **logici**
+(DPI 125% → larghezze fisiche scalate), controlli finestra sempre visibili e nav che passa a solo-icone
+sotto soglia; switch tra repo e terminali per-repo provati a runtime su cartelle di test. La gestione
+"cartella sparita" è verificata con `svelte-check` ma non a runtime (richiederebbe automazione UI sulla
+tab morta). **Da rilasciare in v0.6.0** (feature → minor bump) dopo revisione utente.
 
 ---
 

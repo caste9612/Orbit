@@ -56,9 +56,10 @@ Three kinds of frontend module, kept separate:
 | Module | Owns |
 |---|---|
 | `workspace` | open folder, document pool (kinds: file/diff/image/pdf), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, … |
+| `folders` | the **open repositories** list for the top‑bar switcher (localStorage `orbit.folders`, app‑global); `addFolder`/`removeFolder`/`openFromList`/`cycleRepo`/`selectRepoIndex` — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file") |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
-| `terminals` | terminal tabs (id/title/shell/cwd) + active tab; **bell attention** (`notifyTerminalBell` → tab marker + toast when a terminal needs you) |
+| `terminals` | terminal tabs (id/title/shell/cwd) + active tab; **bell attention** (`notifyTerminalBell` → tab marker + toast when a terminal needs you); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive) |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
 | `claude` | Claude launcher + **shortcuts** + **wrappers** (`.orbit/claude.json`); opens `claude` in a terminal; the wrapper composer copies the composed prompt to the clipboard |
 | `shelf` | shelved folders by category (`.orbit/shelf.json`) |
@@ -170,9 +171,29 @@ first paint loads only the Explorer + the active editor.
   select‑all/go‑to‑symbol) acting on the CodeMirror `view`. The native WebView2 menu/drag are
   suppressed app‑wide via `<svelte:window oncontextmenu/ondragstart>` in `App.svelte` (kept in
   `input`/`textarea`, and `.cm-editor` for text drag).
-- **Folder switch** — `openFolderDialog` → `persist.switchFolder`: saves the current session, sets
-  `rootPath=null` (suspends autosave), `resetDocs()`, then `loadSession(newRoot)` — switching folders
-  restores the new folder's tabs and never carries the previous folder's documents.
+- **Repositories (top‑bar switcher)** — Orbit keeps the model **single‑active‑root** (`workspace.rootPath`
+  is one string, used ~98× across 24 files) and adds a *list* on top: `folders.svelte.ts` holds the open
+  repos (persisted in `localStorage["orbit.folders"]`, app‑global) and the top bar (`TopBar.svelte`) shows
+  them as **inline tabs**. Switching reuses `persist.switchFolder`, so there's **no Rust and no refactor**
+  of the single‑root model — one active repo at a time, not simultaneous multi‑root (deliberately; see
+  NOTES M37). `switchFolder(path)`: confirms unsaved edits, `saveSessionNow()`, `rootPath=null` (suspends
+  autosave), `resetDocs()`, `loadSession(path)`, then forces the **Explorer** view + visible sidebar
+  (deterministic on switch; startup still honors the saved view). It returns a `SwitchResult`
+  (`switched`|`cancelled`|`failed`): if the folder is **gone** it restores the previous one (no empty
+  window) and toasts, and the caller drops the dead entry — `openRoot` reads `read_dir` **before** touching
+  `rootPath`, so a failed open never leaves half‑state.
+- **Per‑repo reactions are centralized in `openRoot`** — the single folder‑load path resets search,
+  invalidates the Quick‑Open/Docs file cache, and reloads Docs / Claude‑chats when those views are active,
+  so a repo switch never shows the *previous* repo's stale views. Terminals are filtered per repo
+  (`TerminalPanel` shows only sessions whose `root` matches; `syncActiveTerminalToRoot` restores the repo's
+  last‑active terminal). Keyboard: `Ctrl+Tab`/`Ctrl+Shift+Tab` cycle, `Ctrl+1…9` jump (in `keybindings` +
+  `App.svelte`).
+- **Top bar under narrow widths** — fixed clusters (`actions`, window controls `wctrls`) are
+  `flex-shrink:0` so they're never clipped; only the repo strip (a scroll container, `min-width:0`)
+  absorbs the squeeze, and **below 980 logical px the nav collapses to icons‑only** (a media query hiding
+  labels) — recovering ~185px so everything, *including the window's close button*, stays on screen down
+  to the `minWidth: 720` (logical). The repo strip's `+` / `…` (the latter lists all repos when tabs
+  overflow) sit **outside** the scrolling area, so they're always reachable.
 - **Terminal links** — clicked path tokens resolve through `resolve_existing` (Rust): absolute, then
   relative to the terminal's cwd, then the project root — first that exists wins (works for binaries
   like images too); otherwise a "file not found" toast.

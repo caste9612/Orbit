@@ -145,6 +145,11 @@ cross-platform desktop app that weighs almost nothing.
 
 **Workspace**
 - Session persistence per folder (reopens last folder, tabs and panel layout).
+- **Several folders in one window**: a row of **repository tabs** in the top bar keeps your projects
+  one click apart. Switching the active repo swaps *everything* — tree, git, branch, search, Run/Claude
+  menus, and the **terminal tabs** (each repo keeps its own live PTYs). Each repo also restores its own
+  open editor tabs. Cycle with `Ctrl+Tab` / `Ctrl+Shift+Tab`, jump with `Ctrl+1…9`, and when the tabs
+  don't all fit a **`…`** menu lists them; the top bar stays usable down to its minimum width.
 - **Remembers its window**: Orbit reopens at the same position, size and maximized state where you
   left it (restored to a connected monitor — never off-screen).
 - **Multiple instances** ("New window") for working on several projects at once — each window's
@@ -209,6 +214,8 @@ lives in [NOTES.md](./NOTES.md).
 | `Ctrl/Cmd+Shift+O` | Go to symbol in the active file |
 | `F12` / `Ctrl/Cmd+click` | Go to definition |
 | `Alt+←` / `Alt+→` | Navigate back / forward |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Next / previous repository |
+| `Ctrl/Cmd+1…9` | Switch to repository 1–9 |
 | `Ctrl/Cmd+F` | Find / replace (within the focused editor) |
 | `Ctrl/Cmd+S` | Save the active file |
 | `Ctrl/Cmd+K` | Open folder |

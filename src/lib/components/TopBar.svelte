@@ -189,28 +189,34 @@
 
   <div class="spacer" data-tauri-drag-region>
     {#if workspace.rootName}
-      <div class="repobar" bind:this={repobarEl} use:repobarOverflow>
-        {#each folders.list as f (f.path)}
-          {@const active = f.path === workspace.rootPath}
-          <div class="repotab" class:active>
-            <button class="rt-main" title={f.path} onclick={() => openFromList(f.path)}>
-              <Icon name={active ? "folder-open" : "folder"} size={12} strokeWidth={1.8} />
-              <span class="rt-name">{f.name}</span>
-              {#if active && workspace.branch}
-                <span class="rt-branch"><Icon name="git-branch" size={10} strokeWidth={1.8} />{workspace.branch}</span>
-              {/if}
-            </button>
-            <button class="rt-close" title={active ? "Remove (switch to a neighbor)" : "Remove from list"} aria-label="Remove from list" onclick={() => removeFolder(f.path)}>
-              <Icon name="x" size={11} strokeWidth={2} />
-            </button>
-          </div>
-        {/each}
-        <button class="repoadd" title="Add folder…" aria-label="Add folder" onclick={openFolderDialog}>
-          <Icon name="plus" size={13} strokeWidth={2} />
-        </button>
+      <div class="repozone">
+        <div class="repobar" bind:this={repobarEl} use:repobarOverflow>
+          {#each folders.list as f (f.path)}
+            {@const active = f.path === workspace.rootPath}
+            <div class="repotab" class:active>
+              <button class="rt-main" title={f.path} onclick={() => openFromList(f.path)}>
+                <Icon name={active ? "folder-open" : "folder"} size={12} strokeWidth={1.8} />
+                <span class="rt-name">{f.name}</span>
+                {#if active && workspace.branch}
+                  <span class="rt-branch"><Icon name="git-branch" size={10} strokeWidth={1.8} />{workspace.branch}</span>
+                {/if}
+              </button>
+              <button class="rt-close" title={active ? "Remove (switch to a neighbor)" : "Remove from list"} aria-label="Remove from list" onclick={() => removeFolder(f.path)}>
+                <Icon name="x" size={11} strokeWidth={2} />
+              </button>
+            </div>
+          {/each}
+        </div>
+        <!-- "+"/"…" stanno FUORI dalla striscia che scorre: sempre raggiungibili anche da stretto.
+             Se le tab non entrano (overflowing) il "…" apre TUTTE le repo (e include "Add folder…"),
+             quindi il "+" diventa ridondante e lo nascondo per recuperare spazio. -->
         {#if overflowing}
           <button class="repoadd" title="All repositories" aria-label="All repositories" onclick={openFolderMenu}>
             <Icon name="more" size={15} strokeWidth={2} />
+          </button>
+        {:else}
+          <button class="repoadd" title="Add folder…" aria-label="Add folder" onclick={openFolderDialog}>
+            <Icon name="plus" size={13} strokeWidth={2} />
           </button>
         {/if}
       </div>
@@ -291,6 +297,7 @@
     display: flex;
     align-items: center;
     gap: 2px;
+    flex-shrink: 0; /* il nav non si comprime: a finestra stretta diventa solo-icone (media query in fondo) */
   }
   .view {
     display: inline-flex;
@@ -345,13 +352,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    min-width: 0; /* assorbe la compressione: la repozone si stringe qui, non spinge fuori i wctrls */
+  }
+  /* tab repo (striscia che scorre) + "+"/"…" pinnati; tutto entro lo spazio dello spacer */
+  .repozone {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     min-width: 0;
+    max-width: 100%;
   }
   .repobar {
     display: flex;
     align-items: center;
     gap: 4px;
-    max-width: 100%;
+    flex: 0 1 auto; /* può restringersi… */
+    min-width: 0; /* …fino a 0 (è scroll container in x → min-content non la blocca) */
     height: 22px;
     overflow-x: auto;
     scrollbar-width: none;
@@ -453,6 +469,7 @@
     align-items: center;
     gap: 2px;
     padding-right: 4px;
+    flex-shrink: 0; /* azioni sempre visibili, mai tagliate */
   }
   .actions .run {
     color: var(--color-success);
@@ -474,6 +491,7 @@
     align-items: stretch;
     height: 100%;
     margin-left: 4px;
+    flex-shrink: 0; /* min/max/close SEMPRE visibili (finestra senza decorazioni) */
   }
   .wc {
     width: 44px;
@@ -492,5 +510,18 @@
   .wc.close:hover {
     background: #e81123;
     color: #fff;
+  }
+
+  /* Finestra stretta (≤ minWidth+margine): il nav diventa solo-icone — recupera ~185px di label
+     così le azioni e i controlli finestra restano SEMPRE visibili e la repobar ha spazio per
+     scorrere. Il badge Git (.badge) resta. La soglia è > somma-parti-fisse-con-label, perciò a
+     ogni larghezza ≥ 720 (minWidth) nulla va in overflow oltre il bordo destro. */
+  @media (max-width: 980px) {
+    .views .view span:not(.badge) {
+      display: none;
+    }
+    .views .view {
+      padding: 0 7px;
+    }
   }
 </style>

@@ -137,7 +137,10 @@ export async function switchFolder(path: string) {
   workspace.rootPath = null; // 2. sospende l'autosave (niente clobber durante lo scambio)
   resetDocs(); // 3. via i documenti della cartella precedente
   await loadSession(path); // 4. ripristina la nuova cartella (apre comunque se senza sessione)
-  syncActiveTerminalToRoot(workspace.rootPath); // 5. mostra le schede terminale di QUESTA repo
+  // 5. al CAMBIO repo mostra sempre l'Explorer: deterministico, niente Docs/Chat "a sorpresa"
+  //    ereditati dalla vista salvata di quel repo. (Lo startup invece rispetta la vista salvata.)
+  layout.sidebarView = "explorer";
+  syncActiveTerminalToRoot(workspace.rootPath); // 6. mostra le schede terminale di QUESTA repo
 }
 
 /** Attiva il salvataggio automatico (debounced) a ogni cambio di sessione/layout.

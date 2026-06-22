@@ -4,14 +4,15 @@ node_modules
 # output di build del frontend (Vite)
 /dist
 
-# scaffale: preferenza di vista personale (run.json invece è condiviso)
-.orbit/shelf.json
-
+# File .orbit/ personali o generati — `**/` così valgono anche per cartelle aperte ANNIDATE in questo
+# repo (es. docs/.orbit/index/): senza `**/` lo slash interno àncora il pattern alla sola root.
+# (run.json e claude.json NON sono ignorati: condivisi/committati.)
+# scaffale: preferenza di vista personale
+**/.orbit/shelf.json
 # scratchpad: note/prompt personali (file di lavoro, non condiviso)
-.orbit/scratch.md
-
+**/.orbit/scratch.md
 # indice simboli: cache generata della "rubrica" del codice (per-macchina)
-.orbit/index/
+**/.orbit/index/
 
 # sistema
 .DS_Store

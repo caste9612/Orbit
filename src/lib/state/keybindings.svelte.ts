@@ -10,6 +10,8 @@ export type CommandId =
   | "goToDefinition"
   | "navBack"
   | "navForward"
+  | "nextRepo"
+  | "prevRepo"
   | "save"
   | "openFolder"
   | "toggleSidebar"
@@ -31,6 +33,8 @@ export const COMMANDS: Command[] = [
   { id: "goToDefinition", label: "Go to definition", category: "Navigation", keys: { orbit: "F12", vs: "F12", intellij: "Ctrl+B" } },
   { id: "navBack", label: "Navigate back", category: "Navigation", keys: { orbit: "Alt+ArrowLeft", vs: "Alt+ArrowLeft", intellij: "Ctrl+Alt+ArrowLeft" } },
   { id: "navForward", label: "Navigate forward", category: "Navigation", keys: { orbit: "Alt+ArrowRight", vs: "Alt+ArrowRight", intellij: "Ctrl+Alt+ArrowRight" } },
+  { id: "nextRepo", label: "Next repository", category: "Navigation", keys: { orbit: "Ctrl+Tab", vs: "Ctrl+Tab", intellij: "Ctrl+Tab" } },
+  { id: "prevRepo", label: "Previous repository", category: "Navigation", keys: { orbit: "Ctrl+Shift+Tab", vs: "Ctrl+Shift+Tab", intellij: "Ctrl+Shift+Tab" } },
   { id: "save", label: "Save file", category: "File", keys: { orbit: "Ctrl+S", vs: "Ctrl+S", intellij: "Ctrl+S" } },
   { id: "openFolder", label: "Open folder", category: "File", keys: { orbit: "Ctrl+K", vs: "Ctrl+K", intellij: "Ctrl+K" } },
   { id: "toggleSidebar", label: "Toggle sidebar", category: "View", keys: { orbit: "Ctrl+B", vs: "Ctrl+B", intellij: "Alt+1" } },
@@ -44,6 +48,7 @@ export const FIXED: { label: string; key: string; category: string }[] = [
   { label: "Redo", key: "Ctrl+Y", category: "Editor" },
   { label: "Go to definition (mouse)", key: "Ctrl+Click", category: "Editor" },
   { label: "Zoom font", key: "Ctrl+Wheel", category: "Editor" },
+  { label: "Switch to repository 1–9", key: "Ctrl+1…9", category: "Navigation" },
 ];
 
 /** Tasto attivo (preset corrente) per un comando. */

@@ -8,6 +8,11 @@ import { loadRunConfig } from "./run.svelte";
 import { loadClaudeConfig } from "./claude.svelte";
 import { loadShelf } from "./shelf.svelte";
 import { notify } from "./toast.svelte";
+import { layout } from "./layout.svelte";
+import { resetSearch } from "./search.svelte";
+import { loadDocs } from "./docs.svelte";
+import { loadClaudeChats } from "./claudeChats.svelte";
+import { invalidateFiles } from "./projectFiles";
 
 export interface FsEntry {
   name: string;
@@ -42,6 +47,11 @@ export async function openRoot(path: string) {
   void loadRunConfig(); // popola il menu Esegui da .orbit/run.json
   void loadClaudeConfig(); // popola il menu Claude da .orbit/claude.json
   void loadShelf(); // carica le cartelle messe nello scaffale (.orbit/shelf.json)
+  // viste/dati per-repo: aggiornati a OGNI apertura/cambio cartella (prima restavano del repo precedente)
+  resetSearch();
+  invalidateFiles(); // cache file per-root condivisa da Quick Open e Docs
+  if (layout.sidebarView === "docs") void loadDocs();
+  if (layout.sidebarView === "claude") void loadClaudeChats();
 }
 
 /** Mostra il folder-picker nativo e cambia cartella (preservando/ripristinando le sessioni).

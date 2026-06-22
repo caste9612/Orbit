@@ -8,6 +8,7 @@
   import { layout, selectView, toggleTerminal } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog } from "../state/explorer.svelte";
+  import { folders, openFromList, removeFolder } from "../state/folders.svelte";
   import { changedCount } from "../state/git.svelte";
   import { run, runConfig, openConfig, teachClaude } from "../state/run.svelte";
   import {
@@ -43,6 +44,43 @@
   }
   let maximized = $state(false);
   let changed = $derived(changedCount()); // file modificati → badge sul pulsante Git
+
+  // top bar stretta / molte repo: la fila di tab scorre; tieni la tab ATTIVA sempre in vista
+  let repobarEl = $state<HTMLElement>();
+  $effect(() => {
+    workspace.rootPath; // dipendenza: rieffettua al cambio repo
+    repobarEl?.querySelector(".repotab.active")?.scrollIntoView({ inline: "nearest", block: "nearest" });
+  });
+
+  // se le tab non entrano nella barra: un "…" apre il menu con TUTTE le repo (oltre allo scroll)
+  let overflowing = $state(false);
+  function repobarOverflow(node: HTMLElement) {
+    const measure = () => (overflowing = node.scrollWidth > node.clientWidth + 1);
+    const ro = new ResizeObserver(measure); // cambi di larghezza (finestra / altri elementi)
+    ro.observe(node);
+    const mo = new MutationObserver(measure); // aggiunta/rimozione di tab → cambia scrollWidth
+    mo.observe(node, { childList: true, subtree: true });
+    measure();
+    return {
+      destroy() {
+        ro.disconnect();
+        mo.disconnect();
+      },
+    };
+  }
+  let folderMenu = $state<{ x: number; y: number } | null>(null);
+  function openFolderMenu(e: MouseEvent) {
+    folderMenu = menuPos(e);
+  }
+  function folderMenuItems(): MenuItem[] {
+    const items: MenuItem[] = folders.list.map((f) => ({
+      label: f.name,
+      icon: f.path === workspace.rootPath ? "folder-open" : "folder",
+      onClick: () => void openFromList(f.path),
+    }));
+    items.push({ label: "Add folder…", icon: "folder-plus", separatorBefore: items.length > 0, onClick: openFolderDialog });
+    return items;
+  }
 
   // posizione di un menu a tendina, appena sotto il pulsante che l'ha aperto
   function menuPos(e: MouseEvent) {
@@ -151,11 +189,35 @@
 
   <div class="spacer" data-tauri-drag-region>
     {#if workspace.rootName}
-      <div class="ws" data-tauri-drag-region>
-        <span class="wsname">{workspace.rootName}</span>
-        {#if workspace.branch}
-          <span class="wssep"></span>
-          <span class="wsbranch"><Icon name="git-branch" size={11} strokeWidth={1.8} />{workspace.branch}</span>
+      <div class="repozone">
+        <div class="repobar" bind:this={repobarEl} use:repobarOverflow>
+          {#each folders.list as f (f.path)}
+            {@const active = f.path === workspace.rootPath}
+            <div class="repotab" class:active>
+              <button class="rt-main" title={f.path} onclick={() => openFromList(f.path)}>
+                <Icon name={active ? "folder-open" : "folder"} size={12} strokeWidth={1.8} />
+                <span class="rt-name">{f.name}</span>
+                {#if active && workspace.branch}
+                  <span class="rt-branch"><Icon name="git-branch" size={10} strokeWidth={1.8} />{workspace.branch}</span>
+                {/if}
+              </button>
+              <button class="rt-close" title={active ? "Remove (switch to a neighbor)" : "Remove from list"} aria-label="Remove from list" onclick={() => removeFolder(f.path)}>
+                <Icon name="x" size={11} strokeWidth={2} />
+              </button>
+            </div>
+          {/each}
+        </div>
+        <!-- "+"/"…" stanno FUORI dalla striscia che scorre: sempre raggiungibili anche da stretto.
+             Se le tab non entrano (overflowing) il "…" apre TUTTE le repo (e include "Add folder…"),
+             quindi il "+" diventa ridondante e lo nascondo per recuperare spazio. -->
+        {#if overflowing}
+          <button class="repoadd" title="All repositories" aria-label="All repositories" onclick={openFolderMenu}>
+            <Icon name="more" size={15} strokeWidth={2} />
+          </button>
+        {:else}
+          <button class="repoadd" title="Add folder…" aria-label="Add folder" onclick={openFolderDialog}>
+            <Icon name="plus" size={13} strokeWidth={2} />
+          </button>
         {/if}
       </div>
     {/if}
@@ -206,6 +268,9 @@
 {#if claudeMenu}
   <ContextMenu x={claudeMenu.x} y={claudeMenu.y} items={claudeMenuItems()} onClose={() => (claudeMenu = null)} />
 {/if}
+{#if folderMenu}
+  <ContextMenu x={folderMenu.x} y={folderMenu.y} items={folderMenuItems()} onClose={() => (folderMenu = null)} />
+{/if}
 
 <style>
   .topbar {
@@ -232,6 +297,7 @@
     display: flex;
     align-items: center;
     gap: 2px;
+    flex-shrink: 0; /* il nav non si comprime: a finestra stretta diventa solo-icone (media query in fondo) */
   }
   .view {
     display: inline-flex;
@@ -286,40 +352,116 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 0;
+    min-width: 0; /* assorbe la compressione: la repozone si stringe qui, non spinge fuori i wctrls */
   }
-  .ws {
+  /* tab repo (striscia che scorre) + "+"/"…" pinnati; tutto entro lo spazio dello spacer */
+  .repozone {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .repobar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 1 auto; /* può restringersi… */
+    min-width: 0; /* …fino a 0 (è scroll container in x → min-content non la blocca) */
+    height: 22px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .repobar::-webkit-scrollbar {
+    display: none;
+  }
+  .repotab {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    max-width: 100%;
-    height: 21px;
-    padding: 0 11px;
-    background: var(--color-surface-1);
+    flex: 0 0 auto;
+    max-width: 220px;
+    height: 22px;
     border: 1px solid var(--color-line);
     border-radius: 7px;
-    font-size: 12px;
-    white-space: nowrap;
+    background: var(--color-surface-1);
+    color: var(--color-ink-muted);
     overflow: hidden;
+    transition: background 90ms ease, border-color 90ms ease, color 90ms ease;
   }
-  .wsname {
-    color: #eaeef3;
-    font-weight: 500;
+  .repotab:not(.active):hover {
+    background: var(--color-surface-3);
+    color: var(--color-ink);
+  }
+  .repotab.active {
+    color: var(--color-ink);
+    background: rgba(var(--accent-rgb), 0.16);
+    border-color: rgba(var(--accent-rgb), 0.5);
+  }
+  .rt-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+    padding: 0 5px 0 9px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .rt-name {
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
-  .wssep {
-    flex: 0 0 auto;
-    width: 1px;
-    height: 12px;
-    background: var(--color-line-strong);
-  }
-  .wsbranch {
+  .rt-branch {
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
+    padding-left: 2px;
     color: var(--color-ink-muted);
+    font-size: 11px;
+  }
+  .rt-close {
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-ink-subtle);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 90ms ease, background 90ms ease;
+  }
+  .repotab:hover .rt-close {
+    opacity: 1;
+  }
+  .rt-close:hover {
+    background: var(--color-surface-4);
+    color: var(--color-ink);
+  }
+  .repoadd {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 22px;
+    border: 1px solid var(--color-line);
+    border-radius: 7px;
+    background: var(--color-surface-1);
+    color: var(--color-ink-muted);
+    cursor: pointer;
+    transition: background 90ms ease, color 90ms ease;
+  }
+  .repoadd:hover {
+    background: var(--color-surface-3);
+    color: var(--color-ink);
   }
 
   .actions {
@@ -327,6 +469,7 @@
     align-items: center;
     gap: 2px;
     padding-right: 4px;
+    flex-shrink: 0; /* azioni sempre visibili, mai tagliate */
   }
   .actions .run {
     color: var(--color-success);
@@ -348,6 +491,7 @@
     align-items: stretch;
     height: 100%;
     margin-left: 4px;
+    flex-shrink: 0; /* min/max/close SEMPRE visibili (finestra senza decorazioni) */
   }
   .wc {
     width: 44px;
@@ -366,5 +510,18 @@
   .wc.close:hover {
     background: #e81123;
     color: #fff;
+  }
+
+  /* Finestra stretta (≤ minWidth+margine): il nav diventa solo-icone — recupera ~185px di label
+     così le azioni e i controlli finestra restano SEMPRE visibili e la repobar ha spazio per
+     scorrere. Il badge Git (.badge) resta. La soglia è > somma-parti-fisse-con-label, perciò a
+     ogni larghezza ≥ 720 (minWidth) nulla va in overflow oltre il bordo destro. */
+  @media (max-width: 980px) {
+    .views .view span:not(.badge) {
+      display: none;
+    }
+    .views .view {
+      padding: 0 7px;
+    }
   }
 </style>

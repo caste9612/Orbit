@@ -2,9 +2,13 @@
 // le rispettive tab e tab attiva, gruppo attivo e stato dei pannelli, in un JSON nella config
 // dir dell'app (comandi Rust load_state/save_state). Zero dipendenze.
 import { invoke } from "@tauri-apps/api/core";
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { workspace, fileByPath, restoreGroups, resetDocs } from "./workspace.svelte";
 import { openRoot } from "./explorer.svelte";
 import { layout, type SidebarView } from "./layout.svelte";
+import { syncActiveTerminalToRoot } from "./terminals.svelte";
+import { notify } from "./toast.svelte";
+import { basename } from "../util";
 
 interface SavedGroup {
   tabs: string[];
@@ -116,16 +120,46 @@ export async function saveSessionNow() {
   );
 }
 
+/** Esito di `switchFolder`: `switched` = ora siamo su `path`; `cancelled` = l'utente ha annullato
+ *  (edit non salvati) e siamo rimasti dov'eravamo; `failed` = la cartella non si è aperta (spostata/
+ *  eliminata) e abbiamo ripristinato la precedente. Il chiamante distingue "annullato" da "morta". */
+export type SwitchResult = "switched" | "cancelled" | "failed";
+
 /** Cambia la cartella del workspace nella finestra corrente: salva la sessione attuale,
  *  azzera i documenti della cartella precedente e ripristina la sessione della nuova (o la
  *  apre vuota). Mette `rootPath` a null durante lo scambio così l'autosave non sovrascrive
- *  la sessione appena salvata con uno stato vuoto. */
-export async function switchFolder(path: string) {
-  if (!path || path === workspace.rootPath) return;
+ *  la sessione appena salvata con uno stato vuoto. Se la nuova cartella non è apribile,
+ *  ripristina quella precedente (niente finestra vuota) e ritorna `failed`. */
+export async function switchFolder(path: string): Promise<SwitchResult> {
+  if (!path || path === workspace.rootPath) return "switched";
+  const prev = workspace.rootPath; // per tornare indietro se la nuova non si apre
+  // avvisa se ci sono modifiche non salvate: cambiare cartella le scarterebbe (resetDocs)
+  const dirty = workspace.openFiles.filter((f) => f.dirty).length;
+  if (dirty > 0) {
+    const ok = await confirm(
+      `${dirty === 1 ? "1 file has" : `${dirty} files have`} unsaved changes that switching folder will discard. Continue?`,
+      { title: "Unsaved changes", kind: "warning" },
+    );
+    if (!ok) return "cancelled";
+  }
   await saveSessionNow(); // 1. preserva le tab della cartella corrente (sotto la sua chiave)
   workspace.rootPath = null; // 2. sospende l'autosave (niente clobber durante lo scambio)
   resetDocs(); // 3. via i documenti della cartella precedente
-  await loadSession(path); // 4. ripristina la nuova cartella (apre comunque se senza sessione)
+  const ok = await loadSession(path); // 4. ripristina la nuova cartella (apre comunque se senza sessione)
+  if (!ok) {
+    // cartella spostata/eliminata: openRoot ha lanciato senza toccare rootPath → niente stato a metà.
+    // Torniamo alla cartella precedente (così non resta una finestra vuota) e segnaliamo l'errore;
+    // il chiamante toglierà la voce morta dal selettore.
+    if (prev) await loadSession(prev).catch(() => {});
+    notify(`Can't open "${basename(path)}" — the folder may have been moved or deleted.`, "error");
+    return "failed";
+  }
+  // 5. al CAMBIO repo mostra sempre l'Explorer: deterministico, niente Docs/Chat "a sorpresa"
+  //    ereditati dalla vista salvata di quel repo. (Lo startup invece rispetta la vista salvata.)
+  layout.sidebarView = "explorer";
+  layout.sidebarVisible = true; // e mostra la sidebar (se quel repo l'aveva nascosta)
+  syncActiveTerminalToRoot(workspace.rootPath); // 6. mostra le schede terminale di QUESTA repo
+  return "switched";
 }
 
 /** Attiva il salvataggio automatico (debounced) a ogni cambio di sessione/layout.

@@ -52,6 +52,36 @@
     repobarEl?.querySelector(".repotab.active")?.scrollIntoView({ inline: "nearest", block: "nearest" });
   });
 
+  // se le tab non entrano nella barra: un "…" apre il menu con TUTTE le repo (oltre allo scroll)
+  let overflowing = $state(false);
+  function repobarOverflow(node: HTMLElement) {
+    const measure = () => (overflowing = node.scrollWidth > node.clientWidth + 1);
+    const ro = new ResizeObserver(measure); // cambi di larghezza (finestra / altri elementi)
+    ro.observe(node);
+    const mo = new MutationObserver(measure); // aggiunta/rimozione di tab → cambia scrollWidth
+    mo.observe(node, { childList: true, subtree: true });
+    measure();
+    return {
+      destroy() {
+        ro.disconnect();
+        mo.disconnect();
+      },
+    };
+  }
+  let folderMenu = $state<{ x: number; y: number } | null>(null);
+  function openFolderMenu(e: MouseEvent) {
+    folderMenu = menuPos(e);
+  }
+  function folderMenuItems(): MenuItem[] {
+    const items: MenuItem[] = folders.list.map((f) => ({
+      label: f.name,
+      icon: f.path === workspace.rootPath ? "folder-open" : "folder",
+      onClick: () => void openFromList(f.path),
+    }));
+    items.push({ label: "Add folder…", icon: "folder-plus", separatorBefore: items.length > 0, onClick: openFolderDialog });
+    return items;
+  }
+
   // posizione di un menu a tendina, appena sotto il pulsante che l'ha aperto
   function menuPos(e: MouseEvent) {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -159,7 +189,7 @@
 
   <div class="spacer" data-tauri-drag-region>
     {#if workspace.rootName}
-      <div class="repobar" bind:this={repobarEl}>
+      <div class="repobar" bind:this={repobarEl} use:repobarOverflow>
         {#each folders.list as f (f.path)}
           {@const active = f.path === workspace.rootPath}
           <div class="repotab" class:active>
@@ -170,16 +200,19 @@
                 <span class="rt-branch"><Icon name="git-branch" size={10} strokeWidth={1.8} />{workspace.branch}</span>
               {/if}
             </button>
-            {#if !active}
-              <button class="rt-close" title="Remove from list" aria-label="Remove from list" onclick={() => removeFolder(f.path)}>
-                <Icon name="x" size={11} strokeWidth={2} />
-              </button>
-            {/if}
+            <button class="rt-close" title={active ? "Remove (switch to a neighbor)" : "Remove from list"} aria-label="Remove from list" onclick={() => removeFolder(f.path)}>
+              <Icon name="x" size={11} strokeWidth={2} />
+            </button>
           </div>
         {/each}
         <button class="repoadd" title="Add folder…" aria-label="Add folder" onclick={openFolderDialog}>
           <Icon name="plus" size={13} strokeWidth={2} />
         </button>
+        {#if overflowing}
+          <button class="repoadd" title="All repositories" aria-label="All repositories" onclick={openFolderMenu}>
+            <Icon name="more" size={15} strokeWidth={2} />
+          </button>
+        {/if}
       </div>
     {/if}
   </div>
@@ -228,6 +261,9 @@
 {/if}
 {#if claudeMenu}
   <ContextMenu x={claudeMenu.x} y={claudeMenu.y} items={claudeMenuItems()} onClose={() => (claudeMenu = null)} />
+{/if}
+{#if folderMenu}
+  <ContextMenu x={folderMenu.x} y={folderMenu.y} items={folderMenuItems()} onClose={() => (folderMenu = null)} />
 {/if}
 
 <style>

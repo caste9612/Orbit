@@ -31,7 +31,7 @@
   import { redockTerminal, terminals } from "./lib/state/terminals.svelte";
   import { initIndex, scheduleRescan, wsPalette, openWsPalette, navBack, navForward, goToDefinitionAtCursor } from "./lib/state/codeIndex.svelte";
   import { matchCommand, shortcutsUI } from "./lib/state/keybindings.svelte";
-  import { loadFolders, addFolder } from "./lib/state/folders.svelte";
+  import { loadFolders, addFolder, cycleRepo, selectRepoIndex } from "./lib/state/folders.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
   // Le finestre flottanti hanno label "term-float-<id>" e mostrano un terminale a tutta finestra.
@@ -254,6 +254,12 @@
   // Dispatch tastiera centralizzato: il tasto premuto → comando (secondo il preset attivo) → azione.
   function onKey(e: KeyboardEvent) {
     if (isFloatingTerminal) return;
+    // Ctrl/Cmd+1…9 → repo n-esima del selettore (9 tasti: non vale la pena nel registro)
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key >= "1" && e.key <= "9") {
+      e.preventDefault();
+      selectRepoIndex(Number(e.key) - 1);
+      return;
+    }
     const cmd = matchCommand(e);
     if (!cmd) return;
     // Le scorciatoie SENZA Ctrl/Cmd (F12, Alt+←/→) non vanno rubate al terminale o ai campi di testo
@@ -282,6 +288,12 @@
         break;
       case "navForward":
         navForward();
+        break;
+      case "nextRepo":
+        cycleRepo(1);
+        break;
+      case "prevRepo":
+        cycleRepo(-1);
         break;
       case "save":
         saveActive();

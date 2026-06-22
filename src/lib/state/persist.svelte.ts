@@ -140,6 +140,7 @@ export async function switchFolder(path: string) {
   // 5. al CAMBIO repo mostra sempre l'Explorer: deterministico, niente Docs/Chat "a sorpresa"
   //    ereditati dalla vista salvata di quel repo. (Lo startup invece rispetta la vista salvata.)
   layout.sidebarView = "explorer";
+  layout.sidebarVisible = true; // e mostra la sidebar (se quel repo l'aveva nascosta)
   syncActiveTerminalToRoot(workspace.rootPath); // 6. mostra le schede terminale di QUESTA repo
 }
 

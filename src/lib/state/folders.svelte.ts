@@ -60,8 +60,9 @@ export async function removeFolder(path: string) {
     const i = folders.list.findIndex((e) => e.path === path);
     const neighbor = folders.list[i + 1] ?? folders.list[i - 1];
     if (neighbor) {
-      await switchFolder(neighbor.path); // include il guard sugli edit non salvati
-      if (workspace.rootPath === path) return; // switch annullato → non rimuovere
+      const st = await switchFolder(neighbor.path); // include il guard sugli edit non salvati
+      if (st === "failed") drop(neighbor.path); // anche il vicino è sparito → toglilo
+      if (workspace.rootPath === path) return; // ancora qui (annullato o vicino morto) → non rimuovere
     }
   }
   drop(path);
@@ -83,8 +84,10 @@ export function selectRepoIndex(i: number) {
 }
 
 /** Passa alla repo `path` dal selettore. Il guard sugli edit non salvati è dentro `switchFolder`
- *  (così vale per ogni cambio cartella, anche "Add folder…"). */
+ *  (così vale per ogni cambio cartella, anche "Add folder…"). Se la cartella è sparita,
+ *  `switchFolder` ripristina la precedente e qui togliamo la voce morta dal selettore. */
 export async function openFromList(path: string) {
   if (!path || path === workspace.rootPath) return;
-  await switchFolder(path);
+  const st = await switchFolder(path);
+  if (st === "failed") drop(path);
 }

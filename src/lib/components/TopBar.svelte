@@ -8,7 +8,7 @@
   import { layout, selectView, toggleTerminal } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog } from "../state/explorer.svelte";
-  import { folders, openFromList } from "../state/folders.svelte";
+  import { folders, openFromList, removeFolder } from "../state/folders.svelte";
   import { changedCount } from "../state/git.svelte";
   import { run, runConfig, openConfig, teachClaude } from "../state/run.svelte";
   import {
@@ -49,26 +49,6 @@
   function menuPos(e: MouseEvent) {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     return { x: r.left, y: r.bottom + 4 };
-  }
-
-  // selettore repo (la barra col nome progetto): elenca le cartelle aperte + "Add folder…"
-  let folderMenu = $state<{ x: number; y: number } | null>(null);
-  function openFolderMenu(e: MouseEvent) {
-    folderMenu = menuPos(e);
-  }
-  function folderMenuItems(): MenuItem[] {
-    const items: MenuItem[] = folders.list.map((f) => ({
-      label: f.name,
-      icon: f.path === workspace.rootPath ? "folder-open" : "folder",
-      onClick: () => void openFromList(f.path),
-    }));
-    items.push({
-      label: "Add folder…",
-      icon: "folder-plus",
-      separatorBefore: items.length > 0,
-      onClick: openFolderDialog,
-    });
-    return items;
   }
 
   let runMenu = $state<{ x: number; y: number } | null>(null);
@@ -172,14 +152,28 @@
 
   <div class="spacer" data-tauri-drag-region>
     {#if workspace.rootName}
-      <button class="ws" onclick={openFolderMenu} title="Switch repository">
-        <span class="wsname">{workspace.rootName}</span>
-        {#if workspace.branch}
-          <span class="wssep"></span>
-          <span class="wsbranch"><Icon name="git-branch" size={11} strokeWidth={1.8} />{workspace.branch}</span>
-        {/if}
-        <span class="wschev"><Icon name="chevron-down" size={12} strokeWidth={2} /></span>
-      </button>
+      <div class="repobar">
+        {#each folders.list as f (f.path)}
+          {@const active = f.path === workspace.rootPath}
+          <div class="repotab" class:active>
+            <button class="rt-main" title={f.path} onclick={() => openFromList(f.path)}>
+              <Icon name={active ? "folder-open" : "folder"} size={12} strokeWidth={1.8} />
+              <span class="rt-name">{f.name}</span>
+              {#if active && workspace.branch}
+                <span class="rt-branch"><Icon name="git-branch" size={10} strokeWidth={1.8} />{workspace.branch}</span>
+              {/if}
+            </button>
+            {#if !active}
+              <button class="rt-close" title="Remove from list" aria-label="Remove from list" onclick={() => removeFolder(f.path)}>
+                <Icon name="x" size={11} strokeWidth={2} />
+              </button>
+            {/if}
+          </div>
+        {/each}
+        <button class="repoadd" title="Add folder…" aria-label="Add folder" onclick={openFolderDialog}>
+          <Icon name="plus" size={13} strokeWidth={2} />
+        </button>
+      </div>
     {/if}
   </div>
 
@@ -227,9 +221,6 @@
 {/if}
 {#if claudeMenu}
   <ContextMenu x={claudeMenu.x} y={claudeMenu.y} items={claudeMenuItems()} onClose={() => (claudeMenu = null)} />
-{/if}
-{#if folderMenu}
-  <ContextMenu x={folderMenu.x} y={folderMenu.y} items={folderMenuItems()} onClose={() => (folderMenu = null)} />
 {/if}
 
 <style>
@@ -313,51 +304,105 @@
     justify-content: center;
     min-width: 0;
   }
-  .ws {
+  .repobar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    height: 22px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .repobar::-webkit-scrollbar {
+    display: none;
+  }
+  .repotab {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    max-width: 100%;
-    height: 21px;
-    padding: 0 9px;
-    background: var(--color-surface-1);
+    flex: 0 0 auto;
+    max-width: 220px;
+    height: 22px;
     border: 1px solid var(--color-line);
     border-radius: 7px;
-    font-size: 12px;
-    font-family: inherit;
-    color: inherit;
-    white-space: nowrap;
+    background: var(--color-surface-1);
+    color: var(--color-ink-muted);
     overflow: hidden;
-    cursor: pointer;
-    transition: background 90ms ease, border-color 90ms ease;
+    transition: background 90ms ease, border-color 90ms ease, color 90ms ease;
   }
-  .ws:hover {
+  .repotab:not(.active):hover {
     background: var(--color-surface-3);
-    border-color: var(--color-line-strong);
+    color: var(--color-ink);
   }
-  .ws .wschev {
-    flex: 0 0 auto;
+  .repotab.active {
+    color: var(--color-ink);
+    background: rgba(var(--accent-rgb), 0.16);
+    border-color: rgba(var(--accent-rgb), 0.5);
+  }
+  .rt-main {
     display: inline-flex;
-    color: var(--color-ink-subtle);
+    align-items: center;
+    gap: 6px;
+    height: 100%;
+    padding: 0 5px 0 9px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    min-width: 0;
   }
-  .wsname {
-    color: #eaeef3;
-    font-weight: 500;
+  .rt-name {
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
-  .wssep {
-    flex: 0 0 auto;
-    width: 1px;
-    height: 12px;
-    background: var(--color-line-strong);
-  }
-  .wsbranch {
+  .rt-branch {
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
+    padding-left: 2px;
     color: var(--color-ink-muted);
+    font-size: 11px;
+  }
+  .rt-close {
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-ink-subtle);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 90ms ease, background 90ms ease;
+  }
+  .repotab:hover .rt-close {
+    opacity: 1;
+  }
+  .rt-close:hover {
+    background: var(--color-surface-4);
+    color: var(--color-ink);
+  }
+  .repoadd {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 22px;
+    border: 1px solid var(--color-line);
+    border-radius: 7px;
+    background: var(--color-surface-1);
+    color: var(--color-ink-muted);
+    cursor: pointer;
+    transition: background 90ms ease, color 90ms ease;
+  }
+  .repoadd:hover {
+    background: var(--color-surface-3);
+    color: var(--color-ink);
   }
 
   .actions {

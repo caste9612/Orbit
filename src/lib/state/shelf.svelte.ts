@@ -7,6 +7,7 @@ import { joinPath, relTo } from "../util";
 
 export const shelf = $state({
   map: {} as Record<string, string[]>, // relPath (separatori "/") -> categorie
+  byName: {} as Record<string, string[]>, // nome cartella (es. "bin") -> categorie: REGOLA che nasconde TUTTE le cartelle con quel nome (anche annidate o ricreate dopo, es. bin/obj C#)
   loaded: false,
 });
 
@@ -19,39 +20,63 @@ export function relOf(abs: string): string {
   return relTo(abs, workspace.rootPath);
 }
 
-/** Una cartella è nascosta dall'albero se è nello scaffale o è dentro una che lo è. */
+/** Una cartella è nascosta dall'albero se: è nello scaffale (per percorso), è dentro una che lo è,
+ *  oppure un segmento del suo path corrisponde a una regola-per-nome (match case-insensitive,
+ *  Windows). La regola copre quindi anche le cartelle annidate e quelle ricreate dopo (bin/obj). */
 export function isHidden(rel: string): boolean {
   if (rel in shelf.map) return true;
   for (const key of Object.keys(shelf.map)) {
     if (rel.startsWith(key + "/")) return true;
   }
+  const names = Object.keys(shelf.byName);
+  if (names.length) {
+    const ruled = new Set(names.map((n) => n.toLowerCase()));
+    for (const seg of rel.split("/")) {
+      if (ruled.has(seg.toLowerCase())) return true;
+    }
+  }
   return false;
+}
+
+/** Nome cartella (basename) coperto da una regola-per-nome? (case-insensitive) */
+export function isNameRuled(name: string): boolean {
+  const n = name.toLowerCase();
+  return Object.keys(shelf.byName).some((k) => k.toLowerCase() === n);
 }
 
 export async function loadShelf() {
   const p = shelfPath();
   if (!p) {
     shelf.map = {};
+    shelf.byName = {};
     shelf.loaded = false;
     return;
   }
   try {
     const raw = await invoke<string>("read_file", { path: p });
     const data = JSON.parse(raw);
-    const src = data?.shelved && typeof data.shelved === "object" ? data.shelved : {};
-    const clean: Record<string, string[]> = {};
-    for (const [k, v] of Object.entries(src)) {
-      if (Array.isArray(v)) {
-        const cats = v.filter((x) => typeof x === "string");
-        if (cats.length) clean[k] = cats;
-      }
-    }
-    shelf.map = clean;
+    shelf.map = cleanCats(data?.shelved);
+    shelf.byName = cleanCats(data?.byName);
     shelf.loaded = true;
   } catch {
     shelf.map = {};
+    shelf.byName = {};
     shelf.loaded = false;
   }
+}
+
+/** Normalizza un oggetto {chiave: string[]} scartando valori non validi e categorie vuote. */
+function cleanCats(src: unknown): Record<string, string[]> {
+  const clean: Record<string, string[]> = {};
+  if (src && typeof src === "object") {
+    for (const [k, v] of Object.entries(src as Record<string, unknown>)) {
+      if (Array.isArray(v)) {
+        const cats = v.filter((x): x is string => typeof x === "string");
+        if (cats.length) clean[k] = cats;
+      }
+    }
+  }
+  return clean;
 }
 
 async function save() {
@@ -62,7 +87,7 @@ async function save() {
     await invoke("create_dir", { path: joinPath(root, ".orbit") }).catch(() => {});
     await invoke("write_file", {
       path: p,
-      content: JSON.stringify({ shelved: shelf.map }, null, 2) + "\n",
+      content: JSON.stringify({ shelved: shelf.map, byName: shelf.byName }, null, 2) + "\n",
     });
   } catch (e) {
     console.error("shelf save", e);
@@ -94,22 +119,54 @@ export function unshelveFolder(rel: string) {
   void save();
 }
 
+/** Regola-per-nome: aggiunge tutte le cartelle chiamate `name` a una categoria. */
+export function shelveByName(name: string, category: string) {
+  const n = name.trim();
+  const cat = category.trim();
+  if (!n || !cat) return;
+  const cats = new Set(shelf.byName[n] ?? []);
+  cats.add(cat);
+  shelf.byName[n] = [...cats];
+  void save();
+}
+
+/** Toglie una regola-per-nome da una categoria (e la rimuove se era l'ultima). */
+export function unshelveByNameCategory(name: string, category: string) {
+  const cats = (shelf.byName[name] ?? []).filter((c) => c !== category);
+  if (cats.length) shelf.byName[name] = cats;
+  else delete shelf.byName[name];
+  void save();
+}
+
+/** Rimuove del tutto una regola-per-nome (le cartelle tornano nell'albero). */
+export function unshelveName(name: string) {
+  delete shelf.byName[name];
+  void save();
+}
+
 export function allCategories(): string[] {
   const s = new Set<string>();
   for (const cats of Object.values(shelf.map)) for (const c of cats) s.add(c);
+  for (const cats of Object.values(shelf.byName)) for (const c of cats) s.add(c);
   return [...s].sort((a, b) => a.localeCompare(b));
 }
 
-/** Categorie con le rispettive cartelle (per la vista a fondo Esplora). */
-export function byCategory(): { category: string; folders: string[] }[] {
-  const m = new Map<string, string[]>();
+/** Categorie con le rispettive cartelle (per percorso) e regole-per-nome (vista a fondo Esplora). */
+export function byCategory(): { category: string; folders: string[]; names: string[] }[] {
+  const folders = new Map<string, string[]>();
+  const names = new Map<string, string[]>();
   for (const [rel, cats] of Object.entries(shelf.map)) {
-    for (const c of cats) {
-      if (!m.has(c)) m.set(c, []);
-      m.get(c)!.push(rel);
-    }
+    for (const c of cats) (folders.get(c) ?? folders.set(c, []).get(c)!).push(rel);
   }
-  return [...m.entries()]
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([category, folders]) => ({ category, folders: folders.sort() }));
+  for (const [name, cats] of Object.entries(shelf.byName)) {
+    for (const c of cats) (names.get(c) ?? names.set(c, []).get(c)!).push(name);
+  }
+  const cats = new Set([...folders.keys(), ...names.keys()]);
+  return [...cats]
+    .sort((a, b) => a.localeCompare(b))
+    .map((category) => ({
+      category,
+      folders: (folders.get(category) ?? []).sort(),
+      names: (names.get(category) ?? []).sort((a, b) => a.localeCompare(b)),
+    }));
 }

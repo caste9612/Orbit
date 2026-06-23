@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { scale } from "svelte/transition";
   import Icon from "./Icon.svelte";
   import Backdrop from "./Backdrop.svelte";
@@ -10,6 +11,10 @@
     shelveFolder,
     unshelveCategory,
     unshelveFolder,
+    shelveByName,
+    unshelveByNameCategory,
+    unshelveName,
+    isNameRuled,
   } from "../state/shelf.svelte";
 
   interface Props {
@@ -21,22 +26,32 @@
   let { x, y, absPath, onClose }: Props = $props();
 
   let rel = $derived(relOf(absPath));
-  let current = $derived(shelf.map[rel] ?? []);
+  let name = $derived(basename(absPath));
+  // se esiste già una regola per questo nome, apri in modalità "per nome" così la vedi/modifichi
+  let applyByName = $state(untrack(() => isNameRuled(basename(absPath))));
+  // categorie attive sul bersaglio corrente: regola-per-nome se attiva, altrimenti la singola cartella
+  let current = $derived(applyByName ? (shelf.byName[name] ?? []) : (shelf.map[rel] ?? []));
   let cats = $derived(allCategories());
   let newName = $state("");
 
   const W = 240;
   let left = $derived(Math.min(x, window.innerWidth - W - 6));
-  let top = $derived(Math.min(y, window.innerHeight - 280));
+  let top = $derived(Math.min(y, window.innerHeight - 320));
 
   function toggle(cat: string) {
-    if (current.includes(cat)) unshelveCategory(rel, cat);
-    else shelveFolder(absPath, cat);
+    if (current.includes(cat)) {
+      if (applyByName) unshelveByNameCategory(name, cat);
+      else unshelveCategory(rel, cat);
+    } else {
+      if (applyByName) shelveByName(name, cat);
+      else shelveFolder(absPath, cat);
+    }
   }
   function create() {
     const n = newName.trim();
     if (!n) return;
-    shelveFolder(absPath, n);
+    if (applyByName) shelveByName(name, n);
+    else shelveFolder(absPath, n);
     newName = "";
   }
 </script>
@@ -46,8 +61,18 @@
 <div class="picker" style="left:{left}px; top:{top}px; width:{W}px" role="menu" transition:scale={{ duration: 90, start: 0.97, opacity: 0.3 }}>
   <div class="head">
     <Icon name="archive" size={13} strokeWidth={1.7} />
-    <span class="ttl">Shelf · {basename(absPath)}</span>
+    <span class="ttl">Shelf · {name}</span>
   </div>
+
+  <button
+    class="byname"
+    class:on={applyByName}
+    onclick={() => (applyByName = !applyByName)}
+    title="Nascondi TUTTE le cartelle chiamate «{name}», anche annidate o ricreate dopo (es. bin/obj di una soluzione C#)"
+  >
+    <span class="box">{#if applyByName}<Icon name="check" size={12} strokeWidth={2.4} />{/if}</span>
+    <span class="bn">Tutte le cartelle «{name}»</span>
+  </button>
 
   {#if cats.length}
     <div class="list">
@@ -69,9 +94,9 @@
 
   {#if current.length}
     <div class="divider"></div>
-    <button class="remove" onclick={() => { unshelveFolder(rel); onClose(); }}>
+    <button class="remove" onclick={() => { if (applyByName) unshelveName(name); else unshelveFolder(rel); onClose(); }}>
       <Icon name="trash" size={13} strokeWidth={1.8} />
-      <span>Remove from shelf</span>
+      <span>{applyByName ? `Rimuovi regola «${name}»` : "Remove from shelf"}</span>
     </button>
   {/if}
 </div>
@@ -96,6 +121,32 @@
     font-size: 11.5px;
   }
   .ttl {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .byname {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 5px;
+    padding: 5px 6px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--color-ink-muted);
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .byname:hover {
+    background: var(--color-surface-3);
+  }
+  .byname.on {
+    color: var(--color-ink);
+  }
+  .byname .bn {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

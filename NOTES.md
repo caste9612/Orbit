@@ -1542,6 +1542,40 @@ diversa al salvataggio). Rilasciato in **v0.7.1**.
 
 ---
 
+## Milestone 40 — scaffale: regole per nome, rifiniture top‑bar e salto‑riga (v0.7.2)
+
+**Scaffale per NOME (`byName`).** Oltre alla mappa per‑percorso, `.orbit/shelf.json` ha ora una sezione
+`byName` (nome cartella → categorie): una **regola** che nasconde *tutte* le cartelle con quel nome —
+anche **annidate** e anche quelle **ricreate dopo** (caso d'uso dell'utente: i `bin`/`obj` di una
+soluzione C#, che ogni build rigenera). `isHidden(rel)` controlla, oltre ai percorsi, se un qualsiasi
+**segmento** del path coincide con un nome a regola (match case‑insensitive, Windows). Nel `ShelfPicker`
+un toggle **"Tutte le cartelle «nome»"** fa operare le spunte di categoria sulla regola invece che sul
+singolo percorso (e si apre già in quella modalità se la regola esiste). La vista *Shelf* in fondo
+all'Esplora mostra le regole come voci dedicate con una **×** per rimuoverle. La scorciatoia
+**"Shelve noise folders"** ora usa regole‑per‑nome → cattura anche `node_modules`/`target`/`dist`/`.git`
+**annidati** (prima solo al primo livello). API stato (`shelf.svelte.ts`):
+`shelveByName`/`unshelveByNameCategory`/`unshelveName`/`isNameRuled`; `allCategories`/`byCategory`
+includono le regole (`byCategory` ritorna anche `names[]`). Nessuna modifica al backend Rust.
+
+**Top‑bar repo (rifiniture M37).** La tab del repo **attivo** mostra nome **+** branch **per intero**
+quando c'è spazio: la repobar usa `width: max-content` (tetto `max-width: 100%`, oltre scrolla) e lo
+`spacer` allinea a sinistra (`justify-content: flex-start`) invece di centrare, così non comprime la
+striscia. Tutto resta **comprimibile** (`flex: 0 1`) → da finestra stretta nome/branch si accorciano con
+ellissi invece di spingere fuori i controlli‑finestra; tolto il vecchio tetto `max-width: 96px` sul badge
+branch (che sacrificava il nome del repo). Stringendo, il repo **selezionato** (non per forza il primo)
+viene riportato in vista a ogni resize (`scrollIntoView` dentro `requestAnimationFrame`, fuori dal
+callback del `ResizeObserver`). Frecce **indietro/avanti** spostate accanto all'icona del terminale,
+dopo il separatore.
+
+**Salto‑riga centrato.** F12 / Vai‑alla‑definizione / Vai‑al‑simbolo / indietro‑avanti centrano ora
+verticalmente la riga di destinazione (`EditorView.scrollIntoView(pos, { y: "center" })`) invece di
+incollarla al bordo alto/basso (era l'"altezza strana" segnalata).
+
+Verifica: `svelte-check` **198/0/0**, `cargo test` **25/25** (invariati: nessuna modifica al backend).
+Rilasciato in **v0.7.2**.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

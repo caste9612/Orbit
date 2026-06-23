@@ -55,7 +55,9 @@ cross-platform desktop app that weighs almost nothing.
 - **Git decorations** in the tree: modified/added/deleted files are highlighted live (so you
   see exactly what changed — including what Claude just touched).
 - **Shelf**: set aside uninteresting folders by category to declutter the tree without losing
-  them — they sit at the bottom and stay browsable inline (`.orbit/shelf.json`).
+  them — they sit at the bottom and stay browsable inline (`.orbit/shelf.json`). A folder can be
+  shelved on its own, or via a **by‑name rule** that hides *every* folder with that name — including
+  nested ones and ones recreated later (e.g. all the `bin`/`obj` folders of a C# solution).
 - **Follow active file**: an optional toggle (⌖ in the explorer toolbar) that auto‑expands the tree
   to the active file and reveals it as you switch tabs, Quick‑Open a file, or jump to a definition
   (VS Code's *reveal*).

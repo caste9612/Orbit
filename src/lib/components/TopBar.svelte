@@ -66,7 +66,14 @@
   // se le tab non entrano nella barra: un "…" apre il menu con TUTTE le repo (oltre allo scroll)
   let overflowing = $state(false);
   function repobarOverflow(node: HTMLElement) {
-    const measure = () => (overflowing = node.scrollWidth > node.clientWidth + 1);
+    const measure = () => {
+      overflowing = node.scrollWidth > node.clientWidth + 1;
+      // stringendo la finestra il repo SELEZIONATO (che può non essere il primo) deve restare in
+      // vista: lo riporto in vista a ogni resize. rAF: fuori dal callback del ResizeObserver.
+      requestAnimationFrame(() =>
+        node.querySelector(".repotab.active")?.scrollIntoView({ inline: "nearest", block: "nearest" }),
+      );
+    };
     const ro = new ResizeObserver(measure); // cambi di larghezza (finestra / altri elementi)
     ro.observe(node);
     const mo = new MutationObserver(measure); // aggiunta/rimozione di tab → cambia scrollWidth
@@ -390,8 +397,9 @@
     height: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
-    min-width: 0; /* assorbe la compressione: la repozone si stringe qui, non spinge fuori i wctrls */
+    justify-content: flex-start; /* la striscia repo parte da sinistra; lo spazio libero resta a destra
+                                    (NON comprime la repobar → la tab attiva si vede intera quando c'è spazio) */
+    min-width: 0; /* assorbe la compressione: la repobar si stringe/scrolla qui, non spinge fuori i wctrls */
   }
   /* tab repo (striscia che scorre) + "+"/"…" pinnati; tutto entro lo spazio dello spacer */
   .repozone {
@@ -405,8 +413,10 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    flex: 0 1 auto; /* può restringersi… */
-    min-width: 0; /* …fino a 0 (è scroll container in x → min-content non la blocca) */
+    flex: 0 1 auto;
+    width: max-content; /* larghezza = contenuto PIENO (tab attiva intera) quando c'è spazio… */
+    max-width: 100%; /* …ma mai oltre lo spazio disponibile → oltre, scrolla */
+    min-width: 0; /* scroll container in x → min-content non la blocca */
     height: 22px;
     overflow-x: auto;
     scrollbar-width: none;
@@ -435,6 +445,12 @@
     color: var(--color-ink);
     background: rgba(var(--accent-rgb), 0.16);
     border-color: rgba(var(--accent-rgb), 0.5);
+    /* la tab ATTIVA mostra nome + branch PER INTERO quando c'è spazio (la repobar usa `width:max-content`
+       → niente tetto qui); ma resta COMPRIMIBILE (flex-shrink) così da finestra stretta si accorcia con
+       ellissi invece di spingere fuori i controlli. Le inattive restano a 220px. */
+    flex: 0 1 auto;
+    max-width: none;
+    min-width: 0;
   }
   .rt-main {
     display: inline-flex;
@@ -451,14 +467,15 @@
     min-width: 0;
   }
   .rt-name {
+    flex: 0 1 auto; /* sotto pressione si accorcia con ellissi (l'item più lungo cede di più) */
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .rt-branch {
-    flex: 0 1 auto; /* può restringersi: un branch lungo NON deve sacrificare il nome del repo */
+    flex: 0 1 auto; /* intero quando c'è spazio (repobar a max-content); si accorcia con ellissi se serve */
     min-width: 0;
-    max-width: 96px; /* tetto: oltre, il nome branch tronca con ellissi (vedi .rt-bname) */
     display: inline-flex;
     align-items: center;
     gap: 4px;

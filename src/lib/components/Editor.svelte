@@ -193,13 +193,18 @@
     untrack(() => view?.dispatch({}));
   });
 
-  // salto a una riga (da ricerca)
+  // salto a una riga (ricerca, F12/Vai-alla-definizione, Vai-al-simbolo, indietro/avanti).
+  // `y: "center"` invece del default "nearest": la riga target finisce CENTRATA verticalmente, non
+  // incollata al bordo alto/basso (che era l'"altezza strana"). Così il salto è prevedibile.
   $effect(() => {
     const gl = gotoLine;
     if (!view || gl == null || gl <= 0) return;
     const ln = Math.min(gl, view.state.doc.lines);
     const info = view.state.doc.line(ln);
-    view.dispatch({ selection: { anchor: info.from }, scrollIntoView: true });
+    view.dispatch({
+      selection: { anchor: info.from },
+      effects: EditorView.scrollIntoView(info.from, { y: "center" }),
+    });
     view.focus();
     onGotoHandled?.();
   });

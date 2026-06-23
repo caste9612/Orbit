@@ -24,7 +24,7 @@
   import { runFile } from "../state/run.svelte";
   import { layout } from "../state/layout.svelte";
   import { decorations } from "../state/git.svelte";
-  import { shelf, relOf, isHidden, byCategory, shelveFolder } from "../state/shelf.svelte";
+  import { shelf, relOf, isHidden, byCategory, shelveByName, isNameRuled, unshelveName } from "../state/shelf.svelte";
   import { notify } from "../state/toast.svelte";
   import { fileIcon, basename, dirname, joinPath, normSlash, relTo, runCommand } from "../util";
   import { invoke } from "@tauri-apps/api/core";
@@ -81,16 +81,14 @@
     const i = rel.lastIndexOf("/");
     return i < 0 ? rel : rel.slice(i + 1);
   }
+  const NOISE = ["node_modules", "target", "dist", ".git"];
+  // Regole-per-nome → nasconde le cartelle rumore ovunque, anche ANNIDATE (prima solo primo livello).
   function shelveNoise() {
-    for (const n of tree.roots) {
-      if (n.entry.isDir && ["node_modules", "target", "dist", ".git"].includes(n.entry.name)) {
-        shelveFolder(n.entry.path, "Generato");
-      }
-    }
+    for (const nm of NOISE) shelveByName(nm, "Generato");
   }
   let hasNoise = $derived(
-    tree.roots.some(
-      (n) => n.entry.isDir && ["node_modules", "target", "dist", ".git"].includes(n.entry.name) && !isHidden(relOf(n.entry.path)),
+    flatten(tree.roots).some(
+      (n) => n.entry.isDir && NOISE.includes(n.entry.name) && !isHidden(relOf(n.entry.path)),
     ),
   );
 
@@ -312,9 +310,19 @@
             <button class="cat-head" onclick={() => (catOpen[cat.category] = !catOpen[cat.category])}>
               <span class="chev" class:open={catOpen[cat.category]}><Icon name="chevron-right" size={12} strokeWidth={2} /></span>
               <span class="cat-name">{cat.category}</span>
-              <span class="cat-count">{cat.folders.length}</span>
+              <span class="cat-count">{cat.folders.length + cat.names.length}</span>
             </button>
             {#if catOpen[cat.category]}
+              {#each cat.names as nm (nm)}
+                <div class="srule" title="Regola: nasconde tutte le cartelle «{nm}»">
+                  <span class="ic"><Icon name="archive" size={13} strokeWidth={1.6} /></span>
+                  <span class="sfname">{nm}</span>
+                  <span class="spath">tutte le cartelle</span>
+                  <button class="rule-x" title="Rimuovi regola «{nm}»" aria-label="Rimuovi regola" onclick={() => unshelveName(nm)}>
+                    <Icon name="x" size={12} strokeWidth={2} />
+                  </button>
+                </div>
+              {/each}
               {#each cat.folders as rel (rel)}
                 {@const abs = joinPath(workspace.rootPath ?? "", rel)}
                 <button class="sfolder" onclick={() => (folderOpen[rel] = !folderOpen[rel])} oncontextmenu={(e) => openShelfPicker(e, abs)} title={rel}>
@@ -549,5 +557,42 @@
     text-overflow: ellipsis;
     color: var(--color-ink-subtle);
     font-size: 11px;
+  }
+  /* regola-per-nome: come una .sfolder ma senza chevron, con × per rimuoverla */
+  .srule {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    height: 21px;
+    padding: 0 6px 0 16px;
+    color: var(--color-ink-muted);
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+  .srule:hover {
+    background: var(--color-surface-3);
+    color: var(--color-ink);
+  }
+  .rule-x {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-ink-subtle);
+    cursor: pointer;
+    opacity: 0;
+  }
+  .srule:hover .rule-x {
+    opacity: 1;
+  }
+  .rule-x:hover {
+    background: rgba(241, 76, 76, 0.16);
+    color: #ff9b9b;
   }
 </style>

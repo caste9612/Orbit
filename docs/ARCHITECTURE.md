@@ -62,7 +62,7 @@ Three kinds of frontend module, kept separate:
 | `terminals` | terminal tabs (id/title/shell/cwd) + active tab; **bell attention** (`notifyTerminalBell` → tab marker + toast when a terminal needs you); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive) |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
 | `claude` | Claude launcher + **shortcuts** + **wrappers** (`.orbit/claude.json`); opens `claude` in a terminal; the wrapper composer copies the composed prompt to the clipboard; **quick add/remove** of prompts & wrappers (`ClaudePrompts.svelte` → writes `claude.json`); invalid JSON **warns** (toast) and keeps the menu instead of silently resetting |
-| `shelf` | shelved folders by category — per‑path entries (`shelved`) **and by‑name rules** (`byName`: hides every folder with that name, incl. nested or recreated — e.g. C# `bin`/`obj`); `.orbit/shelf.json` |
+| `shelf` | shelved folders by category — per‑path entries (`shelved`) **and by‑name rules** (`byName`: hides every folder with that name, incl. nested or recreated — e.g. C# `bin`/`obj`); `.orbit/shelf.json`. Pure hide/group logic split into `shelfRules.ts` (unit‑tested) |
 | `search` | project text search (debounced) |
 | `quickopen` | Ctrl+P fuzzy file finder |
 | `symbols` | **Go to Symbol** palette (Ctrl+Shift+O): outline of the active editor + fuzzy filter |
@@ -342,6 +342,7 @@ npm install
 npm run tauri dev      # hot reload (frontend) + Rust core
 npm run tauri build    # binary + installers in src-tauri/target/release
 npm run check                                    # svelte-check (TS/Svelte)
+npm run test                                     # vitest (frontend pure-logic unit tests)
 cargo test --manifest-path src-tauri/Cargo.toml  # backend unit tests
 ```
 
@@ -352,4 +353,6 @@ cargo test --manifest-path src-tauri/Cargo.toml  # backend unit tests
    `invoke(...)`.
 3. UI: a component reads the state and calls the actions; reuse `Backdrop`/`Switch`/`Icon`.
 4. Persist if it's a preference (settings) or session data (persist).
-5. `npm run check` + `cargo test`, then verify in `npm run tauri dev`.
+5. `npm run check` + `npm run test` + `cargo test`, then verify in `npm run tauri dev`.
+   Pure logic (no runes/DOM) goes in a plain `.ts` next to its `.svelte.ts` (e.g. `shelfRules.ts`)
+   with a `*.test.ts` — vitest runs them without the Svelte plugin.

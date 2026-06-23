@@ -115,6 +115,15 @@ export async function rescan() {
     codeIndex.symbols = syms;
     codeIndex.loaded = true;
     rebuildSemSets();
+    // se la palette "Simboli progetto" è aperta sulla rubrica live, rinfresca i risultati coi simboli
+    // appena scansionati (prima restavano congelati all'apertura) e clampa la selezione: è l'unico
+    // punto in cui i risultati cambiano sotto un indice fisso → evita una selezione fuori range.
+    if (wsPalette.open && !wsPalette.source) {
+      filterWs();
+      if (wsPalette.index >= wsPalette.results.length) {
+        wsPalette.index = Math.max(0, wsPalette.results.length - 1);
+      }
+    }
     void saveCache(root, syms);
   } catch (e) {
     console.error("scan_symbols", e);

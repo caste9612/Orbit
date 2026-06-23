@@ -213,14 +213,18 @@
     }
     addWheelZoom();
     startSettingsAutosave();
-    // aggiornamento in tempo reale: il backend emette fs-changed (debounced)
-    offFsChanged = await listen("fs-changed", () => {
-      refreshTree();
-      refreshStatus();
-      reloadOpenFiles();
-      loadRunConfig(); // ricarica il menu Esegui se Claude tocca .orbit/run.json
-      loadClaudeConfig(); // ricarica il menu Claude se cambia .orbit/claude.json
-      loadShelf(); // ricarica lo scaffale se Claude tocca .orbit/shelf.json
+    // aggiornamento in tempo reale: il backend emette fs-changed (debounced) coi path cambiati.
+    offFsChanged = await listen<string[]>("fs-changed", (e) => {
+      // path assoluti cambiati → ricarico in modo SELETTIVO. Fallback (payload assente/non-array):
+      // tratta come "tutto cambiato" per non perdere aggiornamenti. Normalizzo a "/" per il match.
+      const changed = Array.isArray(e.payload) ? e.payload.map((p) => p.replace(/\\/g, "/")) : null;
+      refreshTree(); // struttura albero (add/del/rename): serve comunque
+      refreshStatus(); // decorazioni git: quasi ogni cambio le tocca
+      reloadOpenFiles(changed); // SOLO i file aperti effettivamente cambiati (prima: tutti, ogni evento)
+      // menu .orbit/*: ricarica solo se il rispettivo file è tra i cambiati (Claude tocca un sorgente → skip)
+      if (!changed || changed.some((p) => p.endsWith("/.orbit/run.json"))) loadRunConfig();
+      if (!changed || changed.some((p) => p.endsWith("/.orbit/claude.json"))) loadClaudeConfig();
+      if (!changed || changed.some((p) => p.endsWith("/.orbit/shelf.json"))) loadShelf();
       invalidateFiles(); // l'elenco file cachato (Docs/Quick Open) non è più aggiornato
       if (layout.sidebarView === "docs") loadDocs(); // aggiorna l'indice Docs se visibile
       scheduleRescan(); // aggiorna la rubrica dei simboli del progetto (debounced)

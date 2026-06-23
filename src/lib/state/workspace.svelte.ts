@@ -2,7 +2,7 @@
 // (split view, stile VS Code). Ogni gruppo ha le sue tab e il suo file attivo; lo stesso
 // documento può vivere in più gruppi (contenuto/dirty condivisi dal pool `openFiles`).
 import { invoke } from "@tauri-apps/api/core";
-import { basename, assetKind } from "../util";
+import { basename, assetKind, normSlash } from "../util";
 import { notify } from "./toast.svelte";
 import { settings } from "./settings.svelte";
 
@@ -396,10 +396,17 @@ export async function autosaveAll() {
   }
 }
 
-/** Ricarica dal disco i documenti aperti cambiati esternamente (es. da Claude). */
-export async function reloadOpenFiles() {
+/**
+ * Ricarica dal disco i documenti aperti cambiati esternamente (es. da Claude).
+ * `changed`: path assoluti cambiati (separatori "/", dal watcher). Se passato, ricarico SOLO i file
+ * aperti che vi compaiono — gli altri non sono cambiati, rileggerli sarebbe I/O sprecato (hot path
+ * quando Claude scrive). `null` = comportamento storico (controlla tutti). Match case-insensitive.
+ */
+export async function reloadOpenFiles(changed: string[] | null = null) {
+  const set = changed ? new Set(changed.map((p) => p.toLowerCase())) : null;
   for (const f of workspace.openFiles) {
     if (f.kind !== "file" || f.readonly) continue;
+    if (set && !set.has(normSlash(f.path).toLowerCase())) continue;
     let disk: string;
     try {
       disk = await invoke<string>("read_file", { path: f.path });

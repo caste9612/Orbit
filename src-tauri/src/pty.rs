@@ -185,19 +185,51 @@ pub fn pty_spawn(
         },
     );
 
+    // Lettore PTY → canale → batcher. Il lettore fa solo read+send (veloce); il batcher coalizza i
+    // chunk che arrivano entro una breve finestra (~8ms) in UN solo evento. Sotto output pesante
+    // (log di build/test, `cat` di file grandi) questo riduce molto il numero di eventi IPC e di
+    // write a xterm — prima era un emit per ogni read da ≤4KB. L'ordine dei byte è preservato
+    // (canale FIFO, un solo produttore e un solo consumatore).
+    let (tx, rx) = std::sync::mpsc::channel::<Vec<u8>>();
     std::thread::spawn(move || {
-        let mut buf = [0u8; 4096];
-        let engine = base64::engine::general_purpose::STANDARD;
+        let mut buf = [0u8; 32768];
         loop {
             match reader.read(&mut buf) {
                 Ok(0) => break,
                 Ok(n) => {
-                    let payload = engine.encode(&buf[..n]);
-                    if app2.emit(&format!("pty-data-{}", id2), payload).is_err() {
-                        break;
+                    if tx.send(buf[..n].to_vec()).is_err() {
+                        break; // batcher uscito (webview chiusa)
                     }
                 }
                 Err(_) => break,
+            }
+        }
+        // EOF (shell/claude usciti): il drop di `tx` chiude il canale → il batcher fa la pulizia.
+    });
+
+    std::thread::spawn(move || {
+        let engine = base64::engine::general_purpose::STANDARD;
+        const WINDOW: std::time::Duration = std::time::Duration::from_millis(8);
+        const CAP: usize = 256 * 1024; // tetto: non lasciar crescere un singolo evento all'infinito
+        loop {
+            let mut batch = match rx.recv() {
+                Ok(d) => d,
+                Err(_) => break, // canale chiuso = PTY EOF
+            };
+            let deadline = std::time::Instant::now() + WINDOW;
+            while batch.len() < CAP {
+                let left = deadline.saturating_duration_since(std::time::Instant::now());
+                if left.is_zero() {
+                    break;
+                }
+                match rx.recv_timeout(left) {
+                    Ok(more) => batch.extend_from_slice(&more),
+                    Err(_) => break, // finestra finita o canale chiuso: emetti ciò che ho
+                }
+            }
+            let payload = engine.encode(&batch);
+            if app2.emit(&format!("pty-data-{}", id2), payload).is_err() {
+                break;
             }
         }
         // PTY chiuso (shell/claude usciti): rimuovi la sessione morta → niente tab zombie al redock.

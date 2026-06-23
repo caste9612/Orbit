@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -1542,7 +1542,7 @@ diversa al salvataggio). Rilasciato in **v0.7.1**.
 
 ---
 
-## Milestone 40 — scaffale: regole per nome, rifiniture top‑bar e salto‑riga (v0.7.2)
+## Milestone 40 — scaffale: regole per nome, rifiniture top-bar e salto-riga (v0.7.2)
 
 **Scaffale per NOME (`byName`).** Oltre alla mappa per‑percorso, `.orbit/shelf.json` ha ora una sezione
 `byName` (nome cartella → categorie): una **regola** che nasconde *tutte* le cartelle con quel nome —
@@ -1573,6 +1573,50 @@ incollarla al bordo alto/basso (era l'"altezza strana" segnalata).
 
 Verifica: `svelte-check` **198/0/0**, `cargo test` **25/25** (invariati: nessuna modifica al backend).
 Rilasciato in **v0.7.2**.
+
+---
+
+## Milestone 41 — perf terminale, robustezza e rete di test (v0.7.3)
+
+Lotto di consolidamento ("in attesa di segnalazioni dal campo"): un guadagno di performance, fix
+verificati e una rete di test anti-regressione. Nessuna feature nuova.
+
+**Terminale: output PTY coalizzato.** Prima `pty.rs` emetteva un evento Tauri per ogni read da ≤4KB e
+il frontend faceva una write a xterm per evento. Ora il lettore manda i chunk a un canale e un thread
+*batcher* li coalizza in una finestra di ~8ms (tetto 256KB) → UN evento per finestra. Sotto output
+pesante (log di build/test, `cat` di file grandi) crolla il numero di eventi IPC e di write/parse a
+xterm; ordine dei byte preservato (canale FIFO, un produttore/un consumatore); la pulizia di sessione
++ `pty-exit` all'EOF passano al batcher. Buffer di lettura 4KB → 32KB (meno syscall). **Nota onesta:**
+la CPU "alta" misurata sotto lo spinner di Claude era per lo più rendering WebGL a frame (scelta
+utente), non gli emit; il coalescing agisce su IPC/throughput → si nota soprattutto con molto output.
+
+**`fs-changed` selettivo.** Il watcher emetteva un ping senza payload → il frontend ricaricava TUTTO a
+ogni evento FS (albero + git + *tutti* i file aperti riletti da disco + 3 config `.orbit`). Ora
+`watcher.rs` accumula ed emette i **path cambiati**; `App.svelte` ricarica in modo selettivo: solo i
+file aperti effettivamente cambiati, e i config `.orbit/{run,claude,shelf}.json` solo se toccati.
+Fallback prudente: payload assente → comportamento storico (ricarica tutto). Meno I/O e IPC sul
+percorso caldo quando Claude scrive sorgenti.
+
+**Race di ricerca.** `search.svelte.ts`: aggiunto un token anti-stale (come `scanToken` di codeIndex)
+→ digitando in fretta, i risultati di una query vecchia non sovrascrivono più quelli della corrente.
+
+**Palette "Simboli progetto": freschezza.** Se lo scan finiva mentre la palette era aperta, i risultati
+restavano congelati all'apertura. Ora `rescan()` li rinfresca (solo sorgente live) e clampa la
+selezione — l'unico punto in cui i risultati cambiano sotto un indice fisso. (Le altre palette azzerano
+già l'indice a ogni query: verificato, nessun bug — due "bug" segnalati da una ricognizione si sono
+rivelati falsi allarmi.)
+
+**Rete di test anti-regressione.**
+- Logica pura dello scaffale estratta in `src/lib/state/shelfRules.ts` (`isHiddenIn` / `isNameRuledIn`
+  / `groupByCategory`), così è testabile senza compilare i runes; `shelf.svelte.ts` vi delega (API e
+  reattività invariate).
+- **vitest** come *devDependency* — giustificazione (gate "deps al minimo"): è solo di sviluppo, **zero
+  impatto su binario/bundle/runtime**; riusa l'infrastruttura Vite già presente. `vitest.config.ts`
+  usa l'ambiente node e nessun plugin Svelte (i `.test.ts` importano solo `.ts` puro). 9 test su
+  `shelfRules` (scaffale per-nome annidato/case-insensitive, raggruppamento).
+- Backend: test di `is_excluded` (watcher) → `cargo test` 25 → 26.
+
+Verifica: `vitest` 9/9, `svelte-check` 0/0, `cargo test` 26/26, build release OK. Rilasciato in **v0.7.3**.
 
 ---
 

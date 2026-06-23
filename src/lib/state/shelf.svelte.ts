@@ -4,6 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { workspace } from "./workspace.svelte";
 import { joinPath, relTo } from "../util";
+import { isHiddenIn, isNameRuledIn, groupByCategory, type ShelfCategory } from "./shelfRules";
 
 export const shelf = $state({
   map: {} as Record<string, string[]>, // relPath (separatori "/") -> categorie
@@ -21,27 +22,15 @@ export function relOf(abs: string): string {
 }
 
 /** Una cartella è nascosta dall'albero se: è nello scaffale (per percorso), è dentro una che lo è,
- *  oppure un segmento del suo path corrisponde a una regola-per-nome (match case-insensitive,
- *  Windows). La regola copre quindi anche le cartelle annidate e quelle ricreate dopo (bin/obj). */
+ *  oppure un segmento del suo path corrisponde a una regola-per-nome. Logica pura in `shelfRules`
+ *  (con test); qui si leggono gli stati reattivi `shelf.map`/`shelf.byName`. */
 export function isHidden(rel: string): boolean {
-  if (rel in shelf.map) return true;
-  for (const key of Object.keys(shelf.map)) {
-    if (rel.startsWith(key + "/")) return true;
-  }
-  const names = Object.keys(shelf.byName);
-  if (names.length) {
-    const ruled = new Set(names.map((n) => n.toLowerCase()));
-    for (const seg of rel.split("/")) {
-      if (ruled.has(seg.toLowerCase())) return true;
-    }
-  }
-  return false;
+  return isHiddenIn(rel, shelf.map, shelf.byName);
 }
 
 /** Nome cartella (basename) coperto da una regola-per-nome? (case-insensitive) */
 export function isNameRuled(name: string): boolean {
-  const n = name.toLowerCase();
-  return Object.keys(shelf.byName).some((k) => k.toLowerCase() === n);
+  return isNameRuledIn(name, shelf.byName);
 }
 
 export async function loadShelf() {
@@ -152,21 +141,6 @@ export function allCategories(): string[] {
 }
 
 /** Categorie con le rispettive cartelle (per percorso) e regole-per-nome (vista a fondo Esplora). */
-export function byCategory(): { category: string; folders: string[]; names: string[] }[] {
-  const folders = new Map<string, string[]>();
-  const names = new Map<string, string[]>();
-  for (const [rel, cats] of Object.entries(shelf.map)) {
-    for (const c of cats) (folders.get(c) ?? folders.set(c, []).get(c)!).push(rel);
-  }
-  for (const [name, cats] of Object.entries(shelf.byName)) {
-    for (const c of cats) (names.get(c) ?? names.set(c, []).get(c)!).push(name);
-  }
-  const cats = new Set([...folders.keys(), ...names.keys()]);
-  return [...cats]
-    .sort((a, b) => a.localeCompare(b))
-    .map((category) => ({
-      category,
-      folders: (folders.get(category) ?? []).sort(),
-      names: (names.get(category) ?? []).sort((a, b) => a.localeCompare(b)),
-    }));
+export function byCategory(): ShelfCategory[] {
+  return groupByCategory(shelf.map, shelf.byName);
 }

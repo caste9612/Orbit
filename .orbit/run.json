@@ -4,6 +4,7 @@
     { "name": "Dev (frontend)", "command": "npm run dev", "cwd": "." },
     { "name": "Build frontend", "command": "npm run build", "cwd": "." },
     { "name": "Type-check", "command": "npm run check", "cwd": "." },
-    { "name": "Test backend", "command": "cargo test --manifest-path src-tauri/Cargo.toml", "cwd": "." }
+    { "name": "Test backend", "command": "cargo test --manifest-path src-tauri/Cargo.toml", "cwd": "." },
+    { "name": "Misura footprint", "command": "pwsh -File scripts/measure-orbit.ps1 -Seconds 6", "cwd": "." }
   ]
 }

@@ -1,6 +1,6 @@
 [package]
 name = "orbit"
-version = "0.7.3"
+version = "0.7.4"
 description = "Orbit — a lightweight IDE, companion for Claude Code"
 authors = ["visialab"]
 edition = "2021"

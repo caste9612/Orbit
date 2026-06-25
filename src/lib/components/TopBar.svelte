@@ -10,6 +10,7 @@
   import { openFolderDialog } from "../state/explorer.svelte";
   import { folders, openFromList, removeFolder } from "../state/folders.svelte";
   import { changedCount } from "../state/git.svelte";
+  import { repoNeedsAttention } from "../state/terminals.svelte";
   import { nav, navBack, navForward } from "../state/codeIndex.svelte";
   import { keyForId } from "../state/keybindings.svelte";
   import { run, runConfig, openConfig, teachClaude } from "../state/run.svelte";
@@ -186,6 +187,7 @@
       <button
         class="view"
         class:active={layout.sidebarVisible && layout.sidebarView === v.id}
+        class:gitview={v.id === "git"}
         title={v.label}
         onclick={() => selectView(v.id)}
       >
@@ -229,6 +231,7 @@
               <button class="rt-close" title={active ? "Remove (switch to a neighbor)" : "Remove from list"} aria-label="Remove from list" onclick={() => removeFolder(f.path)}>
                 <Icon name="x" size={11} strokeWidth={2} />
               </button>
+              {#if repoNeedsAttention(f.path)}<span class="rt-attn" title="A terminal in this repo is waiting (Claude finished / needs you)"></span>{/if}
             </div>
           {/each}
         </div>
@@ -320,7 +323,7 @@
     display: grid;
     place-items: center;
     width: 26px;
-    height: 23px;
+    height: 22px;
     border: 0;
     border-radius: var(--radius-sm);
     background: transparent;
@@ -346,10 +349,11 @@
     flex-shrink: 0; /* il nav non si comprime: a finestra stretta diventa solo-icone (media query in fondo) */
   }
   .view {
+    position: relative; /* ancora il badge Git in overlay (vedi .badge) */
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    height: 23px;
+    height: 22px;
     padding: 0 9px;
     border: 0;
     border-radius: var(--radius-sm);
@@ -372,18 +376,34 @@
     background: rgba(var(--accent-rgb), 0.18);
     color: #cfe5ff;
   }
+  /* il pulsante Git riserva spazio a destra per il badge contatore: così il badge (assoluto) ci sta
+     SENZA coprire l'etichetta "Git" e senza far crescere il bottone quando compare (niente shift). */
+  .view.gitview {
+    padding-right: 22px;
+  }
+  /* Badge contatore (Git): in OVERLAY assoluto, così il suo comparire/sparire NON ricalcola il layout
+     (prima, inline, allargava il bottone e spingeva i controlli a destra). In modalità larga sta nello
+     spazio riservato a destra dell'etichetta (vedi .gitview), centrato verticalmente → legge "Git ③"
+     senza coprire il testo. In solo-icone diventa badge d'angolo sull'icona (media query in fondo).
+     L'anello (color-surface-0) lo stacca dallo sfondo come una notifica. */
   .badge {
-    display: inline-grid;
+    position: absolute;
+    top: 50%;
+    right: 5px;
+    transform: translateY(-50%);
+    display: grid;
     place-items: center;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
-    border-radius: 8px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    border-radius: 7px;
     background: var(--color-accent);
     color: #08111f;
-    font-size: 10.5px;
+    font-size: 9px;
     font-weight: 700;
     line-height: 1;
+    box-shadow: 0 0 0 1.5px var(--color-surface-0);
+    pointer-events: none;
   }
   .sep {
     width: 1px;
@@ -425,6 +445,7 @@
     display: none;
   }
   .repotab {
+    position: relative; /* ancora il pallino "attenzione" (un terminale di QUESTA repo è in attesa) */
     display: inline-flex;
     align-items: center;
     flex: 0 0 auto;
@@ -512,6 +533,28 @@
     background: var(--color-surface-4);
     color: var(--color-ink);
   }
+  /* pallino "attenzione" della repo: un suo terminale ha suonato la bell (Claude finito / in attesa).
+     Overlay nell'angolo (non sposta il contenuto) e pulsa finché non apri quel terminale. */
+  .rt-attn {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    box-shadow: 0 0 0 1.5px var(--color-surface-0);
+    pointer-events: none;
+    animation: rt-attn-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes rt-attn-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
   .repoadd {
     flex: 0 0 auto;
     display: grid;
@@ -588,6 +631,12 @@
     }
     .views .view {
       padding: 0 7px;
+    }
+    /* solo-icone: niente etichetta da rispettare → il badge torna nell'angolo dell'icona */
+    .views .badge {
+      top: -2px;
+      right: -2px;
+      transform: none;
     }
   }
 </style>

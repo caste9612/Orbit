@@ -7,6 +7,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { workspace, openFile } from "./workspace.svelte";
 import { addTerminal } from "./terminals.svelte";
 import { layout } from "./layout.svelte";
+import { settings } from "./settings.svelte";
 import { readOrbitConfig, ensureOrbitFile, teachClaudeSection } from "./dotorbit";
 import { notify } from "./toast.svelte";
 import { joinPath } from "../util";
@@ -134,10 +135,46 @@ function buildCommand(prompt?: string): string {
   return prompt ? `${base} "${quotePrompt(prompt)}"` : base;
 }
 
+/** Abilita la "campana" di Claude per questo progetto, così Orbit può avvisare a fine turno / quando
+ *  Claude aspetta input. Claude NON suona la bell di default: serve `preferredNotifChannel:
+ *  "terminal_bell"`. Lo scriviamo in `.claude/settings.local.json` (locale, per-utente, git-ignored):
+ *  merge NON distruttivo, solo se la notifica bell è attiva e la chiave non è già impostata, e mai se
+ *  il file esiste ma è JSON rotto (per non sovrascriverlo). */
+async function ensureBellChannel(root: string) {
+  if (!settings.bellNotify) return;
+  const dir = joinPath(root, ".claude");
+  const file = joinPath(dir, "settings.local.json");
+  let raw: string | null = null;
+  try {
+    raw = await invoke<string>("read_file", { path: file });
+  } catch {
+    raw = null; // file assente: lo creiamo
+  }
+  let data: Record<string, unknown> = {};
+  if (raw !== null) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return; // forma inattesa: non tocco
+      data = parsed as Record<string, unknown>;
+    } catch {
+      return; // JSON rotto: non rischio di sovrascriverlo
+    }
+  }
+  if (data.preferredNotifChannel) return; // già impostato (magari dall'utente): rispetto la scelta
+  data.preferredNotifChannel = "terminal_bell";
+  try {
+    await invoke("create_dir", { path: dir }).catch(() => {});
+    await invoke("write_file", { path: file, content: JSON.stringify(data, null, 2) + "\n" });
+  } catch (e) {
+    console.error(".claude/settings.local.json", e);
+  }
+}
+
 /** Apre una tab del terminale nella radice del progetto e avvia Claude (interattivo). */
-export function launchClaude(prompt?: string, title = "Claude") {
+export async function launchClaude(prompt?: string, title = "Claude") {
   const root = workspace.rootPath;
   if (!root) return;
+  await ensureBellChannel(root); // abilita la bell PRIMA di avviare claude (la legge all'avvio)
   layout.terminalVisible = true;
   addTerminal({ title, cwd: root, initCommand: buildCommand(prompt) });
 }
@@ -211,9 +248,10 @@ export function removeWrapper(index: number) {
 }
 
 /** Riprende una sessione Claude esistente in una tab del terminale (`claude --resume <id>`). */
-export function resumeClaude(id: string) {
+export async function resumeClaude(id: string) {
   const root = workspace.rootPath;
   if (!root || !/^[A-Za-z0-9-]+$/.test(id)) return; // id sessione = UUID: niente injection
+  await ensureBellChannel(root);
   layout.terminalVisible = true;
   addTerminal({ title: "Claude · resume", cwd: root, initCommand: `${buildCommand()} --resume ${id}` });
 }

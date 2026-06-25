@@ -2,6 +2,7 @@
 // id univoco usato dal PTY (backend). Le tab restano tutte montate (visibilità CSS)
 // così scrollback e shell si conservano quando si cambia tab.
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
 import { layout } from "./layout.svelte";
 import { settings } from "./settings.svelte";
 import { notify } from "./toast.svelte";
@@ -24,6 +25,7 @@ let counter = 0;
 export const terminals = $state({
   list: [] as TermSession[],
   activeId: null as string | null,
+  focusedId: null as string | null, // terminale col focus REALE (textarea xterm), non solo finestra
 });
 
 // Scheda attiva RICORDATA per repo (chiave = root path): cambiando repo si ripristina quella giusta.
@@ -119,26 +121,69 @@ export function syncActiveTerminalToRoot(root: string | null) {
     remembered && visible.some((t) => t.id === remembered) ? remembered : (visible[0]?.id ?? null);
 }
 
-/** Azzera il pallino "attenzione" di una scheda (quando la guardi davvero). */
+/** Azzera il pallino "attenzione" di una scheda (quando la guardi davvero) e, se non resta nessun
+ *  terminale in attesa, ferma anche l'evidenziazione della taskbar. */
 export function clearAttention(id: string | null) {
   if (!id) return;
   const t = terminals.list.find((s) => s.id === id);
   if (t) t.needsAttention = false;
+  if (!anyNeedsAttention()) cancelTaskbarAttention();
+}
+
+/** Qualche terminale richiede attenzione? (pilota il "●" nel titolo + la taskbar). */
+export function anyNeedsAttention(): boolean {
+  return terminals.list.some((t) => t.needsAttention);
+}
+
+/** Una repo (root path) ha qualche terminale in attesa? → pallino sulla SUA tab nella repo bar, così
+ *  capisci QUALE repo ha finito anche se ora ne guardi un'altra (le tab di altre repo sono nascoste). */
+export function repoNeedsAttention(root: string | null): boolean {
+  return !!root && terminals.list.some((t) => t.root === root && t.needsAttention);
+}
+
+/** Focus REALE nel terminale `id` (textarea xterm) — più fine del focus di finestra: così, se stai
+ *  editando codice mentre Claude gira, la bell ti avvisa lo stesso (non sei "sul" terminale). */
+export function setTerminalFocus(id: string) {
+  terminals.focusedId = id;
+  clearAttention(id); // metterlo a fuoco = l'hai visto
+}
+export function clearTerminalFocus(id: string) {
+  if (terminals.focusedId === id) terminals.focusedId = null;
+}
+
+let attnPending = false;
+function flashTaskbar() {
+  attnPending = true;
+  // Critical: su Windows il pulsante in taskbar resta evidenziato FINCHÉ non riporti la finestra a
+  // fuoco (non un lampo singolo) → se eri altrove, al ritorno lo vedi.
+  void getCurrentWindow().requestUserAttention(UserAttentionType.Critical).catch(() => {});
+}
+/** Ferma l'evidenziazione taskbar (nessun terminale più in attesa). */
+export function cancelTaskbarAttention() {
+  if (!attnPending) return;
+  attnPending = false;
+  void getCurrentWindow().requestUserAttention(null).catch(() => {});
 }
 
 /** La bell (BEL) del terminale `id` ha suonato: tipicamente Claude ha finito un turno o aspetta
- *  input. Segnala attenzione (pallino sulla scheda + toast) SOLO se non stai già guardando quel
- *  terminale; anti-spam: se è già segnalato non ripete il toast. Disattivabile da Impostazioni. */
+ *  input. Segnala attenzione persistente — pallino su scheda + tab repo + "●" nel titolo, toast se
+ *  Orbit è a fuoco, evidenziazione taskbar se è in background — SOLO se non stai già USANDO quel
+ *  terminale (focus reale). Anti-spam: non ripete. Disattivabile da Impostazioni. */
 export function notifyTerminalBell(id: string) {
   if (!settings.bellNotify) return;
   const t = terminals.list.find((s) => s.id === id);
   if (!t) return;
-  // stai già guardando QUESTO terminale? (scheda attiva + pannello visibile + finestra a fuoco)
-  const watching = terminals.activeId === id && layout.terminalVisible && document.hasFocus();
-  if (watching || t.needsAttention) return; // niente da segnalare / già segnalato
-  t.needsAttention = true;
-  // toast solo se la finestra è a fuoco: se non lo è non lo vedresti (lì servirebbe una notifica OS)
-  if (document.hasFocus()) notify(`${t.title} is waiting for you`, "info");
+  const watching =
+    document.hasFocus() &&
+    layout.terminalVisible &&
+    terminals.activeId === id &&
+    terminals.focusedId === id;
+  if (watching) return;
+  if (!t.needsAttention) {
+    t.needsAttention = true;
+    if (document.hasFocus()) notify(`${t.title} is waiting for you`, "info");
+  }
+  if (!document.hasFocus()) flashTaskbar();
 }
 
 /** Chiude una tab: uccide il PTY e attiva un vicino; se era l'ultima nasconde il pannello. */

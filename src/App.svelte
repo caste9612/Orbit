@@ -28,7 +28,7 @@
   import { invalidateFiles } from "./lib/state/projectFiles";
   import { loadSettings, startSettingsAutosave, settingsUI, nudgeFontSize, settings } from "./lib/state/settings.svelte";
   import { loadSession, startAutosave, setWinKey } from "./lib/state/persist.svelte";
-  import { redockTerminal, terminals } from "./lib/state/terminals.svelte";
+  import { redockTerminal, terminals, anyNeedsAttention } from "./lib/state/terminals.svelte";
   import { initIndex, scheduleRescan, wsPalette, openWsPalette, navBack, navForward, goToDefinitionAtCursor } from "./lib/state/codeIndex.svelte";
   import { matchCommand, shortcutsUI } from "./lib/state/keybindings.svelte";
   import { addFolder, cycleRepo, selectRepoIndex } from "./lib/state/folders.svelte";
@@ -150,8 +150,11 @@
   $effect(() => {
     if (isFloatingTerminal) return;
     const name = workspace.rootName;
+    // "●" davanti al titolo quando un terminale aspetta: resta visibile in taskbar/Alt-Tab anche se
+    // Orbit è minimizzato o dietro un'altra finestra (caso "ero girato"), finché non lo apri.
+    const mark = anyNeedsAttention() ? "● " : "";
     void getCurrentWindow()
-      .setTitle(name ? `${name} — Orbit` : "Orbit")
+      .setTitle(mark + (name ? `${name} — Orbit` : "Orbit"))
       .catch(() => {});
   });
 

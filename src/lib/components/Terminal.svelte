@@ -8,6 +8,7 @@
   import { openFile, openFileAt, workspace } from "../state/workspace.svelte";
   import { notify } from "../state/toast.svelte";
   import { settings, monoStack } from "../state/settings.svelte";
+  import { setTerminalFocus, clearTerminalFocus } from "../state/terminals.svelte";
   import { joinPath } from "../util";
 
   interface Props {
@@ -217,6 +218,14 @@
       true,
     );
 
+    // focus REALE del terminale: se il focus è qui (non nell'editor) la bell non disturba; quando
+    // arriva la bell e NON sei qui, scatta l'attenzione (vedi notifyTerminalBell). relatedTarget
+    // interno all'host = focus che si sposta dentro al terminale → non conta come "uscita".
+    host.addEventListener("focusin", () => setTerminalFocus(id));
+    host.addEventListener("focusout", (e) => {
+      if (!host.contains(e.relatedTarget as Node | null)) clearTerminalFocus(id);
+    });
+
     fitSafe();
 
     unlistenData = await listen<string>(`pty-data-${id}`, (e) => term?.write(b64ToBytes(e.payload)));
@@ -266,6 +275,7 @@
 
   onDestroy(() => {
     disposed = true;
+    clearTerminalFocus(id); // non lasciare focusedId puntato a un terminale smontato
     if (resizeTimer) clearTimeout(resizeTimer);
     ro?.disconnect();
     unlistenData?.();

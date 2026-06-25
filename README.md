@@ -152,9 +152,10 @@ cross-platform desktop app that weighs almost nothing.
   **resumes** one in a terminal with a click (`claude --resume`).
 - A **Scratchpad** (📝 in the top bar) opens a persistent notes/prompts file (`.orbit/scratch.md`)
   to jot prompts and reuse them.
-- **Attention when a terminal needs you** — when a terminal rings the bell (e.g. `claude` finished a
-  turn or is waiting for input) while you're in another tab or window, Orbit marks the tab and shows
-  a toast, so you can fire Claude off and look away (toggle in Settings).
+- **Attention when a terminal needs you** — when `claude` finishes a turn or waits for input (Orbit
+  sets up Claude's `terminal_bell` for you), Orbit flags **which repo** (a dot on its tab) and **which
+  tab**, keeps a `●` in the title and lights up the taskbar **while you're away**, and clears it when
+  you open that terminal — so you can fire Claude off and look elsewhere (toggle in Settings).
 
 **Workspace**
 - Session persistence per folder (reopens last folder, tabs and panel layout).

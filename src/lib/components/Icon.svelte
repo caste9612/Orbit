@@ -25,6 +25,8 @@
     "panel-bottom": `<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 15h18"/>`,
     "git-commit": `<circle cx="12" cy="12" r="3"/><line x1="3" x2="9" y1="12" y2="12"/><line x1="15" x2="21" y1="12" y2="12"/>`,
     refresh: `<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>`,
+    activity: `<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>`,
+    history: `<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>`,
     plus: `<path d="M5 12h14"/><path d="M12 5v14"/>`,
     check: `<path d="M20 6 9 17l-5-5"/>`,
     play: `<polygon points="6 3 20 12 6 21 6 3"/>`,

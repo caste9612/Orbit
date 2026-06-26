@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import { Terminal, type ILinkProvider, type ILink } from "@xterm/xterm";
   import { FitAddon } from "@xterm/addon-fit";
+  import { WebLinksAddon } from "@xterm/addon-web-links";
   import "@xterm/xterm/css/xterm.css";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -167,7 +168,7 @@
   onMount(async () => {
     term = new Terminal({
       fontFamily: monoStack(settings.fontMono),
-      fontSize: settings.fontSize,
+      fontSize: settings.terminalFontSize,
       lineHeight: 1.2,
       // niente blink: il timer di lampeggio ri-mostra il cursore durante i ridisegni rapidi
       // dei TUI (Claude), facendolo "saltare" sui caratteri aggiornati anche quando è nascosto.
@@ -190,33 +191,65 @@
         /* WebGL non disponibile su questa GPU/webview */
       }
     }
-    // percorsi cliccabili (disattivati nella finestra flottante, che non ha un editor)
+    // URL http(s) cliccabili (gestisce anche gli URL che vanno a capo su più righe): un clic li apre
+    // nel browser di sistema via il comando Rust open_url. Attivo ovunque (anche finestra flottante).
+    term.loadAddon(
+      new WebLinksAddon((_e, uri) => {
+        void invoke("open_url", { url: uri }).catch(() => {});
+      }),
+    );
+    // percorsi di file cliccabili (disattivati nella finestra flottante, che non ha un editor)
     if (enableLinks) term.registerLinkProvider(pathLinkProvider());
 
     // la bell (BEL) segnala "ho finito / aspetto input" — Claude la suona a fine turno: avvisa il parent
     term.onBell(() => onBell?.());
 
-    // Click destro = copia la selezione (se c'è) altrimenti incolla, stile terminale.
-    // In fase di cattura (true) così funziona anche quando un TUI come Claude attiva il
-    // mouse-reporting (altrimenti il click destro verrebbe inviato al programma).
+    // Click destro = INCOLLA (sempre), togliendo gli a-capo FINALI così non esegue da solo: premi Invio tu.
+    // In cattura (true) così funziona anche quando un TUI come Claude attiva il mouse-reporting
+    // (altrimenti il click destro verrebbe inviato al programma).
     host.addEventListener(
       "contextmenu",
       (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (term?.hasSelection()) {
-          const sel = term.getSelection();
-          if (sel) void navigator.clipboard.writeText(sel).catch(() => {});
-          term.clearSelection();
-        } else {
-          void navigator.clipboard
-            .readText()
-            .then((t) => t && term?.paste(t))
-            .catch(() => {});
-        }
+        void navigator.clipboard
+          .readText()
+          .then((t) => {
+            if (t) term?.paste(t.replace(/[\r\n]+$/, ""));
+          })
+          .catch(() => {});
       },
       true,
     );
+
+    // Copia-su-selezione: finita una selezione col tasto SINISTRO, copiala subito (stile VS Code).
+    host.addEventListener("mouseup", (e) => {
+      if (e.button !== 0) return; // solo il sinistro; il destro incolla (sopra)
+      const sel = term && term.hasSelection() ? term.getSelection() : "";
+      if (sel) void navigator.clipboard.writeText(sel).catch(() => {});
+    });
+
+    // Tastiera: Ctrl/Cmd+Shift+C copia la selezione, Ctrl/Cmd+Shift+V incolla (a-capo finali tolti).
+    // Ctrl+C "nudo" resta SIGINT: NON lo intercettiamo.
+    term.attachCustomKeyEventHandler((e) => {
+      if (e.type !== "keydown") return true;
+      const cs = (e.ctrlKey || e.metaKey) && e.shiftKey;
+      if (cs && (e.key === "C" || e.key === "c")) {
+        const sel = term && term.hasSelection() ? term.getSelection() : "";
+        if (sel) void navigator.clipboard.writeText(sel).catch(() => {});
+        return false;
+      }
+      if (cs && (e.key === "V" || e.key === "v")) {
+        void navigator.clipboard
+          .readText()
+          .then((t) => {
+            if (t) term?.paste(t.replace(/[\r\n]+$/, ""));
+          })
+          .catch(() => {});
+        return false;
+      }
+      return true;
+    });
 
     // focus REALE del terminale: se il focus è qui (non nell'editor) la bell non disturba; quando
     // arriva la bell e NON sei qui, scatta l'attenzione (vedi notifyTerminalBell). relatedTarget
@@ -265,7 +298,7 @@
   // cambio font/dimensione dalle Impostazioni → applica al terminale e rifit
   $effect(() => {
     const fam = monoStack(settings.fontMono);
-    const sz = settings.fontSize;
+    const sz = settings.terminalFontSize;
     if (term && !disposed) {
       term.options.fontFamily = fam;
       term.options.fontSize = sz;

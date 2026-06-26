@@ -12,7 +12,7 @@
     git: "Source Control",
     search: "Search",
     docs: "Documentation",
-    claude: "Claude chats",
+    activity: "Activity",
   };
   let title = $derived(
     layout.sidebarView === "explorer" && workspace.rootName
@@ -83,15 +83,8 @@
           <p class="hint">Open a folder first.</p>
         </div>
       {/if}
-    {:else if layout.sidebarView === "claude"}
-      {#if workspace.rootPath}
-        <Lazy load={() => import("./ClaudeChatsView.svelte")} />
-      {:else}
-        <div class="empty">
-          <p class="muted">No Claude sessions.</p>
-          <p class="hint">Open a folder first.</p>
-        </div>
-      {/if}
+    {:else if layout.sidebarView === "activity"}
+      <Lazy load={() => import("./ActivityPanel.svelte")} />
     {:else if workspace.rootPath}
       <Lazy load={() => import("./SearchView.svelte")} />
     {:else}

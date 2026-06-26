@@ -110,7 +110,8 @@ export const settings = $state({
   customKeys: null as Record<string, string> | null, // mappa CommandId→tasto del preset "custom" (null = non creato)
   revealActive: false, // "segui il file attivo": espande l'albero e seleziona il file corrente
   fontMono: "JetBrains Mono",
-  fontSize: 13,
+  editorFontSize: 13, // dimensione font dell'editor (indipendente dal terminale)
+  terminalFontSize: 13, // dimensione font del terminale (indipendente dall'editor)
   accent: "auto" as AccentName | "auto", // "auto" = accento del tema; altrimenti un preset sovrascrive
   smoothCursor: true,
   webgl: false, // GPU rendering del terminale: OFF di default (più leggero ~85 MB)
@@ -123,9 +124,10 @@ export const settings = $state({
 export const MIN_FONT = 10;
 export const MAX_FONT = 24;
 
-/** Ctrl+rotella / Impostazioni: varia la dimensione del font (editor + terminale). */
-export function nudgeFontSize(delta: number) {
-  settings.fontSize = Math.max(MIN_FONT, Math.min(MAX_FONT, settings.fontSize + delta));
+/** Ctrl+rotella (sul pannello sotto il mouse) / Impostazioni: varia il font di editor o terminale. */
+export function nudgeFontSize(target: "editor" | "terminal", delta: number) {
+  const key = target === "terminal" ? "terminalFontSize" : "editorFontSize";
+  settings[key] = Math.max(MIN_FONT, Math.min(MAX_FONT, settings[key] + delta));
 }
 
 export const settingsUI = $state({ open: false });
@@ -143,7 +145,7 @@ function applySettings() {
   const root = document.documentElement;
   const r = root.style;
   r.setProperty("--font-mono", monoStack(settings.fontMono));
-  r.setProperty("--editor-font-size", `${settings.fontSize}px`);
+  r.setProperty("--editor-font-size", `${settings.editorFontSize}px`);
   // tema completo: superfici / linee / inchiostri / bg + accento di default + variabili editor
   const th = THEMES[settings.theme] ?? THEMES.dark;
   for (const [k, v] of Object.entries(th.vars)) r.setProperty(`--${k}`, v);
@@ -175,7 +177,9 @@ export function loadSettings() {
       if (settings.keymap === "custom" && !settings.customKeys) settings.keymap = "orbit"; // custom senza mappa → base
       if (typeof s.revealActive === "boolean") settings.revealActive = s.revealActive;
       if (typeof s.fontMono === "string") settings.fontMono = s.fontMono;
-      if (typeof s.fontSize === "number") settings.fontSize = s.fontSize;
+      if (typeof s.fontSize === "number") { settings.editorFontSize = s.fontSize; settings.terminalFontSize = s.fontSize; } // migra dal vecchio valore unico
+      if (typeof s.editorFontSize === "number") settings.editorFontSize = s.editorFontSize;
+      if (typeof s.terminalFontSize === "number") settings.terminalFontSize = s.terminalFontSize;
       if (typeof s.accent === "string" && (s.accent === "auto" || s.accent in ACCENTS)) settings.accent = s.accent;
       if (typeof s.smoothCursor === "boolean") settings.smoothCursor = s.smoothCursor;
       if (typeof s.webgl === "boolean") settings.webgl = s.webgl;
@@ -200,7 +204,8 @@ export function startSettingsAutosave() {
         customKeys: settings.customKeys,
         revealActive: settings.revealActive,
         fontMono: settings.fontMono,
-        fontSize: settings.fontSize,
+        editorFontSize: settings.editorFontSize,
+        terminalFontSize: settings.terminalFontSize,
         accent: settings.accent,
         smoothCursor: settings.smoothCursor,
         webgl: settings.webgl,

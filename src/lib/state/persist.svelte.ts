@@ -110,7 +110,10 @@ export async function loadSession(
   }
 
   if (s.layout) {
-    layout.sidebarView = s.layout.sidebarView ?? layout.sidebarView;
+    const sv = s.layout.sidebarView;
+    layout.sidebarView = (["explorer", "git", "search", "docs", "activity"] as SidebarView[]).includes(sv)
+      ? sv
+      : "explorer"; // migra una vista salvata non più valida (es. la vecchia "claude") → Explorer
     layout.sidebarVisible = s.layout.sidebarVisible ?? layout.sidebarVisible;
     layout.sidebarWidth = s.layout.sidebarWidth ?? layout.sidebarWidth;
     layout.terminalVisible = s.layout.terminalVisible ?? layout.terminalVisible;

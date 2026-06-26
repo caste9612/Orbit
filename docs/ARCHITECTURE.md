@@ -68,7 +68,7 @@ Three kinds of frontend module, kept separate:
 | `symbols` | **Go to Symbol** palette (Ctrl+Shift+O): outline of the active editor + fuzzy filter |
 | `codeIndex` | **project symbol index** (the "address book") from `scan_symbols`, cached in `.orbit/index/`: **Go to definition** (F12/Ctrl+click), **Project symbols** palette (Ctrl+T), the related‑bar context (`contextAt`), the **semantic‑overlay name sets** (`semSets`/`semIndex` → type & function names for the editor overlay), and the **back/forward nav history** (records jumps *and* file/tab switches; `nav` counts drive the top‑bar arrows) |
 | `keybindings` | central **command registry** + keyboard matcher/dispatch, with per‑preset keys (Orbit/VS/IntelliJ) **plus a user‑built `custom` keymap** (`settings.customKeys`, rebind per command) and the shortcuts‑reference panel; `keyStringFromEvent` captures a rebind, `conflictKeys` flags duplicates |
-| `claudeChats` | the project's recent Claude Code sessions (preview + turn count, from transcripts) + resume |
+| `activity` | **Activity** view: work units from `scan_activity` across all `~/.claude/projects` (prompt‑first segmentation in Rust); project on/off toggles `activityPrefs` (persisted, hides noise) + `openActivity`; live refresh via `watch_activity`→`activity-changed` |
 | `scratch` | one‑click persistent scratchpad (`.orbit/scratch.md`) for notes/prompts |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
 | `settings` | **theme** (4 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
@@ -99,7 +99,7 @@ imports them on first render), so the Markdown feature adds nothing to the start
 A small generic **`Lazy.svelte`** wrapper (`load={() => import("./X.svelte")}`, props forwarded) does
 the same for the **overlays** (Settings, QuickOpen, SymbolPalette, WorkspaceSymbols, ShortcutsDialog,
 WrapperComposer), the **viewers**
-(DiffView, AssetView, MarkdownView) and the **non‑default sidebar views** (Git/Search/Docs/Chats), so
+(DiffView, AssetView, MarkdownView, **ActivityBoard**, **UnitDigest**) and the **non‑default sidebar views** (Git/Search/Docs/Activity), so
 first paint loads only the Explorer + the active editor.
 
 ### Feature notes
@@ -177,10 +177,17 @@ first paint loads only the Explorer + the active editor.
   executable script (`.ps1`/`.cmd`/`.bat`/`.sh`); `isRunnable` + `runCommand` (`util.ts`) map the
   extension to its interpreter. Surfaced from the tree context menu (`Explorer.svelte`) and the editor
   toolbar (`EditorArea.svelte`); reuses the terminal model (`cwd`/`initCommand`), no new Rust command.
-- **Claude chats** — `claudeChats.svelte.ts` lists the project's Claude Code sessions; the backend
-  `claude_sessions` reads the `~/.claude/projects/<slug>/*.jsonl` transcripts (a short preview from
-  the last user message + a turn count), and clicking resumes one with `claude --resume <id>` (id
-  validated as a UUID).
+- **Activity (work units)** — `activity.rs`'s `scan_activity` reads ALL `~/.claude/projects/*/*.jsonl`
+  transcripts and reconstructs **work units** (PROMPT‑FIRST: each user prompt + the files/commands it
+  triggers = one unit; a `git commit` labels the unit it falls in; a branch change is a hard boundary;
+  file +/− from `toolUseResult.structuredPatch`, the full prompt text is kept for the digest). `watch_activity`
+  watches `~/.claude/projects` (notify) and emits **`activity-changed`** for live refresh. Frontend:
+  `activity.svelte.ts` (state + `loadActivity` + project on/off `activityPrefs`, persisted), `ActivityPanel.svelte`
+  (sidebar: project toggles + mini‑stats), `ActivityBoard.svelte` (editor‑area tab, doc kind **`"activity"`**:
+  a **Timeline** lens — one row per unit on a shared vertical time axis, repos in columns, day dividers — and a
+  **List** lens, with a bottom **digest** that reuses `UnitDigest.svelte`). `openActivity` opens the panel + the
+  board; **▶ resume** runs `claude --resume <id>` (switching to the unit's repo first). Supersedes the old Chats
+  view (`claude_sessions` stays in `lib.rs` but is now unused).
 - **Git sync** — ahead/behind is computed locally with libgit2 (`git_upstream`, no network); the
   actual fetch/pull/push/merge run the `git` CLI in a terminal tab (reusing the user's git auth), so
   no openssl/libssh2 is pulled into the build.
@@ -209,7 +216,7 @@ first paint loads only the Explorer + the active editor.
   window) and toasts, and the caller drops the dead entry — `openRoot` reads `read_dir` **before** touching
   `rootPath`, so a failed open never leaves half‑state.
 - **Per‑repo reactions are centralized in `openRoot`** — the single folder‑load path resets search,
-  invalidates the Quick‑Open/Docs file cache, and reloads Docs / Claude‑chats when those views are active,
+  invalidates the Quick‑Open/Docs file cache, and reloads Docs when that view is active,
   so a repo switch never shows the *previous* repo's stale views. Terminals are filtered per repo
   (`TerminalPanel` shows only sessions whose `root` matches; `syncActiveTerminalToRoot` restores the repo's
   last‑active terminal). Keyboard: `Ctrl+Tab`/`Ctrl+Shift+Tab` cycle, `Ctrl+1…9` jump (in `keybindings` +
@@ -269,9 +276,12 @@ frontend calls them with `invoke("name", {args})`. Areas:
 - **Session** (`lib.rs`): `load_state`/`save_state` (keyed per folder).
 - **Window** (`lib.rs` + `winsession.rs`): `open_new_window`; `winsession::register_window` (a window
   records its folder + geometry in the per‑window registry) and `winsession::close_all_windows`.
-- **Misc** (`lib.rs`): `reveal_path` (show a path in the OS file manager), `claude_sessions` (list
-  the project's Claude Code transcripts, each with a preview from its **last** user message + a turn
-  count — `session_preview`).
+- **Misc** (`lib.rs`): `reveal_path` (show a path in the OS file manager). (`claude_sessions` /
+  `session_preview` remain but are now **unused** — superseded by the Activity view.)
+- **Activity** (`activity.rs`): `scan_activity(limit)` — scans ALL `~/.claude/projects/*/*.jsonl` and
+  returns `WorkUnit[]` (prompt‑first segmentation; camelCase incl. files `{op,path,add,del,userModified}`,
+  cmds, prompts, commit, kind, start/end, live); `watch_activity` — `notify` watcher on `~/.claude/projects`
+  that emits a debounced **`activity-changed`** event for live refresh.
 - **Git** (`git.rs`): `git_status`, `git_diff`, `git_stage`, `git_unstage`, `git_commit`,
   `git_branches`, `git_checkout_branch`, `git_create_branch`, `git_discard`, `git_log`, `git_show`.
 - **Terminal** (`pty.rs`): `pty_spawn`, `pty_write`, `pty_resize`, `pty_kill`, `pty_alive`, `list_shells`;

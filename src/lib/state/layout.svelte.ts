@@ -1,7 +1,7 @@
 // Stato reattivo del layout della shell (Svelte 5 runes in modulo .svelte.ts).
 // Fonte unica di verità per visibilità e dimensioni dei pannelli.
 
-export type SidebarView = "explorer" | "git" | "search" | "docs" | "claude";
+export type SidebarView = "explorer" | "git" | "search" | "docs" | "activity";
 export type FocusPanel = "sidebar" | "editor" | "terminal";
 
 export const layout = $state({

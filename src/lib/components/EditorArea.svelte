@@ -178,7 +178,9 @@
   }
 
   function tabIcon(f: OpenFile) {
-    return f.kind === "diff" ? { glyph: "git-commit", color: "#a3acb9" } : fileIcon(f.name);
+    if (f.kind === "diff") return { glyph: "git-commit", color: "#a3acb9" };
+    if (f.kind === "activity") return { glyph: "activity", color: "#3b9dff" };
+    return fileIcon(f.name);
   }
 </script>
 
@@ -289,6 +291,8 @@
               {#key g.id + "::" + af.path}
                 {#if af.kind === "diff"}
                   <Lazy load={() => import("./DiffView.svelte")} content={af.content} />
+                {:else if af.kind === "activity"}
+                  <Lazy load={() => import("./ActivityBoard.svelte")} />
                 {:else if af.kind === "image" || af.kind === "pdf"}
                   <Lazy load={() => import("./AssetView.svelte")} path={af.path} kind={af.kind} />
                 {:else if isMd(af.name) && af.preview}

@@ -147,9 +147,14 @@ cross-platform desktop app that weighs almost nothing.
   Claude itself (the format is documented in `CLAUDE.md`), so you can just ask Claude to add one. If
   that file ever has invalid JSON, Orbit keeps the current menu and warns instead of silently resetting.
 - Optionally, the **default terminal launches Claude** instead of a plain shell (toggle in Settings).
-- A **Chats** view lists the project's recent Claude Code sessions (read from Claude's transcripts) —
-  each shown by its **latest message and turn count**, so they're easy to tell apart — and
-  **resumes** one in a terminal with a click (`claude --resume`).
+- An **Activity** view (top bar) opens a large board in the editor area: a **timeline of work units**
+  reconstructed from Claude's transcripts across **all** your projects. Each unit is one prompt with the
+  files it created/changed (with +/−), the commands it ran, and the commit it produced. The timeline puts
+  every repo in its own **column** on a **shared vertical time axis** (newest on top), so you read what
+  happened across projects in order — or switch to a flat **List**. Click a unit for its full **digest**
+  in a bottom panel; **▶ resume** that Claude session in one click. A small left panel lists your projects
+  with **on/off toggles** (remembered) to hide noise, plus per‑project mini‑stats. (Supersedes the old
+  Chats list — resuming recent sessions now lives here.)
 - A **Scratchpad** (📝 in the top bar) opens a persistent notes/prompts file (`.orbit/scratch.md`)
   to jot prompts and reuse them.
 - **Attention when a terminal needs you** — when `claude` finishes a turn or waits for input (Orbit

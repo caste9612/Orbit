@@ -158,7 +158,7 @@
 
   // cambio font/dimensione (dalle Impostazioni): re-misura la geometria di CodeMirror
   $effect(() => {
-    settings.fontSize;
+    settings.editorFontSize;
     settings.fontMono;
     view?.requestMeasure();
   });

@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -1648,6 +1648,51 @@ c'è già). Consegna resa robusta:
 Verifica: `svelte-check` 246/0/0, `vitest` 9/9, `cargo test` 26/26 (nessuna modifica Rust). Il fix
 topbar è stato verificato a video; la catena del bell **compila ed è cablata ma non provata end-to-end
 con un bell reale** (da collaudare con Claude). Rilasciato in **v0.7.4**.
+
+---
+
+## Milestone 43 — vista Attività: unità di lavoro dai transcript Claude (v0.8.0)
+
+Nuova vista **Attività**: dà una visione chiara di "cosa è stato fatto" e uno storico sempre accessibile, nello
+scenario multi-repo / molte istanze di Claude Code aperte. Risolve lo "stream infinito" del terminale. **Sostituisce
+la vecchia vista Chats.**
+
+**Fonte dati (zero config, zero dipendenze nuove).** I transcript JSONL append-only di Claude Code in
+`~/.claude/projects/<slug>/<sessionId>.jsonl`. Per riga: `cwd`, `gitBranch`, `timestamp`, `tool_use` (Write/Edit→file,
+Bash→comando), `toolUseResult` (`type:create|update`, `filePath`, `structuredPatch` = patch riga-per-riga,
+`userModified`). Tutto ricavabile senza LSP: solo `serde_json` (già presente).
+
+**Modello: l'atomo è l'UNITÀ DI LAVORO, non la sessione.** Iterazione di design (mockup HTML approvato, poi rifinito
+sull'uso reale a video):
+- Digest per-sessione → scartato (una sessione lunga mischia cose diverse).
+- Ibrido "fondi i prompt fino al commit" → provato e scartato: in una sessione **senza commit** degenerava in un
+  mega-blocco con tutti i prompt insieme.
+- Scelta finale **PROMPT-FIRST**: ogni prompt umano + il lavoro che innesca = un'unità; il `git commit`, se avviene,
+  **etichetta** l'unità in cui cade; il cambio di branch è un confine duro. Etichetta = messaggio di commit, altrimenti
+  il prompt (salvato **per intero** per il digest; l'etichetta corta è la prima riga).
+
+**Backend** (`src-tauri/src/activity.rs` + `lib.rs`): `segment()` puro e testato + comando `scan_activity(limit)`
+(scansiona TUTTI i progetti, ordina per recency, cap) + `watch_activity` (watcher `notify` su `~/.claude/projects` →
+evento **`activity-changed`** debounced, per il refresh live). Parsing **difensivo** (formato interno a Claude Code,
+può cambiare: c'è il campo `version`). `claude_sessions`/`session_preview` (vecchia Chats) restano ma inutilizzati.
+
+**Frontend.** `activity.svelte.ts` (stato + `loadActivity` + toggle on/off per progetto `activityPrefs`, persistiti in
+localStorage globale, per togliere il rumore). `ActivityPanel.svelte` = pannello sidebar (interruttori per progetto +
+mini-stat: unità di oggi, ● live, pallino "aspetta input"). `ActivityBoard.svelte` = board grande nell'area editor
+(nuovo kind documento `"activity"`), switcher **Timeline | List** e **digest nel pannello in basso** (riusa
+`UnitDigest.svelte`). **Timeline**: asse del tempo **verticale e condiviso** (più recente in alto), repo in **colonne**,
+**una riga per unità** messa nella colonna del suo repo → si legge la sequenza cronologica reale tra i repo (le matrici
+per ora/giorno erano troppo sparse o disallineate; le colonne dense perdevano la sequenza). **▶ resume** 1-clic su
+card/blocchi (riprende la sessione, passando prima sul repo giusto via `openFromList`).
+
+**Sostituzione di Chats.** Vista sidebar `claude`→`activity` (il bottone in top bar apre pannello + board);
+`ClaudeChatsView.svelte` e `claudeChats.svelte.ts` **eliminati**; `persist` normalizza una `sidebarView` salvata non
+più valida (es. la vecchia `claude`) → Explorer.
+
+Verifica: `cargo test` **31/31** (5 test nuovi sul segmentatore), `svelte-check` **248/0/0**, `vitest` 9/9, build OK.
+Iterazione UI fatta a caldo (HMR) durante la review. **Da rilasciare in v0.8.0** (feature → minor bump). Residui /
+possibili evoluzioni: diff/restore da `~/.claude/file-history` (T4); filtri ricchi (chip repo/branch/data); cache in
+`.orbit/index` per transcript grandi; gestione delle sessioni di sola chat (oggi escluse perché senza lavoro).
 
 ---
 

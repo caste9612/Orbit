@@ -1,4 +1,5 @@
 // Orbit — backend Tauri: filesystem, sessione, git, pty, watcher.
+mod activity;
 mod git;
 mod pty;
 mod symbols;
@@ -332,6 +333,33 @@ fn open_new_window(dir: Option<String>) -> Result<(), String> {
     Ok(())
 }
 
+/// Apre un URL http(s) nel browser di sistema (link cliccabili del terminale, es. l'auth di Claude).
+/// Valida lo schema: niente file:// o altri schemi presi dall'output del terminale.
+#[tauri::command]
+fn open_url(url: String) -> Result<(), String> {
+    if !(url.starts_with("http://") || url.starts_with("https://")) {
+        return Err("only http/https URLs are allowed".to_string());
+    }
+    #[cfg(target_os = "windows")]
+    {
+        // rundll32 riceve l'URL come UN argomento → niente problemi con & (query string OAuth)
+        std::process::Command::new("rundll32.exe")
+            .arg("url.dll,FileProtocolHandler")
+            .arg(&url)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open").arg(&url).spawn().map_err(|e| e.to_string())?;
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        std::process::Command::new("xdg-open").arg(&url).spawn().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 /// Mostra un file/cartella nel file manager dell'OS (lo seleziona dove possibile).
 #[tauri::command]
 fn reveal_path(path: String) -> Result<(), String> {
@@ -487,6 +515,7 @@ pub fn run() {
         .manage(winsession::WinKey::default())
         .manage(winsession::OpenFolder::default())
         .manage(winsession::QuitState::default())
+        .manage(activity::ActivityWatchState::default())
         .setup(|app| {
             // ripristina la geometria della finestra principale (e l'intera sessione, se avvio nudo) e la mostra
             let handle = app.handle().clone();
@@ -522,6 +551,7 @@ pub fn run() {
             winsession::register_window,
             winsession::close_all_windows,
             reveal_path,
+            open_url,
             resolve_existing,
             claude_sessions,
             git::git_status,
@@ -543,7 +573,9 @@ pub fn run() {
             pty::pty_alive,
             pty::list_shells,
             watcher::watch_start,
-            symbols::scan_symbols
+            symbols::scan_symbols,
+            activity::scan_activity,
+            activity::watch_activity
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

@@ -29,7 +29,7 @@ export interface OpenFile {
   content: string;
   dirty: boolean;
   readonly: boolean;
-  kind: "file" | "diff" | "image" | "pdf"; // image/pdf: mostrati da un viewer (asset protocol)
+  kind: "file" | "diff" | "image" | "pdf" | "activity"; // image/pdf: viewer (asset protocol); activity: board della vista Attività
   rev: number; // incrementa al reload esterno → l'editor rimpiazza il doc
   externallyChanged: boolean; // modificato su disco con edit non salvati (conflitto)
   gotoLine: number | null; // riga a cui saltare (da ricerca)
@@ -216,6 +216,29 @@ export function setPreview(path: string, on: boolean) {
   if (f) f.preview = on;
 }
 
+/** Apre la board Attività come tab (kind "activity") nell'area editor; singleton per finestra. */
+export function openActivityBoard() {
+  const id = "activity://board";
+  if (!fileByPath(id)) {
+    workspace.openFiles.push({
+      path: id,
+      name: "Activity",
+      content: "",
+      dirty: false,
+      readonly: true,
+      kind: "activity",
+      rev: 0,
+      externallyChanged: false,
+      gotoLine: null,
+      preview: false,
+    });
+  }
+  const g = ensureActiveGroup();
+  if (!g.tabs.includes(id)) g.tabs.push(id);
+  g.activePath = id;
+  workspace.activeGroupId = g.id;
+}
+
 // ---- gestione tab / gruppi ------------------------------------------------
 
 export function setActiveTab(groupId: string, path: string) {
@@ -322,7 +345,7 @@ export async function openInNewGroup(path: string) {
 export function renameOpenPaths(oldPath: string, newPath: string) {
   const map = new Map<string, string>();
   for (const f of workspace.openFiles) {
-    if (f.kind === "diff") continue; // i diff hanno id sintetici; file/image/pdf hanno path reali da rimappare
+    if (f.kind === "diff" || f.kind === "activity") continue; // id sintetici (diff/activity): niente path reale da rimappare
     let next: string | null = null;
     if (f.path === oldPath) next = newPath;
     else if (f.path.startsWith(oldPath + "/") || f.path.startsWith(oldPath + "\\")) {

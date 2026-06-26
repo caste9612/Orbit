@@ -28,9 +28,9 @@ sezione — generata da Orbit (menu Claude → *Update CLAUDE.md for Claude*) �
 l'IDE e come configurarlo.
 
 ### Menu Claude
-Apre `claude` nella radice del progetto e offre: *scorciatoie* (prompt fissi), *wrapper* (template
-con segnaposto `{{input}}`: scrivi il testo, lo componi e lo **copi negli appunti**) e le *chat*
-recenti del progetto (riprese con `claude --resume`). Tutto vive in `.orbit/claude.json`:
+Apre `claude` nella radice del progetto e offre: *scorciatoie* (prompt fissi) e *wrapper* (template
+con segnaposto `{{input}}`: scrivi il testo, lo componi e lo **copi negli appunti**). Tutto vive in
+`.orbit/claude.json`. (Le **sessioni recenti** si riprendono ora dalla vista **Attività**, non più da qui.)
 
 ```json
 {

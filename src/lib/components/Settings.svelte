@@ -33,12 +33,22 @@
 
     <div class="row">
       <div class="label">
-        <span class="name">Font size</span>
-        <span class="hint">Editor and terminal</span>
+        <span class="name">Editor font size</span>
+        <span class="hint">Or Ctrl+scroll over the editor</span>
       </div>
       <div class="size">
-        <input type="range" min="10" max="24" step="1" bind:value={settings.fontSize} />
-        <span class="px">{settings.fontSize}px</span>
+        <input type="range" min="10" max="24" step="1" bind:value={settings.editorFontSize} />
+        <span class="px">{settings.editorFontSize}px</span>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label">
+        <span class="name">Terminal font size</span>
+        <span class="hint">Or Ctrl+scroll over the terminal</span>
+      </div>
+      <div class="size">
+        <input type="range" min="10" max="24" step="1" bind:value={settings.terminalFontSize} />
+        <span class="px">{settings.terminalFontSize}px</span>
       </div>
     </div>
 

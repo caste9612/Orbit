@@ -11,7 +11,6 @@ import { notify } from "./toast.svelte";
 import { layout } from "./layout.svelte";
 import { resetSearch } from "./search.svelte";
 import { loadDocs } from "./docs.svelte";
-import { loadClaudeChats } from "./claudeChats.svelte";
 import { invalidateFiles } from "./projectFiles";
 
 export interface FsEntry {
@@ -51,7 +50,6 @@ export async function openRoot(path: string) {
   resetSearch();
   invalidateFiles(); // cache file per-root condivisa da Quick Open e Docs
   if (layout.sidebarView === "docs") void loadDocs();
-  if (layout.sidebarView === "claude") void loadClaudeChats();
 }
 
 /** Mostra il folder-picker nativo e cambia cartella (preservando/ripristinando le sessioni).

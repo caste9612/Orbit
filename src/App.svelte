@@ -99,10 +99,15 @@
       "wheel",
       (e) => {
         if (!e.ctrlKey) return;
+        // CAPTURE: intercettiamo PRIMA che CodeMirror o xterm (col mouse-reporting di Claude) si
+        // mangino l'evento → lo zoom funziona su editor e su QUALSIASI terminale, non solo quelli "lisci".
         e.preventDefault();
-        nudgeFontSize(e.deltaY < 0 ? 1 : -1);
+        e.stopPropagation();
+        // agisce sul pannello SOTTO il mouse: terminale o editor (font indipendenti)
+        const overTerminal = !!(e.target as Element | null)?.closest(".terminal-panel");
+        nudgeFontSize(overTerminal ? "terminal" : "editor", e.deltaY < 0 ? 1 : -1);
       },
-      { passive: false },
+      { passive: false, capture: true },
     );
   }
 

@@ -6,7 +6,8 @@
   import Logo from "./Logo.svelte";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
   import { layout, selectView, toggleTerminal } from "../state/layout.svelte";
-  import { workspace } from "../state/workspace.svelte";
+  import { workspace, activeFile } from "../state/workspace.svelte";
+  import { openActivity } from "../state/activity.svelte";
   import { openFolderDialog } from "../state/explorer.svelte";
   import { folders, openFromList, removeFolder } from "../state/folders.svelte";
   import { changedCount } from "../state/git.svelte";
@@ -29,6 +30,7 @@
   import { openScratch } from "../state/scratch";
 
   const win = getCurrentWindow();
+  const activeKind = $derived(activeFile()?.kind); // per evidenziare il bottone Activity quando la board è la tab attiva
 
   async function newWindow() {
     try {
@@ -160,7 +162,6 @@
     { id: "git", icon: "git-branch", label: "Git" },
     { id: "search", icon: "search", label: "Search" },
     { id: "docs", icon: "book-open", label: "Docs" },
-    { id: "claude", icon: "message", label: "Chats" },
   ] as const;
 
   let offResized: UnlistenFn | undefined;
@@ -196,6 +197,10 @@
         {#if v.id === "git" && changed > 0}<span class="badge">{changed}</span>{/if}
       </button>
     {/each}
+    <button class="view" class:active={activeKind === "activity" || (layout.sidebarVisible && layout.sidebarView === "activity")} title="Activity" aria-label="Activity" onclick={openActivity}>
+      <Icon name="activity" size={15} strokeWidth={1.7} />
+      <span>Activity</span>
+    </button>
     <span class="sep"></span>
     <button class="navbtn" disabled={nav.back === 0} title={`Back (${backKey})`} aria-label="Navigate back" onclick={navBack}>
       <Icon name="arrow-left" size={15} strokeWidth={1.8} />

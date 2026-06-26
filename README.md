@@ -114,8 +114,12 @@ cross-platform desktop app that weighs almost nothing.
 **Terminal** (xterm.js + a real PTY, optional WebGL)
 - Docked on the right, with **multiple tabs** and shell selection (PowerShell, cmd, Git Bash,
   WSL, bash/zsh…).
-- **Clickable file paths** in the output — open at the line; relative paths resolve against the
-  terminal's folder or the project root.
+- **Clickable links** in the output — **file paths** open at the line (relative paths resolve against the
+  terminal's folder or the project root), and **http(s) URLs** open in your browser (handy for the Claude
+  auth link, even when it wraps across lines).
+- **Copy & paste**: select text to copy it automatically; **right‑click pastes** (the trailing newline is
+  stripped, so it never runs by accident); `Ctrl/Cmd+Shift+C` / `+V` also work, while a plain `Ctrl+C` stays
+  an interrupt. Hold `Shift` to select even while a TUI (e.g. Claude) is capturing the mouse.
 - **Pop out** terminals into **floating windows** that carry the live session (`claude` keeps
   running) — detach **several** at once — with the app's own chrome: a **pin** toggles *always‑on‑top*
   on/off, a badge shows the project **folder + branch**, and you can **dock** any back with one click.
@@ -184,9 +188,10 @@ cross-platform desktop app that weighs almost nothing.
 - **Keyboard shortcut presets**: switch the keymap between **Orbit**, **Visual Studio** and
   **IntelliJ**, or build a **Custom** keymap from any preset by rebinding individual commands (with
   conflict warnings) — full reference in Settings → Keyboard shortcuts.
-- **Settings**: theme, keymap preset (incl. Custom), editor/terminal font and size, accent color,
-  smooth-caret toggle, **autosave**, **default Markdown view** (source / preview / READMEs only),
-  terminal GPU rendering, "launch Claude in the default terminal", and "notify when a terminal needs you".
+- **Settings**: theme, keymap preset (incl. Custom), editor/terminal font with **independent sizes**
+  (`Ctrl/Cmd+scroll` zooms whichever panel the pointer is over), accent color, smooth-caret toggle,
+  **autosave**, **default Markdown view** (source / preview / READMEs only), terminal GPU rendering,
+  "launch Claude in the default terminal", and "notify when a terminal needs you".
 
 ---
 
@@ -244,6 +249,8 @@ lives in [NOTES.md](./NOTES.md).
 | `Ctrl/Cmd+K` | Open folder |
 | `Ctrl/Cmd+B` | Toggle sidebar |
 | ``Ctrl/Cmd+` `` | Toggle terminal |
+| `Ctrl/Cmd+Shift+C` / `+V` | Copy / paste in the terminal |
+| `Ctrl/Cmd+scroll` | Zoom the font of the panel under the pointer |
 
 > These are the **Orbit** preset; switch to **Visual Studio** / **IntelliJ**, or make a **Custom**
 > keymap by rebinding individual commands, in Settings → Keyboard shortcuts.

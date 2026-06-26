@@ -166,6 +166,8 @@ cross-platform desktop app that weighs almost nothing.
   tab**, keeps a `●` in the title and lights up the taskbar **while you're away**, and clears it when
   you open that terminal — so you can fire Claude off and look elsewhere (toggle in Settings).
 
+![The Activity view — a timeline of work units across all your repos, with the selected unit's digest in the panel below and Claude Code in the integrated terminal](docs/screenshot-activity.png)
+
 **Workspace**
 - Session persistence per folder (reopens last folder, tabs and panel layout).
 - **Several folders in one window**: a row of **repository tabs** in the top bar keeps your projects

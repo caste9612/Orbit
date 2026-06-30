@@ -1,6 +1,6 @@
 [package]
 name = "orbit"
-version = "0.8.0"
+version = "0.8.1"
 description = "Orbit — a lightweight IDE, companion for Claude Code"
 authors = ["visialab"]
 edition = "2021"
@@ -18,6 +18,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2" # folder/file picker nativo (apri cartella)
+tauri-plugin-clipboard-manager = "2" # clipboard affidabile lato Rust (fuori dai limiti di WebView2)
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # git2 senza default-features: solo operazioni LOCALI (no https/ssh -> niente openssl/libssh2)

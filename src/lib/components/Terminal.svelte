@@ -11,6 +11,7 @@
   import { settings, monoStack } from "../state/settings.svelte";
   import { setTerminalFocus, clearTerminalFocus } from "../state/terminals.svelte";
   import { joinPath } from "../util";
+  import { writeClipboard, readClipboard } from "../clipboard";
 
   interface Props {
     id: string;
@@ -80,6 +81,10 @@
   let lastCols = 0;
   let lastRows = 0;
   let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+  // un solo AbortController per TUTTI i listener su `host`: onDestroy li rimuove in blocco.
+  // (Prima non venivano rimossi e in HMR si accumulavano → il click destro incollava più volte:
+  //  era la causa del "doppio incolla" che, una volta partito, continuava.)
+  let listenerAbort: AbortController | undefined;
 
   function b64ToBytes(b64: string): Uint8Array {
     const bin = atob(b64);
@@ -165,6 +170,29 @@
     resizeTimer = setTimeout(() => fitSafe(resize), 90);
   }
 
+  // —— Copia/incolla (via lib/clipboard.ts: niente errori ingoiati, plugin Tauri + fallback) ——
+  // Incolla togliendo gli a-capo FINALI così non esegue da solo (premi Invio tu). Il doppio-incolla
+  // "sticky" era causato dai listener accumulati: lo risolve l'AbortController in onDestroy, non una
+  // guardia temporale (che scarterebbe anche incolli legittimi ravvicinati).
+  async function pasteFromClipboard() {
+    const t = await readClipboard();
+    if (disposed || !term) return; // terminale smontato durante l'await
+    try {
+      if (t) term.paste(t.replace(/[\r\n]+$/, ""));
+      else if (t === null) notify("Paste: clipboard read failed", "error", 1500);
+    } catch {
+      /* xterm può lanciare se in stato inconsistente: non propagare come unhandled rejection */
+    }
+  }
+  // `loud`: la copia AUTOMATICA su selezione (mouseup) resta SILENZIOSA anche se fallisce — capita a
+  // ogni drag, un toast d'errore sarebbe spam; la copia ESPLICITA (Ctrl/Cmd+Shift+C) invece segnala.
+  async function copySelectionToClipboard(loud = false) {
+    const sel = term && term.hasSelection() ? term.getSelection() : "";
+    if (!sel) return;
+    const ok = await writeClipboard(sel);
+    if (!ok && loud) notify("Copy to clipboard failed", "error", 1500);
+  }
+
   onMount(async () => {
     term = new Terminal({
       fontFamily: monoStack(settings.fontMono),
@@ -204,30 +232,31 @@
     // la bell (BEL) segnala "ho finito / aspetto input" — Claude la suona a fine turno: avvisa il parent
     term.onBell(() => onBell?.());
 
-    // Click destro = INCOLLA (sempre), togliendo gli a-capo FINALI così non esegue da solo: premi Invio tu.
-    // In cattura (true) così funziona anche quando un TUI come Claude attiva il mouse-reporting
-    // (altrimenti il click destro verrebbe inviato al programma).
+    // Tutti i listener su `host` condividono questo signal → onDestroy li rimuove in un colpo.
+    listenerAbort = new AbortController();
+    const { signal } = listenerAbort;
+
+    // Click destro = INCOLLA (sempre). In cattura (capture) così funziona anche quando un TUI come
+    // Claude attiva il mouse-reporting (altrimenti il click destro verrebbe inviato al programma).
     host.addEventListener(
       "contextmenu",
       (e) => {
         e.preventDefault();
         e.stopPropagation();
-        void navigator.clipboard
-          .readText()
-          .then((t) => {
-            if (t) term?.paste(t.replace(/[\r\n]+$/, ""));
-          })
-          .catch(() => {});
+        void pasteFromClipboard();
       },
-      true,
+      { capture: true, signal },
     );
 
     // Copia-su-selezione: finita una selezione col tasto SINISTRO, copiala subito (stile VS Code).
-    host.addEventListener("mouseup", (e) => {
-      if (e.button !== 0) return; // solo il sinistro; il destro incolla (sopra)
-      const sel = term && term.hasSelection() ? term.getSelection() : "";
-      if (sel) void navigator.clipboard.writeText(sel).catch(() => {});
-    });
+    host.addEventListener(
+      "mouseup",
+      (e) => {
+        if (e.button !== 0) return; // solo il sinistro; il destro incolla (sopra)
+        void copySelectionToClipboard();
+      },
+      { signal },
+    );
 
     // Tastiera: Ctrl/Cmd+Shift+C copia la selezione, Ctrl/Cmd+Shift+V incolla (a-capo finali tolti).
     // Ctrl+C "nudo" resta SIGINT: NON lo intercettiamo.
@@ -235,17 +264,11 @@
       if (e.type !== "keydown") return true;
       const cs = (e.ctrlKey || e.metaKey) && e.shiftKey;
       if (cs && (e.key === "C" || e.key === "c")) {
-        const sel = term && term.hasSelection() ? term.getSelection() : "";
-        if (sel) void navigator.clipboard.writeText(sel).catch(() => {});
+        void copySelectionToClipboard(true); // copia esplicita → segnala l'eventuale errore
         return false;
       }
       if (cs && (e.key === "V" || e.key === "v")) {
-        void navigator.clipboard
-          .readText()
-          .then((t) => {
-            if (t) term?.paste(t.replace(/[\r\n]+$/, ""));
-          })
-          .catch(() => {});
+        void pasteFromClipboard();
         return false;
       }
       return true;
@@ -254,10 +277,14 @@
     // focus REALE del terminale: se il focus è qui (non nell'editor) la bell non disturba; quando
     // arriva la bell e NON sei qui, scatta l'attenzione (vedi notifyTerminalBell). relatedTarget
     // interno all'host = focus che si sposta dentro al terminale → non conta come "uscita".
-    host.addEventListener("focusin", () => setTerminalFocus(id));
-    host.addEventListener("focusout", (e) => {
-      if (!host.contains(e.relatedTarget as Node | null)) clearTerminalFocus(id);
-    });
+    host.addEventListener("focusin", () => setTerminalFocus(id), { signal });
+    host.addEventListener(
+      "focusout",
+      (e) => {
+        if (!host.contains(e.relatedTarget as Node | null)) clearTerminalFocus(id);
+      },
+      { signal },
+    );
 
     fitSafe();
 
@@ -310,6 +337,7 @@
     disposed = true;
     clearTerminalFocus(id); // non lasciare focusedId puntato a un terminale smontato
     if (resizeTimer) clearTimeout(resizeTimer);
+    listenerAbort?.abort(); // rimuove TUTTI i listener su host (contextmenu/mouseup/focus) in blocco
     ro?.disconnect();
     unlistenData?.();
     unlistenExit?.();

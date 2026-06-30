@@ -3,7 +3,8 @@
 // dir dell'app (comandi Rust load_state/save_state). Zero dipendenze.
 import { invoke } from "@tauri-apps/api/core";
 import { confirm } from "@tauri-apps/plugin-dialog";
-import { workspace, fileByPath, restoreGroups, resetDocs } from "./workspace.svelte";
+import { workspace, fileByPath, restoreGroups, resetDocs, autosaveAll } from "./workspace.svelte";
+import { settings } from "./settings.svelte";
 import { openRoot } from "./explorer.svelte";
 import { layout, type SidebarView } from "./layout.svelte";
 import { syncActiveTerminalToRoot } from "./terminals.svelte";
@@ -160,7 +161,10 @@ export type SwitchResult = "switched" | "cancelled" | "failed";
 export async function switchFolder(path: string): Promise<SwitchResult> {
   if (!path || path === workspace.rootPath) return "switched";
   const prev = workspace.rootPath; // per tornare indietro se la nuova non si apre
-  // avvisa se ci sono modifiche non salvate: cambiare cartella le scarterebbe (resetDocs)
+  // modifiche non salvate: con l'autosave ON le salviamo subito (come su blur/cambio-tab) invece di
+  // chiedere conferma. Resta `dirty` solo ciò che l'autosave NON tocca — i file in conflitto (cambiati
+  // anche su disco): per QUELLI si chiede comunque conferma prima di scartarli con resetDocs.
+  if (settings.autosave) await autosaveAll();
   const dirty = workspace.openFiles.filter((f) => f.dirty).length;
   if (dirty > 0) {
     const ok = await confirm(

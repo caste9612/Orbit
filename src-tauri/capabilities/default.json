@@ -8,6 +8,8 @@
     "dialog:default",
     "dialog:allow-open",
     "dialog:allow-confirm",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text",
     "core:webview:allow-create-webview-window",
     "core:window:allow-set-title",
     "core:window:allow-set-focus",

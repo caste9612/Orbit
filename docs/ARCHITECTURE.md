@@ -27,6 +27,7 @@ src/
     editor/           # CodeMirror extensions (theme, indent guides, git gutter, semantic overlay) + outline.ts (symbols), activeEditor.ts
     util.ts           # pure helpers (paths, file icons, language label, time)
     markdown.ts       # Markdown → sanitized HTML (marked + DOMPurify, lazy) + heading TOC
+    clipboard.ts      # centralized copy/paste: Tauri clipboard plugin + navigator fallback, explicit success
 src-tauri/
   src/lib.rs          # Rust entry: fs/session/window commands + run() (registers all)
   src/git.rs          # git commands (libgit2)
@@ -59,7 +60,7 @@ Three kinds of frontend module, kept separate:
 | `folders` | the **open repositories** list for the top‑bar switcher — **per‑window**: in‑memory `$state` only (NOT global localStorage, which is shared across instances and caused clobbering), persisted in the active folder's session as `repos` and reseeded by `loadSession({repos:true})` at window startup; `addFolder`/`removeFolder`/`setFolders`/`openFromList`/`cycleRepo`/`selectRepoIndex` — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file") |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
-| `terminals` | terminal tabs (id/title/shell/cwd) + active tab + `focusedId` (real xterm focus); **bell attention** (`notifyTerminalBell`: Claude rings the bell — Orbit enables `preferredNotifChannel:terminal_bell` on launch — → dot on the **repo's tab** + on the session tab + toast; persists via title `●` + taskbar `requestUserAttention` while you're away; cleared on focus); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive) |
+| `terminals` | terminal tabs (id/title/shell/cwd) + active tab + `focusedId` (real xterm focus); **bell attention** (`notifyTerminalBell`: Claude rings the bell — Orbit enables `preferredNotifChannel:terminal_bell` on launch — → dot on the **repo's tab** + on the session tab + a **sticky, clickable attention toast** (click → `goToTerminal`: switch repo, reveal panel, focus the tab) + a top‑bar **Waiting (N)** pill; persists via title `●` + taskbar `requestUserAttention` while you're away; cleared on focus/open via `clearAttention`→`dismissByKey`); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive) |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
 | `claude` | Claude launcher + **shortcuts** + **wrappers** (`.orbit/claude.json`); opens `claude` in a terminal; the wrapper composer copies the composed prompt to the clipboard; **quick add/remove** of prompts & wrappers (`ClaudePrompts.svelte` → writes `claude.json`); invalid JSON **warns** (toast) and keeps the menu instead of silently resetting |
 | `shelf` | shelved folders by category — per‑path entries (`shelved`) **and by‑name rules** (`byName`: hides every folder with that name, incl. nested or recreated — e.g. C# `bin`/`obj`); `.orbit/shelf.json`. Pure hide/group logic split into `shelfRules.ts` (unit‑tested) |
@@ -74,7 +75,7 @@ Three kinds of frontend module, kept separate:
 | `settings` | **theme** (4 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
 | `layout` | panel sizes/visibility + focused panel |
 | `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; `switchFolder` swaps the active folder cleanly (keeps the window's repo list) |
-| `toast` | transient notifications |
+| `toast` | transient notifications, plus a **sticky, clickable `attention`** variant (`notifyAttention`/`dismissByKey`, coalesced by `key`) used by the Claude‑waiting notification |
 
 State is plain **Svelte 5 runes**: `export const x = $state({...})`; components reading those
 fields re‑render automatically. Cross‑module reactive reads (e.g. `git.tick`) drive effects.
@@ -209,7 +210,7 @@ first paint loads only the Explorer + the active editor.
   localStorage, which is shared across instances → see NOTES M39) and the top bar (`TopBar.svelte`) shows
   them as **inline tabs**. Switching reuses `persist.switchFolder`, so there's **no Rust and no refactor**
   of the single‑root model — one active repo at a time, not simultaneous multi‑root (deliberately; see
-  NOTES M37). `switchFolder(path)`: confirms unsaved edits, `saveSessionNow()`, `rootPath=null` (suspends
+  NOTES M37). `switchFolder(path)`: autosaves dirty files when `settings.autosave` is on (else confirms before discarding), `saveSessionNow()`, `rootPath=null` (suspends
   autosave), `resetDocs()`, `loadSession(path)`, then forces the **Explorer** view + visible sidebar
   (deterministic on switch; startup still honors the saved view). It returns a `SwitchResult`
   (`switched`|`cancelled`|`failed`): if the folder is **gone** it restores the previous one (no empty
@@ -230,6 +231,16 @@ first paint loads only the Explorer + the active editor.
 - **Terminal links** — clicked path tokens resolve through `resolve_existing` (Rust): absolute, then
   relative to the terminal's cwd, then the project root — first that exists wins (works for binaries
   like images too); otherwise a "file not found" toast.
+- **Clipboard (copy/paste)** — all copy/paste goes through `lib/clipboard.ts`
+  (`writeClipboard`/`readClipboard`): it prefers the **Tauri clipboard plugin** (Rust‑side, immune to
+  WebView2 focus/permission quirks) when available and falls back to `navigator.clipboard`, **returning
+  success/failure instead of swallowing it** — so a failed copy is surfaced (toast) and the editor's
+  **Cut copies *before* deleting** (no "cut into the void" on a clipboard error). `Terminal.svelte`
+  registers its `contextmenu`/`mouseup`/focus listeners under a single **`AbortController`** removed in
+  `onDestroy`, so they can't pile up across re‑mounts/HMR — that pile‑up was what made right‑click paste
+  fire several times (the real fix; no time‑based guard, which would drop legitimate fast pastes). Paste
+  also guards a disposed terminal + try/catch; auto copy‑on‑selection is silent on failure (explicit
+  copy/paste surface it). Consumers: terminal, editor, explorer (copy path/name), wrapper composer.
 - **Terminal & floating windows** — PTYs live in the Rust backend keyed by `id`, so any webview just
   attaches via `pty-data-<id>` events + `pty_write` / `pty_resize`. "Pop out" opens a
   `term-float-<id>` webview (unique label per terminal → **several can float at once**; permitted by

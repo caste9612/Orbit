@@ -5,8 +5,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
 import { layout } from "./layout.svelte";
 import { settings } from "./settings.svelte";
-import { notify } from "./toast.svelte";
+import { notifyAttention, dismissByKey } from "./toast.svelte";
 import { workspace } from "./workspace.svelte";
+import { basename } from "../util";
 
 export interface TermSession {
   id: string;
@@ -65,11 +66,13 @@ export function addTerminal(opts: NewTerminal = {}): string {
 function removeAt(i: number) {
   const removed = terminals.list[i];
   terminals.list.splice(i, 1);
+  if (removed) dismissByKey(bellKey(removed.id)); // se era in attesa, togli la sua notifica sticky orfana
   if (removed && terminals.activeId === removed.id) {
     // attiva una scheda DELLA STESSA repo (le tab di altre repo non c'entrano)
     syncActiveTerminalToRoot(removed.root);
   }
   if (terminals.list.length === 0) layout.terminalVisible = false;
+  if (!anyNeedsAttention()) cancelTaskbarAttention(); // niente più in attesa → spegni la taskbar
 }
 
 /** Toglie una tab dalla lista SENZA uccidere il PTY (per estrarla in finestra flottante). */
@@ -121,12 +124,16 @@ export function syncActiveTerminalToRoot(root: string | null) {
     remembered && visible.some((t) => t.id === remembered) ? remembered : (visible[0]?.id ?? null);
 }
 
-/** Azzera il pallino "attenzione" di una scheda (quando la guardi davvero) e, se non resta nessun
- *  terminale in attesa, ferma anche l'evidenziazione della taskbar. */
+/** Chiave della notifica sticky di un terminale in attesa (coalescing + rimozione mirata). */
+const bellKey = (id: string) => `bell:${id}`;
+
+/** Azzera il pallino "attenzione" di una scheda (quando la guardi davvero), rimuove la notifica
+ *  sticky associata e, se non resta nessun terminale in attesa, ferma l'evidenziazione della taskbar. */
 export function clearAttention(id: string | null) {
   if (!id) return;
   const t = terminals.list.find((s) => s.id === id);
   if (t) t.needsAttention = false;
+  dismissByKey(bellKey(id));
   if (!anyNeedsAttention()) cancelTaskbarAttention();
 }
 
@@ -139,6 +146,29 @@ export function anyNeedsAttention(): boolean {
  *  capisci QUALE repo ha finito anche se ora ne guardi un'altra (le tab di altre repo sono nascoste). */
 export function repoNeedsAttention(root: string | null): boolean {
   return !!root && terminals.list.some((t) => t.root === root && t.needsAttention);
+}
+
+/** Terminali attualmente in attesa (Claude finito/aspetta), in ordine di creazione — pilotano il
+ *  pill "Waiting (N)" in top bar; il primo è il più vecchio. */
+export function waitingTerminals(): TermSession[] {
+  return terminals.list.filter((t) => t.needsAttention);
+}
+
+/** Porta l'utente al terminale `id`: passa alla sua repo se serve, mostra il pannello, attiva e mette
+ *  a fuoco la scheda (azzerando l'attenzione). Usato dalla notifica sticky e dal pill in top bar. */
+export async function goToTerminal(id: string) {
+  const t = terminals.list.find((s) => s.id === id);
+  if (!t) return;
+  if (t.root && t.root !== workspace.rootPath) {
+    // import dinamico: folders→persist→terminals sarebbe un ciclo a tempo di modulo (vedi explorer.ts)
+    const { openFromList } = await import("./folders.svelte");
+    await openFromList(t.root);
+    // switch ANNULLATO (edit non salvati) o FALLITO (cartella sparita): non siamo su quella repo →
+    // non attivare un terminale altrui né azzerare la sua notifica (l'utente non è arrivato lì).
+    if (workspace.rootPath !== t.root) return;
+  }
+  layout.terminalVisible = true;
+  setActiveTerminal(id); // attiva la scheda + clearAttention(id) (rimuove anche la notifica sticky)
 }
 
 /** Focus REALE nel terminale `id` (textarea xterm) — più fine del focus di finestra: così, se stai
@@ -181,7 +211,14 @@ export function notifyTerminalBell(id: string) {
   if (watching) return;
   if (!t.needsAttention) {
     t.needsAttention = true;
-    if (document.hasFocus()) notify(`${t.title} is waiting for you`, "info");
+    // notifica PERSISTENTE e cliccabile: resta finché apri quel terminale (clearAttention →
+    // dismissByKey) o la chiudi. Creata anche se Orbit è in background → la trovi al ritorno.
+    const where = t.root ? `${basename(t.root)} › ${t.title}` : t.title;
+    notifyAttention({
+      key: bellKey(id),
+      message: `Claude in ${where} is waiting for you`,
+      onClick: () => void goToTerminal(id),
+    });
   }
   if (!document.hasFocus()) flashTaskbar();
 }

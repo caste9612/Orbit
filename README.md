@@ -162,9 +162,11 @@ cross-platform desktop app that weighs almost nothing.
 - A **Scratchpad** (📝 in the top bar) opens a persistent notes/prompts file (`.orbit/scratch.md`)
   to jot prompts and reuse them.
 - **Attention when a terminal needs you** — when `claude` finishes a turn or waits for input (Orbit
-  sets up Claude's `terminal_bell` for you), Orbit flags **which repo** (a dot on its tab) and **which
-  tab**, keeps a `●` in the title and lights up the taskbar **while you're away**, and clears it when
-  you open that terminal — so you can fire Claude off and look elsewhere (toggle in Settings).
+  sets up Claude's `terminal_bell` for you), Orbit raises a **persistent, clickable** notification: a
+  toast you can **click to jump straight to that terminal** (switching repo if needed), a **"Waiting (N)"
+  pill** in the top bar, plus a dot on the repo tab and session tab, a `●` in the title and a taskbar flag
+  **while you're away**. It all clears when you open that terminal — so you can fire Claude off and look
+  elsewhere (toggle in Settings).
 
 ![The Activity view — a timeline of work units across all your repos, with the selected unit's digest in the panel below and Claude Code in the integrated terminal](docs/screenshot-activity.png)
 

@@ -1696,6 +1696,86 @@ possibili evoluzioni: diff/restore da `~/.claude/file-history` (T4); filtri ricc
 
 ---
 
+## Milestone 44 — revisione copia/incolla (terminale + editor): affidabilità e fix doppio-incolla (v0.8.1)
+
+Revisione di TUTTI i meccanismi di copia/incolla, partita da due sintomi segnalati dall'uso reale:
+1. **Click destro nel terminale incolla due volte**, e "una volta che inizia, continua" (sticky/crescente).
+2. **Selezioni testo nel terminale → sembra copiato → ma incolli il contenuto VECCHIO.**
+
+**Cause.**
+- Sintomo 1: in `Terminal.svelte` i listener su `host` (`contextmenu`/`mouseup`/`focusin`/`focusout`) erano
+  aggiunti in `onMount` ma **mai rimossi** in `onDestroy` (ci si affidava alla GC del nodo). In **HMR** (e a ogni
+  remount) si **accumulano** → un solo click destro fa partire N letture+`paste`. La firma "inizia e poi peggiora"
+  è esattamente quella dei listener che si sommano.
+- Sintomo 2: **tutti** i punti usavano `navigator.clipboard.*` con un `.catch(() => {})` che **ingoiava
+  l'errore**. Su WebView2 la `writeText` asincrona può essere rifiutata (focus/attivazione utente; un TUI con
+  mouse-reporting come Claude complica il quadro): l'errore spariva, la clipboard restava col valore VECCHIO e
+  l'incolla restituiva appunto roba vecchia, senza alcun segnale. (+ possibile race: write non attesa vs read.)
+
+**Fix — clipboard centralizzata.** Nuovo helper `src/lib/clipboard.ts` (`writeClipboard`→`bool`,
+`readClipboard`→`string|null`): **preferisce il plugin Tauri `clipboard-manager`** (clipboard lato Rust, fuori
+dai limiti del WebView) con **fallback** a `navigator.clipboard`; **non ingoia gli errori**, ritorna l'esito.
+Tutti i consumer passano dall'helper: `Terminal.svelte`, `Editor.svelte`, `Explorer.svelte`,
+`explorer.svelte.ts`, `WrapperComposer.svelte`. Migliorie di contorno:
+- `Terminal.svelte`: i listener su `host` ora condividono un **`AbortController`** che `onDestroy` abortisce →
+  rimozione in blocco — è questa la VERA cura del doppio-incolla "sticky" (niente più accumulo; **nessuna**
+  guardia temporale, che scarterebbe incolli legittimi ravvicinati). `pasteFromClipboard` guarda `disposed`/`term`
+  e avvolge `term.paste` in try/catch (no unhandled rejection se smonti il terminale durante l'await). **Copia su
+  selezione silenziosa** se fallisce (capita a ogni drag); la copia **esplicita** (Ctrl+Shift+C) e l'incolla
+  segnalano l'errore con un toast.
+- `Editor.svelte`: `Cut` ora **copia PRIMA di cancellare** — se la clipboard fallisce non si perde il testo.
+- `Explorer`/`WrapperComposer`: toast anche sul fallimento (prima solo sul successo).
+
+**Dipendenza aggiunta** (gate "deps al minimo"): `@tauri-apps/plugin-clipboard-manager` — plugin **first-party**
+Tauri, piccolo, e l'affidabilità della clipboard è UX di base; bypassa i bug noti dell'API web in WebView2.
+
+**Stato.** **Fase A (solo frontend) FATTA e verificata:** `svelte-check` **251/0/0**, `vitest` **9/9**. Finché non
+si registra il plugin l'helper fa fallback a `navigator` (quindi fix listener + toast d'errore sono GIÀ attivi).
+**Fase B (backend) da fare** (richiede rebuild Rust → riavvia Orbit): in `Cargo.toml`
+`tauri-plugin-clipboard-manager = "2"`, in `lib.rs` `.plugin(tauri_plugin_clipboard_manager::init())`, in
+`capabilities/default.json` i permessi `clipboard-manager:allow-read-text`/`allow-write-text`. Rimandata di
+proposito (l'utente sta usando Orbit): **da rilasciare** insieme ad altre piccole modifiche in arrivo (versione e
+conteggi test finali al momento del rilascio).
+
+Possibile residuo da sorvegliare: `App.svelte` `onAppContextMenu` lascia passare il menu nativo di WebView2 nei
+`<textarea>` e la textarea nascosta di xterm È un textarea → in build installata, se l'handler in capture del
+terminale non scattasse per primo, potrebbe concorrere al doppio-incolla; da irrobustire se il sintomo persiste.
+
+---
+
+## Milestone 45 — piccole rifiniture (v0.8.1)
+
+Raccolta di piccoli fix verificati durante l'uso, da rilasciare insieme a M44.
+
+- **Autosave al cambio di repo.** Cliccando un'altra repo nel selettore in top bar, un file modificato non
+  veniva salvato: partiva il popup "X files have unsaved changes … will discard". Il cambio repo passa da
+  `persist.switchFolder`, che chiedeva conferma invece di autosalvare — a differenza di blur-finestra e
+  cambio-tab, che chiamano `autosaveAll` (il click sulla tab repo NON fa perdere il focus alla finestra,
+  quindi l'autosave su blur non scattava). Ora `switchFolder`, se `settings.autosave` è ON, chiama
+  `autosaveAll()` PRIMA del conteggio dei `dirty` → salvataggio silenzioso come altrove. Resta `dirty` (e
+  quindi il confirm) solo ciò che l'autosave non tocca di proposito: i file in **conflitto** (cambiati anche
+  su disco), per non calpestare un edit esterno. Solo frontend.
+- **Notifica "Claude in attesa" — cliccabile e persistente.** Prima era un toast `info` che spariva dopo
+  ~2,6 s, non cliccabile, e da "via" non compariva affatto. Ora: (1) il sistema toast ha una variante
+  **`attention`** (`notifyAttention`/`dismissByKey` in `toast.svelte.ts`) **sticky** (niente timeout),
+  **cliccabile**, con **✕** e **coalescing per `key`** (`bell:<id>` → un solo avviso per terminale);
+  (2) `notifyTerminalBell` crea questo avviso (anche con Orbit in background → lo trovi al ritorno) e il
+  click chiama **`goToTerminal(id)`** — passa alla repo giusta (`openFromList`, import dinamico per evitare
+  il ciclo folders→persist→terminals) — ma se lo switch è **annullato** (edit non salvati) o **fallito**
+  (cartella sparita) NON attiva nulla né azzera la notifica — poi mostra il pannello, attiva e mette a fuoco; (3)
+  `clearAttention` ora rimuove anche l'avviso (`dismissByKey`) → aprendo il terminale sparisce; (4) **pill
+  persistente in top bar** "✨ Waiting (N)" (`waitingTerminals`/`anyNeedsAttention`): click → vai al più
+  vecchio in attesa, caret (se >1) → elenco di tutti; resta finché c'è almeno un Claude in attesa e da
+  finestra stretta tiene icona+conteggio nascondendo la parola. I pallini su tab repo/terminale e il `●`
+  nel titolo restano come traccia di fondo. Solo frontend. (`svelte-check` 251/0/0, `vitest` 9/9.)
+
+**Rilasciato in v0.8.1** (build verificato su Windows, prima provato in locale poi pubblicato): `cargo test`
+31/31, `svelte-check` 251/0/0, `vitest` 9/9; orbit.exe 5,75 MB, MSI 4,12 MB, NSIS 2,86 MB (+~0,3 MB sul binario
+per il plugin clipboard + crate `arboard`). M44 e M45 rilasciate insieme. (La notifica della bell di Claude
+— abilitata in M42 — resta da confermare end-to-end con un bell reale durante l'uso.)
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

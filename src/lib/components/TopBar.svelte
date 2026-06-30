@@ -11,7 +11,7 @@
   import { openFolderDialog } from "../state/explorer.svelte";
   import { folders, openFromList, removeFolder } from "../state/folders.svelte";
   import { changedCount } from "../state/git.svelte";
-  import { repoNeedsAttention } from "../state/terminals.svelte";
+  import { repoNeedsAttention, anyNeedsAttention, waitingTerminals, goToTerminal } from "../state/terminals.svelte";
   import { nav, navBack, navForward } from "../state/codeIndex.svelte";
   import { keyForId } from "../state/keybindings.svelte";
   import { run, runConfig, openConfig, teachClaude } from "../state/run.svelte";
@@ -28,6 +28,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { openSettings } from "../state/settings.svelte";
   import { openScratch } from "../state/scratch";
+  import { basename } from "../util";
 
   const win = getCurrentWindow();
   const activeKind = $derived(activeFile()?.kind); // per evidenziare il bottone Activity quando la board è la tab attiva
@@ -107,6 +108,20 @@
   function menuPos(e: MouseEvent) {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     return { x: r.left, y: r.bottom + 4 };
+  }
+
+  // notifica "Claude in attesa": pill persistente in top bar (vedi terminals.notifyTerminalBell).
+  // Click sul pill → vai al più vecchio in attesa; il caret (solo se >1) apre l'elenco di tutti.
+  let waitMenu = $state<{ x: number; y: number } | null>(null);
+  function openWaitMenu(e: MouseEvent) {
+    waitMenu = menuPos(e);
+  }
+  function waitMenuItems(): MenuItem[] {
+    return waitingTerminals().map((t) => ({
+      label: t.root ? `${basename(t.root)} › ${t.title}` : t.title,
+      icon: "sparkles",
+      onClick: () => void goToTerminal(t.id),
+    }));
   }
 
   let runMenu = $state<{ x: number; y: number } | null>(null);
@@ -257,6 +272,21 @@
   </div>
 
   <div class="actions">
+    {#if anyNeedsAttention()}
+      {@const waiting = waitingTerminals()}
+      <div class="waitpill" title="Claude is waiting — click to open">
+        <button class="wp-main" onclick={() => goToTerminal(waiting[0].id)}>
+          <span class="wp-dot"><Icon name="sparkles" size={13} strokeWidth={1.8} /></span>
+          <span class="wp-label">Waiting</span>
+          <span class="wp-count">{waiting.length}</span>
+        </button>
+        {#if waiting.length > 1}
+          <button class="wp-caret" aria-label="List waiting terminals" title="Show all waiting" onclick={openWaitMenu}>
+            <Icon name="chevron-down" size={12} strokeWidth={2} />
+          </button>
+        {/if}
+      </div>
+    {/if}
     {#if workspace.rootName}
       <button class="view only" title="Scratchpad — notes & prompts" aria-label="Scratchpad" onclick={openScratch}>
         <Icon name="note" size={15} strokeWidth={1.7} />
@@ -300,6 +330,9 @@
 {/if}
 {#if folderMenu}
   <ContextMenu x={folderMenu.x} y={folderMenu.y} items={folderMenuItems()} onClose={() => (folderMenu = null)} />
+{/if}
+{#if waitMenu}
+  <ContextMenu x={waitMenu.x} y={waitMenu.y} items={waitMenuItems()} onClose={() => (waitMenu = null)} />
 {/if}
 
 <style>
@@ -600,6 +633,69 @@
     background: rgba(var(--accent-rgb), 0.16);
   }
 
+  /* notifica "Claude in attesa": pill compatto in accento, persistente ma non invadente */
+  .waitpill {
+    display: inline-flex;
+    align-items: stretch;
+    height: 22px;
+    margin-right: 4px;
+    border: 1px solid rgba(var(--accent-rgb), 0.5);
+    border-radius: 6px;
+    background: rgba(var(--accent-rgb), 0.14);
+    overflow: hidden;
+  }
+  .wp-main,
+  .wp-caret {
+    display: inline-flex;
+    align-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--color-accent);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .wp-main {
+    gap: 5px;
+    padding: 0 8px;
+  }
+  .wp-main:hover,
+  .wp-caret:hover {
+    background: rgba(var(--accent-rgb), 0.22);
+  }
+  .wp-dot {
+    display: inline-flex;
+    animation: wp-pulse 1.8s ease-in-out infinite;
+  }
+  .wp-label {
+    font-weight: 500;
+  }
+  .wp-count {
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--color-accent);
+    color: var(--color-surface-0);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .wp-caret {
+    padding: 0 5px;
+    border-left: 1px solid rgba(var(--accent-rgb), 0.4);
+  }
+  @keyframes wp-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+
   .wctrls {
     display: flex;
     align-items: stretch;
@@ -642,6 +738,10 @@
       top: -2px;
       right: -2px;
       transform: none;
+    }
+    /* il pill "Waiting" resta (icona + conteggio); nascondi solo la parola per risparmiare spazio */
+    .waitpill .wp-label {
+      display: none;
     }
   }
 </style>

@@ -27,6 +27,7 @@
   import { shelf, relOf, isHidden, byCategory, shelveByName, isNameRuled, unshelveName } from "../state/shelf.svelte";
   import { notify } from "../state/toast.svelte";
   import { fileIcon, basename, dirname, joinPath, normSlash, relTo, runCommand } from "../util";
+  import { writeClipboard } from "../clipboard";
   import { invoke } from "@tauri-apps/api/core";
 
   // Lista virtuale ad altezza fissa: rende solo le righe nel viewport (+overscan).
@@ -147,19 +148,15 @@
     addTerminal({ title: basename(dir) || "Terminal", cwd: dir });
   }
   // copia il percorso relativo alla radice del progetto
-  function copyRelPath(path: string) {
+  async function copyRelPath(path: string) {
     const rel = relTo(path, workspace.rootPath) || basename(path);
-    void navigator.clipboard.writeText(rel).then(
-      () => notify("Relative path copied", "success", 1200),
-      () => {},
-    );
+    const ok = await writeClipboard(rel);
+    notify(ok ? "Relative path copied" : "Copy failed", ok ? "success" : "error", 1200);
   }
   // copia solo il nome del file/cartella
-  function copyName(name: string) {
-    void navigator.clipboard.writeText(name).then(
-      () => notify("Name copied", "success", 1200),
-      () => {},
-    );
+  async function copyName(name: string) {
+    const ok = await writeClipboard(name);
+    notify(ok ? "Name copied" : "Copy failed", ok ? "success" : "error", 1200);
   }
   // mostra il file/cartella nel file manager dell'OS (comando Rust)
   function revealPath(path: string) {

@@ -7,17 +7,17 @@
   import Backdrop from "./Backdrop.svelte";
   import { wrapperUI, closeWrapper, composeWrapper } from "../state/claude.svelte";
   import { notify } from "../state/toast.svelte";
+  import { writeClipboard } from "../clipboard";
 
   let input = $state("");
   let composed = $derived(wrapperUI.wrapper ? composeWrapper(wrapperUI.wrapper.template, input) : "");
 
   async function copy() {
     if (!input.trim()) return;
-    try {
-      await navigator.clipboard.writeText(composed);
+    if (await writeClipboard(composed)) {
       notify("Prompt copiato — incollalo in Claude", "success", 1800);
       closeWrapper();
-    } catch {
+    } else {
       notify("Copia negli appunti non riuscita", "error");
     }
   }

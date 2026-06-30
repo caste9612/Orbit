@@ -8,6 +8,7 @@ import { loadRunConfig } from "./run.svelte";
 import { loadClaudeConfig } from "./claude.svelte";
 import { loadShelf } from "./shelf.svelte";
 import { notify } from "./toast.svelte";
+import { writeClipboard } from "../clipboard";
 import { layout } from "./layout.svelte";
 import { resetSearch } from "./search.svelte";
 import { loadDocs } from "./docs.svelte";
@@ -305,9 +306,5 @@ export async function deleteEntry(path: string, name: string, isDir: boolean) {
 
 /** Copia il percorso assoluto negli appunti (utile per incollarlo in Claude). */
 export async function copyPath(path: string) {
-  try {
-    await navigator.clipboard.writeText(path);
-  } catch (e) {
-    console.error("copy path", e);
-  }
+  if (!(await writeClipboard(path))) notify("Copy failed", "error");
 }

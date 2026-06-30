@@ -1,6 +1,6 @@
 {
   "name": "orbit",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Orbit — a lightweight IDE, companion for Claude Code",
   "type": "module",
   "private": true,
@@ -25,6 +25,7 @@
     "@lezer/highlight": "^1.2.3",
     "@replit/codemirror-lang-svelte": "^6.0.0",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-web-links": "^0.12.0",

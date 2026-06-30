@@ -28,6 +28,8 @@
   import { setActiveEditor, clearActiveEditor } from "../editor/activeEditor";
   import { settings, isLightTheme } from "../state/settings.svelte";
   import { git } from "../state/git.svelte";
+  import { notify } from "../state/toast.svelte";
+  import { writeClipboard, readClipboard } from "../clipboard";
   import { workspace } from "../state/workspace.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { basename, normSlash, relTo } from "../util";
@@ -141,6 +143,7 @@
     return () => {
       if (view) clearActiveEditor(view);
       view?.destroy();
+      view = undefined; // i path async (doPaste/doCut dopo l'await su clipboard) vedono view assente → no-op
     };
   });
 
@@ -268,27 +271,36 @@
     const s = view.state.selection.main;
     return s.empty ? view.state.doc.lineAt(s.head).text : view.state.sliceDoc(s.from, s.to);
   }
-  function doCopy() {
+  async function doCopy() {
     const t = selectedText();
-    if (t) void navigator.clipboard.writeText(t).catch(() => {});
+    if (t && !(await writeClipboard(t))) notify("Copy to clipboard failed", "error", 1500);
   }
-  function doCut() {
+  async function doCut() {
     if (!view || readonly) return;
+    const text = selectedText(); // selezione corrente (riga intera se vuota)
+    if (!text) return;
+    // copia PRIMA di cancellare: se la clipboard fallisce non si perde il testo (niente taglio "a vuoto")
+    if (!(await writeClipboard(text))) {
+      notify("Cut: clipboard write failed", "error", 1500);
+      return;
+    }
+    if (!view) return; // editor smontato durante l'await
+    // RILEGGI lo stato DOPO l'await: il doc può essere cambiato (es. reload esterno) → niente posizioni stale
     const s = view.state.selection.main;
     if (s.empty) {
       const line = view.state.doc.lineAt(s.head);
-      void navigator.clipboard.writeText(line.text).catch(() => {});
       view.dispatch({ changes: { from: line.from, to: Math.min(line.to + 1, view.state.doc.length) } });
     } else {
-      void navigator.clipboard.writeText(view.state.sliceDoc(s.from, s.to)).catch(() => {});
       view.dispatch(view.state.replaceSelection(""));
     }
     view.focus();
   }
   async function doPaste() {
     if (!view || readonly) return;
-    const t = await navigator.clipboard.readText().catch(() => "");
+    const t = await readClipboard();
+    if (!view) return; // editor smontato durante l'await
     if (t) view.dispatch(view.state.replaceSelection(t));
+    else if (t === null) notify("Paste: clipboard read failed", "error", 1500);
     view.focus();
   }
   function doSelectAll() {
@@ -298,8 +310,8 @@
   }
   function editorMenu(): MenuItem[] {
     const items: MenuItem[] = [];
-    if (!readonly) items.push({ label: "Cut", icon: "scissors", onClick: doCut });
-    items.push({ label: "Copy", icon: "copy", onClick: doCopy });
+    if (!readonly) items.push({ label: "Cut", icon: "scissors", onClick: () => void doCut() });
+    items.push({ label: "Copy", icon: "copy", onClick: () => void doCopy() });
     if (!readonly) items.push({ label: "Paste", icon: "clipboard", onClick: () => void doPaste() });
     items.push({ label: "Select all", separatorBefore: true, onClick: doSelectAll });
     items.push({

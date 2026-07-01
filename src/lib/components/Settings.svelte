@@ -5,6 +5,7 @@
   import Backdrop from "./Backdrop.svelte";
   import { settings, closeSettings, MONO_FONTS, ACCENTS, THEMES, type AccentName, type ThemeName } from "../state/settings.svelte";
   import { openShortcuts } from "../state/keybindings.svelte";
+  import { openLogs } from "../state/logs.svelte";
 
   const accentNames = Object.keys(ACCENTS) as AccentName[];
   const themeNames = Object.keys(THEMES) as ThemeName[];
@@ -177,6 +178,26 @@
         <span class="hint">Preset (Orbit / Visual Studio / IntelliJ) and full reference</span>
       </div>
       <button class="control" onclick={openShortcuts}>View &amp; presets…</button>
+    </div>
+
+    <div class="row">
+      <div class="label">
+        <span class="name">Diagnostic logs</span>
+        <span class="hint">Collect logs (paste, clipboard, terminal, errors) to investigate issues; export from the viewer</span>
+      </div>
+      <Switch
+        checked={settings.logging}
+        onToggle={() => (settings.logging = !settings.logging)}
+        label="Collect diagnostic logs"
+      />
+    </div>
+
+    <div class="row">
+      <div class="label">
+        <span class="name">Log viewer</span>
+        <span class="hint">View, filter and export the collected logs</span>
+      </div>
+      <button class="control" onclick={() => { closeSettings(); openLogs(); }}>Open logs…</button>
     </div>
   </div>
 </div>

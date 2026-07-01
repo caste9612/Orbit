@@ -12,6 +12,7 @@
   import { setTerminalFocus, clearTerminalFocus } from "../state/terminals.svelte";
   import { joinPath } from "../util";
   import { writeClipboard, readClipboard } from "../clipboard";
+  import { log, logError } from "../state/logs.svelte";
 
   interface Props {
     id: string;
@@ -174,14 +175,17 @@
   // Incolla togliendo gli a-capo FINALI così non esegue da solo (premi Invio tu). Il doppio-incolla
   // "sticky" era causato dai listener accumulati: lo risolve l'AbortController in onDestroy, non una
   // guardia temporale (che scarterebbe anche incolli legittimi ravvicinati).
-  async function pasteFromClipboard() {
+  async function pasteFromClipboard(src: "contextmenu" | "keyboard") {
+    log("paste", `paste via ${src}`, { id, disposed }); // due voci ravvicinate qui = doppio-trigger
     const t = await readClipboard();
     if (disposed || !term) return; // terminale smontato durante l'await
     try {
-      if (t) term.paste(t.replace(/[\r\n]+$/, ""));
-      else if (t === null) notify("Paste: clipboard read failed", "error", 1500);
-    } catch {
-      /* xterm può lanciare se in stato inconsistente: non propagare come unhandled rejection */
+      if (t) {
+        term.paste(t.replace(/[\r\n]+$/, ""));
+        log("paste", "term.paste done", { id, len: t.length });
+      } else if (t === null) notify("Paste: clipboard read failed", "error", 1500);
+    } catch (e) {
+      logError("paste", "term.paste threw", { id, err: String(e) });
     }
   }
   // `loud`: la copia AUTOMATICA su selezione (mouseup) resta SILENZIOSA anche se fallisce — capita a
@@ -189,11 +193,13 @@
   async function copySelectionToClipboard(loud = false) {
     const sel = term && term.hasSelection() ? term.getSelection() : "";
     if (!sel) return;
+    log("copy", "copy selection", { id, len: sel.length, loud });
     const ok = await writeClipboard(sel);
     if (!ok && loud) notify("Copy to clipboard failed", "error", 1500);
   }
 
   onMount(async () => {
+    log("terminal", "mount", { id, attach });
     term = new Terminal({
       fontFamily: monoStack(settings.fontMono),
       fontSize: settings.terminalFontSize,
@@ -243,7 +249,7 @@
       (e) => {
         e.preventDefault();
         e.stopPropagation();
-        void pasteFromClipboard();
+        void pasteFromClipboard("contextmenu");
       },
       { capture: true, signal },
     );
@@ -268,7 +274,7 @@
         return false;
       }
       if (cs && (e.key === "V" || e.key === "v")) {
-        void pasteFromClipboard();
+        void pasteFromClipboard("keyboard");
         return false;
       }
       return true;
@@ -282,6 +288,19 @@
       "focusout",
       (e) => {
         if (!host.contains(e.relatedTarget as Node | null)) clearTerminalFocus(id);
+      },
+      { signal },
+    );
+
+    // DIAGNOSTICA doppio-incolla: un evento "paste" del DOM qui = incolla NATIVO (Ctrl+V gestito da
+    // xterm o menu contestuale nativo di WebView2), distinto dal nostro pasteFromClipboard (che chiama
+    // term.paste() programmaticamente, senza evento DOM). Se per UN click destro compaiono ENTRAMBI,
+    // il raddoppio viene dall'incolla nativo non soppresso.
+    host.addEventListener(
+      "paste",
+      (e) => {
+        const dt = (e as ClipboardEvent).clipboardData;
+        log("paste", "DOM paste event (native/xterm)", { id, len: dt ? dt.getData("text").length : -1 });
       },
       { signal },
     );
@@ -335,6 +354,7 @@
 
   onDestroy(() => {
     disposed = true;
+    log("terminal", "unmount", { id });
     clearTerminalFocus(id); // non lasciare focusedId puntato a un terminale smontato
     if (resizeTimer) clearTimeout(resizeTimer);
     listenerAbort?.abort(); // rimuove TUTTI i listener su host (contextmenu/mouseup/focus) in blocco

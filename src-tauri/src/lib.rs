@@ -503,6 +503,50 @@ fn claude_sessions(root: String) -> Result<Vec<ClaudeSession>, String> {
 }
 
 // Le finestre flottanti del terminale usano label "term-float-<id>" (una per terminale estratto);
+// ---- Log diagnostici (opzionali, gated dal toggle "logging" in Impostazioni) ----
+/// Versione dell'app: nell'header dei log disambigua QUALE build ha prodotto il log.
+#[tauri::command]
+fn app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+/// File di log di QUESTA istanza (uno per processo → niente race tra finestre diverse).
+fn log_file(app: &AppHandle) -> Option<PathBuf> {
+    app.path()
+        .app_config_dir()
+        .ok()
+        .map(|d| d.join("logs").join(format!("orbit-{}.log", std::process::id())))
+}
+
+/// Percorso del file di log di questa istanza (per rivelarlo nel file manager).
+#[tauri::command]
+fn log_file_path(app: AppHandle) -> Result<String, String> {
+    log_file(&app)
+        .map(|p| p.to_string_lossy().into_owned())
+        .ok_or_else(|| "config dir non disponibile".to_string())
+}
+
+/// Appende testo al log di questa istanza (crea la cartella; ruota il file oltre ~2 MB).
+#[tauri::command]
+fn append_log(app: AppHandle, text: String) -> Result<(), String> {
+    use std::io::Write;
+    let path = log_file(&app).ok_or_else(|| "config dir non disponibile".to_string())?;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    const CAP: u64 = 2 * 1024 * 1024;
+    if std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0) > CAP {
+        let _ = std::fs::rename(&path, path.with_file_name(format!("orbit-{}.log.old", std::process::id())));
+    }
+    let mut f = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+        .map_err(|e| e.to_string())?;
+    f.write_all(text.as_bytes()).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // i permessi relativi sono in capabilities/default.json (windows: ["main", "term-float-*"]).
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -554,6 +598,9 @@ pub fn run() {
             reveal_path,
             open_url,
             resolve_existing,
+            app_version,
+            append_log,
+            log_file_path,
             claude_sessions,
             git::git_status,
             git::git_diff,

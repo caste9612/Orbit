@@ -1776,6 +1776,39 @@ per il plugin clipboard + crate `arboard`). M44 e M45 rilasciate insieme. (La no
 
 ---
 
+## Milestone 46 — sistema di log diagnostico (v0.8.2)
+
+Il doppio-incolla nel terminale **è ancora segnalato in v0.8.1**: il fix M44 (rimozione listener via
+`AbortController`) curava l'accumulo in HMR, ma nella build installata (senza HMR) il listener è unico → la
+causa reale è probabilmente un'altra (sospetto n.1: **menu contestuale nativo di WebView2** sulla `<textarea>`
+nascosta di xterm, che `App.onAppContextMenu` lascia passare; oppure bracketed-paste della shell). Invece di
+tirare a indovinare, **si strumenta**: un sistema di log per raccogliere ed esportare dati reali (utile anche
+per i prossimi problemi segnalati sul campo).
+
+**Frontend** `src/lib/state/logs.svelte.ts`: ring buffer in memoria (cap 2000), `log`/`logWarn`/`logError`,
+cattura globale di `window.onerror`/`unhandledrejection`, persistenza **batched** su file (flush ~1,5s via
+comando Rust), header con **versione app** (disambigua quale build ha prodotto il log) + userAgent. Tutto
+**gated** dal toggle `settings.logging` (default ON, disattivabile → zero raccolta e zero I/O). Export: **copia
+negli appunti** (`copyLogs`) + **rivela il file** (`revealLogFile`). Visualizzatore `LogViewer.svelte` (overlay
+lazy) con filtro testo/livello, conteggio e pulsanti di export. Voce in **Impostazioni** ("Diagnostic logs" +
+"Open logs…").
+
+**Backend** (`lib.rs`): `app_version()`; `append_log(text)` → append a `app_config_dir/logs/orbit-<pid>.log`
+(un file per processo → niente race tra finestre; rotazione oltre ~2 MB); `log_file_path()`.
+
+**Strumentazione anti doppio-incolla**: `pasteFromClipboard(src)` logga la **sorgente** (contextmenu vs
+keyboard) + timestamp; `clipboard.ts` logga quale backend usa (plugin vs fallback navigator) e i fallimenti; il
+terminale logga mount/unmount (scopre componenti duplicati sullo stesso PTY) e un **evento `paste` del DOM** (=
+incolla nativo, distinto dal nostro `term.paste`). Se per UN click destro compaiono entrambi → il raddoppio
+viene dall'incolla nativo non soppresso; due `paste via contextmenu` ravvicinati → doppio trigger; un solo
+percorso ma output doppio → shell/bracketed.
+
+Verifica: `svelte-check` **253/0/0**, `cargo test` **31/31**, `vitest` 9/9; build OK (orbit.exe 5,76 MB, MSI
+4,12 MB, NSIS 2,87 MB). **Rilasciato in v0.8.2** (l'utente ha scelto di pubblicare subito il logging). **NB: il
+doppio-incolla resta APERTO** — questo rilascio aggiunge gli STRUMENTI per diagnosticarlo, non ancora il fix.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

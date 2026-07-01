@@ -28,6 +28,7 @@
   import { invalidateFiles } from "./lib/state/projectFiles";
   import { loadSettings, startSettingsAutosave, settingsUI, nudgeFontSize, settings } from "./lib/state/settings.svelte";
   import { loadSession, startAutosave, setWinKey } from "./lib/state/persist.svelte";
+  import { initLogs, logsUI } from "./lib/state/logs.svelte";
   import { redockTerminal, terminals, anyNeedsAttention } from "./lib/state/terminals.svelte";
   import { initIndex, scheduleRescan, wsPalette, openWsPalette, navBack, navForward, goToDefinitionAtCursor } from "./lib/state/codeIndex.svelte";
   import { matchCommand, shortcutsUI } from "./lib/state/keybindings.svelte";
@@ -200,6 +201,7 @@
 
   onMount(async () => {
     loadSettings(); // applica font/dimensione/accento/caret (anche nella finestra flottante)
+    void initLogs(); // log diagnostici: versione app + cattura errori globali (gated dal toggle)
     if (isFloatingTerminal) {
       // Registra SUBITO l'handler di chiusura (prima di ogni altro await): una chiusura OS
       // precoce non deve perdere il redock e lasciare il PTY orfano. Riaggancia il terminale
@@ -435,6 +437,9 @@
   {/if}
   {#if settingsUI.open}
     <Lazy load={() => import("./lib/components/Settings.svelte")} />
+  {/if}
+  {#if logsUI.open}
+    <Lazy load={() => import("./lib/components/LogViewer.svelte")} />
   {/if}
   {#if shortcutsUI.open}
     <Lazy load={() => import("./lib/components/ShortcutsDialog.svelte")} />

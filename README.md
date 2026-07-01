@@ -195,7 +195,7 @@ cross-platform desktop app that weighs almost nothing.
 - **Settings**: theme, keymap preset (incl. Custom), editor/terminal font with **independent sizes**
   (`Ctrl/Cmd+scroll` zooms whichever panel the pointer is over), accent color, smooth-caret toggle,
   **autosave**, **default Markdown view** (source / preview / READMEs only), terminal GPU rendering,
-  "launch Claude in the default terminal", and "notify when a terminal needs you".
+  "launch Claude in the default terminal", "notify when a terminal needs you", and **diagnostic logging** (collect/export logs to investigate issues).
 
 ---
 

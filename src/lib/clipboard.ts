@@ -12,17 +12,21 @@
 // dare un feedback reale (toast) o evitare azioni distruttive (es. "taglia" non cancella se la
 // copia non è riuscita).
 import { readText as pluginReadText, writeText as pluginWriteText } from "@tauri-apps/plugin-clipboard-manager";
+import { log, logError } from "./state/logs.svelte";
 
 /** Scrive `text` negli appunti. Ritorna true se riuscita. Non lancia. */
 export async function writeClipboard(text: string): Promise<boolean> {
   try {
     await pluginWriteText(text);
+    log("clipboard", "write ok (plugin)", { len: text.length });
     return true;
-  } catch {
+  } catch (e) {
     try {
       await navigator.clipboard.writeText(text);
+      log("clipboard", "write ok (navigator fallback)", { len: text.length, pluginErr: String(e) }, "warn");
       return true;
-    } catch {
+    } catch (e2) {
+      logError("clipboard", "write FAILED", { len: text.length, err: String(e2) });
       return false;
     }
   }
@@ -33,11 +37,16 @@ export async function writeClipboard(text: string): Promise<boolean> {
  *  invece di incollare nulla in silenzio. Non lancia. */
 export async function readClipboard(): Promise<string | null> {
   try {
-    return await pluginReadText();
-  } catch {
+    const t = await pluginReadText();
+    log("clipboard", "read ok (plugin)", { len: t?.length ?? 0 });
+    return t;
+  } catch (e) {
     try {
-      return await navigator.clipboard.readText();
-    } catch {
+      const t = await navigator.clipboard.readText();
+      log("clipboard", "read ok (navigator fallback)", { len: t?.length ?? 0, pluginErr: String(e) }, "warn");
+      return t;
+    } catch (e2) {
+      logError("clipboard", "read FAILED", { err: String(e2) });
       return null;
     }
   }

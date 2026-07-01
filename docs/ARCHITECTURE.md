@@ -76,6 +76,7 @@ Three kinds of frontend module, kept separate:
 | `layout` | panel sizes/visibility + focused panel |
 | `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; `switchFolder` swaps the active folder cleanly (keeps the window's repo list) |
 | `toast` | transient notifications, plus a **sticky, clickable `attention`** variant (`notifyAttention`/`dismissByKey`, coalesced by `key`) used by the Claude‑waiting notification |
+| `logs` | **diagnostic logs** (`log`/`logWarn`/`logError`): in‑memory ring buffer + batched on‑disk persistence (Rust `append_log`) + global error capture, all gated by `settings.logging` (default on); `LogViewer` overlay + export (copy / reveal file). Instruments clipboard/paste/terminal to diagnose issues (e.g. the double‑paste) |
 
 State is plain **Svelte 5 runes**: `export const x = $state({...})`; components reading those
 fields re‑render automatically. Cross‑module reactive reads (e.g. `git.tick`) drive effects.
@@ -289,6 +290,8 @@ frontend calls them with `invoke("name", {args})`. Areas:
   records its folder + geometry in the per‑window registry) and `winsession::close_all_windows`.
 - **Misc** (`lib.rs`): `reveal_path` (show a path in the OS file manager). (`claude_sessions` /
   `session_preview` remain but are now **unused** — superseded by the Activity view.)
+- **Diagnostics** (`lib.rs`): `app_version`; `append_log(text)` (appends to `app_config_dir/logs/orbit-<pid>.log`,
+  one file per process, rotated over ~2 MB); `log_file_path` — back the log system (`lib/state/logs.svelte.ts`).
 - **Activity** (`activity.rs`): `scan_activity(limit)` — scans ALL `~/.claude/projects/*/*.jsonl` and
   returns `WorkUnit[]` (prompt‑first segmentation; camelCase incl. files `{op,path,add,del,userModified}`,
   cmds, prompts, commit, kind, start/end, live); `watch_activity` — `notify` watcher on `~/.claude/projects`

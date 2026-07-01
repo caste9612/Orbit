@@ -119,6 +119,7 @@ export const settings = $state({
   bellNotify: true, // avvisa quando un terminale suona la bell (Claude ha finito / aspetta) e non lo guardi
   autosave: true, // salva i file modificati su perdita di focus e cambio tab (stile IntelliJ)
   mdMode: "readme" as MarkdownMode, // apertura .md: anteprima solo per i README (default)
+  logging: true, // raccolta log diagnostici (ring buffer + file) per indagare i problemi — disattivabile
 });
 
 export const MIN_FONT = 10;
@@ -187,6 +188,7 @@ export function loadSettings() {
       if (typeof s.bellNotify === "boolean") settings.bellNotify = s.bellNotify;
       if (typeof s.autosave === "boolean") settings.autosave = s.autosave;
       if (s.mdMode === "readme" || s.mdMode === "preview" || s.mdMode === "source") settings.mdMode = s.mdMode;
+      if (typeof s.logging === "boolean") settings.logging = s.logging;
     }
   } catch {
     /* localStorage non disponibile o JSON invalido */
@@ -213,6 +215,7 @@ export function startSettingsAutosave() {
         bellNotify: settings.bellNotify,
         autosave: settings.autosave,
         mdMode: settings.mdMode,
+        logging: settings.logging,
       });
       applySettings();
       try {

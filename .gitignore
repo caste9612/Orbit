@@ -17,6 +17,8 @@ node_modules
 # sistema
 .DS_Store
 Thumbs.db
+# crash dump di Git Bash/Cygwin (comparsi durante lo sviluppo, mai da committare)
+*.stackdump
 
 # env
 .env

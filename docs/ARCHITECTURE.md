@@ -236,12 +236,16 @@ first paint loads only the Explorer + the active editor.
   (`writeClipboard`/`readClipboard`): it prefers the **Tauri clipboard plugin** (Rust‑side, immune to
   WebView2 focus/permission quirks) when available and falls back to `navigator.clipboard`, **returning
   success/failure instead of swallowing it** — so a failed copy is surfaced (toast) and the editor's
-  **Cut copies *before* deleting** (no "cut into the void" on a clipboard error). `Terminal.svelte`
-  registers its `contextmenu`/`mouseup`/focus listeners under a single **`AbortController`** removed in
-  `onDestroy`, so they can't pile up across re‑mounts/HMR — that pile‑up was what made right‑click paste
-  fire several times (the real fix; no time‑based guard, which would drop legitimate fast pastes). Paste
-  also guards a disposed terminal + try/catch; auto copy‑on‑selection is silent on failure (explicit
-  copy/paste surface it). Consumers: terminal, editor, explorer (copy path/name), wrapper composer.
+  **Cut copies *before* deleting** (no "cut into the void" on a clipboard error). In the terminal,
+  **right‑click paste defers to a mouse‑capturing TUI**: when the app has mouse tracking on (e.g. Claude
+  Code, `term.modes.mouseTrackingMode !== 'none'`) the right‑click is left to the TUI so it pastes once
+  with its native handling — this fixed the terminal **double‑paste** (previously both Orbit *and* the TUI
+  pasted); **Shift+right‑click** / **Ctrl/Cmd+Shift+V** force Orbit's own paste, and a plain shell always
+  pastes via Orbit. Orbit also honors **OSC 52** (`registerOscHandler(52)` → write clipboard) so a TUI's
+  own copy (Claude's "copied to clipboard") actually reaches the system clipboard (fixes the stale‑paste
+  after selecting). Terminal listeners live under one **`AbortController`** removed in `onDestroy`
+  (hygiene); paste guards a disposed terminal + try/catch; auto copy‑on‑selection is silent on failure
+  (explicit copy/paste surface it). Consumers: terminal, editor, explorer (copy path/name), wrapper composer.
 - **Terminal & floating windows** — PTYs live in the Rust backend keyed by `id`, so any webview just
   attaches via `pty-data-<id>` events + `pty_write` / `pty_resize`. "Pop out" opens a
   `term-float-<id>` webview (unique label per terminal → **several can float at once**; permitted by

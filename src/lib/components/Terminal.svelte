@@ -238,17 +238,44 @@
     // la bell (BEL) segnala "ho finito / aspetto input" — Claude la suona a fine turno: avvisa il parent
     term.onBell(() => onBell?.());
 
+    // OSC 52: una TUI (es. Claude) copia negli appunti via escape sequence. xterm di default la IGNORA
+    // → in Claude vedi "copied to clipboard" ma la clipboard di sistema non si aggiornava (incollavi il
+    // testo VECCHIO). La gestiamo noi: decodifica base64 → scrittura in clipboard (via il plugin Tauri).
+    term.parser.registerOscHandler(52, (data) => {
+      const semi = data.indexOf(";"); // formato "<sel>;<base64>" (sel=c/p/…; "?" = query → ignora)
+      const payload = semi >= 0 ? data.slice(semi + 1) : "";
+      if (payload && payload !== "?") {
+        try {
+          const text = new TextDecoder().decode(b64ToBytes(payload));
+          log("clipboard", "OSC52 copy from terminal", { id, len: text.length });
+          void writeClipboard(text);
+        } catch {
+          /* base64 malformato: ignora */
+        }
+      }
+      return true; // gestito (non propagare al default, che la ignorerebbe)
+    });
+
     // Tutti i listener su `host` condividono questo signal → onDestroy li rimuove in un colpo.
     listenerAbort = new AbortController();
     const { signal } = listenerAbort;
 
-    // Click destro = INCOLLA (sempre). In cattura (capture) così funziona anche quando un TUI come
-    // Claude attiva il mouse-reporting (altrimenti il click destro verrebbe inviato al programma).
+    // Click destro. Se una TUI cattura il mouse (es. Claude col mouse-reporting) il click destro è SUO:
+    // lasciamo passare gli eventi mouse così incolla LEI col suo meccanismo nativo → niente doppione
+    // (prima incollavamo sia noi sia Claude). Con una shell normale (niente mouse-tracking) incolliamo
+    // NOI. Tenendo SHIFT si forza sempre il nostro incolla (xterm non inoltra il mouse alla TUI quando
+    // Shift è premuto). preventDefault sopprime comunque il menu nativo di WebView2; Ctrl/Cmd+Shift+V
+    // resta il nostro incolla esplicito.
     host.addEventListener(
       "contextmenu",
       (e) => {
         e.preventDefault();
         e.stopPropagation();
+        const mode = term?.modes.mouseTrackingMode ?? "none";
+        if (mode !== "none" && !e.shiftKey) {
+          log("paste", "right-click deferred to TUI (mouse tracking)", { id, mode });
+          return; // la TUI riceve il mouse e incolla da sé
+        }
         void pasteFromClipboard("contextmenu");
       },
       { capture: true, signal },
@@ -326,7 +353,13 @@
     }
     lastCols = term.cols;
     lastRows = term.rows;
-    term.onData((d) => invoke("pty_write", { id, data: d }).catch(() => {}));
+    term.onData((d) => {
+      // DIAGNOSTICA: cosa esce dal terminale verso il PTY. len>2 = incolla o sequenza di escape (i
+      // singoli tasti sono len 1 → esclusi come rumore). Se UN incolla genera DUE onData con la stessa
+      // lunghezza → doppio input reale a monte del PTY. `bracketed` = modalità incolla delle shell.
+      if (d.length > 2) log("pty", "onData→pty_write", { id, len: d.length, bracketed: d.includes("\x1b[200~") });
+      invoke("pty_write", { id, data: d }).catch((e) => logError("pty", "pty_write failed", { id, err: String(e) }));
+    });
 
     ro = new ResizeObserver(() => scheduleFit(true));
     ro.observe(host);

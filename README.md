@@ -119,7 +119,10 @@ cross-platform desktop app that weighs almost nothing.
   auth link, even when it wraps across lines).
 - **Copy & paste**: select text to copy it automatically; **right‑click pastes** (the trailing newline is
   stripped, so it never runs by accident); `Ctrl/Cmd+Shift+C` / `+V` also work, while a plain `Ctrl+C` stays
-  an interrupt. Hold `Shift` to select even while a TUI (e.g. Claude) is capturing the mouse.
+  an interrupt. When a TUI (e.g. Claude) is capturing the mouse, a right‑click is left to it (so text
+  isn't pasted twice — the app pastes with its own handling); hold `Shift` to force Orbit's own paste, or
+  to select text. Orbit also honors the terminal's **OSC 52**, so a TUI's own "copied to clipboard" updates
+  the system clipboard.
 - **Pop out** terminals into **floating windows** that carry the live session (`claude` keeps
   running) — detach **several** at once — with the app's own chrome: a **pin** toggles *always‑on‑top*
   on/off, a badge shows the project **folder + branch**, and you can **dock** any back with one click.

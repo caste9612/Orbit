@@ -1809,6 +1809,37 @@ doppio-incolla resta APERTO** — questo rilascio aggiunge gli STRUMENTI per dia
 
 ---
 
+## Milestone 47 — fix doppio-incolla e copia nel terminale di Claude (v0.8.4)
+
+Chiusura dell'indagine iniziata con M46 (log diagnostici). I log hanno **scagionato il frontend** (ogni click
+destro = un solo `pasteFromClipboard`→`term.paste`, zero eventi `paste` DOM), e l'utente ha precisato: succede
+**nel terminale di Claude**, l'Invio esegue **due volte** (input reale doppio), e il "copied to clipboard" è di
+**Claude**. Radice: Claude è una **TUI** che attiva il **mouse-reporting** e ha copia/incolla propri.
+
+- **Doppio-incolla:** col mouse-reporting attivo il click destro arrivava **sia a noi** (→ `term.paste`) **sia a
+  Claude** (→ suo incolla) = due volte. **Fix (Approccio B, scelto dall'utente):** quando una TUI cattura il
+  mouse (`term.modes.mouseTrackingMode !== "none"`) ci **facciamo da parte** — il click destro va alla TUI, che
+  incolla col suo meccanismo nativo (una volta). Con una shell normale incolliamo NOI come prima. **Shift+click
+  destro** e **Ctrl/Cmd+Shift+V** forzano sempre il nostro incolla. (Scartato l'Approccio A — sopprimere il
+  tasto destro verso la TUI e incollare noi — perché B usa l'incolla nativo di Claude ed è il comportamento
+  standard dei terminali.)
+- **Copia "vecchia":** selezionando in Claude, lui copia via **OSC 52**, che xterm di Orbit **ignorava** → la
+  clipboard di sistema non si aggiornava (incollavi il testo precedente). **Fix:** `registerOscHandler(52)`
+  decodifica il base64 e scrive in clipboard (via il plugin). Ora "copied to clipboard" di Claude aggiorna
+  davvero la clipboard di sistema.
+
+Aggiunta anche strumentazione log (`onData→pty_write` con lunghezza/bracketed, `OSC52 copy`, mount/unmount) —
+utile per la diagnosi e per il futuro. Verifica: `svelte-check` 253/0/0, `cargo test` 31/31, `vitest` 9/9, build
+OK (orbit.exe 5,76 / MSI 4,12 / NSIS 2,87 MB). **Rilasciato in v0.8.4** su richiesta dell'utente. **NB:** B si
+appoggia al fatto che Claude incolli sul click destro (il doppio osservato lo indica); se non fosse così, in
+Claude resterebbero Ctrl+Shift+V / Shift+click destro → in tal caso si torna all'Approccio A.
+
+**LEZIONE:** la strumentazione (M46) ha evitato altri fix a vuoto — i log hanno PROVATO che il frontend inviava
+UNA sola volta, spostando l'indagine sull'interazione con la TUI (mouse-reporting + OSC 52), la causa vera. (Ero
+partito col sospetto sbagliato — accumulo listener in HMR — corretto solo grazie ai dati.)
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

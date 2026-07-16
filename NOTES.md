@@ -1840,6 +1840,48 @@ partito col sospetto sbagliato — accumulo listener in HMR — corretto solo gr
 
 ---
 
+## Milestone 48 — indicatore "Usage": token/costo + stima limiti 5h/settimana (v0.8.5)
+
+Ispirato a **Tokens 4 Breakfast**. Un indicatore in **status bar** (icona `gauge`, consumo di oggi) apre un
+**popover**: card oggi/7g/30g, sparkline 14g, ripartizione per **modello** e **progetto**, efficienza cache,
+"**valore piano**" (API-equivalent vs costo abbonamento) e sezione **Limits** (finestre mobili 5h/7g). Backend
+`usage.rs` (`scan_usage`, `scan_usage_windows`), stato `usage.svelte.ts`, componente `UsageIndicator.svelte`.
+**Zero dipendenze nuove** (solo `std` + `serde_json`); date senza `chrono` (algoritmo di Howard Hinnant
+`civil_from_days`/`days_from_civil`). Riusa lo stesso reader dei transcript di [Attività](#milestone-43).
+
+### Dati e prezzi
+Ogni riga `assistant` ha `message.model` + `message.usage` (input/output/cache write/read). Il **costo NON è nei
+transcript** → tabella prezzi per modello ($/Mtok), **verificata al centesimo** contro il `pricing.json` del
+binario di T4B: Opus 5/25, Fable 10/50, Sonnet 3/15 (2/10 intro), Haiku 1/5; cache-write 1.25× input (5-min; NON
+il 2× a 1h, conservativo), cache-read 0.10×. Il $ è **"equivalente API"** (non quanto si paga con l'abbonamento).
+
+### Decisione: dedup per `message.id` (over-counting)
+Al **resume/compattazione** Claude Code **ricopia** la storia in nuovi `.jsonl`, quindi lo stesso `message.id`
+(usage identico) compare più volte → sommandolo i token erano gonfiati **~2.7×** (5.74B invece dei 2.15B reali,
+su dati di test). `scan_usage`/`scan_usage_windows` deduplicano **globalmente per `message.id`**. Bug trovato
+confrontando un calcolatore **Node indipendente** con l'output Rust (stessi interi ⇒ logica giusta; non si vedeva
+perché entrambi contavano i doppioni). È lo stesso accorgimento di T4B ("duplicate log lines counted more than once").
+
+### Decisione: limiti reali 5h/settimana → solo vie ToS-safe
+La via "header API" (token OAuth di `.credentials.json` → header `anthropic-ratelimit-unified-*`) è **scartata**:
+da ~gen 2026 quel token fuori da Claude Code riceve **HTTP 400** ("credential only authorized for use with Claude
+Code") ed è **contro i ToS**, con **ban documentato** proprio per app di usage-tracking (issue #12021, docs legali
+code.claude.com, dichiarazione ingegnere Anthropic). Analisi del binario di T4B: usa `api.anthropic.com/api/oauth/usage`
+(token Claude Code) e/o il cookie `sk-ant-sid02` di claude.ai — **entrambe riusano credenziali d'abbonamento** =
+stesso rischio. Scelta dell'utente: **niente credenziali**. Al loro posto:
+- **stima** dai transcript: uso mobile ultime **5h** / **7g** + **budget** opzionale (barra gialla ≥75%, rossa ≥100%);
+- **ancora manuale ToS-safe:** un link apre `claude.ai/settings/usage`; l'utente incolla il % reale, e da quel %
+  + i token correnti deriviamo la capacità e mostriamo un % **reale estrapolato** live col consumo, con "synced
+  Xm ago" e **forecast** ("~Xh al 100% a questo ritmo"). Deriva fra un sync e l'altro (finestra mobile ≠ sessione
+  esatta di Anthropic): è il massimo pratico senza violare nulla.
+
+### Verifica
+`cargo test` (modulo usage) **9/9**, `svelte-check` **0/0** (255 file), **cross-check Node↔Rust esatto** su dati
+reali (grand totale, finestre 5h/7g, per modello). Build release OK (orbit.exe **5,84 MB**, MSI **3,58 MB**, NSIS
+**2,89 MB**). **Rilasciato in v0.8.5.**
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

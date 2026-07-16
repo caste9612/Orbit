@@ -5,7 +5,7 @@
 // activity.rs: le righe non riconosciute/non parsabili vengono ignorate. Nessuna dipendenza nuova.
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 #[derive(Serialize, Clone, Default)]
@@ -49,6 +49,10 @@ pub fn scan_usage(days: Option<u32>) -> Result<Vec<UsageRow>, String> {
     let dir = Path::new(&home).join(".claude").join("projects");
 
     let mut agg: HashMap<Key, Agg> = HashMap::new();
+    // dedup globale per message.id: al resume/compattazione Claude Code ricopia la storia in nuovi
+    // .jsonl, quindi lo stesso message.id ricompare (identico). Va contato UNA sola volta, altrimenti
+    // i token risultano gonfiati (~2-3×). Le occorrenze duplicate hanno usage identico → tenerne una.
+    let mut seen: HashSet<String> = HashSet::new();
 
     let projects = match std::fs::read_dir(&dir) {
         Ok(r) => r,
@@ -90,6 +94,11 @@ pub fn scan_usage(days: Option<u32>) -> Result<Vec<UsageRow>, String> {
                 let usage = &v["message"]["usage"];
                 if usage.is_null() {
                     continue;
+                }
+                if let Some(id) = v["message"]["id"].as_str() {
+                    if !seen.insert(id.to_string()) {
+                        continue; // doppione (già contato altrove): salta
+                    }
                 }
                 let date = utc_date(v["timestamp"].as_str().unwrap_or(""));
                 if date.is_empty() {
@@ -211,6 +220,7 @@ pub fn scan_usage_windows() -> Result<UsageWindows, String> {
 
     let mut m5: HashMap<String, WindowModel> = HashMap::new();
     let mut m7: HashMap<String, WindowModel> = HashMap::new();
+    let mut seen: HashSet<String> = HashSet::new(); // dedup per message.id (vedi scan_usage)
 
     if let Ok(projects) = std::fs::read_dir(&dir) {
         for proj in projects.flatten() {
@@ -243,7 +253,7 @@ pub fn scan_usage_windows() -> Result<UsageWindows, String> {
                     Err(_) => continue,
                 };
                 let lines: Vec<Value> = content.lines().filter_map(|l| serde_json::from_str(l).ok()).collect();
-                accumulate_windows(&lines, now, &mut m5, &mut m7);
+                accumulate_windows(&lines, now, &mut seen, &mut m5, &mut m7);
             }
         }
     }
@@ -258,6 +268,7 @@ pub fn scan_usage_windows() -> Result<UsageWindows, String> {
 fn accumulate_windows(
     lines: &[Value],
     now: i64,
+    seen: &mut HashSet<String>,
     m5: &mut HashMap<String, WindowModel>,
     m7: &mut HashMap<String, WindowModel>,
 ) {
@@ -270,6 +281,11 @@ fn accumulate_windows(
         let usage = &v["message"]["usage"];
         if usage.is_null() {
             continue;
+        }
+        if let Some(id) = v["message"]["id"].as_str() {
+            if !seen.insert(id.to_string()) {
+                continue; // doppione (già contato): salta
+            }
         }
         let ep = match parse_epoch(v["timestamp"].as_str().unwrap_or("")) {
             Some(e) => e,
@@ -346,6 +362,7 @@ mod tests {
     // così i test non toccano il filesystem.
     fn agg_lines(lines: &[Value]) -> HashMap<Key, Agg> {
         let mut agg: HashMap<Key, Agg> = HashMap::new();
+        let mut seen: HashSet<String> = HashSet::new();
         let mut repo = String::new();
         for v in lines {
             if let Some(c) = v["cwd"].as_str().filter(|s| !s.is_empty()) {
@@ -357,6 +374,11 @@ mod tests {
             let usage = &v["message"]["usage"];
             if usage.is_null() {
                 continue;
+            }
+            if let Some(id) = v["message"]["id"].as_str() {
+                if !seen.insert(id.to_string()) {
+                    continue;
+                }
             }
             let date = utc_date(v["timestamp"].as_str().unwrap_or(""));
             if date.is_empty() {
@@ -493,12 +515,39 @@ mod tests {
             asst_ts(&iso_at(now - 2 * 86400), "claude-opus-4-8", 100, 50), // 2g fa → solo 7g
             asst_ts(&iso_at(now - 10 * 86400), "claude-opus-4-8", 999, 999), // 10g fa → fuori tutto
         ];
+        let mut seen = HashSet::new();
         let mut m5 = HashMap::new();
         let mut m7 = HashMap::new();
-        accumulate_windows(&lines, now, &mut m5, &mut m7);
+        accumulate_windows(&lines, now, &mut seen, &mut m5, &mut m7);
         let sum5: u64 = m5.values().map(|w| w.input_tokens).sum();
         let sum7: u64 = m7.values().map(|w| w.input_tokens).sum();
         assert_eq!(sum5, 10, "solo l'evento di 1h fa è nelle 5h");
         assert_eq!(sum7, 110, "eventi di 1h e 2g fa nei 7g; escluso quello di 10g");
+    }
+
+    #[test]
+    fn scan_usage_dedups_message_id() {
+        let mut a = asst("2026-07-16T10:00:00Z", "claude-opus-4-8", 100, 20, 5, 3);
+        a["message"]["id"] = json!("msg_1");
+        let dup = a.clone(); // stesso message.id (resume/compattazione) → doppione identico
+        let agg = agg_lines(&[a, dup]);
+        assert_eq!(agg.len(), 1);
+        let w = agg.values().next().unwrap();
+        assert_eq!(w.messages, 1, "message.id contato una sola volta");
+        assert_eq!(w.input, 100, "token non raddoppiati dal doppione");
+    }
+
+    #[test]
+    fn windows_dedup_message_id() {
+        let now = 1_700_000_000i64;
+        let mut a = asst_ts(&iso_at(now - 3600), "claude-opus-4-8", 10, 5);
+        a["message"]["id"] = json!("m1");
+        let dup = a.clone();
+        let mut seen = HashSet::new();
+        let mut m5 = HashMap::new();
+        let mut m7 = HashMap::new();
+        accumulate_windows(&[a, dup], now, &mut seen, &mut m5, &mut m7);
+        let s5: u64 = m5.values().map(|w| w.input_tokens).sum();
+        assert_eq!(s5, 10, "doppione contato una sola volta nella finestra 5h");
     }
 }

@@ -2,6 +2,7 @@
   import { fade } from "svelte/transition";
   import Icon from "./Icon.svelte";
   import Backdrop from "./Backdrop.svelte";
+  import UsageIndicator from "./UsageIndicator.svelte";
   import { workspace, editorStatus, activeFile } from "../state/workspace.svelte";
   import { git, checkout, loadBranches, createBranch } from "../state/git.svelte";
   import { langLabel } from "../util";
@@ -101,6 +102,7 @@
     </div>
   </div>
   <div class="right">
+    <UsageIndicator />
     {#if workspace.rootPath}
       <button
         class="seg idx"

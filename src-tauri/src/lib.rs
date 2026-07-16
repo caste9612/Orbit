@@ -3,6 +3,7 @@ mod activity;
 mod git;
 mod pty;
 mod symbols;
+mod usage;
 mod watcher;
 mod winsession;
 
@@ -623,7 +624,9 @@ pub fn run() {
             watcher::watch_start,
             symbols::scan_symbols,
             activity::scan_activity,
-            activity::watch_activity
+            activity::watch_activity,
+            usage::scan_usage,
+            usage::scan_usage_windows
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

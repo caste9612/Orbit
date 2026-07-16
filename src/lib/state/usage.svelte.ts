@@ -32,6 +32,19 @@ export interface UsageWindows {
   window7d: WindowModel[];
 }
 
+// Ancora "limiti reali": il % 5h/settimana che l'utente legge su claude.ai (ToS-safe, manuale). Da lì
+// deriviamo la capacità effettiva (token per 100%) e poi estrapoliamo il % live col consumo dai transcript.
+export interface Anchor {
+  syncedAt: number; // epoch ms del sync
+  h5: { pct: number; cap: number }; // % al sync + capacità derivata (token totali per 100%)
+  d7: { pct: number; cap: number };
+}
+export interface LiveLimit {
+  pct: number; // % estrapolato "adesso"
+  syncedAt: number;
+  hoursToFull: number | null; // ore al 100% al ritmo medio della finestra (null se non stimabile)
+}
+
 // Budget opzionali (STIMA "quanto sono vicino al limite"): per unità attiva (costo/token) e finestra.
 export type BudgetUnit = "cost" | "tokens";
 export type BudgetWindow = "h5" | "d7";
@@ -44,6 +57,7 @@ export const usage = $state({
   showCost: true, // toggle: mostra $ stimato (true) oppure token grezzi (false)
   budgets: { cost: { h5: 0, d7: 0 }, tokens: { h5: 0, d7: 0 } },
   planCost: 0, // costo mensile del piano ($) impostato dall'utente → confronto "conviene?"
+  anchor: null as Anchor | null, // ancora dei limiti reali (sync manuale da claude.ai)
 });
 
 // Persistenza del solo toggle $/token (preferenza leggera, come activityPrefs).
@@ -110,6 +124,64 @@ export function planValue(): { plan: number; apiEq: number; ratio: number } | nu
   if (usage.planCost <= 0) return null;
   const apiEq = windowTotals(30).cost;
   return { plan: usage.planCost, apiEq, ratio: apiEq / usage.planCost };
+}
+
+// ---- ancora limiti reali (sync manuale ToS-safe) ---------------------------
+const ANCHOR_KEY = "orbit.usage.anchor";
+try {
+  const raw = localStorage.getItem(ANCHOR_KEY);
+  if (raw) {
+    const a = JSON.parse(raw);
+    if (a && typeof a.syncedAt === "number" && a.h5 && a.d7) usage.anchor = a as Anchor;
+  }
+} catch {
+  /* no-op */
+}
+function persistAnchor(): void {
+  try {
+    if (usage.anchor) localStorage.setItem(ANCHOR_KEY, JSON.stringify(usage.anchor));
+    else localStorage.removeItem(ANCHOR_KEY);
+  } catch {
+    /* no-op */
+  }
+}
+const clampPct = (x: number): number => Math.max(0, Math.min(100, Number.isFinite(x) ? x : 0));
+
+/** Registra un sync dei limiti reali: dai % correnti (letti dall'utente su claude.ai) deriva la
+ *  capacità effettiva (token per 100%) usando i token attuali della finestra. */
+export function setAnchor(pct5h: number, pct7d: number): void {
+  const w = usage.windows;
+  if (!w) return;
+  const tok5 = windowTotal(w.window5h).tokens;
+  const tok7 = windowTotal(w.window7d).tokens;
+  const p5 = clampPct(pct5h);
+  const p7 = clampPct(pct7d);
+  usage.anchor = {
+    syncedAt: Date.now(),
+    h5: { pct: p5, cap: p5 > 0 ? tok5 / (p5 / 100) : 0 },
+    d7: { pct: p7, cap: p7 > 0 ? tok7 / (p7 / 100) : 0 },
+  };
+  persistAnchor();
+}
+export function clearAnchor(): void {
+  usage.anchor = null;
+  persistAnchor();
+}
+
+/** % live estrapolato per una finestra: token correnti / capacità derivata al sync. null se non ancorata. */
+export function liveLimit(win: BudgetWindow): LiveLimit | null {
+  const a = usage.anchor;
+  const w = usage.windows;
+  if (!a || !w) return null;
+  const anc = win === "h5" ? a.h5 : a.d7;
+  if (anc.cap <= 0) return null;
+  const tok = windowTotal(win === "h5" ? w.window5h : w.window7d).tokens;
+  const pct = (tok / anc.cap) * 100;
+  const winHours = win === "h5" ? 5 : 24 * 7;
+  let hoursToFull: number | null = null;
+  if (pct >= 100) hoursToFull = 0;
+  else if (pct > 0) hoursToFull = winHours * (100 / pct - 1); // ritmo medio della finestra
+  return { pct, syncedAt: a.syncedAt, hoursToFull };
 }
 
 let lastDays: number | undefined; // ricordato per i reload live

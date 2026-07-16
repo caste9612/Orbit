@@ -14,6 +14,9 @@
     setBudget,
     setPlanCost,
     planValue,
+    setAnchor,
+    clearAnchor,
+    liveLimit,
     windowTotals,
     windowTotal,
     rowsSince,
@@ -74,6 +77,34 @@
   // Limiti REALI, ToS-safe: apre la pagina uso di claude.ai nel browser (nessuna automazione).
   function openRealUsage(): void {
     void invoke("open_url", { url: "https://claude.ai/settings/usage" }).catch(() => {});
+  }
+
+  // Sync manuale dei limiti reali (ancora): l'utente incolla il % letto su claude.ai; noi estrapoliamo.
+  let syncing = $state(false);
+  let in5 = $state<number | null>(null);
+  let in7 = $state<number | null>(null);
+  function openSync(): void {
+    if (!syncing) {
+      in5 = usage.anchor?.h5.pct ?? null;
+      in7 = usage.anchor?.d7.pct ?? null;
+    }
+    syncing = !syncing;
+  }
+  function saveSync(): void {
+    setAnchor(in5 ?? 0, in7 ?? 0);
+    syncing = false;
+  }
+  function agoLabel(ts: number): string {
+    const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
+    if (m < 1) return "just now";
+    if (m < 60) return `${m}m ago`;
+    const h = Math.round(m / 60);
+    return h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
+  }
+  function fmtDur(hours: number): string {
+    if (hours < 1) return `${Math.max(1, Math.round(hours * 60))}m`;
+    if (hours < 24) return `${hours.toFixed(1)}h`;
+    return `${(hours / 24).toFixed(1)}d`;
   }
 
   function iso30(): string {
@@ -182,33 +213,67 @@
 
       {#if usage.windows}
         <div class="sec limits">
-          <div class="shead">Limits · estimate</div>
-          {#each winRows as w (w.k)}
-            {@const used = usedOf(w.t)}
-            {@const bud = budOf(w.k)}
-            {@const pct = bud > 0 ? used / bud : 0}
-            <div class="lim">
-              <span class="lname">{w.l}</span>
-              <span class="ltrack">
-                {#if bud > 0}
-                  <span class="lfill" class:warn={pct >= 0.75} class:hot={pct >= 1} style="width:{Math.min(100, pct * 100)}%"></span>
-                {/if}
-              </span>
-              <span class="lused">{fmtVal(used)}{#if bud > 0}<span class="lpct">{Math.round(pct * 100)}%</span>{/if}</span>
-              <input
-                class="binput"
-                type="number"
-                min="0"
-                step="any"
-                placeholder={usage.showCost ? "budget $" : "budget tok"}
-                value={bud || ""}
-                oninput={(e) => onBudget(w.k, e)}
-              />
+          <div class="limhead">
+            <span class="shead">Limits{usage.anchor ? " · live (synced)" : " · estimate"}</span>
+            <button class="ulink" onclick={openSync}>{usage.anchor ? "Re-sync" : "Sync real %"}</button>
+          </div>
+
+          {#if syncing}
+            <div class="syncform">
+              <div class="synchint">Read your real % on claude.ai, then enter it:</div>
+              <div class="syncrow">
+                <label>5h % <input type="number" min="0" max="100" bind:value={in5} /></label>
+                <label>weekly % <input type="number" min="0" max="100" bind:value={in7} /></label>
+                <button class="savebtn" onclick={saveSync}>Save</button>
+              </div>
+              <button class="ulink" onclick={openRealUsage} title="Open your real usage on claude.ai">Open real usage ↗</button>
             </div>
+          {/if}
+
+          {#each winRows as w (w.k)}
+            {@const ll = liveLimit(w.k)}
+            {#if ll}
+              <div class="lim">
+                <span class="lname">{w.l}</span>
+                <span class="ltrack"><span class="lfill" class:warn={ll.pct >= 75} class:hot={ll.pct >= 90} style="width:{Math.min(100, ll.pct)}%"></span></span>
+                <span class="lused">{Math.round(ll.pct)}%<span class="lpct">real</span></span>
+              </div>
+              {#if ll.hoursToFull !== null}
+                <div class="forecast">{ll.pct >= 100 ? "at / over limit" : `~${fmtDur(ll.hoursToFull)} to 100% at this pace`}</div>
+              {/if}
+            {:else}
+              {@const used = usedOf(w.t)}
+              {@const bud = budOf(w.k)}
+              {@const pct = bud > 0 ? used / bud : 0}
+              <div class="lim est">
+                <span class="lname">{w.l}</span>
+                <span class="ltrack">
+                  {#if bud > 0}
+                    <span class="lfill" class:warn={pct >= 0.75} class:hot={pct >= 1} style="width:{Math.min(100, pct * 100)}%"></span>
+                  {/if}
+                </span>
+                <span class="lused">{fmtVal(used)}{#if bud > 0}<span class="lpct">{Math.round(pct * 100)}%</span>{/if}</span>
+                <input
+                  class="binput"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder={usage.showCost ? "budget $" : "budget tok"}
+                  value={bud || ""}
+                  oninput={(e) => onBudget(w.k, e)}
+                />
+              </div>
+            {/if}
           {/each}
+
           <div class="note limnote">
-            Estimate — not official.
-            <button class="ulink" onclick={openRealUsage} title="Open your real usage on claude.ai">Open real usage ↗</button>
+            {#if usage.anchor}
+              synced {agoLabel(usage.anchor.syncedAt)} · extrapolated
+              <button class="ulink" onclick={clearAnchor}>clear</button>
+            {:else}
+              Estimate — not official.
+              <button class="ulink" onclick={openRealUsage} title="Open your real usage on claude.ai">Open real usage ↗</button>
+            {/if}
           </div>
         </div>
       {/if}
@@ -468,10 +533,13 @@
 
   .limits .lim {
     display: grid;
-    grid-template-columns: 56px 1fr auto 82px;
+    grid-template-columns: 60px 1fr auto;
     align-items: center;
     gap: 7px;
     margin-bottom: 5px;
+  }
+  .limits .lim.est {
+    grid-template-columns: 56px 1fr auto 82px;
   }
   .ltrack {
     height: 6px;
@@ -530,6 +598,69 @@
     font-size: 10px;
     cursor: pointer;
     text-decoration: underline;
+  }
+  .limhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+  .limhead .shead {
+    margin-bottom: 0;
+  }
+  .syncform {
+    background: var(--color-surface-1);
+    border: 1px solid var(--color-line);
+    border-radius: 7px;
+    padding: 7px 8px;
+    margin-bottom: 7px;
+  }
+  .synchint {
+    font-size: 10.5px;
+    color: var(--color-ink-subtle);
+    margin-bottom: 5px;
+  }
+  .syncrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .syncrow label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    color: var(--color-ink-muted);
+  }
+  .syncrow input {
+    width: 52px;
+    box-sizing: border-box;
+    padding: 2px 5px;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-line-strong);
+    border-radius: 5px;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 11px;
+  }
+  .syncrow input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+  .savebtn {
+    margin-left: auto;
+    padding: 3px 10px;
+    background: var(--color-accent);
+    border: 0;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .forecast {
+    font-size: 10.5px;
+    color: var(--color-ink-subtle);
+    margin: -2px 0 6px 67px;
   }
 
   .planhead {

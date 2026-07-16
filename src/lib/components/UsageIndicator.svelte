@@ -11,6 +11,8 @@
     startUsageLive,
     setShowCost,
     setBudget,
+    setPlanCost,
+    planValue,
     windowTotals,
     windowTotal,
     rowsSince,
@@ -61,6 +63,11 @@
   }
   function onBudget(win: BudgetWindow, e: Event): void {
     setBudget(usage.showCost ? "cost" : "tokens", win, Number((e.target as HTMLInputElement).value));
+  }
+
+  const pv = $derived(planValue());
+  function onPlan(e: Event): void {
+    setPlanCost(Number((e.target as HTMLInputElement).value));
   }
 
   function iso30(): string {
@@ -142,6 +149,29 @@
             <div class="csub">{secondary(c.t)}</div>
           </div>
         {/each}
+      </div>
+
+      <div class="sec plan">
+        <div class="planhead">
+          <span class="shead">Plan value · 30d</span>
+          <input
+            class="binput"
+            type="number"
+            min="0"
+            step="any"
+            placeholder="$/mo"
+            value={usage.planCost || ""}
+            oninput={onPlan}
+          />
+        </div>
+        {#if pv}
+          <div class="pverdict" class:good={pv.ratio >= 1}>
+            {fmtCost(pv.apiEq)} used vs {fmtCost(pv.plan)} plan —
+            {#if pv.ratio >= 1}<b>{pv.ratio.toFixed(1)}× value</b>{:else}<b>{Math.round(pv.ratio * 100)}%</b> used{/if}
+          </div>
+        {:else}
+          <div class="phint">Set your plan price to see if it pays off.</div>
+        {/if}
       </div>
 
       {#if usage.windows}
@@ -481,6 +511,37 @@
   }
   .limnote {
     margin-top: 4px;
+  }
+
+  .planhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+  .planhead .shead {
+    margin-bottom: 0;
+  }
+  .planhead .binput {
+    width: 88px;
+  }
+  .pverdict {
+    font-size: 11.5px;
+    color: var(--color-ink-muted);
+  }
+  .pverdict.good {
+    color: var(--color-ink);
+  }
+  .pverdict b {
+    color: var(--color-accent);
+  }
+  .pverdict.good b {
+    color: #3fb950;
+  }
+  .phint {
+    font-size: 11px;
+    color: var(--color-ink-subtle);
   }
 
   .foot {

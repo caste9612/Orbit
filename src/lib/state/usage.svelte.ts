@@ -43,6 +43,7 @@ export const usage = $state({
   loaded: false,
   showCost: true, // toggle: mostra $ stimato (true) oppure token grezzi (false)
   budgets: { cost: { h5: 0, d7: 0 }, tokens: { h5: 0, d7: 0 } },
+  planCost: 0, // costo mensile del piano ($) impostato dall'utente → confronto "conviene?"
 });
 
 // Persistenza del solo toggle $/token (preferenza leggera, come activityPrefs).
@@ -82,6 +83,33 @@ export function setBudget(unit: BudgetUnit, win: BudgetWindow, v: number): void 
   } catch {
     /* no-op */
   }
+}
+
+// Costo mensile del piano ($) — per il confronto "conviene l'abbonamento?".
+const PLAN_KEY = "orbit.usage.planCost";
+try {
+  const v = localStorage.getItem(PLAN_KEY);
+  if (v !== null) {
+    const n = Number(v);
+    if (Number.isFinite(n) && n >= 0) usage.planCost = n;
+  }
+} catch {
+  /* no-op */
+}
+export function setPlanCost(v: number): void {
+  usage.planCost = Number.isFinite(v) && v > 0 ? v : 0;
+  try {
+    localStorage.setItem(PLAN_KEY, String(usage.planCost));
+  } catch {
+    /* no-op */
+  }
+}
+
+/** Confronto "conviene?": costo API-equivalent negli ultimi 30g vs prezzo del piano. null se non impostato. */
+export function planValue(): { plan: number; apiEq: number; ratio: number } | null {
+  if (usage.planCost <= 0) return null;
+  const apiEq = windowTotals(30).cost;
+  return { plan: usage.planCost, apiEq, ratio: apiEq / usage.planCost };
 }
 
 let lastDays: number | undefined; // ricordato per i reload live

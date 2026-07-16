@@ -3,6 +3,7 @@
   // un popover con oggi / 7g / 30g, ripartizione per modello e progetto, efficienza cache e sparkline.
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
+  import { invoke } from "@tauri-apps/api/core";
   import Icon from "./Icon.svelte";
   import Backdrop from "./Backdrop.svelte";
   import {
@@ -68,6 +69,11 @@
   const pv = $derived(planValue());
   function onPlan(e: Event): void {
     setPlanCost(Number((e.target as HTMLInputElement).value));
+  }
+
+  // Limiti REALI, ToS-safe: apre la pagina uso di claude.ai nel browser (nessuna automazione).
+  function openRealUsage(): void {
+    void invoke("open_url", { url: "https://claude.ai/settings/usage" }).catch(() => {});
   }
 
   function iso30(): string {
@@ -200,7 +206,10 @@
               />
             </div>
           {/each}
-          <div class="note limnote">Estimate from transcripts — not Anthropic's official limits.</div>
+          <div class="note limnote">
+            Estimate — not official.
+            <button class="ulink" onclick={openRealUsage} title="Open your real usage on claude.ai">Open real usage ↗</button>
+          </div>
         </div>
       {/if}
 
@@ -511,6 +520,16 @@
   }
   .limnote {
     margin-top: 4px;
+  }
+  .ulink {
+    margin-left: 4px;
+    padding: 0;
+    background: none;
+    border: 0;
+    color: var(--color-accent);
+    font-size: 10px;
+    cursor: pointer;
+    text-decoration: underline;
   }
 
   .planhead {

@@ -1882,6 +1882,34 @@ reali (grand totale, finestre 5h/7g, per modello). Build release OK (orbit.exe *
 
 ---
 
+## Milestone 49 — Git Graph + switch repo a schede + contatore globale usage (v0.8.6)
+
+### Git Graph (nuova vista, stile IntelliJ/VS)
+Un "graph log" in un tab dell'area editor. Backend `git_graph` (git.rs): revwalk su TUTTI i branch
+(locali+remoti) + HEAD, ordine TOPOLOGICO+tempo, con **parent** e **ref** (branch/tag) per commit (via
+libgit2 — `references` + `peel_to_commit` + `parent_ids`; **nessuna dipendenza nuova**). Il layout a
+**corsie** vive nel frontend (`gitgraph.ts`, puro): assegna a ogni commit una lane dal DAG dei parent e
+produce i segmenti (metà-superiore/inferiore) da disegnare, con colori per corsia e gestione di
+biforcazioni/merge — verificato con un port dell'algoritmo su DAG reale (invarianti + rendering ASCII).
+Vista `GitGraph.svelte` (tab kind "gitgraph", come Attività): grafo SVG + badge ref (branch corrente
+evidenziato, tag, remoti) + messaggio/autore/data/hash; **click su un commit → diff** (`git_show`).
+Apertura dal pannello Git (pulsante "Graph"). Fino a 500 commit.
+
+### Switch repo "a schede"
+Cambiando repo la sidebar non forza più Explorer: **mantiene la vista corrente** e non collassa l'albero —
+le cartelle espanse sono memorizzate per repo (in RAM) e ripristinate al ritorno (`explorer.svelte.ts`
+snapshot/restore delle espansioni; `persist.svelte.ts` cattura la vista corrente al posto del vecchio
+"forza Explorer").
+
+### Contatore globale (usage)
+La ripartizione del popover Usage diventa "Breakdown" con switch **30d / All time** + riga **Total**: uso
+di sempre per progetto e per modello, più l'aggregato globale (token o $).
+
+Verifica: `svelte-check` 0/0 (257 file), `cargo check` OK, algoritmo del grafo verificato su dati reali.
+Build release OK (orbit.exe **5,85 MB**, MSI **3,59 MB**, NSIS **2,90 MB**). **Rilasciato in v0.8.6.**
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

@@ -5,7 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { workspace, fileByPath, restoreGroups, resetDocs, autosaveAll } from "./workspace.svelte";
 import { settings } from "./settings.svelte";
-import { openRoot } from "./explorer.svelte";
+import { openRoot, snapshotExpanded } from "./explorer.svelte";
 import { layout, type SidebarView } from "./layout.svelte";
 import { syncActiveTerminalToRoot } from "./terminals.svelte";
 import { folders, setFolders } from "./folders.svelte";
@@ -161,6 +161,9 @@ export type SwitchResult = "switched" | "cancelled" | "failed";
 export async function switchFolder(path: string): Promise<SwitchResult> {
   if (!path || path === workspace.rootPath) return "switched";
   const prev = workspace.rootPath; // per tornare indietro se la nuova non si apre
+  const keepView = layout.sidebarView; // "mantieni la vista corrente" allo switch (scelta utente)
+  const keepVisible = layout.sidebarVisible;
+  if (prev) snapshotExpanded(prev); // salva l'albero espanso del repo che stai lasciando
   // modifiche non salvate: con l'autosave ON le salviamo subito (come su blur/cambio-tab) invece di
   // chiedere conferma. Resta `dirty` solo ciò che l'autosave NON tocca — i file in conflitto (cambiati
   // anche su disco): per QUELLI si chiede comunque conferma prima di scartarli con resetDocs.
@@ -185,10 +188,11 @@ export async function switchFolder(path: string): Promise<SwitchResult> {
     notify(`Can't open "${basename(path)}" — the folder may have been moved or deleted.`, "error");
     return "failed";
   }
-  // 5. al CAMBIO repo mostra sempre l'Explorer: deterministico, niente Docs/Chat "a sorpresa"
-  //    ereditati dalla vista salvata di quel repo. (Lo startup invece rispetta la vista salvata.)
-  layout.sidebarView = "explorer";
-  layout.sidebarVisible = true; // e mostra la sidebar (se quel repo l'aveva nascosta)
+  // 5. "mantieni la vista corrente" (scelta utente): NON forziamo Explorer e NON lasciamo vincere la
+  //    vista salvata del repo di destinazione — resti sulla vista che stavi usando (comportamento a
+  //    schede). Lo startup invece rispetta la vista salvata (qui siamo solo nello switch).
+  layout.sidebarView = keepView;
+  layout.sidebarVisible = keepVisible;
   syncActiveTerminalToRoot(workspace.rootPath); // 6. mostra le schede terminale di QUESTA repo
   return "switched";
 }

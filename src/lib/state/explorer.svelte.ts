@@ -30,6 +30,18 @@ export interface TreeNode {
 
 export const tree = $state({ roots: [] as TreeNode[] });
 
+// Cache in-RAM (per finestra) delle cartelle espanse di ciascun repo: passando da un repo all'altro e
+// tornando indietro si ritrova l'albero espanso com'era, invece che collassato. Vedi snapshotExpanded/openRoot.
+const expandedCache = new Map<string, Set<string>>();
+
+/** Memorizza le cartelle espanse del repo `root` (da chiamare PRIMA di smontarlo, es. al cambio repo). */
+export function snapshotExpanded(root: string) {
+  if (!root) return;
+  const set = new Set<string>();
+  collectExpanded(tree.roots, set);
+  expandedCache.set(root, set);
+}
+
 function makeNode(entry: FsEntry, depth: number): TreeNode {
   return { entry, depth, expanded: false, loaded: false, children: [] };
 }
@@ -41,7 +53,9 @@ export async function openRoot(path: string) {
   const entries = await invoke<FsEntry[]>("read_dir", { path });
   workspace.rootPath = path;
   workspace.rootName = basename(path);
-  tree.roots = entries.map((e) => makeNode(e, 0));
+  // ripristina l'espansione salvata di questo repo (switch a schede); altrimenti radici collassate.
+  const saved = expandedCache.get(path);
+  tree.roots = saved && saved.size ? await buildLevel(path, 0, saved) : entries.map((e) => makeNode(e, 0));
   await invoke("watch_start", { root: path }).catch(() => {});
   void refreshStatus(); // popola le decorazioni git dell'albero senza aprire il pannello
   void loadRunConfig(); // popola il menu Esegui da .orbit/run.json

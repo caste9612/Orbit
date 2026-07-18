@@ -130,6 +130,10 @@ cross-platform desktop app that weighs almost nothing.
 **Git** (local, via libgit2)
 - Status, diff, stage/unstage, commit, branch switch/create (from the status bar too), discard
   changes, and commit history with per-commit diffs.
+- **Git Graph** — a branch/commit **graph log** (IntelliJ / VS‑style) in a dedicated editor tab:
+  colored lanes with branch/merge routing, ref badges (current branch, tags, remotes), plus
+  message · author · date · hash; **click a commit to open its diff**. Covers all branches
+  (local + remote) in topological order. Open it from the Git panel (**Graph**).
 - **Sync**: a local **ahead/behind** indicator (computed with libgit2, no network) plus one‑click
   **Fetch / Pull / Push / Merge** — these run the real `git` CLI in a terminal tab, so they reuse
   your existing git authentication and show real, supervised output.
@@ -162,6 +166,13 @@ cross-platform desktop app that weighs almost nothing.
   in a bottom panel; **▶ resume** that Claude session in one click. A small left panel lists your projects
   with **on/off toggles** (remembered) to hide noise, plus per‑project mini‑stats. (Supersedes the old
   Chats list — resuming recent sessions now lives here.)
+- A **Usage** indicator in the status bar tracks **tokens and estimated cost** of your Claude Code
+  usage, read locally from the transcripts: today / 7 days / 30 days, a 14‑day sparkline, breakdown
+  **by model and project** (30‑day or all‑time, with a **global total**), cache‑hit %, and a
+  **plan‑value** check (API‑equivalent cost vs your subscription price). A **Limits** section estimates
+  your 5‑hour and weekly windows; since Anthropic doesn't expose the real limits to third parties, you
+  can **anchor** them to the real % from claude.ai (ToS‑safe, no credential reuse) with a burn‑rate
+  forecast. Cost is a labeled estimate at public API rates — not what you pay on a subscription.
 - A **Scratchpad** (📝 in the top bar) opens a persistent notes/prompts file (`.orbit/scratch.md`)
   to jot prompts and reuse them.
 - **Attention when a terminal needs you** — when `claude` finishes a turn or waits for input (Orbit
@@ -176,9 +187,10 @@ cross-platform desktop app that weighs almost nothing.
 **Workspace**
 - Session persistence per folder (reopens last folder, tabs and panel layout).
 - **Several folders in one window**: a row of **repository tabs** in the top bar keeps your projects
-  one click apart. Switching the active repo swaps *everything* — tree, git, branch, search, Run/Claude
-  menus, and the **terminal tabs** (each repo keeps its own live PTYs). Each repo also restores its own
-  open editor tabs. Cycle with `Ctrl+Tab` / `Ctrl+Shift+Tab`, jump with `Ctrl+1…9`, and when the tabs
+  one click apart. Switching the active repo swaps its **content** — tree, git, branch, search,
+  Run/Claude menus, and the **terminal tabs** (each repo keeps its own live PTYs) — while **keeping your
+  current sidebar view** and restoring each repo's **expanded Explorer tree** and open editor tabs, so
+  switching feels like flipping between tabs. Cycle with `Ctrl+Tab` / `Ctrl+Shift+Tab`, jump with `Ctrl+1…9`, and when the tabs
   don't all fit a **`…`** menu lists them; the top bar stays usable down to its minimum width. The
   repository list **and sessions are per‑window**: open windows don't share or overwrite each other's
   repo tabs, and the same folder can be open in two windows without their tabs/layout clobbering.

@@ -30,7 +30,9 @@ src/
     clipboard.ts      # centralized copy/paste: Tauri clipboard plugin + navigator fallback, explicit success
 src-tauri/
   src/lib.rs          # Rust entry: fs/session/window commands + run() (registers all)
-  src/git.rs          # git commands (libgit2)
+  src/git.rs          # git commands (libgit2), incl. git_graph (branch/commit graph)
+  src/activity.rs     # Activity: work units from Claude transcripts (scan_activity, watch_activity)
+  src/usage.rs        # Usage: token/cost from transcripts (scan_usage, scan_usage_windows)
   src/pty.rs          # terminal/PTY commands
   src/watcher.rs      # file watcher (emits "fs-changed")
   src/symbols.rs      # heuristic project symbol scanner (scan_symbols) — no LSP, std only
@@ -300,8 +302,14 @@ frontend calls them with `invoke("name", {args})`. Areas:
   returns `WorkUnit[]` (prompt‑first segmentation; camelCase incl. files `{op,path,add,del,userModified}`,
   cmds, prompts, commit, kind, start/end, live); `watch_activity` — `notify` watcher on `~/.claude/projects`
   that emits a debounced **`activity-changed`** event for live refresh.
+- **Usage** (`usage.rs`): `scan_usage(days)` — token usage aggregated per {day, repo, model} from the
+  transcripts; `scan_usage_windows()` — rolling 5h/7d usage per model. Dedup by `message.id` (Claude Code
+  recopies history on resume, which would otherwise inflate counts). Cost is estimated in the frontend
+  from a per‑model price table.
 - **Git** (`git.rs`): `git_status`, `git_diff`, `git_stage`, `git_unstage`, `git_commit`,
-  `git_branches`, `git_checkout_branch`, `git_create_branch`, `git_discard`, `git_log`, `git_show`.
+  `git_branches`, `git_checkout_branch`, `git_create_branch`, `git_discard`, `git_log`, `git_show`,
+  `git_graph` (all branches, topological order, parents+refs — powers the Git Graph view; lane layout
+  is computed in the frontend, `lib/gitgraph.ts`).
 - **Terminal** (`pty.rs`): `pty_spawn`, `pty_write`, `pty_resize`, `pty_kill`, `pty_alive`, `list_shells`;
   streams output as `pty-data-<id>` events.
 - **Symbols** (`symbols.rs`): `scan_symbols(root)` — heuristic project‑wide symbol scan (C#/Java, C/C++,

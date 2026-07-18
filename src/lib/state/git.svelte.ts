@@ -6,6 +6,7 @@ import { notify } from "./toast.svelte";
 import { addTerminal } from "./terminals.svelte";
 import { layout, setFocusPanel } from "./layout.svelte";
 import { basename, normSlash } from "../util";
+import type { GraphCommit } from "../gitgraph";
 
 export interface StatusEntry {
   path: string;
@@ -32,6 +33,8 @@ export const git = $state({
   view: "changes" as "changes" | "history",
   log: [] as CommitInfo[],
   logLoading: false,
+  graph: [] as GraphCommit[], // commit di tutti i branch, con parent+ref (per il Git Graph)
+  graphLoading: false,
   tick: 0, // incrementa a ogni refresh: segnale per ricaricare i marcatori nel gutter
   // tracking vs remoto (calcolato in locale con libgit2, nessuna rete)
   ahead: 0,
@@ -236,6 +239,19 @@ export async function loadLog() {
 export function setView(v: "changes" | "history") {
   git.view = v;
   if (v === "history") void loadLog();
+}
+
+/** Carica il grafo commit (tutti i branch) per la vista Git Graph. */
+export async function loadGraph() {
+  if (!workspace.rootPath) return;
+  git.graphLoading = true;
+  try {
+    git.graph = await invoke<GraphCommit[]>("git_graph", { root: workspace.rootPath, limit: 500 });
+  } catch (e) {
+    console.error("git_graph", e);
+  } finally {
+    git.graphLoading = false;
+  }
 }
 
 /** Decorazioni git per l'albero: file modificati (path assoluto "/"→codice) e cartelle

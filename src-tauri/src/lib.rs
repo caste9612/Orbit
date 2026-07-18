@@ -613,6 +613,7 @@ pub fn run() {
             git::git_discard,
             git::git_log,
             git::git_show,
+            git::git_graph,
             git::git_create_branch,
             git::git_upstream,
             pty::pty_spawn,

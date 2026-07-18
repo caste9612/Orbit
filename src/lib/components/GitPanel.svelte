@@ -21,6 +21,7 @@
     gitPush,
     gitMerge,
   } from "../state/git.svelte";
+  import { openGitGraphBoard } from "../state/workspace.svelte";
   import { relativeTime } from "../util";
 
   let message = $state("");
@@ -175,6 +176,9 @@
   <div class="viewtabs">
     <button class="vtab" class:on={git.view === "changes"} onclick={() => setView("changes")}>Changes</button>
     <button class="vtab" class:on={git.view === "history"} onclick={() => setView("history")}>History</button>
+    <button class="graphbtn" title="Open Git Graph (branch/commit tree)" aria-label="Git Graph" onclick={openGitGraphBoard}>
+      <Icon name="git-branch" size={12} strokeWidth={1.8} /><span>Graph</span>
+    </button>
   </div>
 
   {#if git.view === "changes"}
@@ -614,6 +618,21 @@
   .vtab.on {
     color: var(--color-ink);
     border-bottom-color: var(--color-accent);
+  }
+  .graphbtn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 0;
+    color: var(--color-ink-muted);
+    font-size: 12px;
+    padding: 5px 6px 6px;
+    cursor: pointer;
+  }
+  .graphbtn:hover {
+    color: var(--color-accent);
   }
 
   .commit {

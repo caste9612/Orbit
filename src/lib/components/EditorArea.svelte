@@ -180,6 +180,7 @@
   function tabIcon(f: OpenFile) {
     if (f.kind === "diff") return { glyph: "git-commit", color: "#a3acb9" };
     if (f.kind === "activity") return { glyph: "activity", color: "#3b9dff" };
+    if (f.kind === "gitgraph") return { glyph: "git-branch", color: "#3fb950" };
     return fileIcon(f.name);
   }
 </script>
@@ -293,6 +294,8 @@
                   <Lazy load={() => import("./DiffView.svelte")} content={af.content} />
                 {:else if af.kind === "activity"}
                   <Lazy load={() => import("./ActivityBoard.svelte")} />
+                {:else if af.kind === "gitgraph"}
+                  <Lazy load={() => import("./GitGraph.svelte")} />
                 {:else if af.kind === "image" || af.kind === "pdf"}
                   <Lazy load={() => import("./AssetView.svelte")} path={af.path} kind={af.kind} />
                 {:else if isMd(af.name) && af.preview}

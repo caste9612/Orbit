@@ -29,7 +29,7 @@ export interface OpenFile {
   content: string;
   dirty: boolean;
   readonly: boolean;
-  kind: "file" | "diff" | "image" | "pdf" | "activity"; // image/pdf: viewer (asset protocol); activity: board della vista Attività
+  kind: "file" | "diff" | "image" | "pdf" | "activity" | "gitgraph"; // image/pdf: viewer; activity/gitgraph: board area editor
   rev: number; // incrementa al reload esterno → l'editor rimpiazza il doc
   externallyChanged: boolean; // modificato su disco con edit non salvati (conflitto)
   gotoLine: number | null; // riga a cui saltare (da ricerca)
@@ -227,6 +227,29 @@ export function openActivityBoard() {
       dirty: false,
       readonly: true,
       kind: "activity",
+      rev: 0,
+      externallyChanged: false,
+      gotoLine: null,
+      preview: false,
+    });
+  }
+  const g = ensureActiveGroup();
+  if (!g.tabs.includes(id)) g.tabs.push(id);
+  g.activePath = id;
+  workspace.activeGroupId = g.id;
+}
+
+/** Apre il Git Graph come tab (kind "gitgraph") nell'area editor; singleton per finestra. */
+export function openGitGraphBoard() {
+  const id = "gitgraph://board";
+  if (!fileByPath(id)) {
+    workspace.openFiles.push({
+      path: id,
+      name: "Git Graph",
+      content: "",
+      dirty: false,
+      readonly: true,
+      kind: "gitgraph",
       rev: 0,
       externallyChanged: false,
       gotoLine: null,

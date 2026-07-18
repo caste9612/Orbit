@@ -6,6 +6,7 @@ use git2::{
     StatusOptions,
 };
 use serde::Serialize;
+use std::collections::HashMap;
 use std::path::Path;
 
 fn open(root: &str) -> Result<Repository, String> {
@@ -351,6 +352,100 @@ pub fn git_show(root: String, id: String) -> Result<String, String> {
     .map_err(|e| e.to_string())?;
     if out.is_empty() {
         out.push_str("(nessuna differenza)");
+    }
+    Ok(out)
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GitRef {
+    name: String,
+    kind: String, // "head" (branch corrente) | "branch" | "remote" | "tag"
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GraphCommit {
+    id: String,
+    short: String,
+    summary: String,
+    author: String,
+    time: i64,
+    parents: Vec<String>, // oid completi dei genitori (per il layout a corsie)
+    refs: Vec<GitRef>,
+}
+
+/// Grafo dei commit per il "graph log" (stile IntelliJ/VS): tutti i branch (locali + remoti) e HEAD,
+/// ordine TOPOLOGICO+tempo, con parent e ref (branch/tag) per ciascun commit. Fino a `limit`.
+#[tauri::command]
+pub fn git_graph(root: String, limit: usize) -> Result<Vec<GraphCommit>, String> {
+    let repo = open(&root)?;
+
+    // branch corrente (per marcare il ref come "head")
+    let head_branch = repo
+        .head()
+        .ok()
+        .filter(|h| h.is_branch())
+        .and_then(|h| h.shorthand().map(String::from));
+
+    // mappa oid(commit) -> ref che vi puntano
+    let mut refmap: HashMap<String, Vec<GitRef>> = HashMap::new();
+    if let Ok(refs) = repo.references() {
+        for r in refs.flatten() {
+            let oid = match r.peel_to_commit() {
+                Ok(c) => c.id().to_string(),
+                Err(_) => continue, // ref non risolvibile a un commit
+            };
+            let name = r.shorthand().unwrap_or("").to_string();
+            if name.is_empty() || name == "HEAD" {
+                continue;
+            }
+            let kind = if r.is_remote() {
+                "remote"
+            } else if r.is_tag() {
+                "tag"
+            } else if r.is_branch() {
+                if head_branch.as_deref() == Some(name.as_str()) {
+                    "head"
+                } else {
+                    "branch"
+                }
+            } else {
+                continue;
+            };
+            refmap.entry(oid).or_default().push(GitRef { name, kind: kind.into() });
+        }
+    }
+
+    let mut rw = repo.revwalk().map_err(|e| e.to_string())?;
+    rw.set_sorting(Sort::TOPOLOGICAL | Sort::TIME).map_err(|e| e.to_string())?;
+    let _ = rw.push_glob("refs/heads/*"); // tutti i branch locali
+    let _ = rw.push_glob("refs/remotes/*"); // + remoti (no-op se assenti)
+    let _ = rw.push_head();
+
+    let mut out = Vec::new();
+    for oid in rw {
+        if out.len() >= limit {
+            break;
+        }
+        let oid = match oid {
+            Ok(o) => o,
+            Err(_) => continue,
+        };
+        let c = match repo.find_commit(oid) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+        let id = oid.to_string();
+        out.push(GraphCommit {
+            short: id.chars().take(7).collect(),
+            parents: c.parent_ids().map(|p| p.to_string()).collect(),
+            refs: refmap.get(&id).cloned().unwrap_or_default(),
+            id,
+            summary: c.summary().unwrap_or("").to_string(),
+            author: c.author().name().unwrap_or("").to_string(),
+            time: c.time().seconds(),
+        });
     }
     Ok(out)
 }

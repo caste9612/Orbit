@@ -22,6 +22,7 @@
     rowsSince,
     byModel,
     byProject,
+    sumRows,
     daily,
     cacheHitRate,
     fmtTokens,
@@ -43,9 +44,12 @@
   const week = $derived(windowTotals(7));
   const month = $derived(windowTotals(30));
   // ripartizioni sulla finestra 30g
-  const rows30 = $derived(rowsSince(iso30()));
-  const models = $derived(byModel(rows30));
-  const projects = $derived(byProject(rows30).slice(0, 6));
+  // periodo delle ripartizioni: 30 giorni oppure TUTTO lo storico (contatore globale per progetto)
+  let scope = $state<"30d" | "all">("30d");
+  const scopeRows = $derived(scope === "all" ? usage.rows : rowsSince(iso30()));
+  const models = $derived(byModel(scopeRows));
+  const projects = $derived(byProject(scopeRows).slice(0, 10));
+  const scopeTotal = $derived(sumRows(scopeRows));
   const spark = $derived(daily(14));
   const hit = $derived(cacheHitRate(month));
 
@@ -290,29 +294,41 @@
         </div>
       {/if}
 
-      {#if models.length}
+      {#if models.length || projects.length}
         <div class="sec">
-          <div class="shead">By model · 30d</div>
-          {#each models as m (m.key)}
-            <div class="bar">
-              <span class="bname" title={m.key}>{m.label}</span>
-              <span class="btrack"><span class="bfill" style="width:{(metric(m) / maxModel) * 100}%"></span></span>
-              <span class="bval">{sliceVal(m)}</span>
+          <div class="bkhead">
+            <span class="shead">Breakdown</span>
+            <div class="scopetoggle" role="group" aria-label="Scope">
+              <button class:on={scope === "30d"} onclick={() => (scope = "30d")}>30d</button>
+              <button class:on={scope === "all"} onclick={() => (scope = "all")}>All time</button>
             </div>
-          {/each}
-        </div>
-      {/if}
+          </div>
+          <div class="bktotal">
+            <span>Total · {scope === "all" ? "all time" : "30 days"} · {scopeTotal.messages} msgs</span>
+            <span class="bktotval">{usage.showCost ? fmtCost(scopeTotal.cost) : fmtTokens(scopeTotal.tokens)}</span>
+          </div>
 
-      {#if projects.length}
-        <div class="sec">
-          <div class="shead">By project · 30d</div>
-          {#each projects as p (p.key)}
-            <div class="bar">
-              <span class="bname" title={p.key}>{p.label}</span>
-              <span class="btrack"><span class="bfill alt" style="width:{(metric(p) / maxProj) * 100}%"></span></span>
-              <span class="bval">{sliceVal(p)}</span>
-            </div>
-          {/each}
+          {#if models.length}
+            <div class="subhead">By model</div>
+            {#each models as m (m.key)}
+              <div class="bar">
+                <span class="bname" title={m.key}>{m.label}</span>
+                <span class="btrack"><span class="bfill" style="width:{(metric(m) / maxModel) * 100}%"></span></span>
+                <span class="bval">{sliceVal(m)}</span>
+              </div>
+            {/each}
+          {/if}
+
+          {#if projects.length}
+            <div class="subhead">By project</div>
+            {#each projects as p (p.key)}
+              <div class="bar">
+                <span class="bname" title={p.key}>{p.label}</span>
+                <span class="btrack"><span class="bfill alt" style="width:{(metric(p) / maxProj) * 100}%"></span></span>
+                <span class="bval">{sliceVal(p)}</span>
+              </div>
+            {/each}
+          {/if}
         </div>
       {/if}
 
@@ -493,6 +509,61 @@
     text-transform: uppercase;
     color: var(--color-ink-subtle);
     margin-bottom: 5px;
+  }
+  .bkhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .bkhead .shead {
+    margin-bottom: 0;
+  }
+  .scopetoggle {
+    display: inline-flex;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .scopetoggle button {
+    background: transparent;
+    border: 0;
+    color: var(--color-ink-muted);
+    font-size: 10.5px;
+    padding: 2px 8px;
+    cursor: pointer;
+  }
+  .scopetoggle button.on {
+    background: var(--color-accent);
+    color: #fff;
+  }
+  .bktotal {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    margin-bottom: 8px;
+    background: var(--color-surface-1);
+    border: 1px solid var(--color-line);
+    border-radius: 7px;
+    font-size: 11px;
+    color: var(--color-ink-muted);
+  }
+  .bktotval {
+    font-size: 14px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink);
+    white-space: nowrap;
+  }
+  .subhead {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-ink-subtle);
+    margin: 6px 0 5px;
   }
   .bar {
     display: grid;

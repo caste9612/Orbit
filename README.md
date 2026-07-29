@@ -166,13 +166,23 @@ cross-platform desktop app that weighs almost nothing.
   in a bottom panel; **▶ resume** that Claude session in one click. A small left panel lists your projects
   with **on/off toggles** (remembered) to hide noise, plus per‑project mini‑stats. (Supersedes the old
   Chats list — resuming recent sessions now lives here.)
-- A **Usage** indicator in the status bar tracks **tokens and estimated cost** of your Claude Code
-  usage, read locally from the transcripts: today / 7 days / 30 days, a 14‑day sparkline, breakdown
-  **by model and project** (30‑day or all‑time, with a **global total**), cache‑hit %, and a
-  **plan‑value** check (API‑equivalent cost vs your subscription price). A **Limits** section estimates
-  your 5‑hour and weekly windows; since Anthropic doesn't expose the real limits to third parties, you
-  can **anchor** them to the real % from claude.ai (ToS‑safe, no credential reuse) with a burn‑rate
-  forecast. Cost is a labeled estimate at public API rates — not what you pay on a subscription.
+- A **Usage** button in the status bar opens your **real Claude usage** — the official
+  `claude.ai/settings/usage` page with the **actual 5‑hour and weekly limit meters** — in an
+  **embedded panel** anchored above the status bar, like a popover. It is a plain browser view and
+  nothing more: no scripts injected, no data extracted, no credential reuse — ToS‑safe by
+  construction. Sign in once inside the panel and the session persists in the app's WebView
+  profile; click outside (or `Esc`, or the button again) to close. The button itself shows the
+  account **Claude Code (CLI) is signed in as** (read locally from `~/.claude.json`, updated
+  live when you `/login`), and a slim **header** above the page repeats it in full — so you spot
+  at a glance when the panel and the CLI are on different accounts (the two logins are
+  independent). **Log out** (header, or right‑click the button) signs the panel out by **clearing
+  its cookies locally** — no request to claude.ai, Orbit's own settings untouched — so you can
+  switch account even with the panel closed. You can also save the **emails of your accounts**
+  (addresses only, never credentials — "Manage accounts…" in the right‑click menu, with one‑click
+  add of the current CLI account): each saved address is a **copy‑to‑clipboard** menu entry, so
+  switching account is log out → paste the email into the login form → enter the emailed code.
+  It replaces the previous transcript‑based token/cost estimates, which could not reflect the
+  real limits.
 - A **Scratchpad** (📝 in the top bar) opens a persistent notes/prompts file (`.orbit/scratch.md`)
   to jot prompts and reuse them.
 - **Attention when a terminal needs you** — when `claude` finishes a turn or waits for input (Orbit

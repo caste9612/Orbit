@@ -120,6 +120,9 @@ export const settings = $state({
   autosave: true, // salva i file modificati su perdita di focus e cambio tab (stile IntelliJ)
   mdMode: "readme" as MarkdownMode, // apertura .md: anteprima solo per i README (default)
   logging: true, // raccolta log diagnostici (ring buffer + file) per indagare i problemi — disattivabile
+  // Email degli account Claude preconfigurati: SOLO indirizzi (nessuna credenziale), copiabili
+  // dal menu del bottone Usage per non doverli digitare nel form di login del pannello.
+  claudeAccounts: [] as string[],
 });
 
 export const MIN_FONT = 10;
@@ -189,6 +192,8 @@ export function loadSettings() {
       if (typeof s.autosave === "boolean") settings.autosave = s.autosave;
       if (s.mdMode === "readme" || s.mdMode === "preview" || s.mdMode === "source") settings.mdMode = s.mdMode;
       if (typeof s.logging === "boolean") settings.logging = s.logging;
+      if (Array.isArray(s.claudeAccounts))
+        settings.claudeAccounts = s.claudeAccounts.filter((x: unknown): x is string => typeof x === "string");
     }
   } catch {
     /* localStorage non disponibile o JSON invalido */
@@ -216,6 +221,7 @@ export function startSettingsAutosave() {
         autosave: settings.autosave,
         mdMode: settings.mdMode,
         logging: settings.logging,
+        claudeAccounts: settings.claudeAccounts,
       });
       applySettings();
       try {

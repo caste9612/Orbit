@@ -16,7 +16,10 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["protocol-asset"] }
+# "unstable": abilita le webview FIGLIE (Window::add_child) — serve al pannello Usage embedded
+# (claude.ai ancorata nella finestra come un popover). Feature flag di una dipendenza già presente,
+# nessuna dipendenza nuova.
+tauri = { version = "2", features = ["protocol-asset", "unstable"] }
 tauri-plugin-dialog = "2" # folder/file picker nativo (apri cartella)
 tauri-plugin-clipboard-manager = "2" # clipboard affidabile lato Rust (fuori dai limiti di WebView2)
 serde = { version = "1", features = ["derive"] }
@@ -35,6 +38,11 @@ notify = "6"
 # dipendenze transitive → costo di compilazione nullo. Cfg-gated per piattaforma.
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_Threading"] }
+# Logout locale del pannello Usage: cancellazione cookie via ICoreWebView2CookieManager
+# (nessuna richiesta di rete). Entrambi GIÀ nell'albero come transitive di tauri, stesse
+# versioni del lock → costo di compilazione nullo.
+webview2-com = "0.38"
+windows-core = "0.61"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

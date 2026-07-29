@@ -32,7 +32,6 @@ src-tauri/
   src/lib.rs          # Rust entry: fs/session/window commands + run() (registers all)
   src/git.rs          # git commands (libgit2), incl. git_graph (branch/commit graph)
   src/activity.rs     # Activity: work units from Claude transcripts (scan_activity, watch_activity)
-  src/usage.rs        # Usage: token/cost from transcripts (scan_usage, scan_usage_windows)
   src/pty.rs          # terminal/PTY commands
   src/watcher.rs      # file watcher (emits "fs-changed")
   src/symbols.rs      # heuristic project symbol scanner (scan_symbols) — no LSP, std only
@@ -192,6 +191,26 @@ first paint loads only the Explorer + the active editor.
   **List** lens, with a bottom **digest** that reuses `UnitDigest.svelte`). `openActivity` opens the panel + the
   board; **▶ resume** runs `claude --resume <id>` (switching to the unit's repo first). Supersedes the old Chats
   view (`claude_sessions` stays in `lib.rs` but is now unused).
+- **Usage (real limits)** — the status‑bar **Usage** button toggles an embedded view of
+  `claude.ai/settings/usage` (the user's REAL 5h/weekly meters): `UsageIndicator.svelte` computes the
+  anchor rect (bottom‑right, above the status bar, logical px = DOM px) and calls `usage_panel_show`;
+  a `Backdrop` closes it on outside click (the native webview draws above the DOM, so the backdrop
+  only ever receives outside clicks), `Esc` closes too, window resize re‑invokes `usage_panel_bounds`.
+  A DOM **header strip** sits in the reserved 34px above the webview: it shows the account **Claude
+  Code (CLI) is signed in as** (`claude_account`, read locally from `~/.claude.json` — the panel's
+  claude.ai login is a separate session, so this makes a mismatch visible at a glance; the status‑bar
+  button shows its short form too, refreshed live by `watch_claude_account` → `claude-account-changed`),
+  plus **Log out**, open‑in‑browser and close; right‑clicking the button offers the same actions
+  without opening the panel, and lists the **saved account emails** (`settings.claudeAccounts`,
+  addresses only — each entry copies to the clipboard for the login form; `ClaudeAccounts.svelte`
+  manages the list, with one‑click add of the current CLI account). **Log out** = `claude_logout_local`, which **deletes the WebView
+  profile's cookies locally** (ICoreWebView2CookieManager on Windows; no network request, and
+  localStorage — where Orbit keeps its settings — is a separate store, untouched), then
+  `usage_panel_logout` reloads the page to the login form if the panel is open (on platforms without
+  the cookie API it falls back to navigating `claude.ai/logout`). Login persists in the app's WebView
+  profile. It's a plain embedded browser — no injected scripts, no data extraction, no credential
+  reuse (ToS‑safe; automating claude.ai or reusing its tokens is a documented ban risk). Replaces the
+  transcript‑based counters of M48–M49 (see NOTES M50).
 - **Git sync** — ahead/behind is computed locally with libgit2 (`git_upstream`, no network); the
   actual fetch/pull/push/merge run the `git` CLI in a terminal tab (reusing the user's git auth), so
   no openssl/libssh2 is pulled into the build.
@@ -302,10 +321,17 @@ frontend calls them with `invoke("name", {args})`. Areas:
   returns `WorkUnit[]` (prompt‑first segmentation; camelCase incl. files `{op,path,add,del,userModified}`,
   cmds, prompts, commit, kind, start/end, live); `watch_activity` — `notify` watcher on `~/.claude/projects`
   that emits a debounced **`activity-changed`** event for live refresh.
-- **Usage** (`usage.rs`): `scan_usage(days)` — token usage aggregated per {day, repo, model} from the
-  transcripts; `scan_usage_windows()` — rolling 5h/7d usage per model. Dedup by `message.id` (Claude Code
-  recopies history on resume, which would otherwise inflate counts). Cost is estimated in the frontend
-  from a per‑model price table.
+- **Usage panel** (`lib.rs`): `usage_panel_show` / `usage_panel_close` / `usage_panel_bounds` /
+  `usage_panel_logout` — the claude.ai usage page as a **child webview** anchored in the main window
+  (Tauri's `unstable` cargo feature for `Window::add_child`; coordinates in logical px).
+  `claude_account` reads the CLI's current account from `~/.claude.json` (local file);
+  `watch_claude_account` watches that file (notify, non‑recursive on home, debounced) and emits
+  `claude-account-changed`; `claude_logout_local` deletes the WebView profile's cookies
+  (ICoreWebView2CookieManager via `webview2-com`/`windows-core`, both already in the dependency tree;
+  cfg(windows), other platforms return an error and the frontend falls back to navigating
+  `claude.ai/logout`). The panel commands are **async on purpose**: on Windows, creating a webview
+  from a sync command deadlocks (creation waits on a message pump the command blocks). The remote
+  page has **no IPC access** (its label is in no capability).
 - **Git** (`git.rs`): `git_status`, `git_diff`, `git_stage`, `git_unstage`, `git_commit`,
   `git_branches`, `git_checkout_branch`, `git_create_branch`, `git_discard`, `git_log`, `git_show`,
   `git_graph` (all branches, topological order, parents+refs — powers the Git Graph view; lane layout

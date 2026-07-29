@@ -3,14 +3,13 @@ mod activity;
 mod git;
 mod pty;
 mod symbols;
-mod usage;
 mod watcher;
 mod winsession;
 
 use serde::Serialize;
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 
 /// Cartella/file da aprire all'avvio: da variabili LUME_DIR/LUME_FILE oppure dal
 /// primo argomento CLI (così si può lanciare `lume /percorso/progetto`).
@@ -361,6 +360,190 @@ fn open_url(url: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Apre (o porta in primo piano) la finestrina "usage live": una webview top-level sulla pagina
+/// uso reale di claude.ai. È un browser incapsulato e nient'altro — nessuno script iniettato,
+/// nessuna estrazione di dati, e la pagina remota NON ha accesso IPC (non è nelle capability):
+/// l'utente legge la pagina ufficiale, ToS-safe. Il login persiste nel profilo WebView dell'app.
+/// Always-on-top: è un widget di monitoraggio, resta sopra mentre si lavora.
+/// Pannello "Usage": la pagina uso reale di claude.ai come webview FIGLIA ancorata nella
+/// finestra (feature `unstable` di Tauri), aperta/chiusa dal bottone in status bar come il
+/// vecchio popover. È un browser incapsulato e nient'altro: nessuno script iniettato, nessuna
+/// estrazione di dati, e la pagina remota NON ha accesso IPC (non è nelle capability) —
+/// l'utente legge la pagina ufficiale, ToS-safe. Il login persiste nel profilo WebView dell'app.
+/// Coordinate/dimensioni in px logici (le stesse del DOM), relative alla client area.
+/// NB: async — su Windows creare una webview da un comando sincrono va in deadlock
+/// (la creazione attende un message pump che il comando blocca).
+const USAGE_PANEL: &str = "usage-panel";
+
+#[tauri::command]
+async fn usage_panel_show(
+    window: tauri::Window,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    let pos = tauri::LogicalPosition::new(x, y);
+    let size = tauri::LogicalSize::new(width, height);
+    if let Some(wv) = window.webviews().into_iter().find(|w| w.label() == USAGE_PANEL) {
+        wv.set_position(pos).map_err(|e| e.to_string())?;
+        wv.set_size(size).map_err(|e| e.to_string())?;
+        let _ = wv.set_focus();
+        return Ok(());
+    }
+    let url = tauri::Url::parse("https://claude.ai/settings/usage").map_err(|e| e.to_string())?;
+    let builder = tauri::webview::WebviewBuilder::new(USAGE_PANEL, tauri::WebviewUrl::External(url));
+    window.add_child(builder, pos, size).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+async fn usage_panel_close(window: tauri::Window) -> Result<(), String> {
+    if let Some(wv) = window.webviews().into_iter().find(|w| w.label() == USAGE_PANEL) {
+        wv.close().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Riposiziona il pannello (resize della finestra). No-op se il pannello non è aperto.
+#[tauri::command]
+async fn usage_panel_bounds(
+    window: tauri::Window,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    if let Some(wv) = window.webviews().into_iter().find(|w| w.label() == USAGE_PANEL) {
+        wv.set_position(tauri::LogicalPosition::new(x, y)).map_err(|e| e.to_string())?;
+        wv.set_size(tauri::LogicalSize::new(width, height)).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Naviga il pannello sul logout di claude.ai (cambio account): navigazione normale del browser,
+/// nessuna automazione — poi l'utente rientra dal form di login. No-op se il pannello è chiuso.
+#[tauri::command]
+async fn usage_panel_logout(window: tauri::Window) -> Result<(), String> {
+    if let Some(wv) = window.webviews().into_iter().find(|w| w.label() == USAGE_PANEL) {
+        let url = tauri::Url::parse("https://claude.ai/logout").map_err(|e| e.to_string())?;
+        wv.navigate(url).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Account con cui Claude Code (la CLI) è loggato: letto da `~/.claude.json`, file LOCALE scritto
+/// da Claude Code — stessa categoria dei transcript della vista Attività, nessuna chiamata di rete.
+/// Serve alla testata del pannello Usage per confrontare a vista account CLI ↔ pagina claude.ai
+/// (le due sessioni sono indipendenti: cambiare account nella CLI non cambia quello del pannello).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ClaudeAccount {
+    email: Option<String>,
+    name: Option<String>,
+    org: Option<String>,
+}
+
+#[tauri::command]
+fn claude_account() -> Option<ClaudeAccount> {
+    let home = std::env::var("USERPROFILE").ok().or_else(|| std::env::var("HOME").ok())?;
+    let raw = std::fs::read_to_string(Path::new(&home).join(".claude.json")).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&raw).ok()?;
+    let a = v.get("oauthAccount")?;
+    let s = |k: &str| a.get(k).and_then(|x| x.as_str()).map(str::to_string);
+    Some(ClaudeAccount {
+        email: s("emailAddress"),
+        name: s("displayName"),
+        org: s("organizationName"),
+    })
+}
+
+/// Logout LOCALE del pannello: cancella i cookie del profilo WebView. Nessuna richiesta a
+/// claude.ai — è gestione di dati locali (il localStorage, dove Orbit tiene le impostazioni,
+/// NON è toccato: i cookie sono uno store separato). Vale per l'intero profilo, quindi sloggata
+/// anche un'eventuale sessione SSO usata nel pannello. Funziona anche a pannello chiuso: il
+/// cookie store è condiviso, basta una webview qualunque della finestra.
+#[cfg(windows)]
+#[tauri::command]
+async fn claude_logout_local(window: tauri::Window) -> Result<(), String> {
+    use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2_2;
+    use windows_core::Interface;
+    let wv = window.webviews().into_iter().next().ok_or("no webview")?;
+    let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
+    wv.with_webview(move |pw| {
+        let res = (|| unsafe {
+            let core = pw.controller().CoreWebView2().map_err(|e| e.to_string())?;
+            let core2: ICoreWebView2_2 = core.cast().map_err(|e| e.to_string())?;
+            let mgr = core2.CookieManager().map_err(|e| e.to_string())?;
+            mgr.DeleteAllCookies().map_err(|e| e.to_string())
+        })();
+        let _ = tx.send(res);
+    })
+    .map_err(|e| e.to_string())?;
+    rx.recv_timeout(std::time::Duration::from_secs(3))
+        .map_err(|_| "cookie clear timed out".to_string())?
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+async fn claude_logout_local(_window: tauri::Window) -> Result<(), String> {
+    // WKWebView/WebKitGTK: API cookie non esposta da qui — il frontend ripiega sulla
+    // navigazione a claude.ai/logout nel pannello.
+    Err("local cookie clear not supported on this platform".into())
+}
+
+/// Watcher su `~/.claude.json`: quando Claude Code lo riscrive (es. dopo un `/login`) emette
+/// `claude-account-changed` (debounced) così la status bar aggiorna l'account mostrato senza
+/// riavvii. Si osserva la HOME non-ricorsivamente filtrando sul solo file: Claude Code lo
+/// sostituisce con rename atomico, e un watch diretto sul file si perderebbe al primo swap.
+#[derive(Default)]
+struct AccountWatchState {
+    watcher: std::sync::Mutex<Option<notify::RecommendedWatcher>>,
+}
+
+#[tauri::command]
+fn watch_claude_account(app: AppHandle, state: tauri::State<AccountWatchState>) -> Result<(), String> {
+    use notify::{recommended_watcher, EventKind, RecursiveMode, Watcher};
+    if state.watcher.lock().unwrap().is_some() {
+        return Ok(()); // già attivo
+    }
+    let home = std::env::var("USERPROFILE")
+        .ok()
+        .or_else(|| std::env::var("HOME").ok())
+        .ok_or("no home dir")?;
+    let home = PathBuf::from(home);
+    if !home.is_dir() {
+        return Ok(());
+    }
+    let (tx, rx) = std::sync::mpsc::channel::<()>();
+    let mut watcher = recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+        if let Ok(ev) = res {
+            if matches!(ev.kind, EventKind::Access(_)) {
+                return;
+            }
+            if ev
+                .paths
+                .iter()
+                .any(|p| p.file_name().and_then(|n| n.to_str()) == Some(".claude.json"))
+            {
+                let _ = tx.send(());
+            }
+        }
+    })
+    .map_err(|e| e.to_string())?;
+    watcher.watch(&home, RecursiveMode::NonRecursive).map_err(|e| e.to_string())?;
+    *state.watcher.lock().unwrap() = Some(watcher);
+    std::thread::spawn(move || {
+        // debounce: Claude Code riscrive il file spesso (history), coalesce le raffiche
+        while rx.recv().is_ok() {
+            std::thread::sleep(std::time::Duration::from_millis(800));
+            while rx.try_recv().is_ok() {}
+            let _ = app.emit("claude-account-changed", ());
+        }
+    });
+    Ok(())
+}
+
 /// Mostra un file/cartella nel file manager dell'OS (lo seleziona dove possibile).
 #[tauri::command]
 fn reveal_path(path: String) -> Result<(), String> {
@@ -562,6 +745,7 @@ pub fn run() {
         .manage(winsession::OpenFolder::default())
         .manage(winsession::QuitState::default())
         .manage(activity::ActivityWatchState::default())
+        .manage(AccountWatchState::default())
         .setup(|app| {
             // ripristina la geometria della finestra principale (e l'intera sessione, se avvio nudo) e la mostra
             let handle = app.handle().clone();
@@ -598,6 +782,13 @@ pub fn run() {
             winsession::close_all_windows,
             reveal_path,
             open_url,
+            usage_panel_show,
+            usage_panel_close,
+            usage_panel_bounds,
+            usage_panel_logout,
+            claude_account,
+            claude_logout_local,
+            watch_claude_account,
             resolve_existing,
             app_version,
             append_log,
@@ -625,9 +816,7 @@ pub fn run() {
             watcher::watch_start,
             symbols::scan_symbols,
             activity::scan_activity,
-            activity::watch_activity,
-            usage::scan_usage,
-            usage::scan_usage_windows
+            activity::watch_activity
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

@@ -344,11 +344,12 @@
       // ridimensiona soltanto così il programma in esecuzione (es. Claude) ridisegna.
       await invoke("pty_resize", { id, cols: term.cols, rows: term.rows }).catch(() => {});
     } else {
-      await invoke("pty_spawn", { id, cols: term.cols, rows: term.rows, cwd, shell });
-      // run config: invia il comando una sola volta (il parent azzera initCommand dopo)
+      // `false` = il PTY esisteva già (remount): dentro c'è un processo vivo (es. claude) e
+      // l'initCommand finirebbe DIGITATO in esso come input — mai re-inviarlo in quel caso.
+      const fresh = await invoke<boolean>("pty_spawn", { id, cols: term.cols, rows: term.rows, cwd, shell });
       if (initCommand) {
-        await invoke("pty_write", { id, data: initCommand + "\r" }).catch(() => {});
-        onStart?.();
+        if (fresh) await invoke("pty_write", { id, data: initCommand + "\r" }).catch(() => {});
+        onStart?.(); // segna comunque `started`: su un PTY preesistente il comando è ormai moot
       }
     }
     lastCols = term.cols;

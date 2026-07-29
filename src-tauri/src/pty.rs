@@ -135,10 +135,12 @@ pub fn pty_spawn(
     rows: u16,
     cwd: Option<String>,
     shell: Option<String>,
-) -> Result<(), String> {
-    // idempotente: se la sessione esiste già la teniamo viva (re-attach)
+) -> Result<bool, String> {
+    // idempotente: se la sessione esiste già la teniamo viva (re-attach). Ritorna `false` così il
+    // chiamante NON invia l'initCommand: la PTY ha già un processo in esecuzione (es. claude) e il
+    // comando finirebbe digitato dentro di esso come input.
     if state.sessions.lock().map_err(|e| e.to_string())?.contains_key(&id) {
-        return Ok(());
+        return Ok(false);
     }
 
     let pty_system = native_pty_system();
@@ -241,7 +243,7 @@ pub fn pty_spawn(
         }
         let _ = app2.emit(&format!("pty-exit-{}", id2), ());
     });
-    Ok(())
+    Ok(true) // spawn nuovo: il chiamante può inviare l'eventuale initCommand
 }
 
 #[tauri::command]

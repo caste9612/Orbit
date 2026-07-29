@@ -1910,6 +1910,71 @@ Build release OK (orbit.exe **5,85 MB**, MSI **3,59 MB**, NSIS **2,90 MB**). **R
 
 ---
 
+## Milestone 50 — pannello Usage embedded: la pagina claude.ai al posto dei contatori stimati (v0.8.7)
+
+### Decisione: sostituire i contatori (M48–M49) con la pagina ufficiale incapsulata
+I contatori dai transcript erano dati veri ma i **limiti** restavano stime (l'ancora manuale derivava,
+vedi M48): l'utente ha scelto di mostrare direttamente la **pagina uso reale** di claude.ai. Il bottone
+**Usage** in status bar apre `claude.ai/settings/usage` in una **webview figlia ancorata** sopra la
+status bar (stile popover, 440×680 logici, chiusa da click fuori/toggle). È un **browser incapsulato e
+nient'altro**: nessuno script iniettato, nessuna estrazione dal DOM, nessun riuso di credenziali — la
+via "estrai i valori dalla pagina" è stata valutata e scartata (Consumer ToS §3.7 vieta l'accesso
+"through automated or non-human means… script"; ban documentati per l'automazione, caso OpenClaw 2026).
+Il login si fa UNA volta nel pannello e persiste nel profilo WebView2 dell'app. Rimossi `usage.rs`
+(scan dei transcript a ogni avvio: centinaia di MB di I/O), `usage.svelte.ts`, tabella prezzi, ancora
+e budget; `UsageIndicator.svelte` ridotto a bottone+Backdrop (**−1.703/+116 righe**). In cambio si
+perdono i breakdown per progetto/modello e il costo API-equivalente (recuperabili da git se mancano).
+
+### Tecnica
+- **Webview figlia** (`Window::add_child`): feature cargo **`unstable`** di Tauri — flag di una
+  dipendenza già presente, zero dipendenze nuove. Un iframe era impossibile (CSP `frame-ancestors`
+  di claude.ai); una finestra separata (primo tentativo) funzionava ma non "dentro" l'IDE.
+- Comandi `usage_panel_show/close/bounds/logout` (px logici = px DOM, rect calcolato dal frontend
+  dall'ancora del bottone). La pagina remota NON è in alcuna capability → niente IPC, safe by design.
+- **Testata sopra la webview** (34px di DOM, la webview copre solo il suo rect): mostra l'**account
+  della CLI** (`claude_account` legge `~/.claude.json`, file locale — la sessione del pannello è
+  indipendente da quella di Claude Code, così un disallineamento si vede subito) + **Log out**,
+  apri-nel-browser, chiudi; `Esc` chiude il pannello. Il **bottone in status bar** mostra la parte
+  locale dell'email della CLI, aggiornata **live** da `watch_claude_account` (notify non-ricorsivo
+  sulla home filtrato su `.claude.json` — il file è sostituito con rename atomico, un watch diretto
+  si perderebbe; debounce perché Claude Code lo riscrive spesso); tasto destro → menu con account
+  e le stesse azioni senza aprire il pannello.
+- **Log out senza automazione**: `claude_logout_local` cancella i **cookie del profilo WebView in
+  locale** (`ICoreWebView2CookieManager::DeleteAllCookies` via `webview2-com`+`windows-core`, GIÀ
+  transitive nell'albero → costo zero; cfg(windows)) — nessuna richiesta a claude.ai, e il
+  localStorage (dove vivono le impostazioni di Orbit) è uno store separato, intatto (verificato).
+  Funziona anche a pannello chiuso; se aperto, il pannello viene poi ricaricato sul form di login
+  (`usage_panel_logout` → `claude.ai/logout`, che resta il fallback puro per macOS/Linux).
+  Scartato `clear_all_browsing_data` di Tauri: pulisce l'intero profilo, incluso il localStorage.
+- **Account preconfigurati = SOLO email** (`settings.claudeAccounts` + `ClaudeAccounts.svelte`,
+  add rapido dell'account CLI corrente): ogni voce del menu **copia l'indirizzo negli appunti**
+  da incollare nel form di login. Valutato e SCARTATO l'autofill iniettato (compilare il campo +
+  click via script): è "accesso via script" ai sensi dei ToS e sul form c'è hCaptcha invisibile
+  che rileva proprio gli eventi sintetici — il flusso resta: logout → incolla email → codice via
+  mail a mano. (L'autofill NATIVO di WebView2 resta disponibile: è il motore del browser.)
+- **Deadlock da manuale**: su Windows creare una webview da un comando **sincrono** blocca per sempre
+  (`build()` attende un message pump che il comando occupa) → finestra bianca. I comandi DEVONO
+  essere `async` (documentato nel codice). Diagnosi: log su file (lo stdout della dev non bastava),
+  poi verifica autonoma via **CDP** (`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port`):
+  click sul bottone pilotato da script, screenshot della pagina, toggle di chiusura verificato.
+  Attenzione ai falsi allarmi da screenshot PrintWindow con processi non DPI-aware (bitmap
+  virtualizzata): fanno fede le coordinate Win32 + il viewport CDP.
+
+### Verifica
+`svelte-check` 0/0 (256 file), vitest 9/9, `cargo test` 31/31 (usciti i 9 test del modulo usage).
+Test end-to-end via CDP: apertura ancorata corretta (x=832, y=95 logici), pagina loggata con i
+meter reali (sessione 27%, settimana 26%), chiusura al secondo click; testata con account CLI
+corretto ("CLI: <email> · <org>"), click su Log out → la pagina del pannello atterra su
+`/login?from=logout`, ✕ chiude. Secondo giro E2E: bottone status bar = "rd2-sw" (account CLI),
+menu contestuale con account/azioni, logout locale via cookie → login page, e `orbit.settings`
+presente in localStorage prima E dopo la cancellazione cookie. Terzo giro: "Add current" salva
+l'email, la voce di menu la copia DAVVERO negli appunti di sistema (verificato via Get-Clipboard),
+rimozione e persistenza ok. Build release OK (orbit.exe **5,85 MB**, MSI **3,59 MB**, NSIS
+**2,89 MB** — footprint invariato: il COM per i cookie è compensato dall'uscita di `usage.rs`).
+**Rilasciato in v0.8.7.**
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

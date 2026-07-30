@@ -81,6 +81,24 @@ export function kindColor(k: string): string {
 // Colore per stato git del file (coerente col gutter dell'editor): A verde, M oro, D rosso.
 export const OP_COLOR: Record<string, string> = { A: "#5bc88a", M: "#d8b65e", D: "#e0707a" };
 
+// Colore stabile per SESSIONE (chat): distingue a colpo d'occhio le chat diverse dello stesso
+// repo. L'asse temporale della Timeline resta condiviso (vincolo di design): si COLORA, non si
+// raggruppa. Hash dell'id → palette di tinte distinte, leggibili sia su tema scuro che chiaro.
+const SESSION_COLORS = [
+  "#4c8dff", "#b07aff", "#2fbf9b", "#e0a45e", "#e06c9f",
+  "#5bc88a", "#38bdf8", "#c8b45b", "#f97066", "#8b93f8",
+];
+export function sessionColor(sessionId: string): string {
+  let h = 5381;
+  for (let i = 0; i < sessionId.length; i++) h = (h * 33 + sessionId.charCodeAt(i)) | 0;
+  return SESSION_COLORS[Math.abs(h) % SESSION_COLORS.length];
+}
+
+/** Etichetta umana della chat: l'aiTitle della sessione se c'è, altrimenti l'id breve. */
+export function sessionLabel(u: WorkUnit): string {
+  return u.sessionTitle || `chat ${u.sessionId.slice(0, 8)}`;
+}
+
 // ---- progetti accesi/spenti (per togliere rumore), persistito globalmente -------------------
 // La scelta vale per TUTTA la vista Attività (lista, timeline, pannello). Persistenza in localStorage
 // (app-global, come le impostazioni): non dipende dalla cartella aperta.

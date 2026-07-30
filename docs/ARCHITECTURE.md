@@ -185,11 +185,16 @@ first paint loads only the Explorer + the active editor.
   triggers = one unit; a `git commit` labels the unit it falls in; a branch change is a hard boundary;
   file +/− from `toolUseResult.structuredPatch`, the full prompt text is kept for the digest). `watch_activity`
   watches `~/.claude/projects` (notify) and emits **`activity-changed`** for live refresh. Frontend:
-  `activity.svelte.ts` (state + `loadActivity` + project on/off `activityPrefs`, persisted), `ActivityPanel.svelte`
+  `activity.svelte.ts` (state + `loadActivity` + project on/off `activityPrefs`, persisted; `sessionColor` =
+  stable per‑session hash color, `sessionLabel` = aiTitle or short id), `ActivityPanel.svelte`
   (sidebar: project toggles + mini‑stats), `ActivityBoard.svelte` (editor‑area tab, doc kind **`"activity"`**:
-  a **Timeline** lens — one row per unit on a shared vertical time axis, repos in columns, day dividers — and a
-  **List** lens, with a bottom **digest** that reuses `UnitDigest.svelte`). `openActivity` opens the panel + the
-  board; **▶ resume** runs `claude --resume <id>` (switching to the unit's repo first). Supersedes the old Chats
+  a **Timeline** lens — one row per unit on a shared vertical time axis, repos in columns, day dividers;
+  units carry a chat‑colored dot and a small **chat header** where the session changes within a column —
+  and a **Chats** lens — one card per session, day‑grouped; selecting it opens `ChatDigest.svelte` in the
+  bottom panel with the whole conversation, every prompt in order with its unit's outcome, plus a
+  per‑chat resume. The timeline's unit digest stays `UnitDigest.svelte`). The chat is the resume atom
+  (`claude --resume` restarts whole sessions only). `openActivity` opens the panel + the board; **▶ resume**
+  runs `claude --resume <id>` (switching to the unit's repo first). Supersedes the old Chats
   view (`claude_sessions` stays in `lib.rs` but is now unused).
 - **Usage (real limits)** — the status‑bar **Usage** button toggles an embedded view of
   `claude.ai/settings/usage` (the user's REAL 5h/weekly meters): `UsageIndicator.svelte` computes the

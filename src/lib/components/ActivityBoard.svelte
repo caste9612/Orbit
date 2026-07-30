@@ -8,6 +8,7 @@
   // Clic su un'unità → digest nel PANNELLO IN BASSO. I progetti spenti (activityPrefs) sono esclusi.
   import Icon from "./Icon.svelte";
   import UnitDigest from "./UnitDigest.svelte";
+  import ChatDigest from "./ChatDigest.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import {
@@ -15,6 +16,8 @@
     loadActivity,
     repoName,
     kindColor,
+    sessionColor,
+    sessionLabel,
     OP_COLOR,
     isRepoEnabled,
     isDismissed,
@@ -25,9 +28,10 @@
   import { resumeClaude } from "../state/claude.svelte";
   import { addFolder, openFromList } from "../state/folders.svelte";
 
-  let lens = $state<"timeline" | "list">("timeline");
+  let lens = $state<"timeline" | "chats">("timeline");
   let q = $state("");
-  let selectedId = $state<string | null>(null);
+  let selectedId = $state<string | null>(null); // unità selezionata (Timeline)
+  let selectedSid = $state<string | null>(null); // chat selezionata (lente Chats)
 
   $effect(() => {
     void loadActivity();
@@ -55,6 +59,7 @@
         u.label.toLowerCase().includes(s) ||
         repoName(u.repo).toLowerCase().includes(s) ||
         u.branch.toLowerCase().includes(s) ||
+        u.sessionTitle.toLowerCase().includes(s) ||
         u.files.some((f) => f.path.toLowerCase().includes(s))
       );
     }),
@@ -101,25 +106,85 @@
     return out;
   });
 
-  // List: gruppi per Attive ora / giorno
-  interface Group {
-    label: string;
-    live: boolean;
-    units: WorkUnit[];
-  }
-  const groups = $derived.by<Group[]>(() => {
-    const out: Group[] = [];
-    let cur: Group | null = null;
+  // Prima unità di una "corsa" di sessione nella SUA colonna (scendendo = andando indietro nel
+  // tempo): lì mostriamo l'intestazione della chat, così le chat diverse dello stesso repo si
+  // distinguono anche quando si alternano. Vale anche per la prima unità in alto di ogni repo.
+  const sessStart = $derived.by<Set<string>>(() => {
+    const prev = new Map<string, string>(); // repo → sessionId dell'unità sopra
+    const out = new Set<string>();
     for (const u of filtered) {
-      const label = u.live ? "Active now" : dayLabel(u.end);
-      if (!cur || cur.label !== label) {
-        cur = { label, live: u.live, units: [] };
-        out.push(cur);
-      }
-      cur.units.push(u);
+      if (prev.get(u.repo) !== u.sessionId) out.add(u.id);
+      prev.set(u.repo, u.sessionId);
     }
     return out;
   });
+
+  // Chats: una card per SESSIONE — l'atomo del resume (non si può riprendere da un messaggio
+  // specifico, solo la chat intera) — ordinate per attività più recente e raggruppate per giorno.
+  interface Chat {
+    sid: string;
+    units: WorkUnit[]; // dalla più recente (stesso ordine del feed)
+    end: string;
+    live: boolean;
+  }
+  const chats = $derived.by<Chat[]>(() => {
+    const bySid = new Map<string, Chat>();
+    for (const u of filtered) {
+      let c = bySid.get(u.sessionId);
+      if (!c) {
+        c = { sid: u.sessionId, units: [], end: u.end, live: false };
+        bySid.set(u.sessionId, c);
+      }
+      c.units.push(u);
+      if (u.live) c.live = true;
+      if (u.end > c.end) c.end = u.end;
+    }
+    return [...bySid.values()].sort((a, b) => Number(b.live) - Number(a.live) || b.end.localeCompare(a.end));
+  });
+  const selectedChat = $derived(chats.find((c) => c.sid === selectedSid) ?? null);
+
+  interface ChatGroup {
+    label: string;
+    live: boolean;
+    chats: Chat[];
+  }
+  const chatGroups = $derived.by<ChatGroup[]>(() => {
+    const out: ChatGroup[] = [];
+    let cur: ChatGroup | null = null;
+    for (const c of chats) {
+      const label = c.live ? "Active now" : dayLabel(c.end);
+      if (!cur || cur.label !== label) {
+        cur = { label, live: c.live, chats: [] };
+        out.push(cur);
+      }
+      cur.chats.push(c);
+    }
+    return out;
+  });
+
+  // L'unità PIÙ SIGNIFICATIVA della chat (l'ultimo commit, altrimenti la più grossa per churn):
+  // molte chat iniziano con lo stesso prompt (es. la scorciatoia "recupera contesto") e l'aiTitle
+  // esce quasi identico — è quello che la chat ha FATTO a distinguerle, non come sono iniziate.
+  function significant(c: Chat): string | null {
+    let pick: WorkUnit | null = c.units.find((u) => u.commit) ?? null;
+    if (!pick) for (const u of c.units) if (!pick || u.add + u.del > pick.add + pick.del) pick = u;
+    const label = pick?.label ?? "";
+    return label && label !== sessionLabel(c.units[0]) ? label : null;
+  }
+
+  function chatTotals(c: Chat) {
+    let add = 0,
+      del = 0,
+      prompts = 0,
+      commits = 0;
+    for (const u of c.units) {
+      add += u.add;
+      del += u.del;
+      prompts += u.prompts.length;
+      if (u.commit) commits++;
+    }
+    return { add, del, prompts, commits };
+  }
 
   function startOfToday(): number {
     const n = new Date();
@@ -179,8 +244,8 @@
       <button role="tab" class:on={lens === "timeline"} aria-selected={lens === "timeline"} onclick={() => (lens = "timeline")}>
         <Icon name="activity" size={13} strokeWidth={1.8} /> Timeline
       </button>
-      <button role="tab" class:on={lens === "list"} aria-selected={lens === "list"} onclick={() => (lens = "list")}>
-        <Icon name="more" size={13} strokeWidth={1.8} /> List
+      <button role="tab" class:on={lens === "chats"} aria-selected={lens === "chats"} onclick={() => (lens = "chats")}>
+        <Icon name="message" size={13} strokeWidth={1.8} /> Chats
       </button>
     </div>
     <label class="search">
@@ -215,6 +280,12 @@
               {#each cols as repo (repo)}
                 {#if repo === u.repo}
                   <div class="cell">
+                    {#if sessStart.has(u.id)}
+                      <div class="sess" title="Chat: {sessionLabel(u)}">
+                        <span class="sdot" style="background:{sessionColor(u.sessionId)}"></span>
+                        <span class="sname">{sessionLabel(u)}</span>
+                      </div>
+                    {/if}
                     <div class="blkwrap">
                       <button
                         class="blk"
@@ -225,6 +296,7 @@
                         onclick={() => (selectedId = u.id)}
                       >
                         <div class="bhd">
+                          <span class="sdot" style="background:{sessionColor(u.sessionId)}" title="Chat: {sessionLabel(u)}"></span>
                           <span class="bkind" style="color:{kindColor(u.kind)}">{u.kind}</span>
                           <span class="bt">{u.live ? "live" : hhmm(u.end)}</span>
                         </div>
@@ -255,32 +327,36 @@
       </div>
     {:else}
       <div class="listcol">
-        {#each groups as grp (grp.label)}
+        {#each chatGroups as grp (grp.label)}
           <div class="gh" class:now={grp.live}>
-            {#if grp.live}<span class="livedot"></span>{/if}{grp.label}{grp.live ? ` · ${grp.units.length}` : ""}
+            {#if grp.live}<span class="livedot"></span>{/if}{grp.label}{grp.live ? ` · ${grp.chats.length}` : ""}
           </div>
-          {#each grp.units as u (u.id)}
-            {@const c = counts(u)}
+          {#each grp.chats as c (c.sid)}
+            {@const t = chatTotals(c)}
+            {@const first = c.units[0]}
             <div class="cardwrap">
-              <button class="card" class:sel={selected?.id === u.id} style="--rc:{kindColor(u.kind)}" onclick={() => (selectedId = u.id)}>
+              <button class="card" class:sel={selectedSid === c.sid} style="--rc:{sessionColor(c.sid)}" onclick={() => (selectedSid = selectedSid === c.sid ? null : c.sid)}>
                 <div class="r1">
-                  <span class="kind2" style="color:{kindColor(u.kind)};background:{kindColor(u.kind)}1f">{u.kind}</span>
-                  <span class="repo">{repoName(u.repo)}</span>
-                  <span class="branch"><Icon name="git-branch" size={10} strokeWidth={1.8} />{u.branch}</span>
-                  <span class="when">{u.live ? "live" : ago(u.end)}</span>
+                  <span class="sdot" style="background:{sessionColor(c.sid)}"></span>
+                  <span class="repo">{repoName(first.repo)}</span>
+                  <span class="branch"><Icon name="git-branch" size={10} strokeWidth={1.8} />{first.branch}</span>
+                  <span class="when">{c.live ? "live" : ago(c.end)}</span>
                 </div>
-                <div class="label">{u.label}</div>
+                <div class="label">{sessionLabel(first)}</div>
+                {#if significant(c)}
+                  <div class="sub" title={significant(c)}>{significant(c)}</div>
+                {/if}
                 <div class="r3">
+                  <span>{t.prompts} {t.prompts === 1 ? "prompt" : "prompts"}</span>
+                  <span>{c.units.length} {c.units.length === 1 ? "step" : "steps"}</span>
                   <span class="files">
-                    {#if c.a}<span style="color:{OP_COLOR.A}">+{c.a}</span>{/if}
-                    {#if c.m}<span style="color:{OP_COLOR.M}">~{c.m}</span>{/if}
-                    {#if c.d}<span style="color:{OP_COLOR.D}">−{c.d}</span>{/if}
+                    {#if t.add}<span style="color:{OP_COLOR.A}">+{t.add}</span>{/if}
+                    {#if t.del}<span style="color:{OP_COLOR.D}">−{t.del}</span>{/if}
                   </span>
-                  {#if u.cmds.length}<span>{u.cmds.length} cmd</span>{/if}
-                  {#if u.commit}<span class="hash">{u.commit}</span>{:else if !u.live}<span class="wip">uncommitted</span>{/if}
+                  {#if t.commits}<span class="hash">{t.commits} {t.commits === 1 ? "commit" : "commits"}</span>{:else if !c.live}<span class="wip">uncommitted</span>{/if}
                 </div>
               </button>
-              <button class="resume cardresume" title="Resume this session" aria-label="Resume session" onclick={() => resume(u)}>
+              <button class="resume cardresume" title="Resume this chat" aria-label="Resume chat" onclick={() => resume(first)}>
                 <Icon name="play" size={12} strokeWidth={2} />
               </button>
             </div>
@@ -290,11 +366,32 @@
     {/if}
   </div>
 
-  {#if selected}
+  {#if lens === "chats" && selectedChat}
+    <div class="digestwrap">
+      <div class="dbar">
+        <span class="dsess" title="Chat">
+          <span class="sdot" style="background:{sessionColor(selectedChat.sid)}"></span>
+        </span>
+        <span class="dt">{sessionLabel(selectedChat.units[0])}</span>
+        <button class="dclose" title="Close" aria-label="Close digest" onclick={() => (selectedSid = null)}>
+          <Icon name="x" size={14} strokeWidth={2} />
+        </button>
+      </div>
+      <div class="dbody">
+        {#key selectedChat.sid}
+          <ChatDigest units={selectedChat.units} />
+        {/key}
+      </div>
+    </div>
+  {:else if lens === "timeline" && selected}
     <div class="digestwrap">
       <div class="dbar">
         <span class="dk" style="color:{kindColor(selected.kind)};background:{kindColor(selected.kind)}1f">{selected.kind}</span>
         <span class="dt">{selected.label}</span>
+        <span class="dsess" title="Chat: {sessionLabel(selected)}">
+          <span class="sdot" style="background:{sessionColor(selected.sessionId)}"></span>
+          <span class="dsname">{sessionLabel(selected)}</span>
+        </span>
         <button class="dclose" title="Close" aria-label="Close digest" onclick={() => (selectedId = null)}>
           <Icon name="x" size={14} strokeWidth={2} />
         </button>
@@ -493,6 +590,50 @@
     flex-direction: column;
     gap: 4px;
   }
+
+  /* ---- distinzione per SESSIONE (chat): pallino colorato + intestazione a cambio chat ---- */
+  .sdot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+  .bhd .sdot {
+    width: 6px;
+    height: 6px;
+  }
+  .sess {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 2px 3px 0;
+    font-size: 9.5px;
+    color: var(--color-ink-subtle);
+  }
+  .sess .sname {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dsess {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    max-width: 260px;
+    margin-left: 6px;
+    font-size: 10.5px;
+    color: var(--color-ink-muted);
+    flex: 0 1 auto;
+  }
+  .dsess .dsname {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .blk {
     display: block;
     width: 100%;
@@ -671,15 +812,6 @@
     align-items: center;
     gap: 7px;
   }
-  .kind2 {
-    flex: 0 0 auto;
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    padding: 1px 5px;
-    border-radius: 4px;
-  }
   .repo {
     font-size: 11.5px;
     color: var(--color-ink-muted);
@@ -703,6 +835,14 @@
     font-size: 13px;
     font-weight: 600;
     line-height: 1.3;
+  }
+  .sub {
+    margin: -3px 0 5px;
+    font-size: 11.5px;
+    color: var(--color-ink-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .r3 {
     display: flex;

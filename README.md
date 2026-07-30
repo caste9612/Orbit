@@ -162,10 +162,14 @@ cross-platform desktop app that weighs almost nothing.
   reconstructed from Claude's transcripts across **all** your projects. Each unit is one prompt with the
   files it created/changed (with +/−), the commands it ran, and the commit it produced. The timeline puts
   every repo in its own **column** on a **shared vertical time axis** (newest on top), so you read what
-  happened across projects in order — or switch to a flat **List**. Click a unit for its full **digest**
-  in a bottom panel; **▶ resume** that Claude session in one click. A small left panel lists your projects
-  with **on/off toggles** (remembered) to hide noise, plus per‑project mini‑stats. (Supersedes the old
-  Chats list — resuming recent sessions now lives here.)
+  happened across projects in order; units are **color‑coded per chat** (a stable color per session, with
+  a small chat header whenever the conversation changes within a column), so parallel or resumed chats in
+  the same repo stay distinguishable. The second lens, **Chats**, shows **one card per conversation**
+  (title, repo, prompts/steps, churn, commits, live): selecting it opens the whole conversation in the
+  bottom panel — **every prompt in order**, each with its outcome — with a **▶ Resume this chat** button
+  (resuming always restarts the whole session, so the chat is the natural unit). Clicking a unit in the
+  timeline still opens its per‑unit **digest**. A small left panel lists your projects with **on/off
+  toggles** (remembered) to hide noise, plus per‑project mini‑stats.
 - A **Usage** button in the status bar opens your **real Claude usage** — the official
   `claude.ai/settings/usage` page with the **actual 5‑hour and weekly limit meters** — in an
   **embedded panel** anchored above the status bar, like a popover. It is a plain browser view and

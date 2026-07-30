@@ -302,6 +302,8 @@ fn is_git_commit(cmd: &str) -> bool {
 }
 
 // Estrae il messaggio da `git commit -m "..."` (o '...'), o la parola dopo -m se non quotato.
+// Gestisce anche lo stile heredoc di Claude Code — `-m "$(cat <<'EOF' … EOF)"` — dove il
+// messaggio vero inizia dopo la prima newline (senza questo, la label mostrava "$(cat <<'EOF'").
 fn commit_message(cmd: &str) -> Option<String> {
     let idx = cmd.find("-m")?;
     let rest = cmd[idx + 2..].trim_start();
@@ -309,7 +311,13 @@ fn commit_message(cmd: &str) -> Option<String> {
     if first == '"' || first == '\'' {
         let after = &rest[first.len_utf8()..];
         let end = after.find(first)?;
-        Some(after[..end].to_string())
+        let raw = &after[..end];
+        let msg = raw
+            .trim_start()
+            .strip_prefix("$(cat <<")
+            .and_then(|r| r.split_once('\n').map(|(_, body)| body))
+            .unwrap_or(raw);
+        Some(msg.to_string())
     } else {
         rest.split_whitespace().next().map(|s| s.to_string())
     }
@@ -652,5 +660,15 @@ mod tests {
         let lines = vec![prompt("2026-06-25T10:00:00Z", "main", "che ne pensi?")];
         let u = segment(&lines, "S5");
         assert!(u.is_empty());
+    }
+
+    #[test]
+    fn commit_message_plain_and_heredoc() {
+        // -m "msg" classico
+        assert_eq!(commit_message(r#"git commit -m "fix: bug""#).as_deref(), Some("fix: bug"));
+        // stile heredoc di Claude Code: il messaggio inizia dopo la prima newline
+        let cmd = "git commit -m \"$(cat <<'EOF'\nfeat: cosa fatta\n\ndettagli\nEOF\n)\"";
+        let msg = commit_message(cmd).unwrap();
+        assert!(msg.starts_with("feat: cosa fatta"), "got: {msg}");
     }
 }

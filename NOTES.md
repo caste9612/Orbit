@@ -1975,6 +1975,46 @@ rimozione e persistenza ok. Build release OK (orbit.exe **5,85 MB**, MSI **3,59 
 
 ---
 
+## Milestone 51 — Attività per CHAT: colori di sessione + lente Chats (v0.8.8)
+
+### Problema e decisione
+Nella colonna di un repo le unità di chat diverse scorrevano indistinte. E poiché `claude --resume`
+riprende SOLO la sessione intera (non da un messaggio specifico), la **chat è l'atomo naturale di
+navigazione e ripresa** — senza però buttare la segmentazione per unità (M43), che resta l'atomo del
+racconto temporale. Due mosse complementari:
+- **Timeline (resta per unità)**: colore **stabile per sessione** (hash dell'id → palette di 10 tinte,
+  `sessionColor`) su ogni blocco + **intestazione di chat** (`sessStart`: prima unità di una "corsa" di
+  sessione nella SUA colonna) quando la conversazione cambia scendendo — le chat parallele o riprese si
+  distinguono senza rompere l'asse temporale condiviso (vincolo di design M43: si colora, non si raggruppa).
+- **Lente "Chats"** (sostituisce List, che duplicava la cronologia della timeline): **una card per
+  conversazione** (titolo aiTitle o id breve, repo, branch, prompt/step, churn, commit, live), raggruppate
+  per giorno; selezione → **`ChatDigest.svelte`** nel pannello sotto: TUTTA la conversazione, ogni prompt
+  per esteso in ordine cronologico col suo esito (ora, tipo, churn, hash), e **Resume this chat**.
+Il filtro testuale ora matcha anche il titolo della sessione; il digest per unità della Timeline resta
+(`UnitDigest`), con il pallino-chat anche nella barra del digest.
+
+### Indagine: "perché card distinte sembrano la stessa chat?"
+Verificato sui transcript reali (36 file in un progetto): **zero overlap di uuid tra file** → nessuna
+storia ricopiata dal resume (Claude Code ≥2.x continua lo STESSO file al resume; 1 file = 1 chat
+logica — l'over-counting della M48 riguardava versioni precedenti). Le card "gemelle" sono sessioni
+GENUINAMENTE diverse che iniziano tutte con lo stesso prompt (la scorciatoia "Recupera contesto…"),
+per cui l'aiTitle generato esce quasi identico (20+ titoli fotocopia su 36). Rimedi:
+- **sottotitolo "significativo"** sulla card: l'unità con l'ultimo commit (o la più grossa per churn)
+  — è ciò che la chat ha FATTO a distinguerla, non come è iniziata;
+- **"started \<giorno, ora\>"** nel meta del ChatDigest;
+- fix di `commit_message` per lo stile **heredoc** di Claude Code (`-m "$(cat <<'EOF' …"`): prima la
+  label mostrava "$(cat <<'EOF'" al posto del messaggio (+ unit test).
+
+### Verifica
+`svelte-check` 0/0 (258 file), vitest 9/9, `cargo test` 32/32 (nuovo test per il commit heredoc).
+Verifica visiva via CDP sull'istanza dev: timeline con 168 intestazioni di chat e 10 colori distinti
+su dati reali; lente Chats con 45 card (prima card "Recupera contesto sul progetto": 14 prompts ·
+14 steps · +2017 −977 · 1 commit) e digest con i 14 prompt integrali e il bottone di resume; dopo il
+fix heredoc il sottotitolo mostra il messaggio di commit vero. Build release OK (orbit.exe **5,85 MB**,
+MSI **3,59 MB**, NSIS **2,89 MB** — invariato: feature quasi tutta frontend). **Rilasciato in v0.8.8.**
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

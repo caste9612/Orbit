@@ -25,10 +25,20 @@
     updateContent,
     savePath,
     togglePreview,
+    openPreviewToSide,
     type OpenFile,
   } from "../state/workspace.svelte";
 
   const isMd = (name: string) => /\.(md|markdown)$/i.test(name);
+  const isHtml = (name: string) => /\.html?$/i.test(name);
+
+  // HTML: l'anteprima legge il file dal DISCO (asset protocol), non il buffer come il markdown.
+  // Salvo prima di alternare, così l'anteprima riflette sempre le modifiche correnti.
+  async function toggleWithSave(groupId: string, path: string, name: string) {
+    const f = fileByPath(path);
+    if (isHtml(name) && f?.dirty && !f.readonly) await savePath(path);
+    togglePreview(groupId, path);
+  }
 
   // ---- drag & drop delle schede (pointer-based) ----------------------------
   // L'HTML5 DnD non funziona con dragDropEnabled:true (Tauri intercetta il drop a livello OS),
@@ -269,16 +279,27 @@
                   <span>Run</span>
                 </button>
               {/if}
-              {#if isMd(af.name)}
+              {#if isMd(af.name) || isHtml(af.name)}
+                {@const pv = g.previews.includes(af.path)}
                 <button
                   class="mdtoggle"
-                  class:on={af.preview}
-                  onclick={() => af && togglePreview(af.path)}
-                  title={af.preview ? "Show source" : "Show preview"}
+                  class:on={pv}
+                  onclick={() => af && void toggleWithSave(g.id, af.path, af.name)}
+                  title={pv ? "Show source" : "Show preview"}
                 >
-                  <Icon name={af.preview ? "code" : "book-open"} size={13} strokeWidth={1.8} />
-                  <span>{af.preview ? "Source" : "Preview"}</span>
+                  <Icon name={pv ? "code" : isHtml(af.name) ? "globe" : "book-open"} size={13} strokeWidth={1.8} />
+                  <span>{pv ? "Source" : "Preview"}</span>
                 </button>
+                {#if !pv}
+                  <button
+                    class="mdtoggle"
+                    onclick={() => af && void openPreviewToSide(af.path)}
+                    title="Open preview to the side"
+                    aria-label="Open preview to the side"
+                  >
+                    <Icon name="panel-left" size={13} strokeWidth={1.8} />
+                  </button>
+                {/if}
               {/if}
             </div>
           {/if}
@@ -298,7 +319,9 @@
                   <Lazy load={() => import("./GitGraph.svelte")} />
                 {:else if af.kind === "image" || af.kind === "pdf"}
                   <Lazy load={() => import("./AssetView.svelte")} path={af.path} kind={af.kind} />
-                {:else if isMd(af.name) && af.preview}
+                {:else if isHtml(af.name) && g.previews.includes(af.path)}
+                  <Lazy load={() => import("./HtmlView.svelte")} path={af.path} diskRev={af.diskRev} />
+                {:else if isMd(af.name) && g.previews.includes(af.path)}
                   <Lazy
                     load={() => import("./MarkdownView.svelte")}
                     content={af.content}

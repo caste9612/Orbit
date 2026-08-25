@@ -33,7 +33,7 @@ export interface OpenFile {
   rev: number; // incrementa al reload esterno → l'editor rimpiazza il doc
   externallyChanged: boolean; // modificato su disco con edit non salvati (conflitto)
   gotoLine: number | null; // riga a cui saltare (da ricerca)
-  preview: boolean; // markdown: mostra l'anteprima invece del sorgente
+  diskRev: number; // incrementa quando il DISCO cambia (save o reload esterno) → l'anteprima HTML ricarica l'iframe
 }
 
 /** Un gruppo editor = una colonna affiancata con le sue tab e il file attivo. */
@@ -41,6 +41,8 @@ export interface EditorGroup {
   id: string;
   tabs: string[]; // path dei documenti, in ordine di visualizzazione
   activePath: string | null;
+  previews: string[]; // tab mostrate in ANTEPRIMA (md/html) in QUESTO gruppo: per-gruppo, non
+  // per-documento, così lo stesso file può stare sorgente in un riquadro e anteprima in un altro
 }
 
 let groupCounter = 0;
@@ -90,7 +92,7 @@ function groupById(id: string): EditorGroup | undefined {
 function ensureActiveGroup(): EditorGroup {
   let g = activeGroup();
   if (!g) {
-    g = { id: newGroupId(), tabs: [], activePath: null };
+    g = { id: newGroupId(), tabs: [], activePath: null, previews: [] };
     workspace.groups.push(g);
     workspace.activeGroupId = g.id;
   }
@@ -101,6 +103,12 @@ function ensureActiveGroup(): EditorGroup {
 function pruneDocs() {
   const referenced = new Set(workspace.groups.flatMap((g) => g.tabs));
   workspace.openFiles = workspace.openFiles.filter((f) => referenced.has(f.path));
+}
+
+/** Toglie una tab dall'elenco anteprime di un gruppo (se presente). */
+function dropPreview(g: EditorGroup, path: string) {
+  const i = g.previews.indexOf(path);
+  if (i !== -1) g.previews.splice(i, 1);
 }
 
 /** Se un gruppo è rimasto senza tab: rimuovilo (tranne l'ultimo) e sistema il gruppo attivo. */
@@ -136,7 +144,7 @@ async function loadDoc(path: string) {
       rev: 0,
       externallyChanged: false,
       gotoLine: null,
-      preview: false,
+      diskRev: 0,
     });
     return;
   }
@@ -158,7 +166,7 @@ async function loadDoc(path: string) {
     rev: 0,
     externallyChanged: false,
     gotoLine: null,
-    preview: initialPreview(name),
+    diskRev: 0,
   });
 }
 
@@ -167,7 +175,11 @@ export async function openFile(path: string, groupId?: string) {
   beforeNav?.(path); // cronologia: registra la posizione che stiamo lasciando (sincrono, pre-await)
   await loadDoc(path);
   const g = (groupId ? groupById(groupId) : undefined) ?? ensureActiveGroup();
-  if (!g.tabs.includes(path)) g.tabs.push(path);
+  if (!g.tabs.includes(path)) {
+    g.tabs.push(path);
+    // anteprima iniziale (mdMode) decisa quando la tab ENTRA nel gruppo, non sul documento
+    if (initialPreview(basename(path))) g.previews.push(path);
+  }
   g.activePath = path;
   workspace.activeGroupId = g.id;
 }
@@ -195,7 +207,7 @@ export function openDiff(id: string, name: string, patch: string) {
       rev: 0,
       externallyChanged: false,
       gotoLine: null,
-      preview: false,
+      diskRev: 0,
     });
   }
   const g = ensureActiveGroup();
@@ -204,16 +216,43 @@ export function openDiff(id: string, name: string, patch: string) {
   workspace.activeGroupId = g.id;
 }
 
-/** Markdown: alterna tra sorgente e anteprima per il documento indicato. */
-export function togglePreview(path: string) {
-  const f = fileByPath(path);
-  if (f) f.preview = !f.preview;
+/** md/html: alterna sorgente/anteprima per la tab NEL gruppo indicato. */
+export function togglePreview(groupId: string, path: string) {
+  const g = groupById(groupId);
+  if (!g) return;
+  const i = g.previews.indexOf(path);
+  if (i === -1) g.previews.push(path);
+  else g.previews.splice(i, 1);
 }
 
-/** Markdown: forza la modalità anteprima/sorgente (usato dalla vista Docs). */
+/** Forza anteprima/sorgente nel gruppo ATTIVO (usato dalla vista Docs). */
 export function setPreview(path: string, on: boolean) {
+  const g = activeGroup();
+  if (!g) return;
+  const i = g.previews.indexOf(path);
+  if (on && i === -1) g.previews.push(path);
+  if (!on && i !== -1) g.previews.splice(i, 1);
+}
+
+/** Apre l'anteprima del file in un gruppo AFFIANCATO (sorgente qui, anteprima là).
+ *  Se un altro gruppo la sta già mostrando, lo attiva soltanto. */
+export async function openPreviewToSide(path: string) {
+  const from = activeGroup();
   const f = fileByPath(path);
-  if (f) f.preview = on;
+  if (f?.dirty && !f.readonly) await savePath(path); // l'anteprima HTML legge dal disco
+  const existing = workspace.groups.find((g) => g !== from && g.previews.includes(path));
+  if (existing) {
+    existing.activePath = path;
+    workspace.activeGroupId = existing.id;
+    return;
+  }
+  await openInNewGroup(path);
+  const g = activeGroup();
+  if (g && !g.previews.includes(path)) g.previews.push(path);
+  if (from) {
+    const i = from.previews.indexOf(path);
+    if (i !== -1) from.previews.splice(i, 1); // nel gruppo di partenza resta il sorgente
+  }
 }
 
 /** Apre la board Attività come tab (kind "activity") nell'area editor; singleton per finestra. */
@@ -230,7 +269,7 @@ export function openActivityBoard() {
       rev: 0,
       externallyChanged: false,
       gotoLine: null,
-      preview: false,
+      diskRev: 0,
     });
   }
   const g = ensureActiveGroup();
@@ -253,7 +292,7 @@ export function openGitGraphBoard() {
       rev: 0,
       externallyChanged: false,
       gotoLine: null,
-      preview: false,
+      diskRev: 0,
     });
   }
   const g = ensureActiveGroup();
@@ -283,6 +322,7 @@ export function closeTab(groupId: string, path: string) {
   const i = g.tabs.indexOf(path);
   if (i === -1) return;
   g.tabs.splice(i, 1);
+  dropPreview(g, path);
   if (g.activePath === path) g.activePath = g.tabs[i] ?? g.tabs[i - 1] ?? null;
   dropEmptyGroup(g);
   pruneDocs();
@@ -294,6 +334,7 @@ export function closeFile(path: string) {
     const i = g.tabs.indexOf(path);
     if (i === -1) continue;
     g.tabs.splice(i, 1);
+    dropPreview(g, path);
     if (g.activePath === path) g.activePath = g.tabs[i] ?? g.tabs[i - 1] ?? null;
     dropEmptyGroup(g);
   }
@@ -332,6 +373,11 @@ export function moveTab(fromGroupId: string, path: string, toGroupId: string, to
   if (fi === -1) return;
   from.tabs.splice(fi, 1);
   if (from.activePath === path) from.activePath = from.tabs[fi] ?? from.tabs[fi - 1] ?? null;
+  // lo stato anteprima segue la tab nel nuovo gruppo
+  if (from.previews.includes(path)) {
+    dropPreview(from, path);
+    if (!to.previews.includes(path)) to.previews.push(path);
+  }
   // se è già aperto nel target lo riposiziono (niente duplicati); altrimenti lo inserisco
   const existing = to.tabs.indexOf(path);
   if (existing !== -1) to.tabs.splice(existing, 1);
@@ -348,7 +394,7 @@ export function splitWithTab(fromGroupId: string, path: string) {
   const from = groupById(fromGroupId);
   if (!from || !from.tabs.includes(path)) return; // path stale: niente da dividere
   if (from.tabs.length <= 1) return; // è già l'unica tab del gruppo: dividere non ha senso
-  const g: EditorGroup = { id: newGroupId(), tabs: [], activePath: null };
+  const g: EditorGroup = { id: newGroupId(), tabs: [], activePath: null, previews: [] };
   workspace.groups.push(g);
   moveTab(fromGroupId, path, g.id);
 }
@@ -357,7 +403,12 @@ export function splitWithTab(fromGroupId: string, path: string) {
 export async function openInNewGroup(path: string) {
   beforeNav?.(path); // cronologia: registra la posizione lasciata
   await loadDoc(path); // carica prima: niente gruppo vuoto lampeggiante durante l'await
-  const g: EditorGroup = { id: newGroupId(), tabs: [path], activePath: path };
+  const g: EditorGroup = {
+    id: newGroupId(),
+    tabs: [path],
+    activePath: path,
+    previews: initialPreview(basename(path)) ? [path] : [],
+  };
   workspace.groups.push(g);
   workspace.activeGroupId = g.id;
 }
@@ -383,6 +434,7 @@ export function renameOpenPaths(oldPath: string, newPath: string) {
   if (map.size === 0) return;
   for (const g of workspace.groups) {
     g.tabs = g.tabs.map((p) => map.get(p) ?? p);
+    g.previews = g.previews.map((p) => map.get(p) ?? p);
     if (g.activePath && map.has(g.activePath)) g.activePath = map.get(g.activePath)!;
   }
 }
@@ -420,6 +472,7 @@ export async function savePath(path: string, opts: { auto?: boolean } = {}) {
     await invoke("write_file", { path: f.path, content: f.content });
     f.dirty = false;
     f.externallyChanged = false;
+    f.diskRev++; // il disco è cambiato → un'eventuale anteprima HTML affiancata ricarica
     if (!opts.auto) notify(`${f.name} saved`, "success", 1500);
   } catch (e) {
     notify(`Save failed: ${e}`, "error");
@@ -466,6 +519,7 @@ export async function reloadOpenFiles(changed: string[] | null = null) {
       f.content = disk;
       f.externallyChanged = false;
       f.rev++; // segnala all'editor di rimpiazzare il doc
+      f.diskRev++; // e all'anteprima HTML di ricaricare l'iframe
     }
   }
 }
@@ -474,7 +528,7 @@ export async function reloadOpenFiles(changed: string[] | null = null) {
 
 /** Ripristina i gruppi salvati (carica i documenti nel pool, salta i file spariti). */
 export async function restoreGroups(
-  saved: { tabs: string[]; active: string | null }[],
+  saved: { tabs: string[]; active: string | null; previews?: string[] }[],
   activeIndex: number,
 ) {
   const allPaths = [...new Set(saved.flatMap((g) => g.tabs))];
@@ -485,7 +539,11 @@ export async function restoreGroups(
     const tabs = g.tabs.filter((p) => loaded.has(p));
     if (tabs.length === 0) continue;
     const active = g.active && tabs.includes(g.active) ? g.active : tabs[0];
-    groups.push({ id: newGroupId(), tabs, activePath: active });
+    // anteprime salvate (filtrate sulle tab valide); sessioni vecchie: ricalcolo da mdMode
+    const previews = (g.previews ?? tabs.filter((p) => initialPreview(basename(p)))).filter((p) =>
+      tabs.includes(p),
+    );
+    groups.push({ id: newGroupId(), tabs, activePath: active, previews });
   }
   if (groups.length === 0) return;
   workspace.groups = groups;

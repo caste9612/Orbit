@@ -2015,6 +2015,61 @@ MSI **3,59 MB**, NSIS **2,89 MB** — invariato: feature quasi tutta frontend). 
 
 ---
 
+## Milestone 52 — Anteprima HTML + anteprima nella split view (v0.8.9)
+
+### Problema e decisione
+I file `.html` avevano solo il sorgente (CodeMirror li evidenzia già via language-data), senza
+l'equivalente dell'anteprima markdown. Nuovo `HtmlView.svelte` (~25 righe) + toggle **Source ⇄
+Preview** in `EditorArea` anche per `.html/.htm` (icona `globe`, riusa `.mdtoggle` e
+`OpenFile.preview`). **Zero dipendenze nuove.**
+
+Scelte chiave:
+- **iframe su asset protocol (`convertFileSrc`), NON `srcdoc` dal buffer**: il documento mantiene
+  il suo URL reale, quindi ancore `#…` (TOC), immagini/CSS relativi e data URI funzionano nativi.
+  Con `srcdoc` + `<base href>` i fragment link risolverebbero contro la base → navigazione via
+  dalla pagina. Contropartita: l'anteprima legge il DISCO, non il buffer → il toggle **salva prima**
+  se il documento è dirty (`toggleWithSave`), e al cambio esterno l'iframe si rimonta via
+  `OpenFile.rev` (`{#key rev}`).
+- **`sandbox="allow-same-origin"` SENZA `allow-scripts`**: gli script della pagina non girano mai —
+  il WebView padre ha accesso all'IPC di Tauri e una pagina arbitraria non deve poterlo raggiungere
+  (stesso threat model per cui `markdown.ts` sanifica con DOMPurify). Se in futuro serviranno gli
+  script, andrà valutato un opt-in esplicito.
+- **Apertura sempre in sorgente** (nessun `htmlMode` in Settings per ora): un HTML si edita più
+  spesso di quanto si legga; l'anteprima è a un click.
+
+### Anteprima nella split view (sorgente + anteprima affiancate)
+Richiesta a seguire: vedere editor e anteprima INSIEME. Il blocco era architetturale: `preview`
+era una proprietà del DOCUMENTO (`OpenFile`, pool condiviso) → lo stesso file in due riquadri
+mostrava per forza la stessa vista. Migrato lo stato a livello di GRUPPO:
+- `EditorGroup.previews: string[]` (tab in anteprima in QUEL riquadro); `togglePreview(groupId,
+  path)`; `setPreview` resta path-only ma agisce sul gruppo attivo (compatibile con la vista Docs).
+  Lo stato segue la tab in `moveTab`/split, si pulisce in `closeTab`/`closeFile`, si rimappa nel
+  rename, e si **persiste in sessione** (`SavedGroup.previews`; sessioni vecchie: fallback a
+  `initialPreview`, stesso comportamento di prima).
+- Bottone **"Open preview to the side"** accanto al toggle (`openPreviewToSide`): apre un gruppo
+  affiancato già in anteprima e lascia il sorgente di qua; se un altro gruppo la mostra già, lo
+  attiva soltanto.
+- **Markdown**: l'anteprima affiancata si aggiorna LIVE mentre digiti (i due riquadri condividono
+  il buffer del pool). **HTML**: legge il disco → nuovo `OpenFile.diskRev` incrementato a ogni
+  save e reload esterno; `HtmlView` è dentro `{#key diskRev}` → l'iframe si ricarica a ogni
+  salvataggio e a ogni modifica esterna. (`rev` non era riusabile: bumparlo al save farebbe
+  rimpiazzare il doc a CodeMirror, con salto del cursore.)
+
+### Verifica
+`svelte-check` 0/0 (259 file), vitest 9/9. Collaudo nell'app reale via CDP
+(`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` + `LUME_DIR`/`LUME_FILE` sul dossier brevetto di Visia,
+HTML self-contained da ~434 KB): toggle → iframe `http://asset.localhost/...` con title/h1/45k
+caratteri renderizzati (screenshot nativo `PrintWindow`: tipografia, web font e layout corretti —
+lo screenshot CDP del target principale mostra l'iframe bianco perché OOPIF, artefatto noto);
+click su ancora del TOC → scroll interno (0 → 645 px); secondo toggle → ritorno a CodeMirror.
+Split view: "preview to the side" → 2 gruppi (editor | iframe) verificati nel DOM e a schermo;
+le anteprime per gruppo sopravvivono al reload (persistenza sessione); live-reload provato
+modificando il file su disco (marker nel body comparso nell'iframe senza interazione, poi file
+ripristinato byte-identico). Attenzione ai test via CDP: un commento appeso DOPO `</html>` finisce
+fuori da `documentElement.outerHTML` (falso negativo). Release: da completare dopo il collaudo utente.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

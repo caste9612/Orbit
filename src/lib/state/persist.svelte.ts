@@ -26,6 +26,7 @@ function sessionKey(folder: string): string {
 interface SavedGroup {
   tabs: string[];
   active: string | null;
+  previews?: string[]; // tab in anteprima (md/html) del gruppo
 }
 
 interface Session {
@@ -53,7 +54,7 @@ function serialize(): string {
     if (tabs.length === 0) continue;
     if (g.id === workspace.activeGroupId) activeGroup = groups.length;
     const active = g.activePath && tabs.includes(g.activePath) ? g.activePath : tabs[0];
-    groups.push({ tabs, active });
+    groups.push({ tabs, active, previews: g.previews.filter((p) => tabs.includes(p)) });
   }
   const data: Session = {
     v: 2,

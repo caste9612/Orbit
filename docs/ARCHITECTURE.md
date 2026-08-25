@@ -57,7 +57,7 @@ Three kinds of frontend module, kept separate:
 
 | Module | Owns |
 |---|---|
-| `workspace` | open folder, document pool (kinds: file/diff/image/pdf), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), markdown `preview` default from `settings.mdMode`, … |
+| `workspace` | open folder, document pool (kinds: file/diff/image/pdf), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), per‑group `previews` (md/html source ⇄ preview, default from `settings.mdMode`), `openPreviewToSide`, … |
 | `folders` | the **open repositories** list for the top‑bar switcher — **per‑window**: in‑memory `$state` only (NOT global localStorage, which is shared across instances and caused clobbering), persisted in the active folder's session as `repos` and reseeded by `loadSession({repos:true})` at window startup; `addFolder`/`removeFolder`/`setFolders`/`openFromList`/`cycleRepo`/`selectRepoIndex` — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file") |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
@@ -102,7 +102,7 @@ imports them on first render), so the Markdown feature adds nothing to the start
 A small generic **`Lazy.svelte`** wrapper (`load={() => import("./X.svelte")}`, props forwarded) does
 the same for the **overlays** (Settings, QuickOpen, SymbolPalette, WorkspaceSymbols, ShortcutsDialog,
 WrapperComposer), the **viewers**
-(DiffView, AssetView, MarkdownView, **ActivityBoard**, **UnitDigest**) and the **non‑default sidebar views** (Git/Search/Docs/Activity), so
+(DiffView, AssetView, MarkdownView, HtmlView, **ActivityBoard**, **UnitDigest**) and the **non‑default sidebar views** (Git/Search/Docs/Activity), so
 first paint loads only the Explorer + the active editor.
 
 ### Feature notes
@@ -110,9 +110,23 @@ first paint loads only the Explorer + the active editor.
 - **Markdown** — `markdown.ts` renders Markdown to **sanitized** HTML (the WebView has IPC
   access, so a malicious README must not run scripts). `MarkdownView.svelte` is a reading‑mode
   preview with a heading TOC, interactive task lists (writing back to the source), and clickable
-  internal links / anchors. `EditorArea` shows a per‑file **source ⇄ preview** toggle for `.md`
-  (state `OpenFile.preview`); the initial value comes from `settings.mdMode` — `readme` (README‑only,
-  the default), `preview` (all `.md`) or `source`.
+  internal links / anchors. `EditorArea` shows a per‑file **source ⇄ preview** toggle for `.md`;
+  the initial value comes from `settings.mdMode` — `readme` (README‑only, the default), `preview`
+  (all `.md`) or `source`. Preview state lives **per editor group** (`EditorGroup.previews`, persisted
+  in the session), so the same file can be source in one pane and preview in another: the
+  **"Open preview to the side"** button (`openPreviewToSide`) opens a split with source left,
+  preview right — for Markdown the side preview updates **live while typing** (both panes share the
+  pooled buffer).
+- **HTML preview** — `.html/.htm` files get the same per‑group **source ⇄ preview** toggle in
+  `EditorArea` (and the same "open preview to the side" split). `HtmlView.svelte` renders the file
+  **from disk** in a sandboxed `<iframe>` served by the asset protocol (`convertFileSrc`): the
+  document keeps its real URL, so `#anchors`, relative images/CSS and data URIs work natively (an
+  `srcdoc` + `<base>` approach would break fragment links). `sandbox="allow-same-origin"` **without**
+  `allow-scripts`: page scripts never run — the parent WebView has Tauri IPC access, same threat
+  model as the sanitized Markdown preview. Since the preview reads the disk (not the buffer), the
+  toggle saves a dirty buffer first; `OpenFile.diskRev` (bumped on every save and external reload)
+  remounts the iframe, so a side‑by‑side preview refreshes on save and on external changes. HTML
+  files always open in source mode.
 - **Docs view** — `docs.svelte.ts` builds a **hierarchical tree** of the project's Markdown
   (root `README` + `docs/**`) via `list_files`, ordered by numeric prefix, with cleaned titles and
   `_`‑folders de‑emphasized. `DocsView.svelte` renders it (a recursive snippet); clicking a page

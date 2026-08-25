@@ -80,6 +80,9 @@ cross-platform desktop app that weighs almost nothing.
   active file (extracted from the editor's syntax tree).
 - **Right‑click menu**: cut / copy / paste / select all / go to symbol.
 - View **images and PDFs** inline (native viewer).
+- **HTML preview**: a source ⇄ preview toggle renders `.html` files in a sandboxed frame
+  (scripts disabled) — anchors, relative assets and data URIs work as in a browser. Also available
+  side-by-side ("open preview to the side"), auto-refreshing on save.
 - **Split view**: drag a tab to the edge to open files side by side (N panes); drag tabs between
   panes, or within a bar to reorder. A per-pane **"all tabs" menu** lists and closes tabs when many.
 - **Word wrap** for long lines (the line-number gutter stays correct, VS Code-style).
@@ -101,8 +104,10 @@ cross-platform desktop app that weighs almost nothing.
   last were.
 
 **Markdown & docs**
-- Per-file **toggle** between source and a clean **reading-mode preview** (no split view). The
-  default for `.md` files is a Setting — **Source**, **Preview**, or **READMEs only** (the default).
+- Per-file **toggle** between source and a clean **reading-mode preview**. The default for `.md`
+  files is a Setting — **Source**, **Preview**, or **READMEs only** (the default).
+- **Open preview to the side**: one click puts source and preview in split view — the Markdown
+  preview updates **live as you type**; the HTML preview refreshes on every save.
 - The preview adds a floating **outline (TOC)**, **interactive task lists** (ticking a box writes
   back to the source), and clickable internal links / heading anchors. Rendered HTML is sanitized.
 - A dedicated **Docs** view organizes the project's Markdown (root `README` + everything under

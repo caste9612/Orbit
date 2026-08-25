@@ -2066,7 +2066,10 @@ Split view: "preview to the side" → 2 gruppi (editor | iframe) verificati nel 
 le anteprime per gruppo sopravvivono al reload (persistenza sessione); live-reload provato
 modificando il file su disco (marker nel body comparso nell'iframe senza interazione, poi file
 ripristinato byte-identico). Attenzione ai test via CDP: un commento appeso DOPO `</html>` finisce
-fuori da `documentElement.outerHTML` (falso negativo). Release: da completare dopo il collaudo utente.
+fuori da `documentElement.outerHTML` (falso negativo). Fix post-collaudo: il bottone side aveva
+anche lui il `margin-left:auto` di `.mdtoggle` → finiva all'estremo opposto del toggle (ora
+`.mdtoggle.side`, margine fisso). Build release OK (orbit.exe **5,85 MB**, MSI **3,59 MB**, NSIS
+**2,90 MB** — invariato: feature tutta frontend). **Rilasciato in v0.8.9.**
 
 ---
 

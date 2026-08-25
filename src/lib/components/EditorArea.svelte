@@ -292,7 +292,7 @@
                 </button>
                 {#if !pv}
                   <button
-                    class="mdtoggle"
+                    class="mdtoggle side"
                     onclick={() => af && void openPreviewToSide(af.path)}
                     title="Open preview to the side"
                     aria-label="Open preview to the side"
@@ -632,6 +632,12 @@
   .mdtoggle:hover {
     color: var(--color-ink);
     background: var(--color-surface-3);
+  }
+  /* il bottone "anteprima a fianco" sta ATTACCATO al toggle: solo il primo
+     bottone della coppia porta il margin-left:auto che li allinea a destra */
+  .mdtoggle.side {
+    margin-left: 6px;
+    padding: 0 6px;
   }
   .mdtoggle.on {
     color: var(--color-accent);

@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--rimozione-del-pannello-usage-scratchpad-in-txt-editor-che-si-stringe-da-solo-fix-riga-nera-del-terminale-v0810)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -2070,6 +2070,103 @@ fuori da `documentElement.outerHTML` (falso negativo). Fix post-collaudo: il bot
 anche lui il `margin-left:auto` di `.mdtoggle` → finiva all'estremo opposto del toggle (ora
 `.mdtoggle.side`, margine fisso). Build release OK (orbit.exe **5,85 MB**, MSI **3,59 MB**, NSIS
 **2,90 MB** — invariato: feature tutta frontend). **Rilasciato in v0.8.9.**
+
+---
+
+## Milestone 53 — rimozione del pannello Usage, scratchpad in .txt, editor che si stringe da solo, fix riga nera del terminale (v0.8.10)
+
+Prima tappa del piano concordato il 2026-10-06: M53 pulizia → M54 chat affiancate (divise per repo) →
+M55 status line di Claude configurabile da Orbit.
+
+### Rimozione del pannello Usage (M48–M50)
+Decisione dell'utente: il pannello "non funziona bene e non serve". La pagina claude.ai incapsulata
+chiedeva un login separato da quello della CLI (due sessioni indipendenti da tenere allineate), mentre
+per i limiti reali ora esiste una via ufficiale: Claude Code passa `rate_limits.five_hour` /
+`rate_limits.seven_day` (percentuale + reset, solo abbonamenti Pro/Max, dopo la prima risposta) al
+comando della **status line** — verificato sulla documentazione ufficiale. Li mostrerà la M55,
+direttamente nella barra di Claude. Rimossi:
+- frontend: `UsageIndicator.svelte` e `ClaudeAccounts.svelte` (−515 righe), il bottone in `StatusBar`,
+  `settings.claudeAccounts` (il valore già salvato in localStorage è ignorato e sparisce al primo salvataggio);
+- backend (`lib.rs`): `usage_panel_show/close/bounds/logout`, `claude_account`, `claude_logout_local`,
+  `watch_claude_account` con `AccountWatchState`;
+- **dipendenze** (gate "deps al minimo", qui in negativo): la feature `unstable` di `tauri` (serviva solo
+  a `Window::add_child`, la webview figlia) e le dipendenze dirette `webview2-com` / `windows-core`
+  (servivano solo a cancellare i cookie). Restano nell'albero come transitive di tauri.
+- Residuo innocuo: il cookie di login di claude.ai resta nel profilo WebView di Orbit, ma nessun codice
+  lo usa più.
+
+### Pulizia
+- Codice morto della vecchia vista Chats (`claude_sessions`, `session_preview`, `ClaudeSession`),
+  inutilizzato dalla M43: `lib.rs` 950 → 652 righe insieme al blocco Usage. Riunito il commento sulle
+  finestre flottanti, spezzato a metà dall'inserimento dei comandi di log.
+- `CLAUDE_SECTION` (il testo di *Update CLAUDE.md for Claude*) diceva ancora che le chat recenti si
+  riprendono dal menu Claude: rilanciare il comando avrebbe reintrodotto la frase sbagliata in CLAUDE.md.
+  Ora coincide con il CLAUDE.md attuale.
+
+### Scratchpad in testo semplice
+`.orbit/scratch.md` → `.orbit/scratch.txt` (richiesta utente): per appunti e prompt il Markdown non serve,
+il toggle anteprima e l'evidenziazione erano rumore. Migrazione al primo utilizzo (`scratch.ts`): se esiste
+solo il vecchio `.md` viene rinominato (contenuto intatto) e le tab aperte vengono riallineate con
+`renameOpenPaths`; se esistono entrambi non si tocca nulla. `.gitignore` ignora entrambi i nomi (il `.md`
+finché la migrazione non è avvenuta).
+
+### Area editor che si stringe da sola
+Richiesta utente: quando l'area editor non ha tab aperte si stringe alla larghezza minima (220 px) e il
+pannello terminale — le chat di Claude — si prende il resto; aprendo un file torna com'era.
+`layout.editorCollapsed` è derivato a runtime da un `$effect` in `App.svelte` e non è persistito:
+`terminalWidth` non viene mai toccato. Dettagli:
+- collasso con **400 ms di ritardo**, espansione immediata: all'avvio (`workspace.ready`) e durante lo
+  switch di repo (`resetDocs` → `loadSession`) i gruppi sono vuoti per un attimo, e il layout non deve
+  "pompare" — ogni cambio ridimensiona i PTY e fa ridisegnare Claude;
+- solo con una cartella aperta (senza cartella il benvenuto con i suggerimenti resta largo) e con il
+  pannello terminale visibile;
+- da collassata lo splitter è sostituito da uno spazio fisso (trascinarlo non avrebbe effetto visibile)
+  e il benvenuto si riduce al solo logo.
+
+### Fix: la "riga nera" in fondo al terminale
+Segnalata dall'utente (screenshot): una fascia nera sotto l'ultima riga del terminale, che a volte spariva
+ridimensionando la finestra. In M27 si era colorato il contenitore `.term` col fondo del tema, senza
+effetto. Due cause, trovate misurando il DOM via CDP:
+- **il FitAddon contava spazio inesistente**: calcola le righe sull'altezza del **genitore** di `.xterm`
+  letta con `getComputedStyle` (col `box-sizing: border-box` è padding incluso) e sottrae solo il padding
+  di `.xterm`. Il padding però stava sul genitore (`.term`, 6+6 px), quindi le righe erano calcolate su
+  12 px in più. Dipendeva dall'altezza: se il resto della divisione per l'altezza di riga superava i
+  12 px restava una striscia vuota, se era inferiore lo schermo sbordava e tagliava l'ultima riga. Per
+  questo "a volte spariva".
+  Ora xterm si apre in un div interno senza padding (`.term-fit`); il padding resta su `.term`.
+- **il vuoto era nero**: xterm 6 dà il colore del tema solo allo `.xterm-scrollable-element` che avvolge
+  le righe. Sotto c'è `.xterm-viewport`, che copre tutto `.xterm` e da `xterm.css` è `#000`: il colore
+  del contenitore (il fix di M27) era coperto. Ora il viewport ha il colore del tema. L'avanzo sotto
+  l'ultima riga, sempre meno di una riga, è dello stesso colore del fondo e non si vede.
+
+Effetto collaterale corretto: ora il FitAddon riserva davvero i 14 px della scrollbar (prima il padding
+orizzontale li compensava per caso), quindi 1–2 colonne in meno e la scrollbar non copre l'ultima colonna.
+Collaudo via CDP (istanza dev isolata): altezza del terminale variata px per px su 25 valori → mai sbordo,
+avanzo sempre in [0, altezza riga), colore nell'avanzo `rgb(30, 30, 30)` (= `#1e1e1e`). Il cambio di
+righe (33 → 32) cade esattamente dove previsto. Screenshot del caso peggiore (19 px di avanzo):
+fondo uniforme, nessun artefatto agli angoli. Vale anche per la finestra flottante (stesso componente).
+
+### Documentazione
+README e ARCHITECTURE senza Usage, con scratchpad e auto-collasso. Corrette le imprecisioni trovate
+rileggendo: ARCHITECTURE diceva ancora che lo switch di repo forza la vista Explorer (falso dalla M49) ed
+elencava i tipi di documento senza `activity`/`gitgraph`; nel README mancava `npm run test`; l'indice di
+queste NOTES si fermava alla M43; il chunk di avvio indicato (~492 KB) era fermo a una misura precedente.
+
+### Verifica
+`svelte-check` 0/0 (257 file), vitest 9/9, `cargo test` 32/32 senza warning (i comandi rimossi non avevano
+test), build frontend OK: chunk di avvio **521 KB** (174 KB gzip), xterm 343 KB, CodeMirror 76 KB.
+Collaudo nell'app reale via CDP, su un'istanza dev **isolata** (`WEBVIEW2_USER_DATA_FOLDER` separato, così
+il browser process dell'Orbit installato e in uso non viene toccato; progetto di prova con un vecchio
+`scratch.md`), finestra 1280 px:
+- avvio senza tab → editor 220 px, pannello 784 px, spazio fisso al posto dello splitter;
+- click sullo scratchpad → `scratch.md` rinominato in `.txt` con contenuto identico, tab "scratch.txt"
+  aperta come testo semplice, editor 564 px e pannello di nuovo a 440 px (larghezza salvata intatta);
+- chiusura della tab → ancora largo dopo 120 ms, collassato dopo 820 ms; la riapertura non migra nulla.
+
+Gli screenshot confermano il benvenuto ridotto al logo e Claude a tutta larghezza.
+**Attenzione nei collaudi futuri:** chiudere la finestra dev riscrive `windows-restore.json` nella config
+dir, condivisa con l'app installata (e lascia la sessione e il log del suo pid): fare backup e ripristino
+prima e dopo, come in questo giro. **Da rilasciare in v0.8.10.**
 
 ---
 

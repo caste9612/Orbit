@@ -34,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~5 MB binary, ~220 MB RAM at rest (mostly the shared system
-  WebView — Orbit's own Rust core is ~30 MB), and a ~492 KB startup chunk (≈168 KB gzipped).
+  WebView — Orbit's own Rust core is ~30 MB), and a ~521 KB startup chunk (≈174 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -175,25 +175,8 @@ cross-platform desktop app that weighs almost nothing.
   (resuming always restarts the whole session, so the chat is the natural unit). Clicking a unit in the
   timeline still opens its per‑unit **digest**. A small left panel lists your projects with **on/off
   toggles** (remembered) to hide noise, plus per‑project mini‑stats.
-- A **Usage** button in the status bar opens your **real Claude usage** — the official
-  `claude.ai/settings/usage` page with the **actual 5‑hour and weekly limit meters** — in an
-  **embedded panel** anchored above the status bar, like a popover. It is a plain browser view and
-  nothing more: no scripts injected, no data extracted, no credential reuse — ToS‑safe by
-  construction. Sign in once inside the panel and the session persists in the app's WebView
-  profile; click outside (or `Esc`, or the button again) to close. The button itself shows the
-  account **Claude Code (CLI) is signed in as** (read locally from `~/.claude.json`, updated
-  live when you `/login`), and a slim **header** above the page repeats it in full — so you spot
-  at a glance when the panel and the CLI are on different accounts (the two logins are
-  independent). **Log out** (header, or right‑click the button) signs the panel out by **clearing
-  its cookies locally** — no request to claude.ai, Orbit's own settings untouched — so you can
-  switch account even with the panel closed. You can also save the **emails of your accounts**
-  (addresses only, never credentials — "Manage accounts…" in the right‑click menu, with one‑click
-  add of the current CLI account): each saved address is a **copy‑to‑clipboard** menu entry, so
-  switching account is log out → paste the email into the login form → enter the emailed code.
-  It replaces the previous transcript‑based token/cost estimates, which could not reflect the
-  real limits.
-- A **Scratchpad** (📝 in the top bar) opens a persistent notes/prompts file (`.orbit/scratch.md`)
-  to jot prompts and reuse them.
+- A **Scratchpad** (📝 in the top bar) opens a persistent plain‑text notes/prompts file
+  (`.orbit/scratch.txt`) to jot prompts and reuse them.
 - **Attention when a terminal needs you** — when `claude` finishes a turn or waits for input (Orbit
   sets up Claude's `terminal_bell` for you), Orbit raises a **persistent, clickable** notification: a
   toast you can **click to jump straight to that terminal** (switching repo if needed), a **"Waiting (N)"
@@ -213,6 +196,8 @@ cross-platform desktop app that weighs almost nothing.
   don't all fit a **`…`** menu lists them; the top bar stays usable down to its minimum width. The
   repository list **and sessions are per‑window**: open windows don't share or overwrite each other's
   repo tabs, and the same folder can be open in two windows without their tabs/layout clobbering.
+- **Room for Claude**: when no file is open, the editor area shrinks to its minimum width by itself
+  and the terminal panel takes the space; open a file and the previous layout comes back.
 - **Remembers its window**: Orbit reopens at the same position, size and maximized state where you
   left it (restored to a connected monitor — never off-screen).
 - **Multiple instances** ("New window") for working on several projects at once — each window's
@@ -243,7 +228,7 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~4.0 MB |
 | NSIS setup | ~2.7 MB |
 | Frontend `dist/` | ~2.7 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~492 KB (≈168 KB gzipped) |
+| Startup JS chunk | ~521 KB (≈174 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own
@@ -324,7 +309,8 @@ npm run tauri build    # binary + installers in src-tauri/target/release
 
 ```bash
 npm run check                                    # Svelte/TS type-check (svelte-check)
-cargo test --manifest-path src-tauri/Cargo.toml  # backend unit tests (filesystem / search)
+npm run test                                     # frontend pure-logic unit tests (vitest)
+cargo test --manifest-path src-tauri/Cargo.toml  # backend unit tests
 ```
 
 ## Requirements

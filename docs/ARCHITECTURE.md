@@ -38,7 +38,7 @@ src-tauri/
   src/winsession.rs   # multi-window session: per-window registry, reopen-all + close-all, geometry (replaces winstate)
   tauri.conf.json     # window, bundle, productName "Orbit"
   capabilities/       # Tauri permission capabilities
-docs/                 # this doc + screenshot
+docs/                 # this doc + screenshots
 NOTES.md              # decision log (per milestone), Italian
 CLAUDE.md             # tells Claude Code the .orbit/run.json + .orbit/claude.json formats
 ```
@@ -57,7 +57,7 @@ Three kinds of frontend module, kept separate:
 
 | Module | Owns |
 |---|---|
-| `workspace` | open folder, document pool (kinds: file/diff/image/pdf), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), per‑group `previews` (md/html source ⇄ preview, default from `settings.mdMode`), `openPreviewToSide`, … |
+| `workspace` | open folder, document pool (kinds: file/diff/image/pdf/activity/gitgraph), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), per‑group `previews` (md/html source ⇄ preview, default from `settings.mdMode`), `openPreviewToSide`, … |
 | `folders` | the **open repositories** list for the top‑bar switcher — **per‑window**: in‑memory `$state` only (NOT global localStorage, which is shared across instances and caused clobbering), persisted in the active folder's session as `repos` and reseeded by `loadSession({repos:true})` at window startup; `addFolder`/`removeFolder`/`setFolders`/`openFromList`/`cycleRepo`/`selectRepoIndex` — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file") |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
@@ -71,10 +71,10 @@ Three kinds of frontend module, kept separate:
 | `codeIndex` | **project symbol index** (the "address book") from `scan_symbols`, cached in `.orbit/index/`: **Go to definition** (F12/Ctrl+click), **Project symbols** palette (Ctrl+T), the related‑bar context (`contextAt`), the **semantic‑overlay name sets** (`semSets`/`semIndex` → type & function names for the editor overlay), and the **back/forward nav history** (records jumps *and* file/tab switches; `nav` counts drive the top‑bar arrows) |
 | `keybindings` | central **command registry** + keyboard matcher/dispatch, with per‑preset keys (Orbit/VS/IntelliJ) **plus a user‑built `custom` keymap** (`settings.customKeys`, rebind per command) and the shortcuts‑reference panel; `keyStringFromEvent` captures a rebind, `conflictKeys` flags duplicates |
 | `activity` | **Activity** view: work units from `scan_activity` across all `~/.claude/projects` (prompt‑first segmentation in Rust); project on/off toggles `activityPrefs` (persisted, hides noise) + `openActivity`; live refresh via `watch_activity`→`activity-changed` |
-| `scratch` | one‑click persistent scratchpad (`.orbit/scratch.md`) for notes/prompts |
+| `scratch` | one‑click persistent plain‑text scratchpad (`.orbit/scratch.txt`) for notes/prompts; renames a legacy `scratch.md` on first use |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
 | `settings` | **theme** (4 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
-| `layout` | panel sizes/visibility + focused panel |
+| `layout` | panel sizes/visibility + focused panel + `editorCollapsed` (runtime only: no tabs open → the editor shrinks to its minimum width, see *Editor auto‑collapse*) |
 | `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; `switchFolder` swaps the active folder cleanly (keeps the window's repo list) |
 | `toast` | transient notifications, plus a **sticky, clickable `attention`** variant (`notifyAttention`/`dismissByKey`, coalesced by `key`) used by the Claude‑waiting notification |
 | `logs` | **diagnostic logs** (`log`/`logWarn`/`logError`): in‑memory ring buffer + batched on‑disk persistence (Rust `append_log`) + global error capture, all gated by `settings.logging` (default on); `LogViewer` overlay + export (copy / reveal file). Instruments clipboard/paste/terminal to diagnose issues (e.g. the double‑paste) |
@@ -96,7 +96,7 @@ cursor). The editor uses soft **line wrapping** (gutter stays correct).
 
 `Editor.svelte` (CodeMirror) and `Terminal.svelte` (xterm) are loaded through
 `LazyEditor.svelte` / `LazyTerminal.svelte` (dynamic `import()`), so the startup chunk stays
-lean (~492 KB; the ~338 KB xterm and ~75 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
+lean (~521 KB; the ~343 KB xterm and ~76 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
 `settings.webgl` (off by default). **marked + DOMPurify** are likewise lazy (`markdown.ts`
 imports them on first render), so the Markdown feature adds nothing to the startup payload.
 A small generic **`Lazy.svelte`** wrapper (`load={() => import("./X.svelte")}`, props forwarded) does
@@ -209,27 +209,7 @@ first paint loads only the Explorer + the active editor.
   per‑chat resume. The timeline's unit digest stays `UnitDigest.svelte`). The chat is the resume atom
   (`claude --resume` restarts whole sessions only). `openActivity` opens the panel + the board; **▶ resume**
   runs `claude --resume <id>` (switching to the unit's repo first). Supersedes the old Chats
-  view (`claude_sessions` stays in `lib.rs` but is now unused).
-- **Usage (real limits)** — the status‑bar **Usage** button toggles an embedded view of
-  `claude.ai/settings/usage` (the user's REAL 5h/weekly meters): `UsageIndicator.svelte` computes the
-  anchor rect (bottom‑right, above the status bar, logical px = DOM px) and calls `usage_panel_show`;
-  a `Backdrop` closes it on outside click (the native webview draws above the DOM, so the backdrop
-  only ever receives outside clicks), `Esc` closes too, window resize re‑invokes `usage_panel_bounds`.
-  A DOM **header strip** sits in the reserved 34px above the webview: it shows the account **Claude
-  Code (CLI) is signed in as** (`claude_account`, read locally from `~/.claude.json` — the panel's
-  claude.ai login is a separate session, so this makes a mismatch visible at a glance; the status‑bar
-  button shows its short form too, refreshed live by `watch_claude_account` → `claude-account-changed`),
-  plus **Log out**, open‑in‑browser and close; right‑clicking the button offers the same actions
-  without opening the panel, and lists the **saved account emails** (`settings.claudeAccounts`,
-  addresses only — each entry copies to the clipboard for the login form; `ClaudeAccounts.svelte`
-  manages the list, with one‑click add of the current CLI account). **Log out** = `claude_logout_local`, which **deletes the WebView
-  profile's cookies locally** (ICoreWebView2CookieManager on Windows; no network request, and
-  localStorage — where Orbit keeps its settings — is a separate store, untouched), then
-  `usage_panel_logout` reloads the page to the login form if the panel is open (on platforms without
-  the cookie API it falls back to navigating `claude.ai/logout`). Login persists in the app's WebView
-  profile. It's a plain embedded browser — no injected scripts, no data extraction, no credential
-  reuse (ToS‑safe; automating claude.ai or reusing its tokens is a documented ban risk). Replaces the
-  transcript‑based counters of M48–M49 (see NOTES M50).
+  view (removed).
 - **Git sync** — ahead/behind is computed locally with libgit2 (`git_upstream`, no network); the
   actual fetch/pull/push/merge run the `git` CLI in a terminal tab (reusing the user's git auth), so
   no openssl/libssh2 is pulled into the build.
@@ -252,8 +232,9 @@ first paint loads only the Explorer + the active editor.
   them as **inline tabs**. Switching reuses `persist.switchFolder`, so there's **no Rust and no refactor**
   of the single‑root model — one active repo at a time, not simultaneous multi‑root (deliberately; see
   NOTES M37). `switchFolder(path)`: autosaves dirty files when `settings.autosave` is on (else confirms before discarding), `saveSessionNow()`, `rootPath=null` (suspends
-  autosave), `resetDocs()`, `loadSession(path)`, then forces the **Explorer** view + visible sidebar
-  (deterministic on switch; startup still honors the saved view). It returns a `SwitchResult`
+  autosave), `resetDocs()`, `loadSession(path)`, then **keeps the current sidebar view and visibility**
+  (tab‑like: it neither forces Explorer nor applies the target repo's saved view — startup still honors
+  the saved view) and restores the repo's expanded Explorer tree (`snapshotExpanded`). It returns a `SwitchResult`
   (`switched`|`cancelled`|`failed`): if the folder is **gone** it restores the previous one (no empty
   window) and toasts, and the caller drops the dead entry — `openRoot` reads `read_dir` **before** touching
   `rootPath`, so a failed open never leaves half‑state.
@@ -269,6 +250,13 @@ first paint loads only the Explorer + the active editor.
   labels) — recovering ~185px so everything, *including the window's close button*, stays on screen down
   to the `minWidth: 720` (logical). The repo strip's `+` / `…` (the latter lists all repos when tabs
   overflow) sit **outside** the scrolling area, so they're always reachable.
+- **Editor auto‑collapse** — when no group has a tab (and a folder is open with the terminal panel
+  visible), an `$effect` in `App.svelte` sets `layout.editorCollapsed`: the editor area shrinks to its
+  220px minimum (`.editor-area.collapsed`, the welcome reduced to the logo), the terminal panel fills the
+  rest (`.terminal-panel.fill`) and the splitter between them is swapped for a fixed gap. Collapsing is
+  delayed 400 ms — at startup and during a repo switch the groups are empty for a moment, and every
+  layout change resizes the PTYs (Claude redraws) — while expanding is immediate. `terminalWidth` is
+  never touched, so opening a file restores the previous layout.
 - **Terminal links** — clicked path tokens resolve through `resolve_existing` (Rust): absolute, then
   relative to the terminal's cwd, then the project root — first that exists wins (works for binaries
   like images too); otherwise a "file not found" toast.
@@ -286,6 +274,13 @@ first paint loads only the Explorer + the active editor.
   after selecting). Terminal listeners live under one **`AbortController`** removed in `onDestroy`
   (hygiene); paste guards a disposed terminal + try/catch; auto copy‑on‑selection is silent on failure
   (explicit copy/paste surface it). Consumers: terminal, editor, explorer (copy path/name), wrapper composer.
+- **Terminal geometry** — `Terminal.svelte` opens xterm in an inner `.term-fit` div with **no padding**
+  (the padding lives on the outer `.term`): the FitAddon sizes rows/cols from the computed height of the
+  `.xterm` *parent* (padding included under `border-box`) minus only `.xterm`'s own padding, so a padded
+  parent made it count space that isn't there (a gap or a clipped last row, depending on the height).
+  The `.xterm-viewport` gets the theme background, because xterm 6 colors only the scrollable element that
+  wraps the rows, and `xterm.css` paints the viewport `#000` — the always‑present sub‑row remainder
+  below the last row was the old "black line".
 - **Terminal & floating windows** — PTYs live in the Rust backend keyed by `id`, so any webview just
   attaches via `pty-data-<id>` events + `pty_write` / `pty_resize`. "Pop out" opens a
   `term-float-<id>` webview (unique label per terminal → **several can float at once**; permitted by
@@ -332,25 +327,14 @@ frontend calls them with `invoke("name", {args})`. Areas:
 - **Session** (`lib.rs`): `load_state`/`save_state` (keyed per folder).
 - **Window** (`lib.rs` + `winsession.rs`): `open_new_window`; `winsession::register_window` (a window
   records its folder + geometry in the per‑window registry) and `winsession::close_all_windows`.
-- **Misc** (`lib.rs`): `reveal_path` (show a path in the OS file manager). (`claude_sessions` /
-  `session_preview` remain but are now **unused** — superseded by the Activity view.)
+- **Misc** (`lib.rs`): `reveal_path` (show a path in the OS file manager); `open_url` (open an
+  http/https link from the terminal in the system browser — other schemes are refused).
 - **Diagnostics** (`lib.rs`): `app_version`; `append_log(text)` (appends to `app_config_dir/logs/orbit-<pid>.log`,
   one file per process, rotated over ~2 MB); `log_file_path` — back the log system (`lib/state/logs.svelte.ts`).
 - **Activity** (`activity.rs`): `scan_activity(limit)` — scans ALL `~/.claude/projects/*/*.jsonl` and
   returns `WorkUnit[]` (prompt‑first segmentation; camelCase incl. files `{op,path,add,del,userModified}`,
   cmds, prompts, commit, kind, start/end, live); `watch_activity` — `notify` watcher on `~/.claude/projects`
   that emits a debounced **`activity-changed`** event for live refresh.
-- **Usage panel** (`lib.rs`): `usage_panel_show` / `usage_panel_close` / `usage_panel_bounds` /
-  `usage_panel_logout` — the claude.ai usage page as a **child webview** anchored in the main window
-  (Tauri's `unstable` cargo feature for `Window::add_child`; coordinates in logical px).
-  `claude_account` reads the CLI's current account from `~/.claude.json` (local file);
-  `watch_claude_account` watches that file (notify, non‑recursive on home, debounced) and emits
-  `claude-account-changed`; `claude_logout_local` deletes the WebView profile's cookies
-  (ICoreWebView2CookieManager via `webview2-com`/`windows-core`, both already in the dependency tree;
-  cfg(windows), other platforms return an error and the frontend falls back to navigating
-  `claude.ai/logout`). The panel commands are **async on purpose**: on Windows, creating a webview
-  from a sync command deadlocks (creation waits on a message pump the command blocks). The remote
-  page has **no IPC access** (its label is in no capability).
 - **Git** (`git.rs`): `git_status`, `git_diff`, `git_stage`, `git_unstage`, `git_commit`,
   `git_branches`, `git_checkout_branch`, `git_create_branch`, `git_discard`, `git_log`, `git_show`,
   `git_graph` (all branches, topological order, parents+refs — powers the Git Graph view; lane layout

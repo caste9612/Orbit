@@ -34,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~5 MB binary, ~220 MB RAM at rest (mostly the shared system
-  WebView — Orbit's own Rust core is ~30 MB), and a ~521 KB startup chunk (≈174 KB gzipped).
+  WebView — Orbit's own Rust core is ~30 MB), and a ~531 KB startup chunk (≈177 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -236,7 +236,7 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~3.5 MB |
 | NSIS setup | ~2.8 MB |
 | Frontend `dist/` | ~2.7 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~521 KB (≈174 KB gzipped) |
+| Startup JS chunk | ~531 KB (≈177 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own

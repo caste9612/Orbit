@@ -2265,7 +2265,9 @@ riquadro tolto (resta come scheda) → scheda trascinata sul bordo destro di un 
 inserita subito dopo) → editor di nuovo visibile. In ogni passo xterm resta dentro il suo riquadro. Dopo
 il passaggio al punteggio: 4 chat nel pannello stretto in griglia 2×2 da 385×348 px. Screenshot
 controllati. Build frontend OK: chunk di avvio **531 KB** (177 KB gzip), +10 KB perché il pannello
-terminale fa parte del caricamento iniziale. **Da rilasciare in v0.8.11.**
+terminale fa parte del caricamento iniziale. Build release OK: orbit.exe **5,74 MB**, MSI **3,50 MB**, NSIS
+**2,84 MB**, invariati rispetto alla v0.8.10 (feature tutta frontend). Prima del rilascio l'utente l'ha
+provata su un'istanza dev aperta sul repo. **Rilasciato in v0.8.11.**
 
 ---
 

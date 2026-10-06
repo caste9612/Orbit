@@ -96,7 +96,7 @@ cursor). The editor uses soft **line wrapping** (gutter stays correct).
 
 `Editor.svelte` (CodeMirror) and `Terminal.svelte` (xterm) are loaded through
 `LazyEditor.svelte` / `LazyTerminal.svelte` (dynamic `import()`), so the startup chunk stays
-lean (~521 KB; the ~343 KB xterm and ~76 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
+lean (~531 KB; the ~343 KB xterm and ~76 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
 `settings.webgl` (off by default). **marked + DOMPurify** are likewise lazy (`markdown.ts`
 imports them on first render), so the Markdown feature adds nothing to the startup payload.
 A small generic **`Lazy.svelte`** wrapper (`load={() => import("./X.svelte")}`, props forwarded) does

@@ -49,13 +49,18 @@
           "txt", "md", "markdown", "log", "json", "jsonc", "yaml", "yml", "toml", "ini",
           "conf", "csv", "xml", "html", "htm", "css", "scss", "sass", "less", "js", "mjs",
           "cjs", "jsx", "ts", "mts", "cts", "tsx", "svelte", "vue", "py", "rs", "go", "java",
-          "c", "h", "cpp", "hpp", "cs", "rb", "php", "sql", "sh", "bash", "ps1", "bat", "cmd",
+          "c", "h", "cpp", "hpp", "cs", "rb", "php", "sql",
           "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "pdf"
         ],
         "name": "Orbit document",
         "description": "Open in Orbit",
         "role": "Editor"
       }
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installerHooks": "./windows/hooks.nsh"
+      }
+    }
   }
 }

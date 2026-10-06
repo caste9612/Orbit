@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--rimozione-del-pannello-usage-scratchpad-in-txt-editor-che-si-stringe-da-solo-fix-riga-nera-del-terminale-v0810)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -2073,7 +2073,7 @@ anche lui il `margin-left:auto` di `.mdtoggle` → finiva all'estremo opposto de
 
 ---
 
-## Milestone 53 — rimozione del pannello Usage, scratchpad in .txt, editor che si stringe da solo, fix riga nera del terminale (v0.8.10)
+## Milestone 53 — via il pannello Usage, nuovo logo e rifiniture (v0.8.10)
 
 Prima tappa del piano concordato il 2026-10-06: M53 pulizia → M54 chat affiancate (divise per repo) →
 M55 status line di Claude configurabile da Orbit.
@@ -2145,6 +2145,42 @@ Collaudo via CDP (istanza dev isolata): altezza del terminale variata px per px 
 avanzo sempre in [0, altezza riga), colore nell'avanzo `rgb(30, 30, 30)` (= `#1e1e1e`). Il cambio di
 righe (33 → 32) cade esattamente dove previsto. Screenshot del caso peggiore (19 px di avanzo):
 fondo uniforme, nessun artefatto agli angoli. Vale anche per la finestra flottante (stesso componente).
+
+### Nuovo logo: "Orbita sfumata"
+Scelto dall'utente tra i loghi dei mockup UI (canvas "Orbit — direzioni UI", tavola "Logo"): pianeta
+sfumato blu→viola, anello inclinato e satellite. Sostituisce l'icona raster del pianeta con anello.
+- **Sorgente unica vettoriale**: `app-icon.svg` (1024 px: piastrella blu notte con bagliore e bordo
+  sottile, simbolo in scala 35 sulla griglia 24×24). `npx tauri icon app-icon.svg` genera le icone; nel
+  repo restano solo i 6 file versionati da sempre in `src-tauri/icons`. `app-icon.png` (README) è la
+  sua resa a 1024 px; `public/favicon.png` quella a 64 px.
+- **Tratto dell'anello**: nella prima resa era 1,6 (sulla griglia 24), per reggere i 16 px, ma a
+  1024 px risultava pesante; scelto 1,2 con opacità 0,8. Controllate a vista le rese a 1024, 32 e
+  16 px: a 32 l'anello si legge, a 16 resta il pianeta su piastrella.
+- **Nell'interfaccia** `Logo.svelte` disegna lo stesso simbolo in SVG inline, al posto della PNG da
+  128 px (`orbit-icon.png`, eliminata): nitido a ogni dimensione. Anello e satellite usano i colori
+  del tema (`--color-ink-muted`, `--color-ink`), quindi si leggono anche con Orbit Light. Il pianeta
+  resta nei colori del brand. Id del gradiente da `$props.id()`, perché il logo compare più volte nella
+  stessa pagina. Zero dipendenze nuove.
+
+### Associazioni dei file: niente più script
+Segnalazione dell'utente: il doppio clic su un `.bat` apriva Orbit invece di eseguirlo. Causa,
+verificata nel registro: per ogni estensione di `bundle.fileAssociations` l'installer NSIS di Tauri
+(`APP_ASSOCIATE`) non si limita ad "Apri con", ma diventa il gestore **predefinito**
+(`HKCU\Software\Classes\.ext` = "Orbit document", il valore precedente in "Orbit document_backup").
+Dove Windows non ha una scelta utente sopra, vince Orbit: `.bat`, `.cmd` e `.sh` erano suoi, mentre
+`.ps1` e `.txt` no, perché avevano una scelta utente. (`.disabled` non è mai stato associato da Orbit.)
+- Dall'elenco escono `bat`, `cmd`, `ps1`, `sh`, `bash`: gli script tornano a eseguirsi col doppio clic.
+- Hook NSIS `src-tauri/windows/hooks.nsh` (`NSIS_HOOK_POSTINSTALL`, via
+  `bundle.windows.nsis.installerHooks`) che ripulisce le chiavi lasciate da una versione precedente,
+  **solo** dove c'è il backup di Orbit: ripristina il gestore originale, oppure toglie il valore
+  predefinito così torna a valere quello di sistema. Serve perché l'aggiornamento da solo non basta:
+  il vecchio disinstallatore parte solo se si sceglie "disinstalla prima", e comunque riscrive il
+  backup (stringa **vuota** se non c'era nulla) invece di cancellare. Un predefinito vuoto in HKCU
+  nasconderebbe quello di sistema e lascerebbe il `.bat` senza programma.
+- Resta da decidere (prossime milestone): per le altre estensioni Orbit diventa comunque il
+  predefinito dove manca una scelta utente; "solo Apri con" (OpenWithProgids) richiederebbe
+  un'installazione delle associazioni scritta a mano. Anche `.py` e `.js` (eseguibili col doppio clic
+  se c'è l'interprete) restano associati.
 
 ### Documentazione
 README e ARCHITECTURE senza Usage, con scratchpad e auto-collasso. Corrette le imprecisioni trovate

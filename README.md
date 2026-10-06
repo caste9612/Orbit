@@ -63,8 +63,9 @@ cross-platform desktop app that weighs almost nothing.
   (VS Code's *reveal*).
 - **Quick Open** (`Ctrl/Cmd+P`) with fuzzy ranking, and full‑text **project search**.
 - **Drag in files**: drop files from your OS file manager onto the editor to open them.
-- On Windows, after install Orbit appears in a file's **"Open with"** menu, so you can open it
-  straight in Orbit.
+- On Windows, the installer registers Orbit for common **text, code, image and PDF** files, so it
+  shows up in their **"Open with"** menu. Scripts (`.bat`, `.cmd`, `.ps1`, `.sh`) are deliberately
+  left alone: double-clicking them still runs them.
 
 **Editor** (CodeMirror 6)
 - Lazy, multi-language syntax highlighting (~140 grammars loaded on demand, plus a dedicated

@@ -314,6 +314,10 @@ first paint loads only the Explorer + the active editor.
   `term-float-*` windows stay ephemeral. The window is created `visible: false` and shown after positioning.
 - **Open with (Windows)** — `bundle.fileAssociations` registers Orbit as a handler for common file
   types, so it shows up in the OS "Open with" menu (registered by the **installer**, not `tauri dev`).
+  Caveat: Tauri's NSIS installer makes Orbit the **default** handler of each listed extension wherever
+  Windows has no user choice, so script types (`bat`/`cmd`/`ps1`/`sh`/`bash`) are not listed — they must
+  keep running on double‑click — and `src-tauri/windows/hooks.nsh` (`NSIS_HOOK_POSTINSTALL`) removes the
+  keys an older version left for them, only where Orbit's `Orbit document_backup` value is present.
   `startup()` opens a file passed as the first CLI argument (`orbit.exe "<file>"`) and uses its
   parent folder as the workspace.
 
@@ -389,6 +393,11 @@ when the theme changes; its selection / active‑line / bracket read the `--cm-*
 **File glyphs.** `FileGlyph.svelte` renders a file's icon from `fileIcon()` (`util.ts`): a dedicated SVG
 **symbol** (`lang:*`) for languages with a strong identity, a **monogram tile** (`tile:*`, fill/text
 derived from the language color at a single switch point), or a line‑art `Icon` fallback for non‑code.
+
+**Brand mark.** `Logo.svelte` draws the logo (gradient planet, tilted ring, satellite) as inline SVG —
+the same mark as `app-icon.svg`, the single source of the OS icons: `npx tauri icon app-icon.svg`, then
+keep only the six files already tracked in `src-tauri/icons`. In the UI the ring and satellite take the
+theme's ink colors (readable on Orbit Light too); the planet keeps the brand gradient.
 
 ## Conventions
 

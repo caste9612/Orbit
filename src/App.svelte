@@ -199,6 +199,26 @@
     }
   });
 
+  // Area editor VUOTA (nessuna tab in nessun gruppo) → si stringe da sola alla larghezza minima e
+  // lascia lo spazio al pannello terminale (le chat di Claude); torna com'era appena si apre un file
+  // (`terminalWidth` non viene toccato). Il collasso ha un piccolo ritardo: all'avvio e durante lo
+  // switch di repo i gruppi restano vuoti per un attimo e il layout non deve "pompare" (con un
+  // ridimensionamento inutile dei PTY e il ridisegno di Claude). L'espansione invece è immediata.
+  $effect(() => {
+    if (isFloatingTerminal) return;
+    const empty =
+      workspace.ready &&
+      !!workspace.rootPath &&
+      layout.terminalVisible &&
+      workspace.groups.every((g) => g.tabs.length === 0);
+    if (!empty) {
+      layout.editorCollapsed = false;
+      return;
+    }
+    const t = setTimeout(() => (layout.editorCollapsed = true), 400);
+    return () => clearTimeout(t);
+  });
+
   onMount(async () => {
     loadSettings(); // applica font/dimensione/accento/caret (anche nella finestra flottante)
     void initLogs(); // log diagnostici: versione app + cattura errori globali (gated dal toggle)
@@ -418,7 +438,12 @@
       <EditorArea />
 
       {#if layout.terminalVisible}
-        <Splitter orientation="vertical" onResize={resizeTerminal} />
+        {#if layout.editorCollapsed}
+          <!-- editor vuoto e collassato: il pannello riempie da solo, niente splitter da trascinare -->
+          <div class="gap"></div>
+        {:else}
+          <Splitter orientation="vertical" onResize={resizeTerminal} />
+        {/if}
         <TerminalPanel />
       {/if}
     </div>
@@ -468,6 +493,9 @@
     padding: 4px;
     background: var(--color-bg);
     overflow: hidden; /* niente sovrapposizioni se i pannelli non entrano */
+  }
+  .gap {
+    flex: 0 0 4px; /* stessa larghezza dello Splitter verticale */
   }
   .floatshell {
     height: 100%;

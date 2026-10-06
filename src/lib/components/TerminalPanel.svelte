@@ -136,7 +136,13 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<section class="terminal-panel" class:focused={layout.focusPanel === "terminal"} style="width:{layout.terminalWidth}px" onpointerdown={() => setFocusPanel("terminal")}>
+<section
+  class="terminal-panel"
+  class:focused={layout.focusPanel === "terminal"}
+  class:fill={layout.editorCollapsed}
+  style="width:{layout.terminalWidth}px"
+  onpointerdown={() => setFocusPanel("terminal")}
+>
   <header class="head">
     <div class="tabs">
       {#each visibleTabs as t (t.id)}
@@ -206,6 +212,10 @@
   }
   .terminal-panel.focused {
     border-color: var(--color-accent);
+  }
+  /* editor senza tab (collassato al minimo): il pannello si prende tutto lo spazio restante */
+  .terminal-panel.fill {
+    flex: 1 1 auto;
   }
   .head {
     height: 30px;

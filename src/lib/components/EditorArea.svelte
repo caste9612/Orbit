@@ -208,7 +208,12 @@
 {/snippet}
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<section class="editor-area" class:focused={layout.focusPanel === "editor"} onpointerdown={() => setFocusPanel("editor")}>
+<section
+  class="editor-area"
+  class:focused={layout.focusPanel === "editor"}
+  class:collapsed={layout.editorCollapsed}
+  onpointerdown={() => setFocusPanel("editor")}
+>
   {#if workspace.groups.length === 0}
     <div class="surface center">{@render welcome()}</div>
   {:else}
@@ -433,6 +438,20 @@
   }
   .editor-area.focused {
     border-color: var(--color-accent);
+  }
+  /* nessuna tab aperta: l'area si stringe alla larghezza minima e lascia lo spazio al pannello
+     terminale (layout.editorCollapsed, deciso in App). Il benvenuto si compatta al solo logo. */
+  .editor-area.collapsed {
+    flex: 0 0 220px;
+  }
+  .editor-area.collapsed .mark {
+    height: auto;
+    width: 150px;
+    opacity: 0.7;
+  }
+  .editor-area.collapsed .tagline,
+  .editor-area.collapsed .hints {
+    display: none;
   }
 
   .groups {

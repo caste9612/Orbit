@@ -11,6 +11,9 @@ export const layout = $state({
   terminalVisible: true,
   terminalWidth: 440, // il terminale è docked a destra
   focusPanel: "editor" as FocusPanel, // pannello con focus (bordo-accento)
+  // area editor senza tab → stretta alla larghezza minima, il pannello terminale si prende il resto.
+  // Derivato a runtime (effetto in App.svelte), NON persistito: `terminalWidth` resta quello scelto.
+  editorCollapsed: false,
 });
 
 /** Segna quale pannello ha il focus (per il bordo-accento). */

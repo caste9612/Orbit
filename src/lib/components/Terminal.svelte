@@ -72,7 +72,8 @@
     brightWhite: "#ffffff",
   };
 
-  let host: HTMLDivElement;
+  let host: HTMLDivElement; // contenitore col padding: listener, ResizeObserver, test "tab nascosta"
+  let fitHost: HTMLDivElement; // genitore DIRETTO di .xterm, senza padding (vedi CSS e fitSafe)
   let term: Terminal | undefined;
   let fit: FitAddon | undefined;
   let unlistenData: UnlistenFn | undefined;
@@ -213,7 +214,12 @@
     });
     fit = new FitAddon();
     term.loadAddon(fit);
-    term.open(host);
+    // Il FitAddon calcola le righe sull'altezza del GENITORE di .xterm presa con getComputedStyle (cioè
+    // padding INCLUSO, col box-sizing border-box) e sottrae solo il padding di .xterm. Con xterm aperto
+    // direttamente nel contenitore col padding contava 12px inesistenti → righe sbagliate: a seconda
+    // dell'altezza restava una striscia sotto l'ultima riga o l'ultima riga veniva tagliata. Per questo
+    // xterm si apre in un div interno senza padding.
+    term.open(fitHost);
     // GPU rendering (WebGL) opzionale, default OFF: import dinamico per non pesare sul bundle
     if (settings.webgl) {
       try {
@@ -400,7 +406,9 @@
   });
 </script>
 
-<div class="term" bind:this={host}></div>
+<div class="term" bind:this={host}>
+  <div class="term-fit" bind:this={fitHost}></div>
+</div>
 
 <style>
   .term {
@@ -408,11 +416,22 @@
     width: 100%;
     box-sizing: border-box;
     padding: 6px 4px 6px 10px;
-    /* uguale allo sfondo del tema xterm: il resto sotto l'ultima riga non si vede */
-    background: #1e1e1e;
+    background: #1e1e1e; /* = theme.background */
+  }
+  /* genitore di .xterm SENZA padding: il FitAddon misura questo (vedi onMount) */
+  .term-fit {
+    height: 100%;
+    width: 100%;
   }
   :global(.term .xterm) {
     height: 100%;
+  }
+  /* Sotto l'ultima riga avanza sempre un po' di spazio (meno di una riga). xterm 6 dà il colore del
+     tema solo allo scrollable element che avvolge le righe; lì sotto si vede il .xterm-viewport, che
+     xterm.css colora #000 → era la "riga nera" in fondo al terminale (M27 aveva colorato il contenitore,
+     che però è coperto dal viewport). */
+  :global(.term .xterm .xterm-viewport) {
+    background-color: #1e1e1e; /* = theme.background */
   }
   /* xterm usa una <textarea> nascosta per l'input: il browser vi disegna il PROPRIO caret,
      che appare come un "secondo cursore" (e resta visibile/in movimento anche quando il

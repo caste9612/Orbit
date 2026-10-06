@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Logo di Orbit ("Orbita sfumata", scelto dai mockup UI del 2026-10-06): pianeta sfumato
+       blu→viola, anello inclinato e satellite su una piastrella blu notte. Sorgente unica delle
+       icone dell'app: `npx tauri icon app-icon.svg` (src-tauri/icons) e di app-icon.png.
+       Il simbolo è lo stesso di src/lib/components/Logo.svelte (griglia 24×24, qui scala 35),
+       con l'anello un po' più spesso perché resti visibile a 16–32 px nella barra delle applicazioni. -->
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101a3f"/>
+      <stop offset="1" stop-color="#1d1450"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.28" cy="0.22" r="0.85">
+      <stop offset="0" stop-color="#4c8dff" stop-opacity="0.32"/>
+      <stop offset="0.6" stop-color="#4c8dff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="planet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4c8dff"/>
+      <stop offset="1" stop-color="#7c5cff"/>
+    </linearGradient>
+  </defs>
+  <rect x="72" y="72" width="880" height="880" rx="196" fill="url(#tile)"/>
+  <rect x="72" y="72" width="880" height="880" rx="196" fill="url(#glow)"/>
+  <rect x="76" y="76" width="872" height="872" rx="192" fill="none" stroke="#8494ff" stroke-opacity="0.28" stroke-width="8"/>
+  <g transform="translate(512 512) scale(35) translate(-12 -12)">
+    <ellipse cx="12" cy="12" rx="10.8" ry="4.3" fill="none" stroke="#b3bce3" stroke-opacity="0.8" stroke-width="1.2" transform="rotate(-28 12 12)"/>
+    <circle cx="12" cy="12" r="4.6" fill="url(#planet)"/>
+    <circle cx="20.6" cy="7.5" r="1.7" fill="#eef0fa"/>
+  </g>
+</svg>

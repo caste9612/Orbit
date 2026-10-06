@@ -120,6 +120,13 @@ cross-platform desktop app that weighs almost nothing.
 **Terminal** (xterm.js + a real PTY, optional WebGL)
 - Docked on the right, with **multiple tabs** and shell selection (PowerShell, cmd, Git Bash,
   WSL, bash/zsh…).
+- **Chats side by side**: up to four Claude chats or terminals in the panel at once, per repository.
+  Open them from the **Split** button (new Claude, new terminal, or another tab to the side), from the
+  Claude menu (*Open Claude to the side*), from the Activity *Chats* lens (*To the side*), or drag a tab
+  onto a pane — onto its center to show it there, near an edge to add it on that side. The layout adapts
+  to the space (side by side, 2×2 grid or stacked — or force one), each pane has a header (zoom, pop out,
+  remove from the split: the terminal stays as a tab), and one click gives the panel the whole window.
+  Nothing restarts: a chat keeps running and keeps its history when it moves.
 - **Clickable links** in the output — **file paths** open at the line (relative paths resolve against the
   terminal's folder or the project root), and **http(s) URLs** open in your browser (handy for the Claude
   auth link, even when it wraps across lines).

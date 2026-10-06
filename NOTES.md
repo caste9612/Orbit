@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -2208,6 +2208,64 @@ Build release OK: orbit.exe **5,73 MB**, MSI **3,50 MB**, NSIS **2,84 MB**, risp
 −0,06 MB rispetto alla v0.8.9 (via la feature `unstable` e le dipendenze del pannello). Installer controllato
 sugli script generati: l'`installer.nsi` include l'hook e lo chiama dopo l'installazione; MSI e NSIS
 associano 49 estensioni e nessuno script. **Rilasciato in v0.8.10.**
+
+---
+
+## Milestone 54 — chat affiancate nel pannello terminale (v0.8.11)
+
+Seconda tappa del piano del 2026-10-06: vedere più chat di Claude insieme, **divise per repo** (decisione
+dell'utente). La status line di Claude configurabile, prevista come M55, è stata annullata dall'utente.
+
+### Come si usa
+- Fino a **4 riquadri** nel pannello terminale. Ogni repo ha i suoi: cambiando repo si ritrova la sua
+  disposizione.
+- Si aprono dal bottone **Split** nella testata del pannello (*New Claude to the side*, *New terminal to
+  the side*, le schede già aperte in *Show to the side*, e la scelta *Layout*: Automatic / Side by side /
+  Stacked), dal menu Claude (*Open Claude to the side*), dalla lente Chats di Attività (*To the side*
+  accanto a *Resume this chat*), oppure **trascinando una scheda** su un riquadro: al centro la mostra lì,
+  vicino a un bordo la affianca da quel lato (una scheda già visibile si sposta).
+- Ogni riquadro ha una **testata**: titolo, pallino d'attesa, ingrandisci (gli altri restano vivi),
+  finestra flottante e "togli dallo split" (il terminale resta tra le schede).
+- Il **riquadro attivo** è quello col focus (click dentro o sulla testata). Una scheda non visibile
+  cliccata, o una nuova scheda (+), va nel riquadro attivo.
+- **Pannello a tutta larghezza**: bottone nella testata del pannello. L'editor resta montato ma nascosto
+  (`display:none`), così non perde stato; il flag e la scelta di layout sono salvati in sessione.
+- **"Claude ti aspetta"**: se quel riquadro è già visibile e Orbit è a fuoco, pulsa solo la sua testata
+  (e la scheda), senza toast.
+
+### Tecnica
+- **Nessun rimontaggio.** Tutti i terminali erano già montati nella stessa superficie, nascosti con
+  `display:none`. La superficie ora è una CSS grid: ai terminali visibili `placement()` assegna
+  `grid-column`/`grid-row`, gli altri restano nascosti (e `fitSafe` li salta). Claude non si interrompe,
+  lo storico resta, e il resize dei PTY lo fanno i ResizeObserver già presenti in `Terminal.svelte`.
+- **Logica pura** in `terminalLayout.ts` (`gridFor`, `addPane`, `movePane`, `removePane`,
+  `replacePane`), testata con vitest come `shelfRules.ts`.
+- **Disposizione automatica a punteggio.** La prima versione usava regole fisse ("affiancati se ogni
+  riquadro resta largo 480 px, altrimenti impilati"): nel collaudo, 4 chat nel pannello stretto
+  finivano impilate in strisce da 172 px, circa 7 righe, inutilizzabili per Claude. Ora `gridFor`
+  confronta le disposizioni possibili (affiancati; griglia, cioè con 3 il primo alto a sinistra e con 4
+  la 2×2; impilati) e sceglie quella in cui il riquadro più piccolo resta più vicino a 480×260 px
+  (punteggio `min(min(w/480,1), min(h/260,1))`); a parità vince affiancati, poi griglia, poi impilati.
+- **Stato** in `terminals.svelte.ts`: `panes` per repo (chiave `rootKey`) e `zoomId`. `activate()`
+  mantiene l'invariante "`activeId` è sempre visibile"; `dropFromPanes` pulisce alla chiusura o
+  all'estrazione in finestra flottante; `syncActiveTerminalToRoot` riporta l'attivo dentro i riquadri
+  della repo.
+- **Drag** pointer-based come le schede dell'editor (con `dragDropEnabled` l'HTML5 DnD non funziona):
+  `elementFromPoint` sul riquadro, la zona è il bordo più vicino se entro il 25%, altrimenti il centro.
+- Zero dipendenze nuove; icone `columns`/`rows`/`grid`/`maximize`/`minimize` in `Icon.svelte`.
+- Niente scorciatoie da tastiera per ora: con il focus nel terminale, una combinazione Ctrl+lettera
+  rischierebbe di arrivare anche al PTY come carattere di controllo.
+
+### Verifica
+`svelte-check` 0/0 (259 file), vitest 21/21 (12 nuovi), `cargo test` invariato (nessuna modifica Rust).
+Collaudo via CDP su istanza dev isolata (stessa procedura della M53, config condivisa salvata e
+ripristinata): un terminale → due impilati nel pannello da 784 px → a tutta larghezza due affiancati
+(497 px) → tre con il primo alto a sinistra → quattro in griglia 2×2 → ingrandimento e ripristino →
+riquadro tolto (resta come scheda) → scheda trascinata sul bordo destro di un riquadro (zona evidenziata,
+inserita subito dopo) → editor di nuovo visibile. In ogni passo xterm resta dentro il suo riquadro. Dopo
+il passaggio al punteggio: 4 chat nel pannello stretto in griglia 2×2 da 385×348 px. Screenshot
+controllati. Build frontend OK: chunk di avvio **531 KB** (177 KB gzip), +10 KB perché il pannello
+terminale fa parte del caricamento iniziale. **Da rilasciare in v0.8.11.**
 
 ---
 

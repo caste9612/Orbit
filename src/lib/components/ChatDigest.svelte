@@ -58,7 +58,8 @@
     return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   }
 
-  async function resume() {
+  /** `side`: riprende la chat in un riquadro accanto a quello attivo (chat affiancate). */
+  async function resume(side = false) {
     const u = newest;
     if (!u?.sessionId) return;
     if (u.repo && u.repo !== workspace.rootPath) {
@@ -66,7 +67,7 @@
       await openFromList(u.repo); // porta sul repo della chat (drop se sparito)
       if (workspace.rootPath !== u.repo) return; // switch fallito
     }
-    await resumeClaude(u.sessionId);
+    await resumeClaude(u.sessionId, { side });
   }
 </script>
 
@@ -98,7 +99,10 @@
         <Icon name="git-commit" size={12} strokeWidth={1.7} />
         {totals.commits} {totals.commits === 1 ? "commit" : "commits"}
       </span>
-      <button class="resume" onclick={resume}><Icon name="play" size={12} strokeWidth={2} />Resume this chat</button>
+      <button class="resume" onclick={() => resume()}><Icon name="play" size={12} strokeWidth={2} />Resume this chat</button>
+      <button class="resume side" title="Resume it in a pane next to the current chat" onclick={() => resume(true)}>
+        <Icon name="columns" size={12} strokeWidth={2} />To the side
+      </button>
     </div>
 
     <section>
@@ -240,6 +244,12 @@
   }
   .resume:hover {
     filter: brightness(1.08);
+  }
+  .resume.side {
+    margin-left: 0;
+    background: transparent;
+    border: 1px solid rgba(var(--accent-rgb), 0.55);
+    color: var(--color-accent);
   }
   section {
     margin-top: 20px;

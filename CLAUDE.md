@@ -56,8 +56,8 @@ a `.orbit/claude.json`: Orbit ricarica il menu automaticamente.
 ### Cosa offre Orbit (per orientarti)
 - **Editor** multi-file con *split view*; *Vai al simbolo* (Ctrl/Cmd+Shift+O); anteprima Markdown;
   viewer inline per **immagini e PDF**; si trascinano file da Esplora risorse per aprirli.
-- **Terminale** integrato (più tab, scelta shell) con **finestre flottanti** multiple; i percorsi
-  nell'output sono cliccabili (anche relativi).
+- **Terminale** integrato (più tab, scelta shell) con **finestre flottanti** multiple e fino a 4
+  chat **affiancate** per repo (bottone *Split*); i percorsi nell'output sono cliccabili (anche relativi).
 - **Git** locale: stato, diff, stage/unstage, commit, branch, cronologia, indicatore *ahead/behind*;
   fetch/pull/push/merge girano nel terminale (riusano la tua autenticazione git).
 - **Esegui ▶**: comandi da `.orbit/run.json` (vedi la sezione dedicata).

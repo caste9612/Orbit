@@ -170,13 +170,14 @@ async function ensureBellChannel(root: string) {
   }
 }
 
-/** Apre una tab del terminale nella radice del progetto e avvia Claude (interattivo). */
-export async function launchClaude(prompt?: string, title = "Claude") {
+/** Apre una tab del terminale nella radice del progetto e avvia Claude (interattivo). Con
+ *  `side` la chat si apre in un riquadro accanto a quello attivo (chat affiancate, M54). */
+export async function launchClaude(prompt?: string, title = "Claude", opts: { side?: boolean } = {}) {
   const root = workspace.rootPath;
   if (!root) return;
   await ensureBellChannel(root); // abilita la bell PRIMA di avviare claude (la legge all'avvio)
   layout.terminalVisible = true;
-  addTerminal({ title, cwd: root, initCommand: buildCommand(prompt) });
+  addTerminal({ title, cwd: root, initCommand: buildCommand(prompt), side: opts.side });
 }
 
 export function runShortcut(s: ClaudeShortcut) {
@@ -248,12 +249,12 @@ export function removeWrapper(index: number) {
 }
 
 /** Riprende una sessione Claude esistente in una tab del terminale (`claude --resume <id>`). */
-export async function resumeClaude(id: string) {
+export async function resumeClaude(id: string, opts: { side?: boolean } = {}) {
   const root = workspace.rootPath;
   if (!root || !/^[A-Za-z0-9-]+$/.test(id)) return; // id sessione = UUID: niente injection
   await ensureBellChannel(root);
   layout.terminalVisible = true;
-  addTerminal({ title: "Claude · resume", cwd: root, initCommand: `${buildCommand()} --resume ${id}` });
+  addTerminal({ title: "Claude · resume", cwd: root, initCommand: `${buildCommand()} --resume ${id}`, side: opts.side });
 }
 
 const TEMPLATE = JSON.stringify(
@@ -306,8 +307,8 @@ const CLAUDE_SECTION = [
   "### Cosa offre Orbit (per orientarti)",
   "- **Editor** multi-file con *split view*; *Vai al simbolo* (Ctrl/Cmd+Shift+O); anteprima Markdown;",
   "  viewer inline per **immagini e PDF**; si trascinano file da Esplora risorse per aprirli.",
-  "- **Terminale** integrato (più tab, scelta shell) con **finestre flottanti** multiple; i percorsi",
-  "  nell'output sono cliccabili (anche relativi).",
+  "- **Terminale** integrato (più tab, scelta shell) con **finestre flottanti** multiple e fino a 4",
+  "  chat **affiancate** per repo (bottone *Split*); i percorsi nell'output sono cliccabili (anche relativi).",
   "- **Git** locale: stato, diff, stage/unstage, commit, branch, cronologia, indicatore *ahead/behind*;",
   "  fetch/pull/push/merge girano nel terminale (riusano la tua autenticazione git).",
   "- **Esegui ▶**: comandi da `.orbit/run.json` (vedi la sezione dedicata).",

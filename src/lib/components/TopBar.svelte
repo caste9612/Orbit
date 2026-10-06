@@ -151,6 +151,7 @@
   function claudeMenuItems(): MenuItem[] {
     const items: MenuItem[] = [
       { label: "Open Claude here", icon: "sparkles", onClick: () => launchClaude() },
+      { label: "Open Claude to the side", icon: "columns", onClick: () => launchClaude(undefined, "Claude", { side: true }) },
     ];
     if (claude.shortcuts.length) {
       items.push({ label: "Prompts", header: true, separatorBefore: true });

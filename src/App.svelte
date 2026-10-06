@@ -438,7 +438,9 @@
       <EditorArea />
 
       {#if layout.terminalVisible}
-        {#if layout.editorCollapsed}
+        {#if layout.terminalMaximized}
+          <!-- pannello a tutta larghezza (chat affiancate): editor nascosto ma montato, niente divisore -->
+        {:else if layout.editorCollapsed}
           <!-- editor vuoto e collassato: il pannello riempie da solo, niente splitter da trascinare -->
           <div class="gap"></div>
         {:else}

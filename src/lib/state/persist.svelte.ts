@@ -7,6 +7,7 @@ import { workspace, fileByPath, restoreGroups, resetDocs, autosaveAll } from "./
 import { settings } from "./settings.svelte";
 import { openRoot, snapshotExpanded } from "./explorer.svelte";
 import { layout, type SidebarView } from "./layout.svelte";
+import type { SplitMode } from "./terminalLayout";
 import { syncActiveTerminalToRoot } from "./terminals.svelte";
 import { folders, setFolders } from "./folders.svelte";
 import { notify } from "./toast.svelte";
@@ -43,6 +44,8 @@ interface Session {
     sidebarWidth: number;
     terminalVisible: boolean;
     terminalWidth: number;
+    terminalMaximized?: boolean; // M54
+    termSplit?: SplitMode; // M54
   };
 }
 
@@ -68,6 +71,8 @@ function serialize(): string {
       sidebarWidth: layout.sidebarWidth,
       terminalVisible: layout.terminalVisible,
       terminalWidth: layout.terminalWidth,
+      terminalMaximized: layout.terminalMaximized,
+      termSplit: layout.termSplit,
     },
   };
   return JSON.stringify(data);
@@ -120,6 +125,9 @@ export async function loadSession(
     layout.sidebarWidth = s.layout.sidebarWidth ?? layout.sidebarWidth;
     layout.terminalVisible = s.layout.terminalVisible ?? layout.terminalVisible;
     layout.terminalWidth = s.layout.terminalWidth ?? layout.terminalWidth;
+    layout.terminalMaximized = s.layout.terminalMaximized === true;
+    const sp = s.layout.termSplit;
+    layout.termSplit = sp === "columns" || sp === "rows" ? sp : "auto";
   }
 
   const root = s.root ?? rootHint ?? null;

@@ -82,6 +82,12 @@
     crosshair: `<circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/>`,
     // collapse all (chiude tutte le cartelle dell'albero) — chevron convergenti
     "collapse-all": `<path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/>`,
+    // chat affiancate (M54): split, disposizioni, pannello a tutta larghezza
+    columns: `<rect width="18" height="16" x="3" y="4" rx="2"/><path d="M12 4v16"/>`,
+    rows: `<rect width="18" height="16" x="3" y="4" rx="2"/><path d="M3 12h18"/>`,
+    grid: `<rect width="18" height="16" x="3" y="4" rx="2"/><path d="M12 4v16"/><path d="M3 12h18"/>`,
+    maximize: `<path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/>`,
+    minimize: `<path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/>`,
     // pin "sempre in primo piano" (toggle nella finestra flottante del terminale)
     pin: `<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>`,
   };

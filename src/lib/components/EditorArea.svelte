@@ -212,6 +212,7 @@
   class="editor-area"
   class:focused={layout.focusPanel === "editor"}
   class:collapsed={layout.editorCollapsed}
+  class:hidden={layout.terminalMaximized && layout.terminalVisible}
   onpointerdown={() => setFocusPanel("editor")}
 >
   {#if workspace.groups.length === 0}
@@ -451,6 +452,10 @@
   }
   .editor-area.collapsed .tagline,
   .editor-area.collapsed .hints {
+    display: none;
+  }
+  /* pannello terminale a tutta larghezza (chat affiancate): l'editor resta montato, solo nascosto */
+  .editor-area.hidden {
     display: none;
   }
 

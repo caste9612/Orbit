@@ -5,9 +5,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
 import { layout } from "./layout.svelte";
 import { settings } from "./settings.svelte";
-import { notifyAttention, dismissByKey } from "./toast.svelte";
+import { notify, notifyAttention, dismissByKey } from "./toast.svelte";
 import { workspace } from "./workspace.svelte";
 import { basename } from "../util";
+import { addPane, movePane, removePane, replacePane, MAX_PANES } from "./terminalLayout";
 
 export interface TermSession {
   id: string;
@@ -27,20 +28,48 @@ export const terminals = $state({
   list: [] as TermSession[],
   activeId: null as string | null,
   focusedId: null as string | null, // terminale col focus REALE (textarea xterm), non solo finestra
+  // Chat affiancate (M54): per repo (chiave = rootKey) i terminali visibili INSIEME, in ordine.
+  // Meno di 2 = scheda singola (si vede solo l'attivo). Il riquadro attivo è sempre `activeId`.
+  panes: {} as Record<string, string[]>,
+  zoomId: null as string | null, // riquadro ingrandito temporaneamente (gli altri restano vivi)
 });
 
 // Scheda attiva RICORDATA per repo (chiave = root path): cambiando repo si ripristina quella giusta.
 const activeByRoot: Record<string, string> = {};
 const sameRoot = (a: string | null, b: string | null) => a === b;
 
+/** Chiave per repo dei riquadri (una cartella non aperta = ""). */
+export const rootKey = (root: string | null) => root ?? "";
+
+/** Riquadri affiancati della repo `root` ([] = nessuno split). */
+export function panesOf(root: string | null): string[] {
+  return terminals.panes[rootKey(root)] ?? [];
+}
+
+function setPanes(root: string | null, next: string[]) {
+  terminals.panes[rootKey(root)] = next;
+}
+
+/** Il terminale `id` è visibile adesso nel pannello? (scheda attiva, o uno dei riquadri affiancati) */
+export function isShown(id: string): boolean {
+  const t = terminals.list.find((s) => s.id === id);
+  if (!t || !sameRoot(t.root, workspace.rootPath)) return false;
+  if (terminals.zoomId) return terminals.zoomId === id;
+  const panes = panesOf(t.root);
+  return panes.length >= 2 ? panes.includes(id) : terminals.activeId === id;
+}
+
 export interface NewTerminal {
   shell?: string | null;
   title?: string;
   cwd?: string | null;
   initCommand?: string | null;
+  /** true = si apre in un nuovo riquadro accanto a quello attivo (chat affiancate). */
+  side?: boolean;
 }
 
-/** Crea una nuova tab terminale e la rende attiva. Ritorna l'id. */
+/** Crea una nuova tab terminale e la rende attiva. Ritorna l'id. Con `side` la affianca a quella
+ *  attiva; altrimenti, se c'è uno split, prende il posto del riquadro attivo (come una scheda). */
 export function addTerminal(opts: NewTerminal = {}): string {
   counter += 1;
   const id = `term-${counter}`;
@@ -56,9 +85,87 @@ export function addTerminal(opts: NewTerminal = {}): string {
     attach: false,
     needsAttention: false,
   });
+  if (opts.side) splitWith(id);
+  else activate(id);
+  return id;
+}
+
+/** Rende `id` la scheda attiva della sua repo; con uno split in corso, se non è già visibile prende
+ *  il posto del riquadro attivo (la scheda sostituita resta aperta tra le tab). */
+function activate(id: string) {
+  const t = terminals.list.find((s) => s.id === id);
+  const root = t?.root ?? workspace.rootPath;
+  const panes = panesOf(root);
+  if (panes.length >= 2 && !panes.includes(id) && terminals.activeId && panes.includes(terminals.activeId)) {
+    setPanes(root, replacePane(panes, terminals.activeId, id));
+  }
+  if (terminals.zoomId && terminals.zoomId !== id) terminals.zoomId = null;
   terminals.activeId = id;
   if (root) activeByRoot[root] = id;
-  return id;
+}
+
+/** Affianca `id` al riquadro attivo (o ad `anchor`, prima o dopo). Oltre il massimo lo mostra nel
+ *  riquadro attivo e avvisa. */
+export function splitWith(id: string, anchor: string | null = null, before = false) {
+  const t = terminals.list.find((s) => s.id === id);
+  if (!t) return;
+  const panes = panesOf(t.root);
+  if (anchor && anchor !== id && panes.includes(id)) {
+    // già visibile: drag sul bordo di un altro riquadro = spostalo lì
+    setPanes(t.root, movePane(panes, id, anchor, before));
+    terminals.zoomId = null;
+    activate(id);
+    return;
+  }
+  if (panes.length >= MAX_PANES && !panes.includes(id)) {
+    notify(`Up to ${MAX_PANES} side-by-side panes`, "info", 2200);
+    activate(id);
+    return;
+  }
+  const next = addPane(panes, terminals.activeId, id, anchor ?? terminals.activeId, before);
+  setPanes(t.root, next.length >= 2 ? next : []);
+  terminals.zoomId = null;
+  activate(id);
+}
+
+/** Mette `id` nel riquadro `target` (drag di una scheda al centro di un riquadro). */
+export function showInPane(id: string, target: string) {
+  const t = terminals.list.find((s) => s.id === target);
+  if (!t) return;
+  const panes = panesOf(t.root);
+  if (panes.length >= 2) setPanes(t.root, replacePane(panes, target, id));
+  terminals.zoomId = null;
+  activate(id);
+}
+
+/** Toglie un riquadro dallo split: il terminale NON viene chiuso, resta tra le tab. */
+export function closePane(id: string) {
+  const t = terminals.list.find((s) => s.id === id);
+  if (!t) return;
+  const panes = panesOf(t.root);
+  const i = panes.indexOf(id);
+  if (i === -1) return;
+  const next = removePane(panes, id);
+  setPanes(t.root, next);
+  if (terminals.zoomId === id) terminals.zoomId = null;
+  if (terminals.activeId === id) {
+    const neighbor = next[Math.min(i, next.length - 1)] ?? panes.find((p) => p !== id) ?? null;
+    if (neighbor) activate(neighbor);
+  }
+}
+
+/** Ingrandisce un riquadro (gli altri restano vivi, nascosti) o torna alla vista affiancata. */
+export function toggleZoom(id: string) {
+  terminals.zoomId = terminals.zoomId === id ? null : id;
+  terminals.activeId = id;
+}
+
+/** Toglie `id` dagli split di qualunque repo (terminale chiuso o estratto in finestra flottante). */
+function dropFromPanes(id: string) {
+  for (const k of Object.keys(terminals.panes)) {
+    if (terminals.panes[k].includes(id)) terminals.panes[k] = removePane(terminals.panes[k], id);
+  }
+  if (terminals.zoomId === id) terminals.zoomId = null;
 }
 
 /** Rimuove la tab all'indice `i` e sistema la tab attiva. Dopo lo splice l'indice `i` è il
@@ -66,7 +173,10 @@ export function addTerminal(opts: NewTerminal = {}): string {
 function removeAt(i: number) {
   const removed = terminals.list[i];
   terminals.list.splice(i, 1);
-  if (removed) dismissByKey(bellKey(removed.id)); // se era in attesa, togli la sua notifica sticky orfana
+  if (removed) {
+    dismissByKey(bellKey(removed.id)); // se era in attesa, togli la sua notifica sticky orfana
+    dropFromPanes(removed.id);
+  }
   if (removed && terminals.activeId === removed.id) {
     // attiva una scheda DELLA STESSA repo (le tab di altre repo non c'entrano)
     syncActiveTerminalToRoot(removed.root);
@@ -85,7 +195,7 @@ export function removeTerminalKeepPty(id: string) {
  *  Non reincolla una tab morta: verifica prima che il PTY esista ancora nel backend. */
 export async function redockTerminal(s: { id: string; title: string; shell: string | null }) {
   if (terminals.list.some((t) => t.id === s.id)) {
-    terminals.activeId = s.id;
+    activate(s.id);
     layout.terminalVisible = true;
     return;
   }
@@ -103,23 +213,28 @@ export async function redockTerminal(s: { id: string; title: string; shell: stri
     attach: true,
     needsAttention: false,
   });
-  terminals.activeId = s.id;
-  if (root) activeByRoot[root] = s.id;
+  activate(s.id); // con uno split torna nel riquadro attivo
   layout.terminalVisible = true;
 }
 
+/** Click su una scheda: la attiva (con uno split, se non è visibile va nel riquadro attivo). */
 export function setActiveTerminal(id: string) {
-  terminals.activeId = id;
-  const t = terminals.list.find((s) => s.id === id);
-  if (t?.root) activeByRoot[t.root] = id; // ricorda la scelta per questa repo
+  activate(id);
   clearAttention(id); // guardare la scheda azzera la richiesta d'attenzione
 }
 
 /** Cambiando repo: attiva la scheda terminale di QUELLA repo (l'ultima usata lì, o la prima, o
- *  nessuna). Le schede delle altre repo restano vive ma nascoste (il pannello filtra per root). */
+ *  nessuna). Le schede delle altre repo restano vive ma nascoste (il pannello filtra per root);
+ *  anche gli split restano per repo, e il riquadro attivo deve essere uno di quelli visibili. */
 export function syncActiveTerminalToRoot(root: string | null) {
   const visible = terminals.list.filter((t) => sameRoot(t.root, root));
   const remembered = root ? activeByRoot[root] : undefined;
+  const panes = panesOf(root);
+  terminals.zoomId = null;
+  if (panes.length >= 2) {
+    terminals.activeId = remembered && panes.includes(remembered) ? remembered : panes[0];
+    return;
+  }
   terminals.activeId =
     remembered && visible.some((t) => t.id === remembered) ? remembered : (visible[0]?.id ?? null);
 }
@@ -175,6 +290,13 @@ export async function goToTerminal(id: string) {
  *  editando codice mentre Claude gira, la bell ti avvisa lo stesso (non sei "sul" terminale). */
 export function setTerminalFocus(id: string) {
   terminals.focusedId = id;
+  // chat affiancate: cliccare dentro un riquadro lo rende quello attivo (scheda evidenziata, e le
+  // schede cliccate dopo finiscono qui)
+  if (terminals.activeId !== id && isShown(id)) {
+    terminals.activeId = id;
+    const t = terminals.list.find((s) => s.id === id);
+    if (t?.root) activeByRoot[t.root] = id;
+  }
   clearAttention(id); // metterlo a fuoco = l'hai visto
 }
 export function clearTerminalFocus(id: string) {
@@ -209,6 +331,13 @@ export function notifyTerminalBell(id: string) {
     terminals.activeId === id &&
     terminals.focusedId === id;
   if (watching) return;
+  // Chat affiancate: se quel riquadro è già sotto i tuoi occhi (visibile, Orbit a fuoco) basta il
+  // pallino che pulsa sulla sua testata e sulla scheda — niente toast.
+  const inSight = document.hasFocus() && layout.terminalVisible && panesOf(t.root).length >= 2 && isShown(id);
+  if (inSight) {
+    t.needsAttention = true;
+    return;
+  }
   if (!t.needsAttention) {
     t.needsAttention = true;
     // notifica PERSISTENTE e cliccabile: resta finché apri quel terminale (clearAttention →

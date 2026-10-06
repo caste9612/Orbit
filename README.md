@@ -225,9 +225,9 @@ Measured on Windows (size-optimized release build):
 
 | Item | Size |
 |---|---|
-| Portable `Orbit` binary | ~5.5 MB |
-| MSI installer | ~4.0 MB |
-| NSIS setup | ~2.7 MB |
+| Portable `Orbit` binary | ~5.7 MB |
+| MSI installer | ~3.5 MB |
+| NSIS setup | ~2.8 MB |
 | Frontend `dist/` | ~2.7 MB (most of it grammars loaded lazily) |
 | Startup JS chunk | ~521 KB (≈174 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |

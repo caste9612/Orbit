@@ -2202,7 +2202,12 @@ il browser process dell'Orbit installato e in uso non viene toccato; progetto di
 Gli screenshot confermano il benvenuto ridotto al logo e Claude a tutta larghezza.
 **Attenzione nei collaudi futuri:** chiudere la finestra dev riscrive `windows-restore.json` nella config
 dir, condivisa con l'app installata (e lascia la sessione e il log del suo pid): fare backup e ripristino
-prima e dopo, come in questo giro. **Da rilasciare in v0.8.10.**
+prima e dopo, come in questo giro.
+
+Build release OK: orbit.exe **5,73 MB**, MSI **3,50 MB**, NSIS **2,84 MB**, rispettivamente −0,12, −0,09 e
+−0,06 MB rispetto alla v0.8.9 (via la feature `unstable` e le dipendenze del pannello). Installer controllato
+sugli script generati: l'`installer.nsi` include l'hook e lo chiama dopo l'installazione; MSI e NSIS
+associano 49 estensioni e nessuno script. **Rilasciato in v0.8.10.**
 
 ---
 

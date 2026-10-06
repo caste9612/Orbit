@@ -61,7 +61,7 @@ a `.orbit/claude.json`: Orbit ricarica il menu automaticamente.
 - **Git** locale: stato, diff, stage/unstage, commit, branch, cronologia, indicatore *ahead/behind*;
   fetch/pull/push/merge girano nel terminale (riusano la tua autenticazione git).
 - **Esegui ▶**: comandi da `.orbit/run.json` (vedi la sezione dedicata).
-- **Scratchpad** (📝): `.orbit/scratch.md`, appunti/prompt persistenti.
+- **Scratchpad** (📝): `.orbit/scratch.txt`, appunti/prompt persistenti.
 - **Scaffale**: cartelle messe da parte per categoria in `.orbit/shelf.json`.
 - Menu contestuali (editor e albero), decorazioni git nell'albero, vista **Docs** dei Markdown.
 

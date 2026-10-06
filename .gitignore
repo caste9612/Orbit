@@ -9,7 +9,9 @@ node_modules
 # (run.json e claude.json NON sono ignorati: condivisi/committati.)
 # scaffale: preferenza di vista personale
 **/.orbit/shelf.json
-# scratchpad: note/prompt personali (file di lavoro, non condiviso)
+# scratchpad: note/prompt personali (file di lavoro, non condiviso). `.md` = nome fino alla v0.8.9,
+# rinominato in `.txt` al primo utilizzo: resta ignorato finché la migrazione non è avvenuta
+**/.orbit/scratch.txt
 **/.orbit/scratch.md
 # indice simboli: cache generata della "rubrica" del codice (per-macchina)
 **/.orbit/index/

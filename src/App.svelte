@@ -54,6 +54,7 @@
   // snapshot (al momento dell'estrazione) di cartella e branch, per il badge della finestra flottante
   const floatRoot = fq.get("root") ?? "";
   const floatBranch = fq.get("branch") ?? "";
+  const floatColor = fq.get("color") ?? ""; // tinta della scheda: torna nel pannello al redock
 
   // unlisten dell'handler di chiusura della finestra flottante (hoisted: lo usa anche il close)
   let floatUnlisten: (() => void) | undefined;
@@ -230,7 +231,7 @@
         const w = getCurrentWindow();
         floatUnlisten = await w.onCloseRequested(async (e) => {
           e.preventDefault();
-          await emit("term-redock", { id: floatId, title: floatTitle, shell: floatShell, from: floatFrom });
+          await emit("term-redock", { id: floatId, title: floatTitle, shell: floatShell, from: floatFrom, color: floatColor });
           floatUnlisten?.();
           floatUnlisten = undefined;
           await w.destroy();
@@ -261,7 +262,7 @@
     });
     // un terminale estratto torna nel pannello quando la sua finestra flottante si chiude
     offRedock = await listen("term-redock", (e) => {
-      const p = e.payload as { id: string; title: string; shell: string | null; from?: string };
+      const p = e.payload as { id: string; title: string; shell: string | null; from?: string; color?: string };
       // `from` = label della finestra che ha estratto il terminale. Nota: gli eventi Tauri sono
       // per-processo e ogni istanza ("Nuova finestra") è un processo separato con una sola
       // finestra "main", quindi oggi il filtro è sempre verificato; resta per chiarezza/futuro.
@@ -270,7 +271,7 @@
       } catch {
         /* */
       }
-      void redockTerminal({ id: p.id, title: p.title, shell: p.shell });
+      void redockTerminal({ id: p.id, title: p.title, shell: p.shell, color: p.color });
     });
     // Autosave (stile IntelliJ) — focus della finestra perso (Alt-Tab, click sul terminale flottante,
     // un'altra app): salva tutti i file modificati così Claude vede sempre l'ultima versione.
@@ -534,7 +535,7 @@
     padding: 0 10px;
     background: var(--color-surface-1);
     border: 1px solid var(--color-line);
-    border-radius: 7px;
+    border-radius: var(--r-lg);
     font-size: 11.5px;
     white-space: nowrap;
     overflow: hidden;
@@ -601,7 +602,7 @@
   .floatpanel {
     height: 100%;
     border: 1px solid var(--color-accent);
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     overflow: hidden;
     background: var(--color-surface-1);
   }

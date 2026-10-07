@@ -8,11 +8,27 @@ import { settings } from "./settings.svelte";
 import { notify, notifyAttention, dismissByKey } from "./toast.svelte";
 import { workspace } from "./workspace.svelte";
 import { basename } from "../util";
-import { addPane, movePane, removePane, replacePane, MAX_PANES } from "./terminalLayout";
+import {
+  arrange,
+  arrangeAuto,
+  flatten,
+  insertPane,
+  placeBeside,
+  removePane,
+  replacePane,
+  MAX_PANES,
+  type Arrangement,
+  type Layout,
+  type Side,
+} from "./terminalLayout";
 
 export interface TermSession {
   id: string;
-  title: string;
+  title: string; // nome di nascita completo ("Claude · Aggiorna documentazione", "PowerShell 7"…): tooltip e icona di tipo
+  shortName: string; // nome di default MINIMO e numerato ("Claude 2", "pwsh 1"); le run config tengono il loro nome
+  customTitle: string | null; // nome dato dall'utente (rinomina): vince su tutto
+  autoTitle: string | null; // riassunto della chat che Claude Code scrive nel titolo del terminale (OSC 0/2): sottotitolo
+  color: string; // tinta della scheda (palette TAB_COLORS, assegnata a rotazione; modificabile)
   shell: string | null; // null = shell default di piattaforma
   cwd: string | null; // cartella di lavoro (null = radice del workspace)
   root: string | null; // repo (workspace.rootPath) di appartenenza → il pannello filtra per repo attiva
@@ -24,14 +40,90 @@ export interface TermSession {
 
 let counter = 0;
 
+// Tinte delle schede: la STESSA palette dei colori di sessione della vista Attività (SESSION_COLORS in
+// activity.svelte.ts — duplicata qui per non creare il ciclo terminals → activity → claude → terminals),
+// assegnate a rotazione alla creazione e cambiabili dal menu della scheda.
+export const TAB_COLORS: { color: string; name: string }[] = [
+  { color: "#4c8dff", name: "Blue" },
+  { color: "#b07aff", name: "Violet" },
+  { color: "#2fbf9b", name: "Teal" },
+  { color: "#e0a45e", name: "Amber" },
+  { color: "#e06c9f", name: "Pink" },
+  { color: "#5bc88a", name: "Green" },
+  { color: "#38bdf8", name: "Sky" },
+  { color: "#c8b45b", name: "Olive" },
+  { color: "#f97066", name: "Coral" },
+  { color: "#8b93f8", name: "Indigo" },
+];
+
+/** Nome mostrato sulla scheda: quello dato dall'utente, altrimenti il nome breve numerato. */
+export function displayTitle(t: TermSession): string {
+  return t.customTitle ?? t.shortName;
+}
+
+// Contatori per tipo ("Claude", "pwsh", "cmd"…): il nome breve è `<tipo> <n>`, stabile anche se si
+// chiudono schede precedenti (niente rinumerazioni a sorpresa).
+const kindCounters: Record<string, number> = {};
+const SHELL_SHORT: Record<string, string> = {
+  powershell: "pwsh",
+  "powershell 7": "pwsh7",
+  "prompt dei comandi": "cmd",
+  "git bash": "bash",
+  wsl: "wsl",
+};
+/** Tipo breve della scheda, o null se il nome dato va tenuto così com'è (run config, script). */
+function shortKind(opts: NewTerminal): string | null {
+  const t = (opts.title ?? "").trim();
+  if (/^claude/i.test(t)) return "Claude";
+  if (!t) return navigator.platform.startsWith("Win") ? "pwsh" : "shell"; // shell di default della piattaforma
+  if (opts.shell) return SHELL_SHORT[t.toLowerCase()] ?? t.toLowerCase().split(/\s+/)[0]; // scheda dal selettore shell
+  return null;
+}
+function nextShortName(opts: NewTerminal): string {
+  const kind = shortKind(opts);
+  if (!kind) return opts.title!;
+  kindCounters[kind] = (kindCounters[kind] ?? 0) + 1;
+  return `${kind} ${kindCounters[kind]}`;
+}
+
+/** Rinomina (stringa vuota = torna al nome automatico). */
+export function renameTerminal(id: string, name: string) {
+  const t = terminals.list.find((s) => s.id === id);
+  if (t) t.customTitle = name.trim() || null;
+}
+
+export function setTerminalColor(id: string, color: string) {
+  const t = terminals.list.find((s) => s.id === id);
+  if (t) t.color = color;
+}
+
+/** Titolo arrivato dal terminale (sequenza OSC 0/2). Serve SOLO per le chat: Claude Code vi scrive
+ *  un riassunto della conversazione, mostrato come sottotitolo (le shell vi mettono percorsi e
+ *  comandi: rumore, ignorato). Ripulito dai simboli iniziali (es. "✳ "), scartato se generico. */
+export function setAutoTitle(id: string, raw: string) {
+  const t = terminals.list.find((s) => s.id === id);
+  if (!t || !/^claude/i.test(t.title)) return;
+  const clean = raw.replace(/^[^\p{L}\p{N}]+/u, "").trim().slice(0, 80);
+  t.autoTitle = clean && !/^claude( code)?$/i.test(clean) ? clean : null;
+}
+
 export const terminals = $state({
   list: [] as TermSession[],
   activeId: null as string | null,
   focusedId: null as string | null, // terminale col focus REALE (textarea xterm), non solo finestra
-  // Chat affiancate (M54): per repo (chiave = rootKey) i terminali visibili INSIEME, in ordine.
-  // Meno di 2 = scheda singola (si vede solo l'attivo). Il riquadro attivo è sempre `activeId`.
-  panes: {} as Record<string, string[]>,
+  // Chat affiancate (M54/M55): per repo (chiave = rootKey) la DISPOSIZIONE dei terminali visibili
+  // insieme — colonne di righe, vedi terminalLayout.ts. Meno di 2 riquadri = scheda singola (si vede
+  // solo l'attivo). Il riquadro attivo è sempre `activeId`. In modalità `auto` (default) la
+  // disposizione si ricalcola dallo spazio disponibile (il layout salvato conta solo per l'ordine);
+  // un trascinamento con direzione o una scelta dal menu la rendono manuale.
+  layouts: {} as Record<string, Layout>,
+  autoLayout: {} as Record<string, boolean>,
+  // dimensioni dei riquadri per repo (frazioni di colonne e, per colonna, di righe), valide finché la
+  // FORMA del layout (numero di righe per colonna) resta quella: cambiata la forma si riparte equi
+  sizes: {} as Record<string, PaneSizes>,
   zoomId: null as string | null, // riquadro ingrandito temporaneamente (gli altri restano vivi)
+  surfW: 0, // dimensioni della superficie del pannello (le aggiorna TerminalPanel): servono alle
+  surfH: 0, // scelte "automatiche" fatte qui (placeBeside, arrange)
 });
 
 // Scheda attiva RICORDATA per repo (chiave = root path): cambiando repo si ripristina quella giusta.
@@ -41,13 +133,71 @@ const sameRoot = (a: string | null, b: string | null) => a === b;
 /** Chiave per repo dei riquadri (una cartella non aperta = ""). */
 export const rootKey = (root: string | null) => root ?? "";
 
-/** Riquadri affiancati della repo `root` ([] = nessuno split). */
-export function panesOf(root: string | null): string[] {
-  return terminals.panes[rootKey(root)] ?? [];
+/** Disposizione salvata della repo `root` ([] = nessuno split). */
+export function layoutOf(root: string | null): Layout {
+  return terminals.layouts[rootKey(root)] ?? [];
 }
 
-function setPanes(root: string | null, next: string[]) {
-  terminals.panes[rootKey(root)] = next;
+/** Riquadri affiancati della repo `root`, in ordine ([] = nessuno split). */
+export function panesOf(root: string | null): string[] {
+  return flatten(layoutOf(root));
+}
+
+export function isAutoLayout(root: string | null): boolean {
+  return terminals.autoLayout[rootKey(root)] ?? true;
+}
+
+/** Disposizione EFFETTIVA mostrata per `root`: in auto si ricalcola dallo spazio `width`×`height`. */
+export function effectiveLayout(root: string | null, width: number, height: number): Layout {
+  const lay = layoutOf(root);
+  return isAutoLayout(root) ? arrangeAuto(flatten(lay), width, height) : lay;
+}
+
+/** Salva la disposizione (sotto i 2 riquadri = nessuno split); `manual` cambia anche la modalità. */
+function setLayout(root: string | null, next: Layout, manual?: boolean) {
+  terminals.layouts[rootKey(root)] = flatten(next).length >= 2 ? next : [];
+  if (manual !== undefined) terminals.autoLayout[rootKey(root)] = !manual;
+}
+
+/** TerminalPanel comunica le dimensioni della superficie (per le scelte automatiche). */
+export function setSurface(width: number, height: number) {
+  terminals.surfW = width;
+  terminals.surfH = height;
+}
+
+export interface PaneSizes {
+  shape: string; // "1,2" = una colonna da 1 riga e una da 2
+  cols: number[]; // frazioni di larghezza delle colonne (somma 1)
+  rows: number[][]; // per colonna, frazioni di altezza delle righe (somma 1)
+}
+export const shapeOf = (layout: Layout) => layout.map((c) => c.length).join(",");
+
+/** Dimensioni dei riquadri per `layout`: quelle salvate se la forma coincide, altrimenti equidistribuite. */
+export function sizesFor(root: string | null, layout: Layout): PaneSizes {
+  const saved = terminals.sizes[rootKey(root)];
+  const shape = shapeOf(layout);
+  if (saved && saved.shape === shape) return saved;
+  return {
+    shape,
+    cols: layout.map(() => 1 / Math.max(1, layout.length)),
+    rows: layout.map((c) => c.map(() => 1 / Math.max(1, c.length))),
+  };
+}
+
+/** Salva le dimensioni dopo un trascinamento dei separatori; la disposizione diventa manuale, così
+ *  non si riassesta da sola (e la forma resta quella a cui le dimensioni si riferiscono). */
+export function setSizes(root: string | null, layout: Layout, sizes: PaneSizes) {
+  terminals.sizes[rootKey(root)] = sizes;
+  if (isAutoLayout(root)) setLayout(root, layout, true);
+}
+
+/** Disposizione dal menu: `auto` torna adattiva; `columns`/`rows` fissano affiancati/impilati. */
+export function setArrangement(root: string | null, mode: Arrangement) {
+  if (mode === "auto") {
+    terminals.autoLayout[rootKey(root)] = true;
+    return;
+  }
+  setLayout(root, arrange(panesOf(root), mode, terminals.surfW, terminals.surfH), true);
 }
 
 /** Il terminale `id` è visibile adesso nel pannello? (scheda attiva, o uno dei riquadri affiancati) */
@@ -77,6 +227,10 @@ export function addTerminal(opts: NewTerminal = {}): string {
   terminals.list.push({
     id,
     title: opts.title ?? `Terminal ${counter}`,
+    shortName: nextShortName(opts),
+    customTitle: null,
+    autoTitle: null,
+    color: TAB_COLORS[(counter - 1) % TAB_COLORS.length].color,
     shell: opts.shell ?? null,
     cwd: opts.cwd ?? null,
     root,
@@ -95,35 +249,42 @@ export function addTerminal(opts: NewTerminal = {}): string {
 function activate(id: string) {
   const t = terminals.list.find((s) => s.id === id);
   const root = t?.root ?? workspace.rootPath;
-  const panes = panesOf(root);
+  const lay = layoutOf(root);
+  const panes = flatten(lay);
   if (panes.length >= 2 && !panes.includes(id) && terminals.activeId && panes.includes(terminals.activeId)) {
-    setPanes(root, replacePane(panes, terminals.activeId, id));
+    setLayout(root, replacePane(lay, terminals.activeId, id));
   }
   if (terminals.zoomId && terminals.zoomId !== id) terminals.zoomId = null;
   terminals.activeId = id;
   if (root) activeByRoot[root] = id;
 }
 
-/** Affianca `id` al riquadro attivo (o ad `anchor`, prima o dopo). Oltre il massimo lo mostra nel
- *  riquadro attivo e avvisa. */
-export function splitWith(id: string, anchor: string | null = null, before = false) {
+/** Affianca `id`. Con `anchor`+`side` (trascinamento sul bordo di un riquadro) la direzione È la
+ *  disposizione — a destra/sinistra una colonna, sopra/sotto una riga — a partire da ciò che
+ *  l'utente VEDE, e la repo passa in modalità manuale. Senza direzione (menu Split, "to the side")
+ *  placeBeside sceglie colonna o riga in base allo spazio. Oltre il massimo lo mostra nel riquadro
+ *  attivo e avvisa. */
+export function splitWith(id: string, anchor: string | null = null, side?: Side) {
   const t = terminals.list.find((s) => s.id === id);
   if (!t) return;
-  const panes = panesOf(t.root);
-  if (anchor && anchor !== id && panes.includes(id)) {
-    // già visibile: drag sul bordo di un altro riquadro = spostalo lì
-    setPanes(t.root, movePane(panes, id, anchor, before));
-    terminals.zoomId = null;
-    activate(id);
-    return;
-  }
+  const lay = layoutOf(t.root);
+  const panes = flatten(lay);
   if (panes.length >= MAX_PANES && !panes.includes(id)) {
     notify(`Up to ${MAX_PANES} side-by-side panes`, "info", 2200);
     activate(id);
     return;
   }
-  const next = addPane(panes, terminals.activeId, id, anchor ?? terminals.activeId, before);
-  setPanes(t.root, next.length >= 2 ? next : []);
+  if (anchor && side) {
+    const base: Layout =
+      panes.length >= 2
+        ? effectiveLayout(t.root, terminals.surfW, terminals.surfH)
+        : terminals.activeId && terminals.activeId !== id
+          ? [[terminals.activeId]]
+          : [];
+    setLayout(t.root, insertPane(base, id, anchor, side), true);
+  } else {
+    setLayout(t.root, placeBeside(lay, id, terminals.activeId, terminals.surfW));
+  }
   terminals.zoomId = null;
   activate(id);
 }
@@ -132,8 +293,8 @@ export function splitWith(id: string, anchor: string | null = null, before = fal
 export function showInPane(id: string, target: string) {
   const t = terminals.list.find((s) => s.id === target);
   if (!t) return;
-  const panes = panesOf(t.root);
-  if (panes.length >= 2) setPanes(t.root, replacePane(panes, target, id));
+  const lay = layoutOf(t.root);
+  if (flatten(lay).length >= 2) setLayout(t.root, replacePane(lay, target, id));
   terminals.zoomId = null;
   activate(id);
 }
@@ -142,14 +303,16 @@ export function showInPane(id: string, target: string) {
 export function closePane(id: string) {
   const t = terminals.list.find((s) => s.id === id);
   if (!t) return;
-  const panes = panesOf(t.root);
+  const lay = layoutOf(t.root);
+  const panes = flatten(lay);
   const i = panes.indexOf(id);
   if (i === -1) return;
-  const next = removePane(panes, id);
-  setPanes(t.root, next);
+  const next = removePane(lay, id);
+  setLayout(t.root, next);
   if (terminals.zoomId === id) terminals.zoomId = null;
   if (terminals.activeId === id) {
-    const neighbor = next[Math.min(i, next.length - 1)] ?? panes.find((p) => p !== id) ?? null;
+    const rest = flatten(next);
+    const neighbor = rest[Math.min(i, rest.length - 1)] ?? panes.find((p) => p !== id) ?? null;
     if (neighbor) activate(neighbor);
   }
 }
@@ -162,8 +325,8 @@ export function toggleZoom(id: string) {
 
 /** Toglie `id` dagli split di qualunque repo (terminale chiuso o estratto in finestra flottante). */
 function dropFromPanes(id: string) {
-  for (const k of Object.keys(terminals.panes)) {
-    if (terminals.panes[k].includes(id)) terminals.panes[k] = removePane(terminals.panes[k], id);
+  for (const k of Object.keys(terminals.layouts)) {
+    if (flatten(terminals.layouts[k]).includes(id)) terminals.layouts[k] = removePane(terminals.layouts[k], id);
   }
   if (terminals.zoomId === id) terminals.zoomId = null;
 }
@@ -193,7 +356,7 @@ export function removeTerminalKeepPty(id: string) {
 
 /** Reincolla un terminale estratto: si ricollega al PTY esistente (attach), senza rispawn.
  *  Non reincolla una tab morta: verifica prima che il PTY esista ancora nel backend. */
-export async function redockTerminal(s: { id: string; title: string; shell: string | null }) {
+export async function redockTerminal(s: { id: string; title: string; shell: string | null; color?: string | null }) {
   if (terminals.list.some((t) => t.id === s.id)) {
     activate(s.id);
     layout.terminalVisible = true;
@@ -204,7 +367,11 @@ export async function redockTerminal(s: { id: string; title: string; shell: stri
   const root = workspace.rootPath;
   terminals.list.push({
     id: s.id,
-    title: s.title,
+    title: s.title, // la finestra flottante porta il nome MOSTRATO: resta tale anche dopo il rientro
+    shortName: s.title,
+    customTitle: null,
+    autoTitle: null,
+    color: s.color || TAB_COLORS[0].color,
     shell: s.shell,
     cwd: null,
     root,
@@ -342,7 +509,7 @@ export function notifyTerminalBell(id: string) {
     t.needsAttention = true;
     // notifica PERSISTENTE e cliccabile: resta finché apri quel terminale (clearAttention →
     // dismissByKey) o la chiudi. Creata anche se Orbit è in background → la trovi al ritorno.
-    const where = t.root ? `${basename(t.root)} › ${t.title}` : t.title;
+    const where = t.root ? `${basename(t.root)} › ${displayTitle(t)}` : displayTitle(t);
     notifyAttention({
       key: bellKey(id),
       message: `Claude in ${where} is waiting for you`,

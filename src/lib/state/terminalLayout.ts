@@ -1,53 +1,91 @@
-// Chat affiancate (M54): logica PURA dei riquadri del pannello terminale — quali terminali sono
-// visibili insieme e come si dispongono. Niente runes né DOM, così è testabile con vitest
-// (terminalLayout.test.ts); lo stato reattivo vive in terminals.svelte.ts.
+// Chat affiancate (M54/M55): logica PURA dei riquadri del pannello terminale. Niente runes né DOM,
+// così è testabile con vitest (terminalLayout.test.ts); lo stato reattivo vive in terminals.svelte.ts.
+//
+// Modello (M55): il layout è una lista di COLONNE, ognuna una lista di riquadri impilati (righe).
+//   [["a"], ["b", "c"]]  =  a | b
+//                            a | c
+// Un rilascio a destra/sinistra di un riquadro crea una colonna, uno sopra/sotto una riga: così la
+// direzione del trascinamento È la disposizione (in M54 decideva solo l'ordine, e nel pannello
+// stretto due riquadri finivano impilati anche trascinando a destra).
 
 /** Massimo di riquadri affiancati: oltre, ogni chat diventa troppo stretta per la TUI di Claude. */
 export const MAX_PANES = 4;
 
-export type SplitMode = "auto" | "columns" | "rows";
+export type Layout = string[][];
+export type Side = "left" | "right" | "top" | "bottom";
+/** Disposizioni "pronte" del menu: automatica (si adatta allo spazio), tutti affiancati, tutti impilati. */
+export type Arrangement = "auto" | "columns" | "rows";
 
-export interface Cell {
-  col: number; // 1-based, come grid-column
-  row: number;
-  colSpan: number;
-  rowSpan: number;
+export const flatten = (layout: Layout): string[] => layout.flat();
+const clean = (layout: Layout): Layout => layout.filter((c) => c.length > 0);
+
+/** Posizione (colonna, riga) di un riquadro, o null. */
+export function locate(layout: Layout, id: string): { c: number; r: number } | null {
+  for (let c = 0; c < layout.length; c++) {
+    const r = layout[c].indexOf(id);
+    if (r !== -1) return { c, r };
+  }
+  return null;
 }
-
-export interface Grid {
-  cols: number;
-  rows: number;
-  cells: Cell[]; // una per riquadro, nello stesso ordine
-}
-
-const cell = (col: number, row: number, colSpan = 1, rowSpan = 1): Cell => ({ col, row, colSpan, rowSpan });
 
 /**
- * Disposizione di `n` riquadri in uno spazio `width`×`height` (px).
- * `auto`: tra le disposizioni possibili (affiancati, griglia — con 3 riquadri il primo alto a
- * sinistra e due impilati a destra, con 4 la 2×2 — e impilati) sceglie quella in cui il riquadro più
- * sacrificato resta più vicino a una dimensione utile: `minW` di larghezza (la TUI di Claude vuole
- * ~60–70 colonne) e `minH` di altezza (~12 righe: prompt, risposta, box d'input e status line).
- * A parità vince l'ordine affiancati → griglia → impilati.
- * `columns` / `rows` forzano una sola riga o una sola colonna.
+ * Inserisce (o SPOSTA, se già presente) `id` accanto ad `anchor` dal lato `side`: left/right = nuova
+ * colonna prima/dopo quella dell'ancora, top/bottom = riga prima/dopo l'ancora nella sua colonna.
+ * Ancora assente → in coda come nuova colonna. Oltre il massimo (e `id` nuovo) il layout non cambia.
  */
-export function gridFor(n: number, width: number, height: number, mode: SplitMode = "auto", minW = 480, minH = 260): Grid {
-  if (n <= 1) return { cols: 1, rows: 1, cells: [cell(1, 1)] };
-  const columns: Grid = { cols: n, rows: 1, cells: Array.from({ length: n }, (_, i) => cell(i + 1, 1)) };
-  const rows: Grid = { cols: 1, rows: n, cells: Array.from({ length: n }, (_, i) => cell(1, i + 1)) };
-  if (mode === "columns") return columns;
-  if (mode === "rows") return rows;
-  // [disposizione, larghezza e altezza del riquadro più piccolo]
-  const candidates: [Grid, number, number][] = [[columns, width / n, height]];
-  if (n === 3) {
-    candidates.push([{ cols: 2, rows: 2, cells: [cell(1, 1, 1, 2), cell(2, 1), cell(2, 2)] }, width / 2, height / 2]);
-  } else if (n >= 4) {
+export function insertPane(layout: Layout, id: string, anchor: string | null, side: Side): Layout {
+  const present = flatten(layout).includes(id);
+  if (!present && flatten(layout).length >= MAX_PANES) return layout;
+  if (anchor === id) return layout;
+  const base = clean(layout.map((c) => c.filter((p) => p !== id)));
+  const at = anchor ? locate(base, anchor) : null;
+  if (!at) return [...base, [id]];
+  const next = base.map((c) => [...c]);
+  if (side === "left" || side === "right") {
+    next.splice(side === "left" ? at.c : at.c + 1, 0, [id]);
+  } else {
+    next[at.c].splice(side === "top" ? at.r : at.r + 1, 0, id);
+  }
+  return next;
+}
+
+/** Toglie `id`; colonne vuote spariscono. Sotto i due riquadri → [] (scheda singola). */
+export function removePane(layout: Layout, id: string): Layout {
+  const next = clean(layout.map((c) => c.filter((p) => p !== id)));
+  return flatten(next).length >= 2 ? next : [];
+}
+
+/** Mette `id` al posto di `target`; se `id` è già visibile i due si scambiano (nessun doppione). */
+export function replacePane(layout: Layout, target: string, id: string): Layout {
+  const t = locate(layout, target);
+  if (!t || target === id) return layout;
+  const next = layout.map((c) => [...c]);
+  const s = locate(next, id);
+  if (s) next[s.c][s.r] = target;
+  next[t.c][t.r] = id;
+  return next;
+}
+
+/**
+ * Disposizione automatica di `ids` (nell'ordine dato) in `width`×`height` px: fra affiancati,
+ * griglia (3: il primo alto a sinistra e due impilati a destra; 4: 2×2) e impilati sceglie quella in
+ * cui il riquadro più sacrificato resta più vicino a `minW`×`minH` (la TUI di Claude vuole ~60–70
+ * colonne e ~12 righe). A parità vince affiancati → griglia → impilati.
+ */
+export function arrangeAuto(ids: string[], width: number, height: number, minW = 480, minH = 260): Layout {
+  const n = ids.length;
+  if (n === 0) return [];
+  if (n === 1) return [[ids[0]]];
+  const columns: Layout = ids.map((id) => [id]);
+  const rows: Layout = [ids.slice()];
+  // [layout, larghezza e altezza del riquadro più piccolo]
+  const candidates: [Layout, number, number][] = [[columns, width / n, height]];
+  if (n === 3) candidates.push([[[ids[0]], [ids[1], ids[2]]], width / 2, height / 2]);
+  else if (n >= 4) {
     const r = Math.ceil(n / 2);
-    candidates.push([
-      { cols: 2, rows: r, cells: Array.from({ length: n }, (_, i) => cell((i % 2) + 1, Math.floor(i / 2) + 1)) },
-      width / 2,
-      height / r,
-    ]);
+    const left = ids.filter((_, i) => i % 2 === 0);
+    const right = ids.filter((_, i) => i % 2 === 1);
+    candidates.push([[left, right], width / 2, height / r]);
   }
   candidates.push([rows, width, height / n]);
   const score = (w: number, h: number) => Math.min(Math.min(w / minW, 1), Math.min(h / minH, 1));
@@ -56,44 +94,23 @@ export function gridFor(n: number, width: number, height: number, mode: SplitMod
   return best[0];
 }
 
-/**
- * Aggiunge `id` ai riquadri visibili, accanto ad `anchor` (dopo, o prima con `before`). Se non c'è
- * ancora uno split, la base è il terminale attivo (`active`): due riquadri = lui + il nuovo.
- * Ritorna i riquadri invariati se `id` è già visibile o se si è al massimo.
- */
-export function addPane(panes: string[], active: string | null, id: string, anchor: string | null = null, before = false): string[] {
-  const base = panes.length >= 2 ? panes : active && active !== id ? [active] : [];
-  if (base.includes(id) || base.length >= MAX_PANES) return base.length >= 2 ? base : panes;
-  const at = anchor ? base.indexOf(anchor) : -1;
-  const i = at === -1 ? base.length : before ? at : at + 1;
-  return [...base.slice(0, i), id, ...base.slice(i)];
-}
-
-/** Sposta un riquadro già visibile accanto ad `anchor` (prima o dopo): drag sul bordo di un altro. */
-export function movePane(panes: string[], id: string, anchor: string, before = false): string[] {
-  if (id === anchor || !panes.includes(id) || !panes.includes(anchor)) return panes;
-  const rest = panes.filter((p) => p !== id);
-  const at = rest.indexOf(anchor);
-  const i = before ? at : at + 1;
-  return [...rest.slice(0, i), id, ...rest.slice(i)];
-}
-
-/** Toglie `id` dai riquadri; sotto i due riquadri si torna alla scheda singola (lista vuota). */
-export function removePane(panes: string[], id: string): string[] {
-  const next = panes.filter((p) => p !== id);
-  return next.length >= 2 ? next : [];
+/** Disposizione del menu: `columns` = tutti affiancati, `rows` = tutti impilati, `auto` = arrangeAuto. */
+export function arrange(ids: string[], mode: Arrangement, width: number, height: number): Layout {
+  if (mode === "columns") return ids.map((id) => [id]);
+  if (mode === "rows") return ids.length ? [ids.slice()] : [];
+  return arrangeAuto(ids, width, height);
 }
 
 /**
- * Mette `id` al posto di `target` (la scheda cliccata va nel riquadro attivo). Se `id` è già visibile
- * i due riquadri si scambiano di posto, così nessun terminale compare due volte.
+ * "Affianca" senza una direzione esplicita (menu Split, "Open Claude to the side"): nuova colonna
+ * dopo quella del riquadro attivo se c'è spazio per una colonna in più (≥ `minW` ciascuna),
+ * altrimenti nuova riga sotto l'attivo. Senza split in corso la base è il solo riquadro attivo.
  */
-export function replacePane(panes: string[], target: string, id: string): string[] {
-  const t = panes.indexOf(target);
-  if (t === -1 || target === id) return panes;
-  const next = [...panes];
-  const s = next.indexOf(id);
-  if (s !== -1) next[s] = target;
-  next[t] = id;
-  return next;
+export function placeBeside(layout: Layout, id: string, active: string | null, width: number, minW = 480): Layout {
+  const base: Layout = flatten(layout).length >= 2 ? layout : active && active !== id ? [[active]] : [];
+  if (flatten(base).includes(id)) return base;
+  if (base.length === 0) return [[id]];
+  const anchor = active && locate(base, active) ? active : flatten(base)[flatten(base).length - 1];
+  const side: Side = width / (base.length + 1) >= minW ? "right" : "bottom";
+  return insertPane(base, id, anchor, side);
 }

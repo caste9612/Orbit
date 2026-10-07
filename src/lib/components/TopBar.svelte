@@ -11,7 +11,7 @@
   import { openFolderDialog } from "../state/explorer.svelte";
   import { folders, openFromList, removeFolder } from "../state/folders.svelte";
   import { changedCount } from "../state/git.svelte";
-  import { repoNeedsAttention, anyNeedsAttention, waitingTerminals, goToTerminal } from "../state/terminals.svelte";
+  import { repoNeedsAttention, anyNeedsAttention, waitingTerminals, goToTerminal, displayTitle } from "../state/terminals.svelte";
   import { nav, navBack, navForward } from "../state/codeIndex.svelte";
   import { keyForId } from "../state/keybindings.svelte";
   import { run, runConfig, openConfig, teachClaude } from "../state/run.svelte";
@@ -118,7 +118,7 @@
   }
   function waitMenuItems(): MenuItem[] {
     return waitingTerminals().map((t) => ({
-      label: t.root ? `${basename(t.root)} › ${t.title}` : t.title,
+      label: t.root ? `${basename(t.root)} › ${displayTitle(t)}` : displayTitle(t),
       icon: "sparkles",
       onClick: () => void goToTerminal(t.id),
     }));
@@ -435,7 +435,7 @@
     min-width: 14px;
     height: 14px;
     padding: 0 3px;
-    border-radius: 7px;
+    border-radius: var(--r-lg);
     background: var(--color-accent);
     color: #08111f;
     font-size: 9px;
@@ -491,7 +491,7 @@
     max-width: 220px;
     height: 22px;
     border: 1px solid var(--color-line);
-    border-radius: 7px;
+    border-radius: var(--r-lg);
     background: var(--color-surface-1);
     color: var(--color-ink-muted);
     overflow: hidden;
@@ -558,7 +558,7 @@
     height: 16px;
     margin-right: 4px;
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--r-sm);
     background: transparent;
     color: var(--color-ink-subtle);
     cursor: pointer;
@@ -601,7 +601,7 @@
     width: 26px;
     height: 22px;
     border: 1px solid var(--color-line);
-    border-radius: 7px;
+    border-radius: var(--r-lg);
     background: var(--color-surface-1);
     color: var(--color-ink-muted);
     cursor: pointer;
@@ -641,7 +641,7 @@
     height: 22px;
     margin-right: 4px;
     border: 1px solid rgba(var(--accent-rgb), 0.5);
-    border-radius: 6px;
+    border-radius: var(--r-md);
     background: rgba(var(--accent-rgb), 0.14);
     overflow: hidden;
   }
@@ -677,7 +677,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     background: var(--color-accent);
     color: var(--color-surface-0);
     font-size: 11px;

@@ -6,6 +6,7 @@
   export interface MenuItem {
     label: string;
     icon?: string;
+    swatch?: string; // pallino colorato al posto dell'icona (scelta colore delle schede terminale)
     danger?: boolean;
     separatorBefore?: boolean;
     header?: boolean; // riga-titolo di sezione (non cliccabile)
@@ -42,7 +43,9 @@
       <div class="mhead">{item.label}</div>
     {:else}
       <button class="item" class:danger={item.danger} role="menuitem" onclick={() => pick(item)}>
-        <span class="ic">{#if item.icon}<Icon name={item.icon} size={14} strokeWidth={1.7} />{/if}</span>
+        <span class="ic">
+          {#if item.icon}<Icon name={item.icon} size={14} strokeWidth={1.7} />{:else if item.swatch}<span class="swatch" style="background:{item.swatch}"></span>{/if}
+        </span>
         <span class="lbl">{item.label}</span>
       </button>
     {/if}
@@ -94,6 +97,12 @@
     display: grid;
     place-items: center;
     color: var(--color-ink-muted);
+  }
+  .swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
   }
   .item:hover .ic {
     color: inherit;

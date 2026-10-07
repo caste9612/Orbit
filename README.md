@@ -209,10 +209,16 @@ cross-platform desktop app that weighs almost nothing.
   one click apart. Switching the active repo swaps its **content** — tree, git, branch, search,
   Run/Claude menus, and the **terminal tabs** (each repo keeps its own live PTYs) — while **keeping your
   current sidebar view** and restoring each repo's **expanded Explorer tree** and open editor tabs, so
-  switching feels like flipping between tabs. Cycle with `Ctrl+Tab` / `Ctrl+Shift+Tab`, jump with `Ctrl+1…9`, and when the tabs
+  switching feels like flipping between tabs. The row sits **centered** in the top bar; **drag a tab to
+  reorder** the repos (the order is remembered). Cycle with `Ctrl+Tab` / `Ctrl+Shift+Tab`, jump with `Ctrl+1…9`, and when the tabs
   don't all fit a **`…`** menu lists them; the top bar stays usable down to its minimum width. The
   repository list **and sessions are per‑window**: open windows don't share or overwrite each other's
   repo tabs, and the same folder can be open in two windows without their tabs/layout clobbering.
+- **Smooth layout**: switching repos, collapsing the editor, maximizing the terminal panel, showing or
+  hiding a panel and rearranging chats all animate as **one short motion** (220 ms) instead of jumping
+  — panels glide to the new repo's sizes together, and the terminals refit once at the end rather than
+  redrawing at every step. Dragging a splitter stays immediate. Toggle in Settings ("Smooth panel
+  transitions", on by default and independent of the OS "reduce motion" preference).
 - **Room for Claude**: when no file is open, the editor area shrinks to its minimum width by itself
   and the terminal panel takes the space; open a file and the previous layout comes back.
 - **Remembers its window**: Orbit reopens at the same position, size and maximized state where you
@@ -234,7 +240,7 @@ cross-platform desktop app that weighs almost nothing.
   conflict warnings) — full reference in Settings → Keyboard shortcuts.
 - **Settings**: theme, keymap preset (incl. Custom), editor/terminal font with **independent sizes**
   (`Ctrl/Cmd+scroll` zooms whichever panel the pointer is over), accent color, smooth-caret toggle,
-  **autosave**, **default Markdown view** (source / preview / READMEs only), terminal GPU rendering,
+  **smooth panel transitions**, **autosave**, **default Markdown view** (source / preview / READMEs only), terminal GPU rendering,
   "launch Claude in the default terminal", "notify when a terminal needs you", and **diagnostic logging** (collect/export logs to investigate issues).
 
 ---
@@ -249,7 +255,7 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~3.5 MB |
 | NSIS setup | ~2.8 MB |
 | Frontend `dist/` | ~2.8 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~531 KB (≈177 KB gzipped) |
+| Startup JS chunk | ~536 KB (≈179 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own

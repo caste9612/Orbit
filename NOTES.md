@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -2391,6 +2391,86 @@ vite ricarica la pagina quando cambia `package.json` o quando scopre nuove dipen
 primo caricamento lazy del Markdown). La scansione di Attività legge TUTTI i transcript in modo sincrono:
 con centinaia di sessioni e transcript da decine di MB impiega 1–2 minuti (il `TODO(perf)` in
 `activity.rs` sulla cache per mtime resta valido).
+
+---
+
+## Milestone 56 — movimento fluido del layout, barra repo riordinabile e centrata (v0.9.1)
+
+Richiesta utente (2026-10-07): "quando cambio repo con un'altra configurazione di finestre le
+transizioni e i ridimensionamenti sono molto scattosi". Poi: la transizione "parte dopo un po'";
+infine riordino dei repo per trascinamento, barra "popolata dal centro" e un lampeggio del bottone
+*Open folder…* in alto a sinistra durante il cambio repo. Branch `smooth-layout`.
+
+### Perché scattava
+Nessuna misura dei pannelli aveva una transition: al cambio repo larghezze (sidebar, pannello),
+visibilità, `terminalMaximized` e il collasso dell'editor cambiavano in momenti diversi, ognuno di
+colpo; xterm rifittava a ogni scatto e ridimensionava il PTY, quindi Claude si ridisegnava più volte.
+In più la sidebar lampeggiava (veniva applicata la vista salvata della repo di destinazione e poi
+ripristinata dal chiamante).
+
+### Modello: un "movimento" di layout
+`layout.svelte.ts` è l'orologio: `beginMotion()` accende `layout.animating` e ritorna `end()`
+(annidabile, con contatore: `switchFolder` lo tiene aperto attraverso gli `await`); `animate(fn)` è la
+forma sincrona; `motionUntil()` è l'istante di fine, `motionMs()` la durata (220 ms, o 0 se
+l'impostazione è spenta). I componenti accendono le transition CSS SOLO con la classe `.animating`
+(sidebar: width; pannello: width + flex-grow; editor: flex-basis/grow/min-width/border/opacity), così
+il trascinamento degli splitter resta immediato. Mostra/nascondi di sidebar e pannello usano
+`transition:slide|global` sulla radice del componente (durata 0 finché `workspace.ready` è false:
+niente animazione all'avvio). L'editor "nascosto" (pannello a tutta larghezza) è passato da
+`display:none` a larghezza 0 + `visibility:hidden`: display non si anima.
+- **Terminali**: `scheduleFit` consulta `motionUntil()` e fa UN fit ~40 ms dopo la fine del movimento
+  (tetto 1,5 s) invece di un `pty_resize` per frame.
+- **Riquadri delle chat**: transition permanente su left/top/width/height, spenta dalla classe
+  `.surface.still` mentre la superficie si ridimensiona (ResizeObserver → flag `resizing` per 160 ms),
+  durante un movimento della shell o trascinando un separatore (`paneDrag`): in quei casi devono
+  seguire frame per frame. Prima avevo provato la classe accesa solo durante il cambio (`panes`):
+  classe e stile arrivavano nella stessa mutazione DOM ma la transition NON partiva, mentre lo stesso
+  cambio fatto a mano da console partiva in tutti gli ordini; causa non chiarita (qualcosa nel flush
+  di Svelte forza un ricalcolo di stile in mezzo?), la soluzione "sempre accesa salvo `still`" la evita.
+- **Impostazione "Smooth panel transitions"** (default ON) che scrive `--motion-ms` (220ms/0ms).
+  Scoperta: sul PC dell'utente Windows ha gli effetti di animazione spenti → `prefers-reduced-motion:
+  reduce` è vero e ogni transition durerebbe 0: la preferenza di sistema NON viene seguita, comanda
+  l'impostazione di Orbit (l'utente ha chiesto proprio le animazioni).
+
+### Il cambio repo come movimento unico
+Misura via CDP (campionamento per frame dal clic sulla scheda repo), prima della correzione:
+andando verso una repo senza file, primo movimento a 45 ms (allargamento dell'editor!) e un SECONDO
+movimento a 450–570 ms (collasso). Causa: `switchFolder` azzera `rootPath` per qualche decina di ms e
+l'effetto del collasso in App leggeva quell'istante come "ci sono file" → espandeva subito; poi, con la
+sessione nuova senza tab, collassava col ritardo di 400 ms previsto per la chiusura dell'ultima scheda.
+Correzione: `loadSession` decide `editorCollapsed` SUBITO dalle tab salvate (insieme alle larghezze);
+l'effetto in App non tocca nulla finché `rootPath` è null e tiene il ritardo solo per la chiusura
+manuale; la sessione di destinazione si legge in parallelo al salvataggio di quella corrente
+(`load_state` prefetch, `opts.raw`); le schede terminale della nuova repo compaiono appena la cartella
+è aperta (`onRootOpened`), prima dei file; `keepSidebar` evita il lampeggio della sidebar. Dopo:
+Orbit→Hive un solo movimento 41–210 ms (editor, pannello e sidebar insieme), Hive→Orbit 57–230 ms. I
+~40 ms iniziali sono i round trip verso Rust (salva + leggi).
+- **Lampeggio di "Open folder…"**: con `rootPath` null la sidebar mostrava lo stato "nessuna cartella"
+  per qualche frame. Nuovo flag `workspace.switching` (true dentro `switchFolder`): Explorer/Git/
+  Docs/Search e i bottoni della testata restano montati coi dati vecchi finché arriva la nuova cartella.
+
+### Barra dei repo
+- **Riordino per trascinamento** (TopBar): stesso approccio pointer-based delle schede editor (HTML5
+  DnD è spento per il file-drop del SO). Soglia 5 px (sotto = click = cambio repo); pointer capture;
+  la scheda presa segue il puntatore con `transform`, quelle fra origine e destinazione scivolano di
+  una posizione (transition 150 ms); la LISTA cambia solo al rilascio (`folders.moveFolder`), con un
+  frame di classe `settling` senza transition perché il DOM riordinato coincide già col visivo;
+  `suppressClick` scarta il click che segue il rilascio. L'ordine si persiste da solo: l'autosave di
+  sessione serializza `folders.list` in `repos`.
+- **Centrata**: `justify-content: center` sullo spacer della top bar; da stretto la repozone riempie lo
+  spazio e scorre come prima.
+
+### Verifica
+CDP su istanza dev isolata: massimizza/ripristina, collasso/espansione, sidebar, cambio disposizione
+dei riquadri con 7–9 valori intermedi campionati; ridimensionamento della finestra e trascinamento di
+splitter e separatori senza ritardo (riquadri che riempiono la superficie a ogni frame); a riposo
+nessuna transition sulle larghezze; cambio repo misurato come sopra; barra centrata (scarto 0 px);
+trascinamento con eventi mouse veri Orbit,Hive → Hive,Orbit con repo attiva invariata e nessun
+transform residuo; click semplice che cambia repo; durante lo switch nessun frame con lo stato vuoto.
+`svelte-check` 0/0 (259 file), vitest 20/20, nessuna modifica Rust. Collaudo manuale dell'utente sulla
+finestra dev ("l'animazione sembra perfetta"). Build release OK: orbit.exe **5,74 MB**, MSI **3,51 MB**,
+NSIS **2,85 MB** (+0,01 sugli installer: solo frontend); chunk d'avvio 536 KB (179 KB gzip).
+**Rilasciato in v0.9.1.**
 
 ---
 

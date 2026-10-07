@@ -57,8 +57,8 @@ Three kinds of frontend module, kept separate:
 
 | Module | Owns |
 |---|---|
-| `workspace` | open folder, document pool (kinds: file/diff/image/pdf/activity/gitgraph), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), per‑group `previews` (md/html source ⇄ preview, default from `settings.mdMode`), `openPreviewToSide`, … |
-| `folders` | the **open repositories** list for the top‑bar switcher — **per‑window**: in‑memory `$state` only (NOT global localStorage, which is shared across instances and caused clobbering), persisted in the active folder's session as `repos` and reseeded by `loadSession({repos:true})` at window startup; `addFolder`/`removeFolder`/`setFolders`/`openFromList`/`cycleRepo`/`selectRepoIndex` — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
+| `workspace` | open folder (+ `switching`: true while `switchFolder` swaps roots, so the sidebar keeps the old views instead of flashing "no folder"), document pool (kinds: file/diff/image/pdf/activity/gitgraph), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), per‑group `previews` (md/html source ⇄ preview, default from `settings.mdMode`), `openPreviewToSide`, … |
+| `folders` | the **open repositories** list for the top‑bar switcher — **per‑window**: in‑memory `$state` only (NOT global localStorage, which is shared across instances and caused clobbering), persisted in the active folder's session as `repos` and reseeded by `loadSession({repos:true})` at window startup; `addFolder`/`removeFolder`/`setFolders`/`openFromList`/`cycleRepo`/`selectRepoIndex`/**`moveFolder`** (drag‑to‑reorder in the top bar; the order persists through `repos`) — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file") |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
 | `terminals` | terminal tabs (id/title/shortName/customTitle/autoTitle/color/shell/cwd) + active tab + `focusedId` (real xterm focus); **bell attention** (`notifyTerminalBell`: Claude rings the bell — Orbit enables `preferredNotifChannel:terminal_bell` on launch — → dot on the **repo's tab** + on the session tab + a **sticky, clickable attention toast** (click → `goToTerminal`: switch repo, reveal panel, focus the tab) + a top‑bar **Waiting (N)** pill; persists via title `●` + taskbar `requestUserAttention` while you're away; cleared on focus/open via `clearAttention`→`dismissByKey`); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive); **side‑by‑side panes** per repo (`layouts[rootKey]` columns‑of‑rows, `autoLayout`, `sizes`, `zoomId`; `splitWith`/`showInPane`/`closePane`/`toggleZoom`/`setArrangement`/`setSizes`; invariant: `activeId` is always one of the visible panes — see *Chats side by side*) |
@@ -73,9 +73,9 @@ Three kinds of frontend module, kept separate:
 | `activity` | **Activity** view: work units from `scan_activity` across all `~/.claude/projects` (prompt‑first segmentation in Rust); project on/off toggles `activityPrefs` (persisted, hides noise) + `openActivity`; live refresh via `watch_activity`→`activity-changed` |
 | `scratch` | one‑click persistent plain‑text scratchpad (`.orbit/scratch.txt`) for notes/prompts; renames a legacy `scratch.md` on first use |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
-| `settings` | **theme** (4 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
-| `layout` | panel sizes/visibility + focused panel + `editorCollapsed` (runtime only: no tabs open → the editor shrinks to its minimum width, see *Editor auto‑collapse*) + `terminalMaximized` (chats side by side, saved in the session) |
-| `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; `switchFolder` swaps the active folder cleanly (keeps the window's repo list) |
+| `settings` | **theme** (5 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/**motion** (smooth panel transitions → `--motion-ms`)/webgl/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
+| `layout` | panel sizes/visibility + focused panel + `editorCollapsed` (runtime only: no tabs open → the editor shrinks to its minimum width, see *Editor auto‑collapse*) + `terminalMaximized` (chats side by side, saved in the session) + the **layout motion** API (`animating`, `beginMotion`/`animate`/`motionUntil`/`motionMs` — see *Smooth layout motion*) |
+| `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; `switchFolder` swaps the active folder cleanly (keeps the window's repo list and sidebar view, prefetches the destination session in parallel with saving the current one, decides `editorCollapsed` from the saved tabs up front and shows the new repo's terminals as soon as the root is open — one layout motion) |
 | `toast` | transient notifications, plus a **sticky, clickable `attention`** variant (`notifyAttention`/`dismissByKey`, coalesced by `key`) used by the Claude‑waiting notification |
 | `logs` | **diagnostic logs** (`log`/`logWarn`/`logError`): in‑memory ring buffer + batched on‑disk persistence (Rust `append_log`) + global error capture, all gated by `settings.logging` (default on); `LogViewer` overlay + export (copy / reveal file). Instruments clipboard/paste/terminal to diagnose issues (e.g. the double‑paste) |
 
@@ -96,7 +96,7 @@ cursor). The editor uses soft **line wrapping** (gutter stays correct).
 
 `Editor.svelte` (CodeMirror) and `Terminal.svelte` (xterm) are loaded through
 `LazyEditor.svelte` / `LazyTerminal.svelte` (dynamic `import()`), so the startup chunk stays
-lean (~531 KB; the ~343 KB xterm and ~76 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
+lean (~536 KB; the ~343 KB xterm and ~76 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
 `settings.webgl` (off by default). **marked + DOMPurify** are likewise lazy (`markdown.ts`
 imports them on first render), so the Markdown feature adds nothing to the startup payload.
 A small generic **`Lazy.svelte`** wrapper (`load={() => import("./X.svelte")}`, props forwarded) does
@@ -107,6 +107,32 @@ first paint loads only the Explorer + the active editor.
 
 ### Feature notes
 
+- **Smooth layout motion** (M56) — programmatic layout changes (repo switch, editor auto‑collapse,
+  maximized panel, show/hide of sidebar and terminal panel, chat pane arrangement) animate as one
+  motion; splitter drags stay immediate. `layout.svelte.ts` owns the clock: `beginMotion()` sets
+  `layout.animating` and returns `end()` (nestable — `switchFolder` keeps it open across its awaits);
+  `animate(fn)` is the synchronous form. Components gate their CSS transitions on that flag
+  (`.sidebar.animating`, `.terminal-panel.animating`, `.editor-area.animating` → width / flex‑grow /
+  flex‑basis for `--motion-ms`, a token written by `applySettings` from the **"Smooth panel
+  transitions"** setting — deliberately *not* `prefers-reduced-motion`, which is permanently on when
+  Windows' animation effects are off). The maximized editor is now `width: 0`/`visibility: hidden`
+  rather than `display: none` so it can animate. Show/hide of the two side panels uses Svelte
+  `transition:slide|global` on the component roots (duration 0 until `workspace.ready`, so startup
+  never animates). Terminal panes (`.slot`) keep a permanent left/top/width/height transition that
+  `.surface.still` turns off while the surface itself is resizing, during a shell motion or while a
+  pane splitter is dragged — the panes must follow the surface frame‑by‑frame then. `Terminal.svelte`
+  consults `motionUntil()` in `scheduleFit` and refits xterm **once ~40 ms after the motion ends**
+  (capped at 1.5 s) instead of a `pty_resize` per frame. `switchFolder` is a single motion: it
+  prefetches the destination session, applies widths and `editorCollapsed` (from the saved tabs —
+  previously the App effect expanded the editor while `rootPath` was null and collapsed it 400 ms
+  later: two jumps) and syncs the terminals as soon as the root opens; `workspace.switching` keeps the
+  sidebar views mounted so "Open folder…" never flashes.
+- **Repo tabs drag‑to‑reorder** (M56) — same pointer‑based approach as editor tabs (HTML5 DnD is off,
+  see *Drag‑and‑drop*): a 5 px threshold separates a click from a drag; the grabbed tab follows the
+  pointer via `transform`, the tabs between source and destination shift by one slot with a 150 ms
+  transform transition, and `folders.moveFolder` reorders the list **only on drop** (a one‑frame
+  `settling` class disables transitions while the DOM reorder lands exactly where the tabs already
+  are). The repo row is centered in the top bar (`justify-content: center` on the spacer).
 - **Markdown** — `markdown.ts` renders Markdown to **sanitized** HTML (the WebView has IPC
   access, so a malicious README must not run scripts). `MarkdownView.svelte` is a reading‑mode
   preview with a heading TOC, interactive task lists (writing back to the source), and clickable
@@ -253,10 +279,12 @@ first paint loads only the Explorer + the active editor.
 - **Editor auto‑collapse** — when no group has a tab (and a folder is open with the terminal panel
   visible), an `$effect` in `App.svelte` sets `layout.editorCollapsed`: the editor area shrinks to its
   220px minimum (`.editor-area.collapsed`, the welcome reduced to the logo), the terminal panel fills the
-  rest (`.terminal-panel.fill`) and the splitter between them is swapped for a fixed gap. Collapsing is
-  delayed 400 ms — at startup and during a repo switch the groups are empty for a moment, and every
-  layout change resizes the PTYs (Claude redraws) — while expanding is immediate. `terminalWidth` is
-  never touched, so opening a file restores the previous layout.
+  rest (`.terminal-panel.fill`) and the splitter between them is swapped for a fixed gap. The effect
+  stays out of it while `rootPath` is null (startup / repo switch): there `loadSession` decides the
+  collapse up front from the saved tabs, together with the panel widths, so a repo switch is one
+  motion. Closing the last tab by hand collapses after a 400 ms grace period (so close‑then‑open
+  doesn't pump the PTYs); expanding is immediate. Both animate (see *Smooth layout motion*).
+  `terminalWidth` is never touched, so opening a file restores the previous layout.
 - **Terminal links** — clicked path tokens resolve through `resolve_existing` (Rust): absolute, then
   relative to the terminal's cwd, then the project root — first that exists wins (works for binaries
   like images too); otherwise a "file not found" toast.

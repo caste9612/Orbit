@@ -59,6 +59,9 @@ export const workspace = $state({
   groups: [] as EditorGroup[], // gruppi editor affiancati (0..N)
   activeGroupId: "" as string,
   ready: false, // true a sessione caricata (es. terminale di default attende questo)
+  // cambio cartella in corso (persist.switchFolder): rootPath è null per qualche decina di ms, ma la
+  // UI NON deve mostrare gli stati "nessuna cartella" (lampeggio del bottone "Open folder…")
+  switching: false,
 });
 
 /** Posizione del cursore nell'editor attivo (per la status bar). */

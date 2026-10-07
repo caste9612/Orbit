@@ -213,6 +213,7 @@
   class:focused={layout.focusPanel === "editor"}
   class:collapsed={layout.editorCollapsed}
   class:hidden={layout.terminalMaximized && layout.terminalVisible}
+  class:animating={layout.animating}
   onpointerdown={() => setFocusPanel("editor")}
 >
   {#if workspace.groups.length === 0}
@@ -440,6 +441,17 @@
   .editor-area.focused {
     border-color: var(--color-accent);
   }
+  /* movimento fluido (M56): collasso e nascondimento animati (flex-basis/grow, non display) */
+  .editor-area.animating {
+    transition:
+      flex-basis var(--motion-ms) var(--motion-ease),
+      flex-grow var(--motion-ms) var(--motion-ease),
+      min-width var(--motion-ms) var(--motion-ease),
+      border-width var(--motion-ms) var(--motion-ease),
+      opacity var(--motion-ms) var(--motion-ease),
+      visibility var(--motion-ms),
+      border-color 120ms ease;
+  }
   /* nessuna tab aperta: l'area si stringe alla larghezza minima e lascia lo spazio al pannello
      terminale (layout.editorCollapsed, deciso in App). Il benvenuto si compatta al solo logo. */
   .editor-area.collapsed {
@@ -454,9 +466,15 @@
   .editor-area.collapsed .hints {
     display: none;
   }
-  /* pannello terminale a tutta larghezza (chat affiancate): l'editor resta montato, solo nascosto */
+  /* pannello terminale a tutta larghezza (chat affiancate): l'editor resta montato, solo nascosto.
+     Larghezza 0 (non display:none) così il passaggio si può animare; visibility toglie focus e click. */
   .editor-area.hidden {
-    display: none;
+    flex: 0 0 0px;
+    min-width: 0;
+    border-width: 0;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
   }
 
   .groups {

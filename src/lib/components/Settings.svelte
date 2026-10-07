@@ -127,6 +127,18 @@
 
     <div class="row">
       <div class="label">
+        <span class="name">Smooth panel transitions</span>
+        <span class="hint">Animate panel sizes when switching repos, collapsing the editor or arranging chats (ignores the system "reduce motion" setting)</span>
+      </div>
+      <Switch
+        checked={settings.motion}
+        onToggle={() => (settings.motion = !settings.motion)}
+        label="Smooth panel transitions"
+      />
+    </div>
+
+    <div class="row">
+      <div class="label">
         <span class="name">Smooth caret</span>
         <span class="hint">Animate the editor cursor while typing</span>
       </div>

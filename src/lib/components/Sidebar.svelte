@@ -2,7 +2,8 @@
   import Icon from "./Icon.svelte";
   import Explorer from "./Explorer.svelte";
   import Lazy from "./Lazy.svelte";
-  import { layout, setFocusPanel } from "../state/layout.svelte";
+  import { slide } from "svelte/transition";
+  import { layout, setFocusPanel, motionMs } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog, startCreate, collapseAll } from "../state/explorer.svelte";
   import { settings } from "../state/settings.svelte";
@@ -21,10 +22,20 @@
   );
 </script>
 
-<aside class="sidebar" class:focused={layout.focusPanel === "sidebar"} style="width:{layout.sidebarWidth}px" onpointerdown={() => setFocusPanel("sidebar")}>
+<!-- slide|global: il blocco {#if} che mostra/nasconde la sidebar è in App; niente intro al primo avvio
+     (workspace non ancora pronto → durata 0). `animating` accende la transition della larghezza solo
+     nei cambi programmatici (cambio repo), non trascinando lo splitter. -->
+<aside
+  class="sidebar"
+  class:focused={layout.focusPanel === "sidebar"}
+  class:animating={layout.animating}
+  style="width:{layout.sidebarWidth}px"
+  transition:slide|global={{ axis: "x", duration: workspace.ready ? motionMs() : 0 }}
+  onpointerdown={() => setFocusPanel("sidebar")}
+>
   <header class="head">
     <span class="title">{title}</span>
-    {#if layout.sidebarView === "explorer" && workspace.rootPath}
+    {#if layout.sidebarView === "explorer" && (workspace.rootPath || workspace.switching)}
       <div class="acts">
         <button
           class="act"
@@ -53,8 +64,10 @@
   </header>
 
   <div class="body">
+    <!-- durante il cambio cartella (workspace.switching) rootPath è null per un attimo: le viste
+         restano montate con i dati vecchi invece di lampeggiare lo stato "nessuna cartella" -->
     {#if layout.sidebarView === "explorer"}
-      {#if workspace.rootPath}
+      {#if workspace.rootPath || workspace.switching}
         <Explorer />
       {:else}
         <div class="empty">
@@ -66,7 +79,7 @@
         </div>
       {/if}
     {:else if layout.sidebarView === "git"}
-      {#if workspace.rootPath}
+      {#if workspace.rootPath || workspace.switching}
         <Lazy load={() => import("./GitPanel.svelte")} />
       {:else}
         <div class="empty">
@@ -75,7 +88,7 @@
         </div>
       {/if}
     {:else if layout.sidebarView === "docs"}
-      {#if workspace.rootPath}
+      {#if workspace.rootPath || workspace.switching}
         <Lazy load={() => import("./DocsView.svelte")} />
       {:else}
         <div class="empty">
@@ -85,7 +98,7 @@
       {/if}
     {:else if layout.sidebarView === "activity"}
       <Lazy load={() => import("./ActivityPanel.svelte")} />
-    {:else if workspace.rootPath}
+    {:else if workspace.rootPath || workspace.switching}
       <Lazy load={() => import("./SearchView.svelte")} />
     {:else}
       <div class="empty">
@@ -108,6 +121,11 @@
     border-radius: var(--r-lg);
     border: 1px solid var(--color-line);
     transition: border-color 120ms ease;
+  }
+  .sidebar.animating {
+    transition:
+      width var(--motion-ms) var(--motion-ease),
+      border-color 120ms ease;
   }
   .sidebar.focused {
     border-color: var(--color-accent);

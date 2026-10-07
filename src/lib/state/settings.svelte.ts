@@ -167,6 +167,10 @@ export const settings = $state({
   terminalFontSize: 13, // dimensione font del terminale (indipendente dall'editor)
   accent: "auto" as AccentName | "auto", // "auto" = accento del tema; altrimenti un preset sovrascrive
   smoothCursor: true,
+  // movimento fluido dei pannelli (M56): larghezze e riquadri animati nei cambi programmatici del
+  // layout. Comanda `--motion-ms`; NON segue prefers-reduced-motion (su Windows con gli effetti di
+  // animazione spenti sarebbe sempre 0, e l'utente ha chiesto proprio le transizioni).
+  motion: true,
   webgl: false, // GPU rendering del terminale: OFF di default (più leggero ~85 MB)
   claudeTerminal: true, // il terminale di default avvia Claude (companion di Claude Code)
   bellNotify: true, // avvisa quando un terminale suona la bell (Claude ha finito / aspetta) e non lo guardi
@@ -233,7 +237,11 @@ function applySettings() {
     r.setProperty("--color-accent-2", a.accent2);
   }
   r.setProperty("--caret-transition", settings.smoothCursor ? "left 55ms ease-out, top 55ms ease-out" : "none");
+  r.setProperty("--motion-ms", settings.motion ? `${MOTION_BASE_MS}ms` : "0ms"); // vedi layout.svelte.ts motionMs()
 }
+
+/** Durata base delle transizioni di layout (ms); `--motion-ms` in app.css ha lo stesso valore. */
+export const MOTION_BASE_MS = 220;
 
 /** Carica da localStorage e applica. */
 export function loadSettings() {
@@ -263,6 +271,7 @@ export function loadSettings() {
       if (typeof s.terminalFontSize === "number") settings.terminalFontSize = s.terminalFontSize;
       if (typeof s.accent === "string" && (s.accent === "auto" || s.accent in ACCENTS)) settings.accent = s.accent;
       if (typeof s.smoothCursor === "boolean") settings.smoothCursor = s.smoothCursor;
+      if (typeof s.motion === "boolean") settings.motion = s.motion;
       if (typeof s.webgl === "boolean") settings.webgl = s.webgl;
       if (typeof s.claudeTerminal === "boolean") settings.claudeTerminal = s.claudeTerminal;
       if (typeof s.bellNotify === "boolean") settings.bellNotify = s.bellNotify;
@@ -291,6 +300,7 @@ export function startSettingsAutosave() {
         terminalFontSize: settings.terminalFontSize,
         accent: settings.accent,
         smoothCursor: settings.smoothCursor,
+        motion: settings.motion,
         webgl: settings.webgl,
         claudeTerminal: settings.claudeTerminal,
         bellNotify: settings.bellNotify,

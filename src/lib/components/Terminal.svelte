@@ -10,6 +10,7 @@
   import { notify } from "../state/toast.svelte";
   import { settings, monoStack, THEMES, ACCENTS } from "../state/settings.svelte";
   import { setTerminalFocus, clearTerminalFocus } from "../state/terminals.svelte";
+  import { motionUntil } from "../state/layout.svelte";
   import { joinPath } from "../util";
   import { writeClipboard, readClipboard } from "../clipboard";
   import { log, logError } from "../state/logs.svelte";
@@ -174,10 +175,14 @@
     }
   }
 
-  // coalescizza i fit ravvicinati (zoom del font / resize rapidi della finestra) in uno solo
+  // coalescizza i fit ravvicinati (zoom del font / resize rapidi della finestra) in uno solo.
+  // Durante una transizione del layout (cambio repo, collasso dell'editor, riquadri che si spostano) il
+  // contenitore cambia a ogni frame: un solo fit ~40 ms dopo la fine, non un pty_resize per frame
+  // (ogni resize fa ridisegnare i programmi TUI). Tetto di 1,5 s se la transizione non si chiude.
   function scheduleFit(resize = false) {
     if (resizeTimer) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => fitSafe(resize), 90);
+    const wait = Math.max(90, Math.min(1500, motionUntil() - performance.now() + 40));
+    resizeTimer = setTimeout(() => fitSafe(resize), wait);
   }
 
   // —— Copia/incolla (via lib/clipboard.ts: niente errori ingoiati, plugin Tauri + fallback) ——

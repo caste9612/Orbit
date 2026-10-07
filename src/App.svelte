@@ -12,7 +12,7 @@
   import Toaster from "./lib/components/Toaster.svelte";
   import Logo from "./lib/components/Logo.svelte";
   import Icon from "./lib/components/Icon.svelte";
-  import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal } from "./lib/state/layout.svelte";
+  import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal, animate } from "./lib/state/layout.svelte";
   import { listen, emit } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { openFolderDialog, refreshTree, revealInTree } from "./lib/state/explorer.svelte";
@@ -207,16 +207,17 @@
   // ridimensionamento inutile dei PTY e il ridisegno di Claude). L'espansione invece è immediata.
   $effect(() => {
     if (isFloatingTerminal) return;
-    const empty =
-      workspace.ready &&
-      !!workspace.rootPath &&
-      layout.terminalVisible &&
-      workspace.groups.every((g) => g.tabs.length === 0);
+    // avvio o cambio repo in corso (rootPath null): il collasso lo decide loadSession dalla sessione
+    // salvata, insieme alle larghezze, così il cambio repo è un movimento solo (prima qui l'editor si
+    // espandeva subito e poi collassava 400 ms dopo: due scatti)
+    if (!workspace.ready || !workspace.rootPath) return;
+    const empty = layout.terminalVisible && workspace.groups.every((g) => g.tabs.length === 0);
     if (!empty) {
-      layout.editorCollapsed = false;
+      if (layout.editorCollapsed) animate(() => (layout.editorCollapsed = false)); // espansione immediata
       return;
     }
-    const t = setTimeout(() => (layout.editorCollapsed = true), 400);
+    if (layout.editorCollapsed) return;
+    const t = setTimeout(() => animate(() => (layout.editorCollapsed = true)), 400); // ultima tab chiusa
     return () => clearTimeout(t);
   });
 

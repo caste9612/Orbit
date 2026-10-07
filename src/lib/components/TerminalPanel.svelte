@@ -1,12 +1,13 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, untrack } from "svelte";
   import Icon from "./Icon.svelte";
   import Terminal from "./LazyTerminal.svelte";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
   import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
-  import { layout, toggleTerminal, setFocusPanel, toggleTerminalMaximized } from "../state/layout.svelte";
+  import { slide } from "svelte/transition";
+  import { layout, toggleTerminal, setFocusPanel, toggleTerminalMaximized, motionMs } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import {
     terminals,
@@ -110,6 +111,20 @@
   let surfH = $state(0);
   // lo stato conosce la superficie: le scelte automatiche (menu Split, "to the side") la usano
   $effect(() => setSurface(surfW, surfH));
+  // superficie in cambiamento (finestra o splitter del pannello) → i riquadri la seguono subito, senza
+  // la transition di posizione (classe `still`); torna ferma ~160 ms dopo l'ultima variazione
+  let resizing = $state(false);
+  let resizeTimer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => {
+    void surfW;
+    void surfH;
+    untrack(() => {
+      resizing = true;
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => (resizing = false), 160);
+    });
+  });
+  let paneDrag = $state(false); // separatore fra riquadri in trascinamento: niente transition
   // disposizione mostrata: lo zoom, oppure lo split della repo (adattivo allo spazio se in auto),
   // oppure la sola scheda attiva
   let shownLayout = $derived<Layout>(
@@ -163,6 +178,7 @@
     const arr = kind === "col" ? sizes.cols : (sizes.rows[c] ?? [1]);
     const i = kind === "col" ? c : r;
     sizing = { kind, c, r, start: kind === "col" ? e.clientX : e.clientY, a: arr[i], b: arr[i + 1], inner };
+    paneDrag = true;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     e.preventDefault();
     e.stopPropagation();
@@ -195,6 +211,7 @@
   function sizeUp(e: PointerEvent) {
     if (!sizing) return;
     sizing = null;
+    paneDrag = false;
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {
@@ -415,7 +432,9 @@
   class:focused={layout.focusPanel === "terminal"}
   class:fill={layout.editorCollapsed || layout.terminalMaximized}
   class:dragging={dragId !== null}
+  class:animating={layout.animating}
   style="width:{layout.terminalWidth}px"
+  transition:slide|global={{ axis: "x", duration: workspace.ready ? motionMs() : 0 }}
   onpointerdown={() => setFocusPanel("terminal")}
 >
   <header class="head">
@@ -478,7 +497,8 @@
     </div>
   </header>
 
-  <div class="surface" class:split bind:clientWidth={surfW} bind:clientHeight={surfH}>
+  <!-- `still`: niente transition sui riquadri mentre seguono frame per frame la superficie (vedi CSS) -->
+  <div class="surface" class:split class:still={layout.animating || resizing || paneDrag} bind:clientWidth={surfW} bind:clientHeight={surfH}>
     {#each terminals.list as t (t.id)}
       {@const isShownHere = shown.includes(t.id)}
       {@const tv = tabVisual(t.shell, t.title)}
@@ -608,6 +628,13 @@
   }
   .terminal-panel.focused {
     border-color: var(--color-accent);
+  }
+  /* movimento fluido (M56): larghezza e riempimento animati nei cambi programmatici del layout */
+  .terminal-panel.animating {
+    transition:
+      width var(--motion-ms) var(--motion-ease),
+      flex-grow var(--motion-ms) var(--motion-ease),
+      border-color 120ms ease;
   }
   /* editor senza tab (collassato al minimo): il pannello si prende tutto lo spazio restante */
   .terminal-panel.fill {
@@ -782,6 +809,23 @@
   }
   .surface.split {
     background: var(--color-bg);
+  }
+  /* i riquadri (e i loro separatori) scivolano alla nuova geometria quando cambia la disposizione
+     (split, chiusura, zoom, menu Layout). `still` li ferma — seguono subito — mentre la superficie si
+     ridimensiona (finestra, splitter del pannello), durante un movimento della shell e trascinando i
+     separatori fra riquadri. La classe va accesa PRIMA del cambio di geometria: lo è, perché deriva
+     dagli stessi eventi che la causano. */
+  .surface.split .slot.shown,
+  .surface.split .psplit {
+    transition:
+      left var(--motion-ms) var(--motion-ease),
+      top var(--motion-ms) var(--motion-ease),
+      width var(--motion-ms) var(--motion-ease),
+      height var(--motion-ms) var(--motion-ease);
+  }
+  .surface.still .slot.shown,
+  .surface.still .psplit {
+    transition: none;
   }
   .slot {
     display: none;

@@ -3,7 +3,7 @@
 // così scrollback e shell si conservano quando si cambia tab.
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
-import { layout } from "./layout.svelte";
+import { layout, animate } from "./layout.svelte";
 import { settings } from "./settings.svelte";
 import { notify, notifyAttention, dismissByKey } from "./toast.svelte";
 import { workspace } from "./workspace.svelte";
@@ -153,10 +153,14 @@ export function effectiveLayout(root: string | null, width: number, height: numb
   return isAutoLayout(root) ? arrangeAuto(flatten(lay), width, height) : lay;
 }
 
-/** Salva la disposizione (sotto i 2 riquadri = nessuno split); `manual` cambia anche la modalità. */
+/** Salva la disposizione (sotto i 2 riquadri = nessuno split); `manual` cambia anche la modalità.
+ *  Se la disposizione cambia davvero, i riquadri scivolano alla nuova geometria (movimento fluido). */
 function setLayout(root: string | null, next: Layout, manual?: boolean) {
-  terminals.layouts[rootKey(root)] = flatten(next).length >= 2 ? next : [];
-  if (manual !== undefined) terminals.autoLayout[rootKey(root)] = !manual;
+  const k = rootKey(root);
+  const val: Layout = flatten(next).length >= 2 ? next : [];
+  if (JSON.stringify(terminals.layouts[k] ?? []) !== JSON.stringify(val)) animate(() => (terminals.layouts[k] = val), "panes");
+  else terminals.layouts[k] = val;
+  if (manual !== undefined) terminals.autoLayout[k] = !manual;
 }
 
 /** TerminalPanel comunica le dimensioni della superficie (per le scelte automatiche). */
@@ -194,7 +198,7 @@ export function setSizes(root: string | null, layout: Layout, sizes: PaneSizes) 
 /** Disposizione dal menu: `auto` torna adattiva; `columns`/`rows` fissano affiancati/impilati. */
 export function setArrangement(root: string | null, mode: Arrangement) {
   if (mode === "auto") {
-    terminals.autoLayout[rootKey(root)] = true;
+    animate(() => (terminals.autoLayout[rootKey(root)] = true), "panes");
     return;
   }
   setLayout(root, arrange(panesOf(root), mode, terminals.surfW, terminals.surfH), true);
@@ -319,14 +323,16 @@ export function closePane(id: string) {
 
 /** Ingrandisce un riquadro (gli altri restano vivi, nascosti) o torna alla vista affiancata. */
 export function toggleZoom(id: string) {
-  terminals.zoomId = terminals.zoomId === id ? null : id;
-  terminals.activeId = id;
+  animate(() => {
+    terminals.zoomId = terminals.zoomId === id ? null : id;
+    terminals.activeId = id;
+  }, "panes");
 }
 
 /** Toglie `id` dagli split di qualunque repo (terminale chiuso o estratto in finestra flottante). */
 function dropFromPanes(id: string) {
   for (const k of Object.keys(terminals.layouts)) {
-    if (flatten(terminals.layouts[k]).includes(id)) terminals.layouts[k] = removePane(terminals.layouts[k], id);
+    if (flatten(terminals.layouts[k]).includes(id)) animate(() => (terminals.layouts[k] = removePane(terminals.layouts[k], id)), "panes");
   }
   if (terminals.zoomId === id) terminals.zoomId = null;
 }

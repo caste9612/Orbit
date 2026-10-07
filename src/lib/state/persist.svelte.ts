@@ -6,7 +6,7 @@ import { confirm } from "@tauri-apps/plugin-dialog";
 import { workspace, fileByPath, restoreGroups, resetDocs, autosaveAll } from "./workspace.svelte";
 import { settings } from "./settings.svelte";
 import { openRoot, snapshotExpanded } from "./explorer.svelte";
-import { layout, type SidebarView } from "./layout.svelte";
+import { layout, beginMotion, type SidebarView } from "./layout.svelte";
 import { syncActiveTerminalToRoot } from "./terminals.svelte";
 import { folders, setFolders } from "./folders.svelte";
 import { notify } from "./toast.svelte";
@@ -82,18 +82,25 @@ function serialize(): string {
  *  finestra; uno switch di cartella NON deve sostituire la lista repo della finestra corrente). */
 export async function loadSession(
   rootHint?: string,
-  opts: { repos?: boolean } = {},
+  opts: { repos?: boolean; keepSidebar?: boolean; raw?: string | null; onRootOpened?: () => void } = {},
 ): Promise<boolean> {
+  // `opts.raw`: sessione già letta dal chiamante (switchFolder la prefetcha in parallelo al salvataggio
+  // di quella corrente, così il layout di destinazione arriva prima)
   let raw: string | null = null;
-  try {
-    raw = await invoke<string | null>("load_state", { key: rootHint ? sessionKey(rootHint) : null });
-  } catch {
-    raw = null;
+  if (opts.raw !== undefined) raw = opts.raw;
+  else {
+    try {
+      raw = await invoke<string | null>("load_state", { key: rootHint ? sessionKey(rootHint) : null });
+    } catch {
+      raw = null;
+    }
   }
   if (!raw) {
     if (rootHint) {
       try {
+        setEditorCollapsedFor(false); // cartella senza sessione: nessuna tab → editor al minimo da subito
         await openRoot(rootHint);
+        opts.onRootOpened?.();
         if (opts.repos) setFolders([rootHint]); // nessuna sessione → lista = solo questa cartella
         return true;
       } catch {
@@ -114,16 +121,27 @@ export async function loadSession(
   }
 
   if (s.layout) {
-    const sv = s.layout.sidebarView;
-    layout.sidebarView = (["explorer", "git", "search", "docs", "activity"] as SidebarView[]).includes(sv)
-      ? sv
-      : "explorer"; // migra una vista salvata non più valida (es. la vecchia "claude") → Explorer
-    layout.sidebarVisible = s.layout.sidebarVisible ?? layout.sidebarVisible;
+    // allo switch di repo la sidebar resta com'è (keepSidebar): prima veniva applicata quella salvata e
+    // poi ripristinata dal chiamante, con un lampeggio se le due differivano
+    if (!opts.keepSidebar) {
+      const sv = s.layout.sidebarView;
+      layout.sidebarView = (["explorer", "git", "search", "docs", "activity"] as SidebarView[]).includes(sv)
+        ? sv
+        : "explorer"; // migra una vista salvata non più valida (es. la vecchia "claude") → Explorer
+      layout.sidebarVisible = s.layout.sidebarVisible ?? layout.sidebarVisible;
+    }
     layout.sidebarWidth = s.layout.sidebarWidth ?? layout.sidebarWidth;
     layout.terminalVisible = s.layout.terminalVisible ?? layout.terminalVisible;
     layout.terminalWidth = s.layout.terminalWidth ?? layout.terminalWidth;
     layout.terminalMaximized = s.layout.terminalMaximized === true;
   }
+  // Editor collassato deciso SUBITO dalle tab salvate, insieme alle larghezze: un movimento solo invece
+  // di "allarga, pausa, collassa dopo 400 ms" (l'effetto in App non tocca il collasso finché rootPath
+  // è null, e poi conferma la stessa decisione).
+  const hasTabs =
+    (Array.isArray(s.groups) && s.groups.some((g) => Array.isArray(g.tabs) && g.tabs.length > 0)) ||
+    (Array.isArray(s.files) && s.files.length > 0);
+  setEditorCollapsedFor(hasTabs);
 
   const root = s.root ?? rootHint ?? null;
   if (!root) return false;
@@ -132,6 +150,7 @@ export async function loadSession(
   } catch {
     return false;
   }
+  opts.onRootOpened?.(); // es. mostrare subito le schede terminale della nuova repo, prima dei file
   if (opts.repos) setFolders(s.repos?.length ? s.repos : [root]); // lista repo della finestra
 
   if (Array.isArray(s.groups) && s.groups.length) {
@@ -141,6 +160,12 @@ export async function loadSession(
     await restoreGroups([{ tabs: s.files, active: s.active ?? s.files[0] }], 0);
   }
   return true;
+}
+
+/** L'area editor si stringe al minimo quando non ci sono tab e il pannello terminale è visibile
+ *  (stessa regola dell'effetto in App.svelte, applicata in anticipo dalla sessione). */
+function setEditorCollapsedFor(hasTabs: boolean) {
+  layout.editorCollapsed = layout.terminalVisible && !hasTabs;
 }
 
 /** Salva subito (senza debounce) la sessione della cartella attualmente aperta. */
@@ -167,6 +192,8 @@ export async function switchFolder(path: string): Promise<SwitchResult> {
   const prev = workspace.rootPath; // per tornare indietro se la nuova non si apre
   const keepView = layout.sidebarView; // "mantieni la vista corrente" allo switch (scelta utente)
   const keepVisible = layout.sidebarVisible;
+  // la sessione di destinazione si legge SUBITO, in parallelo a autosave e salvataggio di quella corrente
+  const rawP = invoke<string | null>("load_state", { key: sessionKey(path) }).catch(() => null);
   if (prev) snapshotExpanded(prev); // salva l'albero espanso del repo che stai lasciando
   // modifiche non salvate: con l'autosave ON le salviamo subito (come su blur/cambio-tab) invece di
   // chiedere conferma. Resta `dirty` solo ciò che l'autosave NON tocca — i file in conflitto (cambiati
@@ -180,25 +207,40 @@ export async function switchFolder(path: string): Promise<SwitchResult> {
     );
     if (!ok) return "cancelled";
   }
-  await saveSessionNow(); // 1. preserva le tab della cartella corrente (sotto la sua chiave)
-  workspace.rootPath = null; // 2. sospende l'autosave (niente clobber durante lo scambio)
-  resetDocs(); // 3. via i documenti della cartella precedente
-  const ok = await loadSession(path); // 4. ripristina la nuova cartella (apre comunque se senza sessione)
-  if (!ok) {
-    // cartella spostata/eliminata: openRoot ha lanciato senza toccare rootPath → niente stato a metà.
-    // Torniamo alla cartella precedente (così non resta una finestra vuota) e segnaliamo l'errore;
-    // il chiamante toglierà la voce morta dal selettore.
-    if (prev) await loadSession(prev).catch(() => {});
-    notify(`Can't open "${basename(path)}" — the folder may have been moved or deleted.`, "error");
-    return "failed";
+  // Movimento fluido: tutto il layout della nuova cartella (larghezze, pannello massimizzato, editor
+  // collassato, riquadri) arriva in una transizione sola; i terminali rifittano una volta alla fine.
+  const endMotion = beginMotion();
+  workspace.switching = true; // la sidebar tiene l'albero vecchio invece di mostrare "Open folder…"
+  try {
+    // 1. preserva le tab della cartella corrente (sotto la sua chiave): serializza subito, scrive in
+    //    parallelo alla lettura della destinazione
+    const saveP = saveSessionNow();
+    workspace.rootPath = null; // 2. sospende l'autosave (niente clobber durante lo scambio)
+    resetDocs(); // 3. via i documenti della cartella precedente
+    const raw = await rawP;
+    await saveP;
+    // 4. ripristina la nuova cartella (apre comunque se senza sessione); la sidebar resta com'è; le
+    //    schede terminale della nuova repo compaiono appena la cartella è aperta, prima dei file
+    const sync = () => syncActiveTerminalToRoot(workspace.rootPath);
+    const ok = await loadSession(path, { keepSidebar: true, raw, onRootOpened: sync });
+    if (!ok) {
+      // cartella spostata/eliminata: openRoot ha lanciato senza toccare rootPath → niente stato a metà.
+      // Torniamo alla cartella precedente (così non resta una finestra vuota) e segnaliamo l'errore;
+      // il chiamante toglierà la voce morta dal selettore.
+      if (prev) await loadSession(prev, { keepSidebar: true, onRootOpened: sync }).catch(() => {});
+      notify(`Can't open "${basename(path)}" — the folder may have been moved or deleted.`, "error");
+      return "failed";
+    }
+    // 5. "mantieni la vista corrente" (scelta utente): NON forziamo Explorer e NON lasciamo vincere la
+    //    vista salvata del repo di destinazione — resti sulla vista che stavi usando (comportamento a
+    //    schede). Lo startup invece rispetta la vista salvata (qui siamo solo nello switch).
+    layout.sidebarView = keepView;
+    layout.sidebarVisible = keepVisible;
+    return "switched";
+  } finally {
+    workspace.switching = false;
+    endMotion();
   }
-  // 5. "mantieni la vista corrente" (scelta utente): NON forziamo Explorer e NON lasciamo vincere la
-  //    vista salvata del repo di destinazione — resti sulla vista che stavi usando (comportamento a
-  //    schede). Lo startup invece rispetta la vista salvata (qui siamo solo nello switch).
-  layout.sidebarView = keepView;
-  layout.sidebarVisible = keepVisible;
-  syncActiveTerminalToRoot(workspace.rootPath); // 6. mostra le schede terminale di QUESTA repo
-  return "switched";
 }
 
 /** Attiva il salvataggio automatico (debounced) a ogni cambio di sessione/layout.

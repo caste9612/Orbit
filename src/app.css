@@ -40,6 +40,12 @@
 /* raggi e ombre (custom props normali: usate in CSS scoped via var()) */
 :root {
   --color-bg: #0e1014; /* sfondo dietro i pannelli "card" */
+  /* Movimento fluido dei pannelli (M56): durata e curva delle transition di larghezze e posizioni,
+     accese solo durante i cambi programmatici (classe .animating). La durata la comanda l'impostazione
+     "Smooth panel transitions" (settings.svelte.ts la scrive qui: 220ms o 0ms), NON la preferenza di
+     sistema prefers-reduced-motion: su Windows con gli effetti di animazione spenti sarebbe sempre 0. */
+  --motion-ms: 220ms;
+  --motion-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   /* Scala dei raggi: TUTTI i border-radius dei componenti la usano (niente px fissi), così un tema
      può cambiare la "forma" dell'interfaccia (es. Visual Studio 2026: angoli quasi vivi). Default =
      look Orbit storico; `settings.svelte.ts` li sovrascrive per tema (Theme.look.radii). */

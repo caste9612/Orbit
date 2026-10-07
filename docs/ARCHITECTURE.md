@@ -61,7 +61,7 @@ Three kinds of frontend module, kept separate:
 | `folders` | the **open repositories** list for the top‑bar switcher — **per‑window**: in‑memory `$state` only (NOT global localStorage, which is shared across instances and caused clobbering), persisted in the active folder's session as `repos` and reseeded by `loadSession({repos:true})` at window startup; `addFolder`/`removeFolder`/`setFolders`/`openFromList`/`cycleRepo`/`selectRepoIndex` — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file") |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
-| `terminals` | terminal tabs (id/title/shell/cwd) + active tab + `focusedId` (real xterm focus); **bell attention** (`notifyTerminalBell`: Claude rings the bell — Orbit enables `preferredNotifChannel:terminal_bell` on launch — → dot on the **repo's tab** + on the session tab + a **sticky, clickable attention toast** (click → `goToTerminal`: switch repo, reveal panel, focus the tab) + a top‑bar **Waiting (N)** pill; persists via title `●` + taskbar `requestUserAttention` while you're away; cleared on focus/open via `clearAttention`→`dismissByKey`); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive); **side‑by‑side panes** per repo (`panes[rootKey]`, `zoomId`; `splitWith`/`showInPane`/`closePane`/`toggleZoom`; invariant: `activeId` is always one of the visible panes — see *Chats side by side*) |
+| `terminals` | terminal tabs (id/title/shortName/customTitle/autoTitle/color/shell/cwd) + active tab + `focusedId` (real xterm focus); **bell attention** (`notifyTerminalBell`: Claude rings the bell — Orbit enables `preferredNotifChannel:terminal_bell` on launch — → dot on the **repo's tab** + on the session tab + a **sticky, clickable attention toast** (click → `goToTerminal`: switch repo, reveal panel, focus the tab) + a top‑bar **Waiting (N)** pill; persists via title `●` + taskbar `requestUserAttention` while you're away; cleared on focus/open via `clearAttention`→`dismissByKey`); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive); **side‑by‑side panes** per repo (`layouts[rootKey]` columns‑of‑rows, `autoLayout`, `sizes`, `zoomId`; `splitWith`/`showInPane`/`closePane`/`toggleZoom`/`setArrangement`/`setSizes`; invariant: `activeId` is always one of the visible panes — see *Chats side by side*) |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
 | `claude` | Claude launcher + **shortcuts** + **wrappers** (`.orbit/claude.json`); opens `claude` in a terminal; the wrapper composer copies the composed prompt to the clipboard; **quick add/remove** of prompts & wrappers (`ClaudePrompts.svelte` → writes `claude.json`); invalid JSON **warns** (toast) and keeps the menu instead of silently resetting |
 | `shelf` | shelved folders by category — per‑path entries (`shelved`) **and by‑name rules** (`byName`: hides every folder with that name, incl. nested or recreated — e.g. C# `bin`/`obj`); `.orbit/shelf.json`. Pure hide/group logic split into `shelfRules.ts` (unit‑tested) |
@@ -74,7 +74,7 @@ Three kinds of frontend module, kept separate:
 | `scratch` | one‑click persistent plain‑text scratchpad (`.orbit/scratch.txt`) for notes/prompts; renames a legacy `scratch.md` on first use |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
 | `settings` | **theme** (4 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/webgl/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
-| `layout` | panel sizes/visibility + focused panel + `editorCollapsed` (runtime only: no tabs open → the editor shrinks to its minimum width, see *Editor auto‑collapse*) + `terminalMaximized` / `termSplit` (chats side by side, saved in the session) |
+| `layout` | panel sizes/visibility + focused panel + `editorCollapsed` (runtime only: no tabs open → the editor shrinks to its minimum width, see *Editor auto‑collapse*) + `terminalMaximized` (chats side by side, saved in the session) |
 | `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; `switchFolder` swaps the active folder cleanly (keeps the window's repo list) |
 | `toast` | transient notifications, plus a **sticky, clickable `attention`** variant (`notifyAttention`/`dismissByKey`, coalesced by `key`) used by the Claude‑waiting notification |
 | `logs` | **diagnostic logs** (`log`/`logWarn`/`logError`): in‑memory ring buffer + batched on‑disk persistence (Rust `append_log`) + global error capture, all gated by `settings.logging` (default on); `LogViewer` overlay + export (copy / reveal file). Instruments clipboard/paste/terminal to diagnose issues (e.g. the double‑paste) |
@@ -281,18 +281,32 @@ first paint loads only the Explorer + the active editor.
   The `.xterm-viewport` gets the theme background, because xterm 6 colors only the scrollable element that
   wraps the rows, and `xterm.css` paints the viewport `#000` — the always‑present sub‑row remainder
   below the last row was the old "black line".
-- **Chats side by side** — `TerminalPanel.svelte` keeps every terminal mounted in one `.surface`, which
-  is a CSS grid: the visible ones (the active tab, or up to `MAX_PANES` = 4 split panes of the current
-  repo, or the zoomed one) get `grid-column`/`grid-row` from `placement()`, the rest stay `display:none`
-  — so moving a chat into or out of a pane never remounts xterm (no restart, no lost scrollback) and the
-  existing ResizeObservers resize the PTYs. Layout math is pure and unit‑tested in `terminalLayout.ts`:
-  `gridFor` scores the candidate layouts (side by side, 2‑column grid, stacked) by how close the
-  smallest pane stays to 480×260 px (unless `layout.termSplit` forces columns/rows); `addPane`/
-  `movePane`/`removePane`/`replacePane` edit the pane list. Entry points: the panel's **Split** menu,
-  `launchClaude(…, { side: true })` / `resumeClaude(id, { side: true })` (Claude menu, Activity Chats
-  lens), and a pointer‑based tab drag (center of a pane = show there, edge = insert on that side). A pane
-  header (zoom, pop out, remove) appears only when split; `layout.terminalMaximized` hides the editor
-  with `display:none` (still mounted). A waiting chat that is already visible only pulses its header.
+- **Chats side by side** — `TerminalPanel.svelte` keeps every terminal mounted in one `.surface`; the
+  visible ones (the active tab, or up to `MAX_PANES` = 4 split panes of the current repo, or the zoomed
+  one) are **absolutely positioned** by `rect()`, the rest stay `display:none` — so moving a chat into or
+  out of a pane never remounts xterm (no restart, no lost scrollback) and the existing ResizeObservers
+  resize the PTYs. The layout model (pure, unit‑tested in `terminalLayout.ts`) is **columns of rows**:
+  `Layout = string[][]`; `insertPane(layout, id, anchor, side)` makes a new column for a left/right drop
+  and a new row for a top/bottom drop (a visible pane is moved, never duplicated), `replacePane` swaps,
+  `removePane` drops empty columns, `arrangeAuto` picks side‑by‑side / grid / stacked by how close the
+  smallest pane stays to 480×260 px, `placeBeside` is the direction‑less "to the side" (new column if it
+  fits, else a row under the active pane). Per repo, `terminals.layouts` holds the structure and
+  `autoLayout` whether it still re‑flows with the space (a directional drop, a splitter drag or a
+  *Side by side* / *Stacked* choice make it manual; *Automatic* reverts). Pane sizes are fractions
+  (`PaneSizes {shape, cols, rows[]}`) valid while the shape (rows per column) is unchanged; draggable
+  `.psplit` separators (pointer capture, ~140 px minimum) edit them. Entry points: the panel's **Split**
+  menu, the ✨ **New Claude chat** button, `launchClaude(…, { side: true })` / `resumeClaude(id,
+  { side: true })` (Claude menu, Activity Chats lens), and a pointer‑based drag of a **tab or pane
+  header** (`elementFromPoint` on `.slot.shown`; the drop zone is the nearest edge within 25%, else the
+  center). A pane header (color bar, name, Claude's summary as subtitle, zoom, pop out, remove) appears
+  only when split; `layout.terminalMaximized` hides the editor with `display:none` (still mounted). A
+  waiting chat that is already visible only pulses its header. **Names and colors**: `TermSession` has
+  `shortName` (minimal, numbered per kind: `Claude 2`, `pwsh 1`; run configs keep their name),
+  `customTitle` (rename: double‑click, or the tab's right‑click menu), `autoTitle` (the terminal title
+  Claude Code sets via OSC 0/2, `term.onTitleChange` → shown as subtitle/tooltip only for chats; shell
+  titles are noise and ignored) and `color` (rotating through `TAB_COLORS`, the Activity session
+  palette, changeable from the menu; it travels to the floating window and back). `displayTitle()` =
+  custom name or short name.
 - **Terminal & floating windows** — PTYs live in the Rust backend keyed by `id`, so any webview just
   attaches via `pty-data-<id>` events + `pty_write` / `pty_resize`. "Pop out" opens a
   `term-float-<id>` webview (unique label per terminal → **several can float at once**; permitted by
@@ -392,15 +406,31 @@ commands (only Tauri plugin commands need permissions in `capabilities/`).
 ## Theming
 
 `src/app.css` holds every color/size token: surfaces, ink, accent, lines in a Tailwind `@theme`
-block (defaults = **Orbit Dark**), plus runtime‑overridable CSS variables in `:root` (`--color-bg`,
-`--accent-rgb`, `--editor-font-size`, `--caret-transition`, the editor's `--cm-*`, radii, shadows).
+block (pre‑JS defaults = **Orbit Dark**; the runtime default theme is VS 2026), plus runtime‑overridable
+CSS variables in `:root` (`--color-bg`, `--color-panel`, `--accent-rgb`, `--editor-font-size`,
+`--caret-transition`, the editor's `--cm-*`, the radius scale `--r-*`, `--h-tabs`/`--h-head`,
+`--icon-stroke`, shadows). Components never hard‑code a radius: they use the scale, so a theme can change
+the shape of the whole UI.
 
-**Themes.** `settings.svelte.ts` defines `THEMES` (Orbit Dark / Eclipse / Slate / Orbit Light): each is
-a full set of CSS variables (all surfaces/lines/inks + bg + default accent + the editor `--cm-*`) that
-`applySettings` writes on `documentElement` — the accent‑preset mechanism extended to the whole palette.
-The accent can be **Auto** (follows the theme) or a preset (overrides). The editor picks a light/dark
-**HighlightStyle** via a `Compartment` (`editorTheme(light)` in `lib/editor/theme.ts`), reconfigured
-when the theme changes; its selection / active‑line / bracket read the `--cm-*` variables so they adapt.
+**Themes.** `settings.svelte.ts` defines `THEMES` (Visual Studio 2026 Dark — the default since 0.9 —,
+Orbit Dark, Eclipse, Slate, Orbit Light): each is a full set of CSS variables (all surfaces/lines/inks +
+bg + default accent + the editor `--cm-*`) that `applySettings` writes on `documentElement` — the
+accent‑preset mechanism extended to the whole palette. Variables that only *some* themes define
+(`color-accent-soft`, `color-panel` = the sidebar body) are removed when switching to a theme without
+them, so nothing sticks. A theme may also carry a **`look`**: `fontSans` (→ `--font-sans`), `radii`
+(the `--r-xs…--r-xxl` scale that **every** `border-radius` in the components uses — no fixed px left),
+`heights` (`--h-tabs` editor tab bar, `--h-head` panel headers), `iconStroke` (`--icon-stroke`, read by
+`Icon.svelte` as the stroke width of every icon), `iconSet: "fluent"` (an alternate, squarer glyph set
+in `Icon.svelte` for the main chrome icons) and `flatGlyphs` (outline file tiles in `FileGlyph.svelte`).
+Without a `look` the `app.css` defaults apply (the historical Orbit shape). The VS theme's colors were
+**sampled pixel‑by‑pixel** from a VS 2026 screenshot (see NOTES M55). The accent can be **Auto**
+(follows the theme) or a preset (overrides). The editor picks a light/dark **HighlightStyle** via a
+`Compartment` (`editorTheme(light)` in `lib/editor/theme.ts`), reconfigured when the theme changes; its
+selection / active‑line / bracket read the `--cm-*` variables so they adapt. The **terminal** follows
+the theme too: `Terminal.svelte` builds xterm's theme from the active theme's vars (background =
+editor surface, foreground = ink, cursor = accent, selection = `--cm-selection`) with a dark or light
+ANSI set, re‑applied live on theme/accent change. A one‑time migration (`uiV09` in the saved settings)
+moves existing installs to the new default once; later choices are kept.
 
 **File glyphs.** `FileGlyph.svelte` renders a file's icon from `fileIcon()` (`util.ts`): a dedicated SVG
 **symbol** (`lang:*`) for languages with a strong identity, a **monogram tile** (`tile:*`, fill/text

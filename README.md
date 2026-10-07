@@ -39,7 +39,8 @@ cross-platform desktop app that weighs almost nothing.
 ### Project gates (non-negotiable)
 
 1. **Extreme lightness** — minimal RAM, CPU and binary size. Every dependency must be justified.
-2. **Curated dark mode** — at the level of IntelliJ / Visual Studio 2026.
+2. **Curated dark mode** — at the level of IntelliJ / Visual Studio 2026 (the default theme is modeled
+   on VS 2026 Dark, colors sampled from the real thing).
 3. **Real cross-platform** — Windows, macOS, Linux.
 
 ---
@@ -122,11 +123,19 @@ cross-platform desktop app that weighs almost nothing.
   WSL, bash/zsh…).
 - **Chats side by side**: up to four Claude chats or terminals in the panel at once, per repository.
   Open them from the **Split** button (new Claude, new terminal, or another tab to the side), from the
-  Claude menu (*Open Claude to the side*), from the Activity *Chats* lens (*To the side*), or drag a tab
-  onto a pane — onto its center to show it there, near an edge to add it on that side. The layout adapts
-  to the space (side by side, 2×2 grid or stacked — or force one), each pane has a header (zoom, pop out,
-  remove from the split: the terminal stays as a tab), and one click gives the panel the whole window.
-  Nothing restarts: a chat keeps running and keeps its history when it moves.
+  Claude menu (*Open Claude to the side*), from the Activity *Chats* lens (*To the side*), or **drag a tab
+  or a pane header**: drop it on the **right/left edge** of a pane for a new column, on the **top/bottom
+  edge** for a new row, in the center to swap. The layout adapts to the space until you decide — a
+  directional drop or *Side by side* / *Stacked* in the Split menu makes it yours — and the **splitters
+  between panes are draggable**. Each pane has a header (zoom, pop out, remove from the split: the terminal
+  stays as a tab), and one click gives the panel the whole window. Nothing restarts: a chat keeps running
+  and keeps its history when it moves.
+- **Names and colors**: tabs get a short, numbered name by default (`Claude 1`, `pwsh 2`…) and a color
+  from the same palette the Activity view uses for chats — shown on the tab icon and as a bar in the pane
+  header. **Double-click** a tab or a pane title to rename it; **right-click** a tab for rename, open to
+  the side, floating window, color and close. For Claude chats the summary Claude Code writes into the
+  terminal title appears as a dimmed subtitle in the pane header. A ✨ button next to **+** opens a new
+  Claude chat.
 - **Clickable links** in the output — **file paths** open at the line (relative paths resolve against the
   terminal's folder or the project root), and **http(s) URLs** open in your browser (handy for the Claude
   auth link, even when it wraps across lines).
@@ -214,8 +223,12 @@ cross-platform desktop app that weighs almost nothing.
   Orbit window at once, and the next launch **reopens them all at their previous positions**. Each
   window stays its own process; a tiny shared registry in the app config dir coordinates them (no extra
   runtime), and windows left by a crash are pruned so restore keeps working.
-- **Color themes**: four full themes — **Orbit Dark** (default), **Eclipse** (OLED), **Slate** and
-  **Orbit Light** — switched live; the accent can follow the theme (**Auto**) or use a preset.
+- **Color themes**: five full themes, switched live — **Visual Studio 2026 Dark** (the default since
+  0.9: neutral charcoal greys sampled from VS 2026, Segoe UI Variable, near-square corners, Fluent-style
+  icons, outline file glyphs and VS's purple accent), **Orbit Dark**, **Eclipse** (OLED), **Slate** and
+  **Orbit Light**. A theme defines colors *and* shape (corner radii, bar heights, icon stroke, UI font);
+  the terminal follows the theme too. The accent can follow the theme (**Auto**) or use a preset — blue,
+  purple, green, teal or amber.
 - **Keyboard shortcut presets**: switch the keymap between **Orbit**, **Visual Studio** and
   **IntelliJ**, or build a **Custom** keymap from any preset by rebinding individual commands (with
   conflict warnings) — full reference in Settings → Keyboard shortcuts.
@@ -235,7 +248,7 @@ Measured on Windows (size-optimized release build):
 | Portable `Orbit` binary | ~5.7 MB |
 | MSI installer | ~3.5 MB |
 | NSIS setup | ~2.8 MB |
-| Frontend `dist/` | ~2.7 MB (most of it grammars loaded lazily) |
+| Frontend `dist/` | ~2.8 MB (most of it grammars loaded lazily) |
 | Startup JS chunk | ~531 KB (≈177 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
 

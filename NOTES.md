@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -2268,6 +2268,129 @@ controllati. Build frontend OK: chunk di avvio **531 KB** (177 KB gzip), +10 KB 
 terminale fa parte del caricamento iniziale. Build release OK: orbit.exe **5,74 MB**, MSI **3,50 MB**, NSIS
 **2,84 MB**, invariati rispetto alla v0.8.10 (feature tutta frontend). Prima del rilascio l'utente l'ha
 provata su un'istanza dev aperta sul repo. **Rilasciato in v0.8.11.**
+
+---
+
+## Milestone 55 — look Visual Studio 2026, chat affiancate rifinite, nomi e colori delle schede (v0.9.0)
+
+Nata come "esperimento minimo" sull'aspetto (branch `ui-vs2026`, 2026-10-06/07) e cresciuta in una
+milestone intera. Modello dichiarato dall'utente: **l'ultima Visual Studio 2026**. Giudizio sull'Orbit
+di prima: "troppo rotondo, effetto comic/SMS, poco professionale", colori troppo blu-notte, icone e
+tessere colorate dei file da cambiare; pannelli a card e top bar invece vanno bene. La status line di
+Claude configurabile (era la M55 pianificata) è stata **annullata** dall'utente: non riproporla.
+
+### Palette campionata, non immaginata
+Una prima palette "a memoria" (#2d2d30/#252526, accento blu) era sbagliata. I temi di VS vivono nel
+`privateregistry.bin` (apribile solo da admin), quindi l'utente ha fornito uno screenshot di VS 2026
+Dark (18.10, schermo 4K a 125%) e i colori sono stati **campionati pixel per pixel** con uno script
+PowerShell (moda del colore per zona, profili di pixel attraverso i confini, istogramma dei colori saturi):
+- cornice/titolo/toolbar `#1c1c1c`; editor `#1e1e1e`; barra schede `#262626` con scheda attiva
+  `#282828` **senza alcuna linea d'accento** (copre il bordo inferiore della barra); tool window
+  `#282828`; input `#212121` con bordo `#373737`; bottoni e dropdown `#353535`; separatori interni
+  `#2e2e2e`/`#373737`; bordi delle card `#454545` su gap di ~8 px di cornice; status bar `#141414`;
+  testo `#ffffff`/`#d7d7d7`; numeri di riga `#8a8a8a`; riga corrente `#272727`; scrollbar `#999999`.
+- **accento viola `#9184ee`**: bordo della tool window attiva e dell'input a fuoco. VS 2026 non usa più
+  il blu. Nel tema è l'accento "Auto"; l'utente lo cambia dai preset, a cui si aggiunge **Ambra**.
+- la struttura a card di VS 2026 (pannelli con bordo 1 px su una cornice più scura, angoli appena
+  arrotondati) è la stessa di Orbit dalla M19: niente da stravolgere.
+- misure a 125%: schede documento 25 px, barra dropdown 22, titolo tool window 27, loro toolbar 22,
+  righe dell'albero 26 (= Orbit). Testo di menu ≈ 12 px.
+
+Tonalità: provato il corpo della sidebar scuro come l'editor (`#1e1e1e`); l'utente ha preferito tornare
+alla tonalità "strumenti" `#282828` come la sua testata, fedele alle tool window di VS. Resta il token
+`--color-panel` (default surface-2), nessun tema lo sovrascrive.
+
+### Il tema controlla anche la forma: `Theme.look`
+Prima i temi erano solo colori; per cambiare l'aspetto serviva toccare i componenti. Ora
+`settings.svelte.ts` ha `Theme.look` (`fontSans`, `radii`, `heights`, `iconStroke`, `iconSet`,
+`flatGlyphs`) e `applySettings` lo traduce in variabili CSS, rimosse quando il tema non le definisce:
+- **scala dei raggi** `--r-xs…--r-xxl` (3/4/6/8/10/12 px di default): tutti i ~150 `border-radius`
+  fissi dei componenti (26 file) sono stati portati sulla scala con una sostituzione a regola; il tema
+  VS li porta a 2/2/3/4/4/6. Restano fissi solo i `999px` delle pillole.
+- **densità** `--h-tabs`/`--h-head` (32/30 → 28/28 nel tema VS).
+- **font** `--font-sans` → Segoe UI Variable Text nel tema VS (è nel sistema; Inter resta self-hosted
+  per gli altri temi).
+- **icone**: `--icon-stroke` uniforma il tratto (1.5 nel tema VS) e `Icon.svelte` ha un set `fluent`
+  per le icone principali del chrome (geometria più squadrata, rx 1.5); le altre cadono sul set base.
+- **glifi dei file**: `flatGlyphs` → tessera a contorno sottile nel colore del linguaggio, niente fondo
+  pieno.
+- svista corretta lungo la via: le variabili definite solo da alcuni temi (`color-accent-soft`,
+  `color-panel`) restavano appiccicate cambiando tema → `ALL_THEME_VARS` e `removeProperty`.
+
+**Terminale legato al tema** (richiesta utente): `xtermTheme()` costruisce il tema xterm dai colori
+del tema attivo (sfondo = editor, testo = ink, cursore = accento, selezione = `--cm-selection`) con set
+ANSI scuro/chiaro; prima era fisso `#1e1e1e` (coincideva col tema VS per caso e stonava altrove, Orbit
+Light compreso). Si riapplica al volo da `$effect` su tema/accento.
+
+### Predefinito e migrazione
+Dalla 0.9.0 il tema predefinito è **Visual Studio 2026 Dark** (primo anche fra gli swatch in
+Impostazioni). Le impostazioni salvate dalle versioni precedenti hanno sempre `theme` (il vecchio default
+veniva persistito anche se mai scelto), quindi chi aggiorna non vedrebbe mai il nuovo look: al primo
+avvio con la 0.9 si passa al nuovo tema UNA volta, marcato da `uiV09: true` nelle impostazioni; da lì
+in poi la scelta dell'utente comanda. Orbit Dark, Eclipse, Slate e Light restano disponibili e invariati.
+
+### Chat affiancate: il trascinamento era sbagliato di progetto
+Segnalazione: "trascini a destra e si splitta in basso". In M54 il rilascio decideva solo l'**ordine**
+dei riquadri, mentre affiancati o impilati lo sceglieva la disposizione automatica in base allo spazio:
+nel pannello stretto due riquadri finivano sempre impilati. Nuovo modello in `terminalLayout.ts`:
+**colonne di righe** (`Layout = string[][]`). Un rilascio a destra/sinistra crea una colonna, uno
+sopra/sotto una riga (`insertPane`, che sposta un riquadro già visibile invece di duplicarlo); al centro
+scambio (`replacePane`); `arrangeAuto` sceglie fra affiancati/griglia/impilati con il punteggio
+480×260 di M54; `placeBeside` è l'"affianca" senza direzione (colonna se ci sta, altrimenti riga sotto
+l'attivo). Per repo: `layouts` + `autoLayout`: la disposizione resta adattiva finché l'utente non
+esprime un'intenzione (rilascio con direzione, separatore trascinato, *Side by side*/*Stacked*);
+*Automatic* la rende di nuovo adattiva. `termSplit` globale (0.8.11) rimosso da layout e sessione.
+- Collaudo CDP con eventi mouse veri: il trascinamento della **linguetta** funzionava anche prima del
+  fix della direzione; l'utente afferrava probabilmente la **testata del riquadro**, che non era
+  trascinabile → ora lo è (stesso meccanismo, cursore a manina).
+- **Ridimensionamento** (richiesta utente: "non posso dimensionare trascinando"): riquadri posizionati in
+  modo **assoluto** in px dalle frazioni (`PaneSizes {shape, cols, rows[]}` per repo, valide finché la
+  forma — righe per colonna — resta quella; cambiata la forma si riparte equi), separatori `.psplit`
+  verticali fra colonne e orizzontali fra righe con pointer capture e minimo ~140 px. Una griglia CSS
+  non bastava: righe di altezze diverse per colonna non si esprimono con `span`. `gridFor` rimosso.
+- Trucco per collaudare mentre la finestra dev dell'utente è aperta: lanciare DIRETTAMENTE
+  `target/debug/orbit.exe` con profilo WebView2 isolato + porta di debug, agganciato allo stesso vite
+  (un secondo `tauri dev` fallisce: prova a ricompilare l'exe in uso). Lezione sull'HMR: ogni modifica
+  a un modulo di stato (`*.svelte.ts`) ricaricata a caldo ricrea lo stato mentre i componenti tengono i
+  riferimenti vecchi → finestra "bloccata"; serve riavviare la dev.
+
+### Nomi e colori delle schede
+Richiesta: "rinominare chat e terminali, differenziarle per colore, nome chiaro in automatico". Poi la
+correzione: "i nomi di default sono lunghissimi e senza senso" (erano i titoli OSC delle shell: percorsi).
+- `shortName` minimo e numerato per tipo: `Claude 1`, `pwsh 2`, `cmd 1`, `bash 1`, `wsl 1`; le run
+  config e gli script tengono il loro nome. Contatori per tipo, stabili (niente rinumerazioni).
+- `customTitle` dalla **rinomina**: doppio clic su linguetta o nome in testata, campo inline (Invio /
+  Esc / vuoto = torna all'automatico).
+- `autoTitle` dal titolo che il programma imposta via **OSC 0/2** (`term.onTitleChange`): usato SOLO per
+  le chat — Claude Code vi scrive un riassunto della conversazione — e solo come sottotitolo attenuato
+  nella testata (si tronca per primo) e nel tooltip; i titoli delle shell sono rumore e vengono ignorati.
+- `color` dalla **stessa palette di Attività** (`TAB_COLORS` = `SESSION_COLORS`, duplicata per non creare
+  il ciclo terminals → activity → claude → terminals), a rotazione; colora l'icona della linguetta e una
+  barra di 3 px nella testata; passa alla finestra flottante e torna al redock. Menu col **tasto destro**
+  sulla linguetta: Rename, Open to the side, Floating window, i 10 colori (swatch; spunta su quello
+  attivo — `MenuItem.swatch` nuovo in `ContextMenu`), Close. Bottone ✨ **New Claude chat** accanto al +.
+- Nomi e colori NON sono persistiti, come i terminali stessi.
+
+### Verifica
+`svelte-check` 0/0 (259 file), vitest **20/20** (modello di layout: insert/remove/replace/arrange/
+placeBeside), `cargo test` invariato (nessuna modifica Rust). Collaudi CDP su istanza dev isolata (profilo
+WebView2 separato, config condivisa salvata e ripristinata, tracce rimosse):
+- tema: font Segoe UI Variable, raggi 3/4 px, tratto 1.5, palette campionata; confronto A/B a schermo con
+  Orbit Dark;
+- D&D con eventi mouse veri: scheda → bordo destro nel pannello stretto = due colonne da 385 px; bordo
+  sinistro = colonna a sinistra; centro = scambio; menu Stacked/Side by side/Automatic corretti;
+- nomi brevi; separatori: colonne 505/265 px dopo +120 px, righe 258/438 dopo −90 px, reset equi al
+  cambio di forma; nessun errore in console.
+Collaudo manuale dell'utente su `tauri dev` aperto sul repo (tema, trascinamento, rinomina, colori).
+Build release OK: orbit.exe **5,74 MB**, MSI **3,50 MB**, NSIS **2,84 MB** (invariati rispetto alla 0.8.11:
+nessuna modifica Rust). Screenshot del README rifatti con il nuovo tema. **Rilasciato in v0.9.0.**
+
+Lezioni di collaudo: `tauri dev` **riavvia** l'app quando cambiano `tauri.conf.json`/`Cargo.toml` (il bump
+di versione ha ucciso l'istanza isolata a metà screenshot: nuovo pid, finestra alle dimensioni di default);
+vite ricarica la pagina quando cambia `package.json` o quando scopre nuove dipendenze da ottimizzare (il
+primo caricamento lazy del Markdown). La scansione di Attività legge TUTTI i transcript in modo sincrono:
+con centinaia di sessioni e transcript da decine di MB impiega 1–2 minuti (il `TODO(perf)` in
+`activity.rs` sulla cache per mtime resta valido).
 
 ---
 

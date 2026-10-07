@@ -9,7 +9,7 @@
   import { workspace, activeFile } from "../state/workspace.svelte";
   import { openActivity } from "../state/activity.svelte";
   import { openFolderDialog } from "../state/explorer.svelte";
-  import { folders, openFromList, removeFolder } from "../state/folders.svelte";
+  import { folders, openFromList, removeFolder, moveFolder } from "../state/folders.svelte";
   import { changedCount } from "../state/git.svelte";
   import { repoNeedsAttention, anyNeedsAttention, waitingTerminals, goToTerminal, displayTitle } from "../state/terminals.svelte";
   import { nav, navBack, navForward } from "../state/codeIndex.svelte";
@@ -89,6 +89,85 @@
         mo.disconnect();
       },
     };
+  }
+  // Riordino dei repo per trascinamento: la tab presa segue il puntatore (transform), le altre scivolano
+  // di una posizione (transform con transition) e la LISTA cambia solo al rilascio, così il DOM non si
+  // riordina durante il drag. Soglia di 5 px: sotto, è un click (cambio repo).
+  const TAB_GAP = 4;
+  let drag = $state<{ from: number; to: number; dx: number; width: number } | null>(null);
+  let settling = $state(false); // al rilascio: un frame senza transition (il DOM riordinato coincide col visivo)
+  let dragPending: { index: number; x0: number; pointerId: number; el: HTMLElement } | null = null;
+  let tabRects: { left: number; width: number }[] = [];
+  let suppressClick = false;
+  function repoDown(e: PointerEvent, index: number) {
+    if (e.button !== 0 || (e.target as HTMLElement).closest(".rt-close")) return;
+    dragPending = { index, x0: e.clientX, pointerId: e.pointerId, el: e.currentTarget as HTMLElement };
+  }
+  function repoMove(e: PointerEvent) {
+    if (!dragPending) return;
+    if (!drag) {
+      if (Math.abs(e.clientX - dragPending.x0) < 5) return;
+      const tabs = [...(repobarEl?.querySelectorAll(".repotab") ?? [])] as HTMLElement[];
+      tabRects = tabs.map((t) => {
+        const r = t.getBoundingClientRect();
+        return { left: r.left, width: r.width };
+      });
+      try {
+        dragPending.el.setPointerCapture(dragPending.pointerId);
+      } catch {
+        /* no-op */
+      }
+      drag = { from: dragPending.index, to: dragPending.index, dx: 0, width: tabRects[dragPending.index]?.width ?? 0 };
+    }
+    drag.dx = e.clientX - dragPending.x0;
+    // destinazione: dove cade il CENTRO della tab trascinata rispetto ai centri delle altre
+    const center = tabRects[drag.from].left + drag.width / 2 + drag.dx;
+    let to = drag.from;
+    for (let i = drag.from - 1; i >= 0; i--) {
+      if (center < tabRects[i].left + tabRects[i].width / 2) to = i;
+      else break;
+    }
+    if (to === drag.from) {
+      for (let i = drag.from + 1; i < tabRects.length; i++) {
+        if (center > tabRects[i].left + tabRects[i].width / 2) to = i;
+        else break;
+      }
+    }
+    drag.to = to;
+  }
+  function repoUp(e: PointerEvent) {
+    if (drag) {
+      const { from, to } = drag;
+      settling = true; // niente transition mentre il DOM si riordina e i transform si azzerano
+      drag = null;
+      if (from !== to) moveFolder(from, to);
+      requestAnimationFrame(() => requestAnimationFrame(() => (settling = false)));
+      suppressClick = true; // il click che segue il rilascio NON deve cambiare repo
+      setTimeout(() => (suppressClick = false), 0);
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        /* no-op */
+      }
+    }
+    dragPending = null;
+  }
+  /** Transform della tab `i` durante il drag: quella presa segue il puntatore, le altre fra origine e
+   *  destinazione scivolano di una posizione. */
+  function repoShift(i: number): string {
+    if (!drag) return "";
+    if (i === drag.from) return `translateX(${drag.dx}px)`;
+    const step = drag.width + TAB_GAP;
+    if (drag.from < drag.to && i > drag.from && i <= drag.to) return `translateX(${-step}px)`;
+    if (drag.to < drag.from && i >= drag.to && i < drag.from) return `translateX(${step}px)`;
+    return "";
+  }
+  function repoClick(path: string) {
+    if (suppressClick) {
+      suppressClick = false;
+      return;
+    }
+    void openFromList(path);
   }
   let folderMenu = $state<{ x: number; y: number } | null>(null);
   function openFolderMenu(e: MouseEvent) {
@@ -239,10 +318,21 @@
     {#if workspace.rootName}
       <div class="repozone">
         <div class="repobar" bind:this={repobarEl} use:repobarOverflow>
-          {#each folders.list as f (f.path)}
+          {#each folders.list as f, i (f.path)}
             {@const active = f.path === workspace.rootPath}
-            <div class="repotab" class:active>
-              <button class="rt-main" title={f.path} onclick={() => openFromList(f.path)}>
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="repotab"
+              class:active
+              class:dragging={drag?.from === i}
+              class:settling
+              style:transform={repoShift(i)}
+              onpointerdown={(e) => repoDown(e, i)}
+              onpointermove={repoMove}
+              onpointerup={repoUp}
+              onpointercancel={repoUp}
+            >
+              <button class="rt-main" title={f.path} onclick={() => repoClick(f.path)}>
                 <Icon name={active ? "folder-open" : "folder"} size={12} strokeWidth={1.8} />
                 <span class="rt-name">{f.name}</span>
                 {#if active && workspace.branch}
@@ -456,8 +546,9 @@
     height: 100%;
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* la striscia repo parte da sinistra; lo spazio libero resta a destra
-                                    (NON comprime la repobar → la tab attiva si vede intera quando c'è spazio) */
+    justify-content: center; /* la striscia repo si popola DAL CENTRO (richiesta utente, M56); lo spazio libero
+                                resta ai lati e NON comprime la repobar → la tab attiva si vede intera
+                                quando c'è spazio; da stretto la repozone riempie lo spacer e scrolla */
     min-width: 0; /* assorbe la compressione: la repobar si stringe/scrolla qui, non spinge fuori i wctrls */
   }
   /* tab repo (striscia che scorre) + "+"/"…" pinnati; tutto entro lo spazio dello spacer */
@@ -495,7 +586,23 @@
     background: var(--color-surface-1);
     color: var(--color-ink-muted);
     overflow: hidden;
+    touch-action: none; /* riordino per trascinamento con pointer capture */
+    transition:
+      background 90ms ease,
+      border-color 90ms ease,
+      color 90ms ease,
+      transform 150ms var(--motion-ease);
+  }
+  /* riordino: la tab presa segue il puntatore senza transition e sopra le altre; al rilascio nessuna
+     transition per un frame (il DOM riordinato coincide già con la posizione visiva) */
+  .repotab.dragging,
+  .repotab.settling {
     transition: background 90ms ease, border-color 90ms ease, color 90ms ease;
+  }
+  .repotab.dragging {
+    z-index: 2;
+    cursor: grabbing;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   }
   .repotab:not(.active):hover {
     background: var(--color-surface-3);

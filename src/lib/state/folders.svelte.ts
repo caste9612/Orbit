@@ -34,6 +34,17 @@ function drop(path: string) {
   folders.list = folders.list.filter((e) => e.path !== path);
 }
 
+/** Sposta la cartella all'indice `from` in posizione `to` (riordino per trascinamento nella top bar).
+ *  L'ordine si persiste da solo: l'autosave di sessione serializza `folders.list` in `repos`. */
+export function moveFolder(from: number, to: number) {
+  const n = folders.list.length;
+  if (from === to || from < 0 || to < 0 || from >= n || to >= n) return;
+  const list = [...folders.list];
+  const [item] = list.splice(from, 1);
+  list.splice(to, 0, item);
+  folders.list = list;
+}
+
 /** Toglie una cartella dal selettore. Se è la repo ATTIVA, prima passa a una vicina (come chiudere
  *  una tab); se è l'unica, la toglie e basta (resti nella cartella, la riaggiungi con "+"). */
 export async function removeFolder(path: string) {

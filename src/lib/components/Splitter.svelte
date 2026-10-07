@@ -61,7 +61,7 @@
   .splitter::after {
     content: "";
     position: absolute;
-    border-radius: 2px;
+    border-radius: var(--r-xs);
     background: transparent;
     transition: background 80ms ease;
   }

@@ -118,7 +118,7 @@
     padding: 0 8px;
     background: var(--color-surface-2);
     border: 1px solid var(--color-line);
-    border-radius: 9px;
+    border-radius: var(--r-xl);
     color: var(--color-ink-muted);
     font-size: 11px;
     cursor: pointer;

@@ -40,9 +40,27 @@
 /* raggi e ombre (custom props normali: usate in CSS scoped via var()) */
 :root {
   --color-bg: #0e1014; /* sfondo dietro i pannelli "card" */
-  --radius-sm: 4px;
-  --radius: 6px;
-  --radius-lg: 9px;
+  /* Scala dei raggi: TUTTI i border-radius dei componenti la usano (niente px fissi), così un tema
+     può cambiare la "forma" dell'interfaccia (es. Visual Studio 2026: angoli quasi vivi). Default =
+     look Orbit storico; `settings.svelte.ts` li sovrascrive per tema (Theme.look.radii). */
+  --r-xs: 3px; /* badge, pallini quadrati, chip */
+  --r-sm: 4px; /* bottoni piccoli, voci di menu */
+  --r-md: 6px; /* bottoni, input, schede */
+  --r-lg: 8px; /* card dei pannelli, popup */
+  --r-xl: 10px; /* dialog, pill */
+  --r-xxl: 12px; /* overlay grandi */
+  --radius-sm: var(--r-sm);
+  --radius: var(--r-md);
+  --radius-lg: var(--r-xl);
+  /* spessore tratto delle icone line-art: non impostato = ogni icona usa il proprio (Icon.svelte);
+     un tema può uniformarlo (Fluent: 1.5) */
+  --icon-stroke: initial;
+  /* corpo della sidebar (albero, git, search, docs, attività): di default la superficie "strumenti";
+     un tema può scurirlo come l'editor (VS 2026: le tre card alla pari, chiare solo le testate) */
+  --color-panel: var(--color-surface-2);
+  /* densità del chrome (un tema può stringerla: VS 2026 a 125% ha schede da 25 px e testate da 27) */
+  --h-tabs: 32px; /* barra delle schede dell'editor */
+  --h-head: 30px; /* testate di sidebar e pannello terminale */
   --shadow-pop: 0 12px 34px rgba(0, 0, 0, 0.5);
   --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.3);
   --accent-rgb: 76, 141, 255;

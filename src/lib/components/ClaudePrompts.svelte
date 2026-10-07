@@ -162,13 +162,13 @@
     padding: 12px;
     background: var(--color-surface-1);
     border: 1px solid var(--color-line);
-    border-radius: 8px;
+    border-radius: var(--r-lg);
   }
   .seg {
     display: inline-flex;
     align-self: flex-start;
     border: 1px solid var(--color-line-strong);
-    border-radius: 6px;
+    border-radius: var(--r-md);
     overflow: hidden;
   }
   .segbtn {
@@ -193,7 +193,7 @@
     box-sizing: border-box;
     background: var(--color-surface-2);
     border: 1px solid var(--color-line);
-    border-radius: 6px;
+    border-radius: var(--r-md);
     color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: 13px;
@@ -234,7 +234,7 @@
     gap: 6px;
     height: 30px;
     padding: 0 13px;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     border: 1px solid var(--color-accent);
     background: var(--color-accent);
     color: #08111f;
@@ -267,7 +267,7 @@
     align-items: center;
     gap: 9px;
     padding: 7px 8px;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     color: var(--color-ink);
   }
   .item:hover {

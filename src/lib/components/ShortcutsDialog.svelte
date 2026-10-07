@@ -256,7 +256,7 @@
     background: var(--color-surface-1);
     border: 1px solid var(--color-line-strong);
     border-bottom-width: 2px;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     padding: 2px 7px;
   }
   /* tasto ribindabile (modalità Custom): stessa resa di <kbd> ma cliccabile */

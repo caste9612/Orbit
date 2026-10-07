@@ -94,7 +94,7 @@
     resize: vertical;
     background: var(--color-surface-1);
     border: 1px solid var(--color-line);
-    border-radius: 6px;
+    border-radius: var(--r-md);
     color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: 13px;
@@ -121,7 +121,7 @@
     overflow: auto;
     background: var(--color-surface-1);
     border: 1px solid var(--color-line);
-    border-radius: 6px;
+    border-radius: var(--r-md);
     color: var(--color-ink-muted);
     font-family: var(--font-mono);
     font-size: 12px;
@@ -148,7 +148,7 @@
     gap: 6px;
     height: 30px;
     padding: 0 14px;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     border: 1px solid var(--color-line-strong);
     background: var(--color-surface-3);
     color: var(--color-ink);

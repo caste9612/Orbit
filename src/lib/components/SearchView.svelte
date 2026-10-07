@@ -170,6 +170,6 @@
   mark {
     background: rgba(var(--accent-rgb), 0.32);
     color: #eaf2ff;
-    border-radius: 2px;
+    border-radius: var(--r-xs);
   }
 </style>

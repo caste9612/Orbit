@@ -8,7 +8,7 @@
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { openFile, openFileAt, workspace } from "../state/workspace.svelte";
   import { notify } from "../state/toast.svelte";
-  import { settings, monoStack } from "../state/settings.svelte";
+  import { settings, monoStack, THEMES, ACCENTS } from "../state/settings.svelte";
   import { setTerminalFocus, clearTerminalFocus } from "../state/terminals.svelte";
   import { joinPath } from "../util";
   import { writeClipboard, readClipboard } from "../clipboard";
@@ -33,6 +33,9 @@
     enableLinks?: boolean;
     /** la bell (BEL) ha suonato: Claude ha finito un turno / aspetta input. */
     onBell?: () => void;
+    /** il programma ha impostato il titolo della finestra (OSC 0/2): Claude Code vi mette un riassunto
+     *  della conversazione, le shell il comando in corso → nome automatico della scheda. */
+    onTitle?: (title: string) => void;
   }
   let {
     id,
@@ -45,32 +48,37 @@
     attach = false,
     enableLinks = true,
     onBell,
+    onTitle,
   }: Props = $props();
 
-  // tema xterm allineato alla sintassi dell'editor (sfondo = editor #1e1e1e)
-  const theme = {
-    background: "#1e1e1e",
-    foreground: "#d4d4d4",
-    cursor: "#3b9dff",
-    cursorAccent: "#1e1e1e",
-    selectionBackground: "#264f78",
-    black: "#1e1e1e",
-    red: "#f14c4c",
-    green: "#5bc88a",
-    yellow: "#e3b341",
-    blue: "#569cd6",
-    magenta: "#c586c0",
-    cyan: "#4ec9b0",
-    white: "#d4d4d4",
-    brightBlack: "#6b7480",
-    brightRed: "#ff7b86",
-    brightGreen: "#7ee0a6",
-    brightYellow: "#f0c662",
-    brightBlue: "#8fbcff",
-    brightMagenta: "#d7a3e0",
-    brightCyan: "#6fd9c4",
-    brightWhite: "#ffffff",
+  // Tema xterm LEGATO al tema di Orbit: sfondo = colore dell'editor (surface-1), testo = ink, cursore
+  // = accento, selezione = quella dell'editor. Prima era fisso #1e1e1e: coincideva col tema VS 2026 e
+  // stonava con gli altri (e con Orbit Light). I 16 colori ANSI hanno un set scuro e uno chiaro.
+  const ANSI_DARK = {
+    black: "#1e1e1e", red: "#f14c4c", green: "#5bc88a", yellow: "#e3b341", blue: "#569cd6",
+    magenta: "#c586c0", cyan: "#4ec9b0", white: "#d4d4d4",
+    brightBlack: "#6b7480", brightRed: "#ff7b86", brightGreen: "#7ee0a6", brightYellow: "#f0c662",
+    brightBlue: "#8fbcff", brightMagenta: "#d7a3e0", brightCyan: "#6fd9c4", brightWhite: "#ffffff",
   };
+  const ANSI_LIGHT = {
+    black: "#000000", red: "#cd3131", green: "#00a300", yellow: "#949800", blue: "#0451a5",
+    magenta: "#bc05bc", cyan: "#0598bc", white: "#555555",
+    brightBlack: "#666666", brightRed: "#cd3131", brightGreen: "#14ce14", brightYellow: "#b5ba00",
+    brightBlue: "#0451a5", brightMagenta: "#bc05bc", brightCyan: "#0598bc", brightWhite: "#a5a5a5",
+  };
+  function xtermTheme() {
+    const th = THEMES[settings.theme] ?? THEMES.vs2026;
+    const bg = th.vars["color-surface-1"];
+    const accent = settings.accent === "auto" ? th.vars["color-accent"] : (ACCENTS[settings.accent] ?? ACCENTS.blue).accent;
+    return {
+      background: bg,
+      foreground: th.vars["color-ink"],
+      cursor: accent,
+      cursorAccent: bg,
+      selectionBackground: th.vars["cm-selection"],
+      ...(th.light ? ANSI_LIGHT : ANSI_DARK),
+    };
+  }
 
   let host: HTMLDivElement; // contenitore col padding: listener, ResizeObserver, test "tab nascosta"
   let fitHost: HTMLDivElement; // genitore DIRETTO di .xterm, senza padding (vedi CSS e fitSafe)
@@ -210,7 +218,7 @@
       cursorBlink: false,
       scrollback: 5000,
       allowProposedApi: true,
-      theme,
+      theme: xtermTheme(),
     });
     fit = new FitAddon();
     term.loadAddon(fit);
@@ -243,6 +251,8 @@
 
     // la bell (BEL) segnala "ho finito / aspetto input" — Claude la suona a fine turno: avvisa il parent
     term.onBell(() => onBell?.());
+    // titolo della "finestra" impostato dal programma (OSC 0/2) → nome automatico della scheda
+    term.onTitleChange((title) => onTitle?.(title));
 
     // OSC 52: una TUI (es. Claude) copia negli appunti via escape sequence. xterm di default la IGNORA
     // → in Claude vedi "copied to clipboard" ma la clipboard di sistema non si aggiornava (incollavi il
@@ -381,6 +391,12 @@
     }
   });
 
+  // cambio tema/accento dalle Impostazioni → ricolora il terminale al volo
+  $effect(() => {
+    const th = xtermTheme(); // legge settings.theme / settings.accent (dipendenze tracciate)
+    if (term && !disposed) term.options.theme = th;
+  });
+
   // cambio font/dimensione dalle Impostazioni → applica al terminale e rifit
   $effect(() => {
     const fam = monoStack(settings.fontMono);
@@ -416,7 +432,7 @@
     width: 100%;
     box-sizing: border-box;
     padding: 6px 4px 6px 10px;
-    background: #1e1e1e; /* = theme.background */
+    background: var(--color-surface-1); /* = xtermTheme().background */
   }
   /* genitore di .xterm SENZA padding: il FitAddon misura questo (vedi onMount) */
   .term-fit {
@@ -431,7 +447,7 @@
      xterm.css colora #000 → era la "riga nera" in fondo al terminale (M27 aveva colorato il contenitore,
      che però è coperto dal viewport). */
   :global(.term .xterm .xterm-viewport) {
-    background-color: #1e1e1e; /* = theme.background */
+    background-color: var(--color-surface-1); /* = xtermTheme().background */
   }
   /* xterm usa una <textarea> nascosta per l'input: il browser vi disegna il PROPRIO caret,
      che appare come un "secondo cursore" (e resta visibile/in movimento anche quando il

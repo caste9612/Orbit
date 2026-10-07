@@ -161,7 +161,7 @@
     height: 24px;
     background: transparent;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     color: var(--color-ink-muted);
     cursor: pointer;
   }

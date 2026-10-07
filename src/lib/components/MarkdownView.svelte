@@ -167,7 +167,7 @@
     color: var(--color-ink-muted);
     font-size: 12px;
     padding: 3px 8px;
-    border-radius: 4px;
+    border-radius: var(--r-sm);
     cursor: pointer;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -220,7 +220,7 @@
     font-size: 0.88em;
     background: var(--color-surface-3);
     padding: 0.15em 0.4em;
-    border-radius: 4px;
+    border-radius: var(--r-sm);
   }
   .mdbody :global(pre) {
     background: var(--color-surface-0);

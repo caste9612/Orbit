@@ -30,7 +30,7 @@
     display: inline-grid;
     place-items: center;
     flex: 0 0 auto;
-    border-radius: 4px;
+    border-radius: var(--r-sm);
     background: color-mix(in srgb, var(--c) 20%, transparent);
     color: var(--c);
     font-family: var(--font-sans);

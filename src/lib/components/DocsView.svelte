@@ -84,7 +84,7 @@
     padding-right: 8px;
     background: transparent;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     color: var(--color-ink);
     cursor: pointer;
     transition: background 80ms ease;
@@ -118,7 +118,7 @@
     font-variant-numeric: tabular-nums;
     color: var(--color-ink-subtle);
     background: var(--color-surface-3);
-    border-radius: 4px;
+    border-radius: var(--r-sm);
     padding: 1px 4px;
     line-height: 1.4;
   }
@@ -162,6 +162,6 @@
     font-size: 0.9em;
     background: var(--color-surface-3);
     padding: 0.1em 0.35em;
-    border-radius: 4px;
+    border-radius: var(--r-sm);
   }
 </style>

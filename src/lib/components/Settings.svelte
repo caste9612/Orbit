@@ -8,7 +8,8 @@
   import { openLogs } from "../state/logs.svelte";
 
   const accentNames = Object.keys(ACCENTS) as AccentName[];
-  const themeNames = Object.keys(THEMES) as ThemeName[];
+  // il predefinito (VS 2026) per primo, poi gli altri nell'ordine di definizione
+  const themeNames = ["vs2026", ...Object.keys(THEMES).filter((k) => k !== "vs2026")] as ThemeName[];
 </script>
 
 <Backdrop onClose={closeSettings} dim z={110} />
@@ -335,7 +336,7 @@
   .theme-sw {
     width: 30px;
     height: 22px;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     border: 2px solid transparent;
     display: grid;
     place-items: center;
@@ -357,7 +358,7 @@
   .autoacc {
     height: 24px;
     padding: 0 10px;
-    border-radius: 12px;
+    border-radius: var(--r-xxl);
     border: 2px solid transparent;
     background: var(--color-surface-1);
     color: var(--color-ink-muted);

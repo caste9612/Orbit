@@ -152,7 +152,7 @@
     padding: 0 8px;
     background: transparent;
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--r-sm);
     color: inherit;
     font-size: inherit;
     cursor: pointer;
@@ -208,7 +208,7 @@
     width: 100%;
     background: transparent;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     color: var(--color-ink);
     font-size: 12.5px;
     text-align: left;
@@ -246,7 +246,7 @@
     margin-top: 2px;
     padding: 5px 8px;
     border: 1px solid var(--color-accent);
-    border-radius: 5px;
+    border-radius: var(--r-md);
     background: var(--color-surface-1);
     color: var(--color-ink);
     font-family: var(--font-sans);

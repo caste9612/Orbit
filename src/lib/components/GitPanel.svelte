@@ -288,7 +288,7 @@
     gap: 6px;
     background: var(--color-surface-3);
     border: 1px solid var(--color-line);
-    border-radius: 6px;
+    border-radius: var(--r-md);
     color: var(--color-ink);
     font-size: 12.5px;
     padding: 5px 9px;
@@ -313,7 +313,7 @@
     place-items: center;
     background: transparent;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     color: var(--color-ink-muted);
     cursor: pointer;
   }
@@ -337,7 +337,7 @@
     z-index: 60; /* sopra il Backdrop (z=50) che chiude al click-fuori */
     background: var(--color-surface-3);
     border: 1px solid var(--color-line-strong);
-    border-radius: 7px;
+    border-radius: var(--r-lg);
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
     padding: 4px;
     max-height: 240px;
@@ -350,7 +350,7 @@
     width: 100%;
     background: transparent;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     color: var(--color-ink);
     font-size: 12.5px;
     text-align: left;
@@ -383,7 +383,7 @@
     align-items: center;
     gap: 8px;
     padding: 2px 8px;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     background: var(--color-surface-1);
     border: 1px solid var(--color-line);
     font-size: 11.5px;
@@ -409,7 +409,7 @@
     place-items: center;
     background: transparent;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     color: var(--color-ink-muted);
     cursor: pointer;
   }
@@ -455,7 +455,7 @@
     resize: vertical;
     background: var(--color-surface-1);
     border: 1px solid var(--color-line);
-    border-radius: 6px;
+    border-radius: var(--r-md);
     color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: 12.5px;
@@ -477,7 +477,7 @@
     font-weight: 600;
     font-size: 12.5px;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     padding: 7px;
     cursor: pointer;
   }
@@ -583,7 +583,7 @@
     place-items: center;
     background: transparent;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     color: var(--color-ink-subtle);
     cursor: pointer;
     opacity: 0;

@@ -432,7 +432,7 @@
     display: flex;
     flex-direction: column;
     background: var(--color-surface-1);
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     border: 1px solid var(--color-line);
     overflow: hidden;
     transition: border-color 120ms ease;
@@ -479,8 +479,8 @@
 
   .tabbar {
     position: relative;
-    height: 32px;
-    flex: 0 0 32px;
+    height: var(--h-tabs);
+    flex: 0 0 var(--h-tabs);
     background: var(--color-surface-2);
     border-bottom: 1px solid var(--color-line);
     display: flex;
@@ -583,7 +583,7 @@
     place-items: center;
     background: transparent;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     color: var(--color-ink-subtle);
     cursor: pointer;
     opacity: 0;
@@ -643,7 +643,7 @@
     padding: 0 8px;
     background: var(--color-surface-2);
     border: 1px solid var(--color-line);
-    border-radius: 5px;
+    border-radius: var(--r-md);
     color: var(--color-ink-muted);
     font-size: 11px;
     font-weight: 550;
@@ -677,7 +677,7 @@
     padding: 0 9px;
     background: var(--color-surface-2);
     border: 1px solid var(--color-line);
-    border-radius: 5px;
+    border-radius: var(--r-md);
     color: var(--color-ink-muted);
     font-size: 11px;
     font-weight: 550;
@@ -753,7 +753,7 @@
   .tabmenu-row {
     display: flex;
     align-items: center;
-    border-radius: 5px;
+    border-radius: var(--r-md);
   }
   .tabmenu-row:hover {
     background: var(--color-surface-3);
@@ -789,7 +789,7 @@
     place-items: center;
     background: transparent;
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--r-sm);
     color: var(--color-ink-subtle);
     cursor: pointer;
   }
@@ -842,7 +842,7 @@
     background: var(--color-surface-3);
     border: 1px solid var(--color-line-strong);
     border-bottom-width: 2px;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     padding: 2px 7px;
     min-width: 16px;
     text-align: center;
@@ -857,7 +857,7 @@
     place-items: center;
     background: rgba(var(--accent-rgb), 0.1);
     border: 2px dashed var(--color-accent);
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     pointer-events: none; /* puramente visivo: il drop è gestito a livello OS da Tauri */
   }
   .drophint {
@@ -909,7 +909,7 @@
   .cbtn {
     height: 30px;
     padding: 0 14px;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     border: 1px solid var(--color-line-strong);
     background: var(--color-surface-3);
     color: var(--color-ink);

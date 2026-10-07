@@ -133,7 +133,7 @@
     margin-bottom: 5px;
     padding: 5px 6px;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     background: transparent;
     color: var(--color-ink-muted);
     font-size: 12px;
@@ -165,7 +165,7 @@
     width: 100%;
     padding: 5px 6px;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     background: transparent;
     color: var(--color-ink);
     font-size: 12.5px;
@@ -181,7 +181,7 @@
     display: grid;
     place-items: center;
     border: 1px solid var(--color-line-strong);
-    border-radius: 3px;
+    border-radius: var(--r-xs);
     color: var(--color-accent);
   }
   .cat.on .box {
@@ -198,7 +198,7 @@
     margin-top: 5px;
     padding: 6px 8px;
     border: 1px solid var(--color-line-strong);
-    border-radius: 5px;
+    border-radius: var(--r-md);
     background: var(--color-surface-1);
     color: var(--color-ink);
     font-family: var(--font-sans);
@@ -220,7 +220,7 @@
     width: 100%;
     padding: 5px 6px;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     background: transparent;
     color: var(--color-ink-muted);
     font-size: 12.5px;

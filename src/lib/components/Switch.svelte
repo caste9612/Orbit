@@ -24,7 +24,7 @@
     flex: 0 0 auto;
     width: 40px;
     height: 22px;
-    border-radius: 11px;
+    border-radius: var(--r-xl);
     border: 0;
     background: var(--color-surface-4);
     cursor: pointer;

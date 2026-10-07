@@ -7,6 +7,7 @@
   //                   (tenue ↔ pieno), così cambiare stile è una riga.
   //  - altro        → fallback line-art monocroma/tinta (Icon.svelte) per i tipi non-codice.
   import Icon from "./Icon.svelte";
+  import { themeLook } from "../state/settings.svelte";
 
   interface Props {
     glyph: string;
@@ -67,6 +68,9 @@
   const langId = $derived(kind === "lang" ? glyph.slice(5) : "");
   const tileLabel = $derived(kind === "tile" ? glyph.slice(5) : "");
   const tile = $derived(kind === "tile" ? tileColors(color) : null);
+  // look "piatto" (tema VS 2026): tile a contorno sottile nel colore del linguaggio, niente fondo
+  // pieno → l'albero resta sobrio, il colore identifica senza gridare
+  const flat = $derived(!!themeLook().flatGlyphs);
 </script>
 
 {#if kind === "lang" && LANG_SYMBOLS[langId]}
@@ -82,6 +86,18 @@
   >
     <!-- eslint-disable-next-line svelte/no-at-html-tags — SVG statico autoredatto, nessun input utente -->
     {@html LANG_SYMBOLS[langId]}
+  </svg>
+{:else if kind === "tile" && tile && flat}
+  <svg width={size} height={size} viewBox="0 0 24 24" style="flex:0 0 auto; display:block" aria-hidden="true">
+    <rect x="3.5" y="3.5" width="17" height="17" rx="2" fill="none" stroke={color} stroke-opacity="0.55" stroke-width="1.3" />
+    <text
+      x="12"
+      y="12.6"
+      text-anchor="middle"
+      dominant-baseline="central"
+      fill={tile.text}
+      style="font:600 10px var(--font-sans)">{tileLabel}</text
+    >
   </svg>
 {:else if kind === "tile" && tile}
   <svg width={size} height={size} viewBox="0 0 24 24" style="flex:0 0 auto; display:block" aria-hidden="true">

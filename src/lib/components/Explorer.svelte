@@ -391,7 +391,7 @@
   .row.target {
     outline: 1px solid rgba(var(--accent-rgb), 0.5);
     outline-offset: -1px;
-    border-radius: 3px;
+    border-radius: var(--r-xs);
   }
   .row:focus-visible {
     outline: 1px solid var(--color-accent);
@@ -447,7 +447,7 @@
     padding: 0 4px;
     height: 18px;
     border: 1px solid var(--color-accent);
-    border-radius: 3px;
+    border-radius: var(--r-xs);
     background: var(--color-surface-1);
     color: var(--color-ink);
     font-family: var(--font-sans);
@@ -579,7 +579,7 @@
     height: 18px;
     padding: 0;
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--r-sm);
     background: transparent;
     color: var(--color-ink-subtle);
     cursor: pointer;

@@ -87,7 +87,7 @@
     align-items: center;
     gap: 8px;
     padding: 5px 6px;
-    border-radius: 6px;
+    border-radius: var(--r-md);
   }
   .row:hover {
     background: var(--color-surface-3);
@@ -99,7 +99,7 @@
     flex: 0 0 auto;
     width: 26px;
     height: 16px;
-    border-radius: 9px;
+    border-radius: var(--r-xl);
     border: 0;
     background: var(--color-surface-4, #3a3d44);
     cursor: pointer;
@@ -168,7 +168,7 @@
     place-items: center;
     background: transparent;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     color: var(--color-ink-subtle);
     cursor: pointer;
     opacity: 0;

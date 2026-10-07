@@ -1,5 +1,7 @@
 <script lang="ts">
   // Icone line-art inline (stile Lucide, 24x24, currentColor). Zero dipendenze.
+  import { themeLook } from "../state/settings.svelte";
+
   interface Props {
     name: string;
     size?: number;
@@ -8,6 +10,31 @@
   }
   let { name, size = 16, strokeWidth = 2, class: klass = "" }: Props = $props();
 
+  // Set "fluent" (tema VS 2026): stessi nomi, geometria più squadrata (rx 1.5 invece di 2, angoli
+  // netti, nessun elemento decorativo). Copre le icone del chrome; le altre cadono sul set base.
+  // Il tratto uniforme (1.5) lo dà il tema via --icon-stroke, non questi path.
+  const fluent: Record<string, string> = {
+    explorer: `<rect width="12" height="14" x="8" y="7" rx="1.5"/><path d="M5 17V4.5A1.5 1.5 0 0 1 6.5 3H15"/>`,
+    "git-branch": `<circle cx="6" cy="5" r="2.5"/><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="7" r="2.5"/><path d="M6 7.5v9"/><path d="M18 9.5c0 3-2 5-5 5H9"/>`,
+    search: `<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/>`,
+    settings: `<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>`,
+    terminal: `<rect width="18" height="16" x="3" y="4" rx="1.5"/><path d="m7 9 3 3-3 3"/><path d="M12 15h5"/>`,
+    folder: `<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.3a1.5 1.5 0 0 1 1.1.5L11.5 7h8A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/>`,
+    "folder-open": `<path d="M3 17.5V6.5A1.5 1.5 0 0 1 4.5 5h4.3a1.5 1.5 0 0 1 1.1.5L11.5 7h7A1.5 1.5 0 0 1 20 8.5V10"/><path d="M3 17.5l2.2-6.2a1.5 1.5 0 0 1 1.4-1h14.7a1 1 0 0 1 1 1.3L20.3 18a1.5 1.5 0 0 1-1.4 1H4.5A1.5 1.5 0 0 1 3 17.5z"/>`,
+    file: `<path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/>`,
+    "panel-left": `<rect width="18" height="16" x="3" y="4" rx="1.5"/><path d="M9 4v16"/>`,
+    "panel-bottom": `<rect width="18" height="16" x="3" y="4" rx="1.5"/><path d="M3 15h18"/>`,
+    refresh: `<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v4.5h-4.5"/>`,
+    activity: `<path d="M3 12h3.5l2.5-7 4 14 2.5-7H21"/>`,
+    play: `<path d="M7 5.2v13.6a1 1 0 0 0 1.5.9l11-6.8a1 1 0 0 0 0-1.7l-11-6.8a1 1 0 0 0-1.5.8z"/>`,
+    "book-open": `<path d="M12 6.5c-2-1.5-4.5-2-8-2v13c3.5 0 6 .5 8 2 2-1.5 4.5-2 8-2v-13c-3.5 0-6 .5-8 2z"/><path d="M12 6.5v13"/>`,
+    note: `<rect x="5" y="3.5" width="14" height="17" rx="1.5"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>`,
+    more: `<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>`,
+    columns: `<rect width="18" height="16" x="3" y="4" rx="1.5"/><path d="M12 4v16"/>`,
+    rows: `<rect width="18" height="16" x="3" y="4" rx="1.5"/><path d="M3 12h18"/>`,
+    grid: `<rect width="18" height="16" x="3" y="4" rx="1.5"/><path d="M12 4v16"/><path d="M3 12h18"/>`,
+    "new-window": `<rect width="16" height="14" x="4" y="5" rx="1.5"/><path d="M4 9h16"/><path d="M12 12v6M9 15h6"/>`,
+  };
   const paths: Record<string, string> = {
     explorer: `<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>`,
     "git-branch": `<line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>`,
@@ -91,6 +118,9 @@
     // pin "sempre in primo piano" (toggle nella finestra flottante del terminale)
     pin: `<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>`,
   };
+
+  // glifo da disegnare: set del tema (se lo definisce) con fallback al set base
+  const glyph = $derived((themeLook().iconSet === "fluent" ? fluent[name] : undefined) ?? paths[name] ?? "");
 </script>
 
 <svg
@@ -100,11 +130,11 @@
   viewBox="0 0 24 24"
   fill="none"
   stroke="currentColor"
-  stroke-width={strokeWidth}
+  style="stroke-width: var(--icon-stroke, {strokeWidth})"
   stroke-linecap="round"
   stroke-linejoin="round"
   class={klass}
   aria-hidden="true">
   <!-- eslint-disable-next-line svelte/no-at-html-tags — SVG statico autoredatto, nessun input utente -->
-  {@html paths[name] ?? ""}
+  {@html glyph}
 </svg>

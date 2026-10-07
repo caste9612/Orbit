@@ -438,7 +438,7 @@
   .lensbar {
     display: inline-flex;
     border: 1px solid var(--color-line);
-    border-radius: 7px;
+    border-radius: var(--r-lg);
     overflow: hidden;
   }
   .lensbar button {
@@ -468,7 +468,7 @@
     padding: 0 10px;
     width: 200px;
     border: 1px solid var(--color-line);
-    border-radius: 7px;
+    border-radius: var(--r-lg);
     background: var(--color-surface-1);
     color: var(--color-ink-subtle);
   }
@@ -490,7 +490,7 @@
     place-items: center;
     background: transparent;
     border: 1px solid var(--color-line);
-    border-radius: 7px;
+    border-radius: var(--r-lg);
     color: var(--color-ink-muted);
     cursor: pointer;
   }
@@ -641,7 +641,7 @@
     background: var(--color-surface-2);
     border: 1px solid var(--color-line);
     border-left: 3px solid var(--rc);
-    border-radius: 7px;
+    border-radius: var(--r-lg);
     padding: 6px 9px;
     cursor: pointer;
     color: var(--color-ink);
@@ -717,7 +717,7 @@
     background: var(--color-accent);
     color: #08111f;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     cursor: pointer;
     opacity: 0;
     transition: opacity 90ms ease;
@@ -782,7 +782,7 @@
     text-align: left;
     border: 1px solid transparent;
     background: transparent;
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     padding: 8px 11px 8px 13px;
     cursor: pointer;
     color: var(--color-ink);
@@ -794,7 +794,7 @@
     top: 9px;
     bottom: 9px;
     width: 2.5px;
-    border-radius: 3px;
+    border-radius: var(--r-xs);
     background: var(--rc);
     opacity: 0.5;
   }
@@ -886,7 +886,7 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: var(--r-sm);
   }
   .dt {
     font-size: 12.5px;
@@ -903,7 +903,7 @@
     place-items: center;
     background: transparent;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     color: var(--color-ink-muted);
     cursor: pointer;
   }

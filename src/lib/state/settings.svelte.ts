@@ -19,17 +19,33 @@ export const ACCENTS = {
   purple: { accent: "#a472ff", rgb: "164, 114, 255", accent2: "#7a5cff" },
   green: { accent: "#3fb950", rgb: "63, 185, 80", accent2: "#2ea043" },
   teal: { accent: "#22c7b3", rgb: "34, 199, 179", accent2: "#0fa595" },
+  // ambra calda (richiesta utente, 2026-10-07): legge bene sia come testo sul fondo scuro sia come
+  // fondo con testo scuro; accent2 più aranciato per gradienti e stati secondari
+  amber: { accent: "#e8a53a", rgb: "232, 165, 58", accent2: "#d4842a" },
 };
 export type AccentName = keyof typeof ACCENTS;
 
 // Temi completi: stesso meccanismo degli ACCENTS (CSS vars su documentElement + persistenza in
 // localStorage), esteso a TUTTE le superfici/linee/inchiostri + bg + l'accento di default e le
 // variabili dell'editor (--cm-*). Gli stati danger/success/warning restano dai token base.
-// `vars` mappa nome-variabile (senza "--") → valore. Default = "dark" (Orbit Dark, firma).
+// `vars` mappa nome-variabile (senza "--") → valore. Predefinito dalla v0.9.0: "vs2026" (look Visual
+// Studio 2026); "dark" (Orbit Dark) resta il tema storico e il default pre-JS di app.css.
+// "Look" di un tema: oltre ai colori, la FORMA dell'interfaccia (esperimento VS 2026, branch ui-vs2026).
+// Tutto opzionale: un tema senza `look` ha il look Orbit storico (default di app.css / Icon.svelte).
+export interface ThemeLook {
+  fontSans?: string; // font dell'interfaccia (sovrascrive --font-sans)
+  radii?: { xs: number; sm: number; md: number; lg: number; xl: number; xxl: number }; // scala --r-* in px
+  iconStroke?: number; // spessore uniforme delle icone line-art (default: ognuna il suo)
+  iconSet?: "fluent"; // set alternativo di glifi in Icon.svelte (geometria più squadrata)
+  flatGlyphs?: boolean; // glifi dei file senza tile colorate piene (contorno sottile)
+  heights?: { tabs: number; head: number }; // densità: barra schede editor / testate pannelli (px)
+}
+
 export interface Theme {
   label: string;
   light?: boolean; // tema chiaro → l'editor usa la HighlightStyle chiara + classe .theme-light
   vars: Record<string, string>;
+  look?: ThemeLook;
 }
 
 export const THEMES: Record<string, Theme> = {
@@ -69,6 +85,37 @@ export const THEMES: Record<string, Theme> = {
       "cm-bracket-bg": "rgba(91,155,213,0.2)", "cm-bracket-outline": "rgba(91,155,213,0.42)",
     },
   },
+  // ESPERIMENTO (branch ui-vs2026): look di Visual Studio 2026 Dark. Colori CAMPIONATI pixel per
+  // pixel da uno screenshot reale di VS 2026 (18.10) dell'utente: cornice/titolo #1c1c1c, editor
+  // #1e1e1e, barra schede #262626 (scheda attiva #282828, senza linea d'accento), tool window #282828,
+  // input #212121, bottoni/dropdown #353535 con bordo #373737, separatori interni #2e2e2e/#373737,
+  // bordi delle card #454545, status bar #141414, testo #ffffff/#d7d7d7, numeri di riga #8a8a8a,
+  // accento VIOLA #9184ee (bordo della tool window attiva e dell'input a fuoco). Angoli delle card
+  // appena arrotondati, Segoe UI Variable, icone Fluent a tratto 1.5, glifi dei file a contorno.
+  vs2026: {
+    label: "Visual Studio 2026 Dark",
+    vars: {
+      "color-surface-0": "#1c1c1c", "color-surface-1": "#1e1e1e", "color-surface-2": "#282828",
+      "color-surface-3": "#353535", "color-surface-4": "#404040",
+      "color-line": "#3a3a3a", "color-line-strong": "#454545",
+      "color-ink": "#ececec", "color-ink-muted": "#a8a8a8", "color-ink-subtle": "#8a8a8a",
+      "color-bg": "#1c1c1c", "color-accent": "#9184ee", "color-accent-2": "#7b6fe0", "accent-rgb": "145, 132, 238",
+      "color-accent-soft": "#2f2c52",
+      // corpo della sidebar: provato scuro come l'editor (#1e1e1e), l'utente preferisce la tonalità
+      // "strumenti" #282828 come la sua testata e come le tool window di VS → `color-panel` resta al
+      // default (surface-2)
+      "cm-selection": "#264f78", "cm-selection-match": "#343a40", "cm-active-line": "rgba(255,255,255,0.035)",
+      "cm-bracket-bg": "rgba(145,132,238,0.2)", "cm-bracket-outline": "rgba(145,132,238,0.5)",
+    },
+    look: {
+      fontSans: '"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif',
+      radii: { xs: 2, sm: 2, md: 3, lg: 4, xl: 4, xxl: 6 },
+      iconStroke: 1.5,
+      iconSet: "fluent",
+      flatGlyphs: true,
+      heights: { tabs: 28, head: 28 }, // VS a 125%: schede 25, testate 27 — un filo più larghe per i contenuti di Orbit
+    },
+  },
   light: {
     label: "Orbit Light",
     light: true,
@@ -84,6 +131,8 @@ export const THEMES: Record<string, Theme> = {
   },
 };
 export type ThemeName = keyof typeof THEMES;
+/** Tutte le variabili usate da almeno un tema (per rimuovere quelle che il tema attivo non definisce). */
+const ALL_THEME_VARS = new Set(Object.values(THEMES).flatMap((t) => Object.keys(t.vars)));
 
 // Preset di scorciatoie: Orbit (default), Visual Studio, IntelliJ — più "custom" (mappa
 // personalizzata che l'utente costruisce partendo da una base, vedi `customKeys`). Il registro
@@ -103,9 +152,13 @@ export function isLightTheme(): boolean {
 export function themeAccent(): string {
   return THEMES[settings.theme]?.vars["color-accent"] ?? "#4c8dff";
 }
+/** Look del tema attivo ({} = look Orbit storico). Letto da Icon.svelte / FileGlyph.svelte. */
+export function themeLook(): ThemeLook {
+  return THEMES[settings.theme]?.look ?? {};
+}
 
 export const settings = $state({
-  theme: "dark" as ThemeName,
+  theme: "vs2026" as ThemeName, // dalla v0.9.0 il predefinito è il look Visual Studio 2026 (M55)
   keymap: "orbit" as KeymapName, // preset scorciatoie (Orbit / Visual Studio / IntelliJ / Custom)
   customKeys: null as Record<string, string> | null, // mappa CommandId→tasto del preset "custom" (null = non creato)
   revealActive: false, // "segui il file attivo": espande l'albero e seleziona il file corrente
@@ -147,10 +200,30 @@ function applySettings() {
   const r = root.style;
   r.setProperty("--font-mono", monoStack(settings.fontMono));
   r.setProperty("--editor-font-size", `${settings.editorFontSize}px`);
-  // tema completo: superfici / linee / inchiostri / bg + accento di default + variabili editor
-  const th = THEMES[settings.theme] ?? THEMES.dark;
+  // tema completo: superfici / linee / inchiostri / bg + accento di default + variabili editor.
+  // Le variabili che SOLO altri temi definiscono (es. color-panel, color-accent-soft) vanno rimosse,
+  // altrimenti cambiando tema resterebbero appiccicate al valore del tema precedente.
+  const th = THEMES[settings.theme] ?? THEMES.vs2026;
+  for (const k of ALL_THEME_VARS) if (!(k in th.vars)) r.removeProperty(`--${k}`);
   for (const [k, v] of Object.entries(th.vars)) r.setProperty(`--${k}`, v);
   root.classList.toggle("theme-light", !!th.light);
+  // look (forma): un tema senza `look` rimuove le proprietà → valgono i default di app.css
+  const look = th.look ?? {};
+  for (const k of ["xs", "sm", "md", "lg", "xl", "xxl"] as const) {
+    if (look.radii) r.setProperty(`--r-${k}`, `${look.radii[k]}px`);
+    else r.removeProperty(`--r-${k}`);
+  }
+  if (look.fontSans) r.setProperty("--font-sans", look.fontSans);
+  else r.removeProperty("--font-sans");
+  if (look.iconStroke) r.setProperty("--icon-stroke", String(look.iconStroke));
+  else r.removeProperty("--icon-stroke");
+  if (look.heights) {
+    r.setProperty("--h-tabs", `${look.heights.tabs}px`);
+    r.setProperty("--h-head", `${look.heights.head}px`);
+  } else {
+    r.removeProperty("--h-tabs");
+    r.removeProperty("--h-head");
+  }
   // accento: "auto" usa quello del tema (già applicato sopra); un preset lo sovrascrive
   const acc = settings.accent;
   if (acc !== "auto") {
@@ -168,7 +241,14 @@ export function loadSettings() {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const s = JSON.parse(raw);
-      if (typeof s.theme === "string" && s.theme in THEMES) settings.theme = s.theme;
+      // Migrazione v0.9.0 (M55): il nuovo predefinito è "Visual Studio 2026 Dark". Le impostazioni
+      // salvate dalle versioni precedenti hanno sempre `theme` (il vecchio default "dark" veniva
+      // persistito anche se mai scelto), quindi senza un marcatore chi aggiorna non vedrebbe mai il
+      // nuovo look: al primo avvio con la 0.9 si passa al nuovo tema UNA volta (`uiV09`), poi la
+      // scelta dell'utente comanda come sempre.
+      if (s.uiV09 === true) {
+        if (typeof s.theme === "string" && s.theme in THEMES) settings.theme = s.theme;
+      }
       if (s.keymap === "orbit" || s.keymap === "vs" || s.keymap === "intellij" || s.keymap === "custom") settings.keymap = s.keymap;
       if (s.customKeys && typeof s.customKeys === "object") {
         const m: Record<string, string> = {};
@@ -201,6 +281,7 @@ export function startSettingsAutosave() {
   $effect.root(() => {
     $effect(() => {
       const data = JSON.stringify({
+        uiV09: true, // marcatore della migrazione al tema predefinito VS 2026 (vedi loadSettings)
         theme: settings.theme,
         keymap: settings.keymap,
         customKeys: settings.customKeys,

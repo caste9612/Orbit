@@ -162,7 +162,7 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
     padding: 2px 8px;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     margin-bottom: 9px;
     color: var(--color-ink-muted);
     background: var(--color-surface-3);
@@ -207,7 +207,7 @@
   .bar {
     flex: 0 1 230px;
     height: 7px;
-    border-radius: 4px;
+    border-radius: var(--r-sm);
     overflow: hidden;
     display: flex;
     background: var(--color-surface-3);
@@ -236,7 +236,7 @@
     padding: 4px 12px;
     background: var(--color-accent);
     border: 0;
-    border-radius: 7px;
+    border-radius: var(--r-lg);
     color: #08111f;
     font-size: 12px;
     font-weight: 600;
@@ -282,7 +282,7 @@
   .step {
     position: relative;
     padding: 7px 10px 7px 14px;
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     background: var(--color-surface-2);
     border: 1px solid var(--color-line);
   }
@@ -293,7 +293,7 @@
     top: 8px;
     bottom: 8px;
     width: 3px;
-    border-radius: 3px;
+    border-radius: var(--r-xs);
     background: var(--sc);
     opacity: 0.75;
   }

@@ -101,11 +101,11 @@
     flex: 0 0 auto;
     min-width: 0;
     height: 100%;
-    background: var(--color-surface-2);
+    background: var(--color-panel); /* corpo: = surface-2 di default, scuro come l'editor nel tema VS */
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-radius: 8px;
+    border-radius: var(--r-lg);
     border: 1px solid var(--color-line);
     transition: border-color 120ms ease;
   }
@@ -113,8 +113,9 @@
     border-color: var(--color-accent);
   }
   .head {
-    height: 30px;
-    flex: 0 0 30px;
+    height: var(--h-head);
+    flex: 0 0 var(--h-head);
+    background: var(--color-surface-2); /* la testata resta sulla superficie "strumenti" */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -144,7 +145,7 @@
     place-items: center;
     background: transparent;
     border: 0;
-    border-radius: 5px;
+    border-radius: var(--r-md);
     color: var(--color-ink-muted);
     cursor: pointer;
   }
@@ -187,7 +188,7 @@
     font-weight: 600;
     font-size: 12.5px;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     padding: 6px 11px;
     cursor: pointer;
     transition: filter 90ms ease;

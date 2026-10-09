@@ -34,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~5 MB binary, ~220 MB RAM at rest (mostly the shared system
-  WebView — Orbit's own Rust core is ~30 MB), and a ~531 KB startup chunk (≈177 KB gzipped).
+  WebView — Orbit's own Rust core is ~30 MB), and a ~536 KB startup chunk (≈179 KB gzipped).
 
 ### Project gates (non-negotiable)
 

@@ -23,11 +23,14 @@ src/
   lib/
     components/       # UI (Svelte components)
     state/            # reactive state + actions (Svelte 5 runes in .svelte.ts);
-                      #   plain .ts helpers: dotorbit.ts (.orbit config), projectFiles.ts (list_files cache)
+                      #   plain .ts helpers: dotorbit.ts (.orbit config), projectFiles.ts (list_files cache),
+                      #   scratch.ts (scratchpad); pure, vitest-tested logic: shelfRules.ts, terminalLayout.ts
     editor/           # CodeMirror extensions (theme, indent guides, git gutter, semantic overlay) + outline.ts (symbols), activeEditor.ts
+    assets/           # orbit-wordmark.svg (the brand wordmark as vector paths)
     util.ts           # pure helpers (paths, file icons, language label, time)
     markdown.ts       # Markdown → sanitized HTML (marked + DOMPurify, lazy) + heading TOC
     clipboard.ts      # centralized copy/paste: Tauri clipboard plugin + navigator fallback, explicit success
+    gitgraph.ts       # Git Graph lane layout (pure): commits + parents → lanes and segments to draw
 src-tauri/
   src/lib.rs          # Rust entry: fs/session/window commands + run() (registers all)
   src/git.rs          # git commands (libgit2), incl. git_graph (branch/commit graph)
@@ -38,6 +41,9 @@ src-tauri/
   src/winsession.rs   # multi-window session: per-window registry, reopen-all + close-all, geometry (replaces winstate)
   tauri.conf.json     # window, bundle, productName "Orbit"
   capabilities/       # Tauri permission capabilities
+  windows/hooks.nsh   # NSIS post-install hook: removes script associations left by older versions
+scripts/              # footprint measurement (measure-orbit.ps1, measure-orbit-ram.ps1)
+app-icon.svg          # brand mark, single source of the OS icons (see Theming → Brand mark)
 docs/                 # this doc + screenshots
 NOTES.md              # decision log (per milestone), Italian
 CLAUDE.md             # tells Claude Code the .orbit/run.json + .orbit/claude.json formats

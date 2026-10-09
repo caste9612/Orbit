@@ -34,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~5 MB binary, ~220 MB RAM at rest (mostly the shared system
-  WebView — Orbit's own Rust core is ~30 MB), and a ~536 KB startup chunk (≈179 KB gzipped).
+  WebView — Orbit's own Rust core is ~30 MB), and a ~542 KB startup chunk (≈181 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -67,6 +67,12 @@ cross-platform desktop app that weighs almost nothing.
 - On Windows, the installer registers Orbit for common **text, code, image and PDF** files, so it
   shows up in their **"Open with"** menu. Scripts (`.bat`, `.cmd`, `.ps1`, `.sh`) are deliberately
   left alone: double-clicking them still runs them.
+- **Light window for a single file**: a file opened on its own ("Open with", double-click) opens in a
+  lightweight window — just the file, with both side panels collapsed. Its folder is only context, not a
+  project: Orbit writes nothing into it (no `.orbit`, no `.claude`), doesn't index or watch the tree below,
+  doesn't start Claude and doesn't add it to the repository tabs or to "reopen all". One click on
+  **Open «project» as project** in the top bar turns the window into a regular project — the git repo that
+  contains the file when there is one — keeping the file open.
 
 **Editor** (CodeMirror 6)
 - Lazy, multi-language syntax highlighting (~140 grammars loaded on demand, plus a dedicated
@@ -125,7 +131,9 @@ cross-platform desktop app that weighs almost nothing.
   Open them from the **Split** button (new Claude, new terminal, or another tab to the side), from the
   Claude menu (*Open Claude to the side*), from the Activity *Chats* lens (*To the side*), or **drag a tab
   or a pane header**: drop it on the **right/left edge** of a pane for a new column, on the **top/bottom
-  edge** for a new row, in the center to swap. The layout adapts to the space until you decide — a
+  edge** for a new row, in the center to swap (the drop mark shows the result before you release). Dragging
+  the chat you're looking at onto an edge of its own pane puts it beside the one you used last. The layout
+  adapts to the space until you decide — a
   directional drop or *Side by side* / *Stacked* in the Split menu makes it yours — and the **splitters
   between panes are draggable**. Each pane has a header (zoom, pop out, remove from the split: the terminal
   stays as a tab), and one click gives the panel the whole window. Nothing restarts: a chat keeps running
@@ -214,11 +222,17 @@ cross-platform desktop app that weighs almost nothing.
   don't all fit a **`…`** menu lists them; the top bar stays usable down to its minimum width. The
   repository list **and sessions are per‑window**: open windows don't share or overwrite each other's
   repo tabs, and the same folder can be open in two windows without their tabs/layout clobbering.
-- **Smooth layout**: switching repos, collapsing the editor, maximizing the terminal panel, showing or
-  hiding a panel and rearranging chats all animate as **one short motion** (220 ms) instead of jumping
+- **Smooth layout**: switching repos, collapsing the editor, maximizing the terminal panel, collapsing or
+  expanding a panel and rearranging chats all animate as **one short motion** (220 ms) instead of jumping
   — panels glide to the new repo's sizes together, and the terminals refit once at the end rather than
   redrawing at every step. Dragging a splitter stays immediate. Toggle in Settings ("Smooth panel
   transitions", on by default and independent of the OS "reduce motion" preference).
+- **Collapsible panels**: the sidebar and the terminal panel collapse into a thin **strip** on the window
+  edge (IntelliJ / Visual Studio style), as thick as the status bar so the bars frame the window. The left
+  strip keeps the views (Explorer, Git with a changes dot, Search, Docs, Activity); the right one keeps your
+  chats and terminals in their colors, with the waiting dot — click one to bring the panel back right there.
+  Collapse from the « / » button in the panel header, `Ctrl+B` / ``Ctrl+` ``, or the top bar; panel and strip
+  swap in the same smooth motion.
 - **Room for Claude**: when no file is open, the editor area shrinks to its minimum width by itself
   and the terminal panel takes the space; open a file and the previous layout comes back.
 - **Remembers its window**: Orbit reopens at the same position, size and maximized state where you
@@ -255,7 +269,7 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~3.5 MB |
 | NSIS setup | ~2.8 MB |
 | Frontend `dist/` | ~2.8 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~536 KB (≈179 KB gzipped) |
+| Startup JS chunk | ~542 KB (≈181 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own
@@ -297,8 +311,8 @@ lives in [NOTES.md](./NOTES.md).
 | `Ctrl/Cmd+F` | Find / replace (within the focused editor) |
 | `Ctrl/Cmd+S` | Save the active file |
 | `Ctrl/Cmd+K` | Open folder |
-| `Ctrl/Cmd+B` | Toggle sidebar |
-| ``Ctrl/Cmd+` `` | Toggle terminal |
+| `Ctrl/Cmd+B` | Collapse / expand the sidebar |
+| ``Ctrl/Cmd+` `` | Collapse / expand the terminal panel |
 | `Ctrl/Cmd+Shift+C` / `+V` | Copy / paste in the terminal |
 | `Ctrl/Cmd+scroll` | Zoom the font of the panel under the pointer |
 

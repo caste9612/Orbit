@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -2471,6 +2471,134 @@ transform residuo; click semplice che cambia repo; durante lo switch nessun fram
 finestra dev ("l'animazione sembra perfetta"). Build release OK: orbit.exe **5,74 MB**, MSI **3,51 MB**,
 NSIS **2,85 MB** (+0,01 sugli installer: solo frontend); chunk d'avvio 536 KB (179 KB gzip).
 **Rilasciato in v0.9.1.**
+
+---
+
+## Milestone 57 — modalità leggera, pannelli comprimibili in striscia, simmetria delle icone, fix "Reveal" e trascinamento chat
+
+Segnalazioni dell'utente (2026-10-09), cinque punti: (1) aprendo un file con Orbit, nella sua cartella
+comparivano `.claude` e `.orbit` → una modalità più leggera per i file sparsi; (2) barra laterale e pannello
+delle chat comprimibili, e in quella modalità aperti compressi; (3) il trascinamento delle chat per
+affiancarle "spesso non funziona"; (4) "Reveal in Explorer" su un file apre solo Explorer; (5) icone che
+sembrano decentrate (il "+" in alto, nuova cartella…): controllo generale di simmetria e pulizia. Branch
+`light-mode-strips`.
+
+### Da dove venivano `.claude` e `.orbit`
+Con un file come argomento ("Apri con", doppio clic) la sua cartella diventava un progetto a tutti gli
+effetti: il terminale di default avviava Claude, e prima `ensureBellChannel` scriveva
+`.claude/settings.local.json` (M42); l'indice dei simboli scansionava la cartella e salvava la cache in
+`.orbit/index/`; il watcher la osservava ricorsivamente (un file in Download, o nella radice di un disco = tutto
+l'albero sotto); e la cartella entrava fra le schede repo e nel "riapri tutte", con la sua sessione.
+
+### Modalità leggera (scelta utente: "leggera + Apri come progetto")
+- `startup()` restituisce `light: true` quando il primo argomento è un FILE e non c'è una cartella esplicita
+  (`LUME_DIR`). Il frontend chiama `persist.openLight(dir, file)`: `workspace.light`, barra laterale e pannello
+  compressi, `openRoot(dir, { light: true })` — watch NON ricorsivo (nuovo parametro `recursive` di
+  `watch_start`) e niente stato git — e il file aperto. In modalità leggera: niente sessione letta né salvata
+  (`saveSessionNow` e l'autosave escono), niente `register_window` (quindi niente "riapri tutte", e chiuderla non
+  tocca il set da ripristinare), niente scheda repo, niente indice (`initIndex`/`rescan`), niente bell di Claude
+  (`ensureBellChannel`); la top bar nasconde Scratchpad/Claude/Esegui (scriverebbero nella cartella) e la status
+  bar il conteggio dei simboli. Titolo della finestra = nome del file.
+- Al posto delle schede repo, il bottone **"Open «X» as project"**: `X` è il repo git che contiene il file
+  (nuovo comando `project_root`: il primo antenato con `.git`, anche FILE per i worktree; NON `.orbit`, che le
+  versioni precedenti creavano proprio nelle cartelle dei file sparsi) o, senza repo, la sua cartella.
+  `persist.promoteLight()` ne fa un progetto normale: sessione del progetto (per finestra, M39), lista repo,
+  indice, git, watch ricorsivo; i file aperti restano aperti, le schede terminale passano al progetto
+  (`adoptTerminals`), la barra laterale si riapre sull'Explorer. "Apri cartella" sulla cartella stessa del file
+  fa lo stesso; aprirne un'altra esce dalla modalità leggera.
+- Correzione collegata: le schede terminale aperte quando non c'era nessuna cartella (avvio "nudo" senza
+  sessione) restavano vive ma nascoste alla prima cartella aperta; ora la seguono (`switchFolder`).
+- Le `.orbit`/`.claude` già create dalle versioni precedenti nelle cartelle dei file aperti da soli restano: vanno
+  tolte a mano.
+
+### Pannelli comprimibili in striscia (scelta utente: stile IntelliJ/VS)
+Prima barra laterale e pannello terminale si potevano solo NASCONDERE (vista attiva in top bar / Ctrl+B, ✕ /
+Ctrl+`), senza un comando sul pannello. Ora si COMPRIMONO in una striscia sul bordo della finestra
+(`PanelStrip.svelte`) spessa quanto la status bar (22 px con il bordo da 1 verso il contenuto, fondo chrome):
+le barre incorniciano la finestra (richiesta dell'utente: "stessa dimensione della barra in basso"). A sinistra
+le viste (Explorer, Git col pallino delle modifiche, Search, Docs, Activity); a destra le chat e i terminali della
+repo, nella loro tinta, col pallino d'attesa che pulsa — un clic riapre il pannello su quella vista o scheda. In
+cima a ogni striscia "»"/"«" lo riapre; nelle testate di barra laterale e pannello "«"/"»" lo comprime, dopo un
+separatore che lo distingue dalle azioni della vista. Doppia freccia e non un'icona "pannello con freccina": a
+13 px la freccina diventava una macchia (visto a schermo, ingrandito). Lo stato è quello di sempre
+(`sidebarVisible`/`terminalVisible`, salvati in sessione): compresso = non visibile.
+
+### Il movimento: `panelSlide`
+Campionando i frame via CDP, il primo tentativo con `slide` di Svelte aveva tre difetti: la striscia compariva
+intera di colpo (con `flex: 0 0 22px` la larghezza animata non conta: comanda la base); la barra laterale
+scendeva a 2 px e restava lì ~40 ms prima di sparire (Svelte anima `border-width` da 1 a 0, ma Chromium
+arrotonda i bordi sotto 1 px a 1 px pieno); lo splitter da 4 px non si muoveva. Risultato: l'editor saltava di
+6 px all'ultimo frame. Nuova transizione `lib/motion.ts` → **`panelSlide`**: anima la larghezza totale con i
+bordi laterali a 0 per tutta la durata (lo spazio passa nella larghezza), `flex-grow: 0` e `flex-basis: auto`
+(un pannello che riempie, come il terminale con l'editor collassato, ignorerebbe la larghezza). La usano barra
+laterale, pannello terminale, strisce, splitter (nuovo prop `motion`) e il riempitivo `.gap`: pannello e striscia
+si scambiano in un movimento solo, 220 ms come in M56. Misurato: comprimendo la barra laterale il bordo
+dell'editor passa da 268 a 26 px senza discontinuità e si ferma a ~207 ms (nessun salto finale); lo stesso
+riaprendola e per il pannello terminale.
+
+### Trascinamento delle chat: perché "spesso non funziona"
+Riprodotto con eventi mouse veri: (a) trascinando la scheda della chat GIÀ visibile (senza split) l'unico
+bersaglio è il suo stesso riquadro — il segno di rilascio compariva (metà destra evidenziata) ma al rilascio non
+succedeva nulla (`id !== target`); (b) il bordo valeva solo entro il 25%: rilasciando "a destra" al 65-70% del
+riquadro le chat si scambiavano invece di affiancarsi. La TUI di Claude non c'entra: col mouse-tracking attivo
+(`enable-mouse-events`, sequenza iniettata in xterm) il trascinamento funzionava uguale. Correzioni (logica pura,
+testata, in `terminalLayout.ts`): `dropZone` con soglia di un terzo; **split di sé** — la chat visibile trascinata
+su un bordo del suo riquadro va da quel lato e dall'altro la scheda usata più di recente (`splitPartner` sulla
+cronologia per repo `recentByRoot`); il segno compare solo se il rilascio farà qualcosa (al centro del proprio
+riquadro, o col proprio riquadro già in uno split, nessun segno).
+
+### "Reveal in Explorer"
+`explorer /select,<path>` era passato con `Command::arg`: con uno spazio nel percorso (es. il repo
+`Personal portfolio`) Rust quota l'intero argomento (`"/select,D:\…"`), explorer non lo riconosce e apre Documenti
+senza selezionare nulla. Provato direttamente (Shell.Application per leggere cartella e selezione della finestra
+aperta, poi chiusa): senza spazi funzionava, con lo spazio no, con `/select,"<path>"` sì. Ora
+`raw_arg(explorer_select_arg(path))`: barre rovesciate, virgolette solo attorno al percorso, barra finale tolta
+(unit test). Verificato nell'app: "cartella sparsa\appunti.txt" → Explorer su quella cartella, file selezionato.
+
+### Simmetria delle icone
+Misurata, non a occhio: uno script via CDP percorre ogni bottone con un'icona (e le righe con icona + testo) in
+più stati — viste, Git con modifiche, chat affiancate, menu, Quick Open, impostazioni, strisce — e confronta i
+margini dentro i bordi dopo l'allineamento ai pixel. Geometricamente era tutto centrato; il problema era il MEZZO
+PIXEL: icone da 15 in bottoni da 26 (5,5 per lato), il "+" da 13 in 26×22, controlli finestra 44×29 (lì nessuna
+icona quadrata può centrarsi in entrambi i versi). Chromium allinea la radice SVG ai pixel → margini 5 e 6 →
+icona spostata di 1 px, ed è quello che si vedeva. I monitor dell'utente sono al 100% (DPR 1), quindi la regola è:
+con sola icona `(larghezza − icona)` e `(altezza − icona)` pari; con icona + testo `(altezza − icona)` pari.
+Interventi: top bar e testata Explorer a 14; "+" a 14; ✕ delle schede repo a 10; controlli finestra larghi 45 con
+icone dispari; righe dell'albero e di Quick Open a 16; glifo delle schede editor 15 e ✕ 23×23 (centrata anche
+nell'altezza DISPARI della scheda: `--h-tabs` pari meno 3 px di bordi); "tutte le schede" 13 e righe del menu alte
+30; pannello terminale ("+", ✨) larghi 27 con icone da 13 e "scegli shell" 19; status bar con segmenti alti 21
+(l'interno reale: con 22 sbordavano) e icone 13; Git: azioni dei file 14, Commit alto 32 (era 32,8). Da 37
+elementi asimmetrici a 0 in entrambi gli assetti di misure (tema VS 2026 e quello degli altri temi). Resta
+"Graph" nel pannello Git, di proposito: il padding 5/6 allinea il testo a Changes/History, che hanno la
+sottolineatura da 2 px, e il bottone non ha fondo.
+
+### Trovato e non corretto (fuori dal perimetro)
+Lo stesso file aperto con separatori diversi diventa due documenti distinti (verificato: `\`, `/` e misti → 3
+schede dello stesso file). Succede nei percorsi d'uso normali: Vai alla definizione (`joinPath(root, sym.file)`,
+con `sym.file` relativo con `/`) e i link del terminale (`joinPath(cwd, p)` con `p` scritto da Claude) producono
+`D:\…\Orbit\src/lib/x.ts`, diverso da `D:\…\Orbit\src\lib\x.ts` dell'albero. Con due copie aperte, salvarne una
+sovrascrive le modifiche dell'altra. Da sistemare normalizzando i percorsi all'ingresso del workspace.
+
+### Verifica
+`svelte-check` 0/0 (261 file), vitest **25/25** (5 nuovi: `dropZone`, `splitPartner`), `cargo test` **34/34** (2
+nuovi: `explorer_select_arg`, `project_root`). Build frontend OK: chunk d'avvio **542 KiB** (181 KiB gzip), +6 KiB
+perché strisce e modalità leggera sono nel caricamento iniziale. Build release NON eseguito (nessun rilascio).
+Collaudo nell'app reale via CDP su un'istanza dev **completamente isolata**: identifier
+`com.visialab.lume.devtest` passato a compile time con `TAURI_CONFIG` (config dir e profilo WebView2 propri:
+niente backup/ripristino della config dell'Orbit installato, a differenza di M53–M56) e `CARGO_TARGET_DIR`
+separata. Coperti: drag (T1–T6, prima e dopo), compressione/riapertura con campionamento dei frame, modalità
+leggera su una cartella con lo spazio nel nome (nessuna scrittura, nessuna registrazione né sessione, shell
+normale riaprendo il pannello, Reveal, promozione) e su un file in una sottocartella di un repo (proposta la
+radice del repo, niente scritto in `src/`), audit di simmetria nei due assetti.
+
+Lezioni di collaudo:
+- su questa macchina `src-tauri/target` era rimasto quello di quando il repo stava in
+  `C:\Users\wcast\Desktop\Orbit`: i build script di tauri puntano a percorsi che non esistono più ("failed to read
+  plugin permissions"); prima del prossimo `tauri dev` serve un `cargo clean`;
+- dopo un aggiornamento a caldo Vite importa i moduli con `?t=…`: un `import('/src/…')` da CDP senza quella query
+  crea una SECONDA istanza del modulo di stato, separata da quella dell'app → prendere l'URL dal resource timing;
+- due modifiche ravvicinate allo stesso componente: il watcher di Vite ne ha persa una (CSS vecchio servito anche
+  dopo il reload) → `touch` del file.
 
 ---
 

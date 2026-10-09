@@ -31,6 +31,7 @@ src/
     markdown.ts       # Markdown → sanitized HTML (marked + DOMPurify, lazy) + heading TOC
     clipboard.ts      # centralized copy/paste: Tauri clipboard plugin + navigator fallback, explicit success
     gitgraph.ts       # Git Graph lane layout (pure): commits + parents → lanes and segments to draw
+    motion.ts         # panelSlide: side transition of the shell panels, strips and splitters (M57)
 src-tauri/
   src/lib.rs          # Rust entry: fs/session/window commands + run() (registers all)
   src/git.rs          # git commands (libgit2), incl. git_graph (branch/commit graph)
@@ -63,11 +64,11 @@ Three kinds of frontend module, kept separate:
 
 | Module | Owns |
 |---|---|
-| `workspace` | open folder (+ `switching`: true while `switchFolder` swaps roots, so the sidebar keeps the old views instead of flashing "no folder"), document pool (kinds: file/diff/image/pdf/activity/gitgraph), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), per‑group `previews` (md/html source ⇄ preview, default from `settings.mdMode`), `openPreviewToSide`, … |
+| `workspace` | open folder (+ `switching`: true while `switchFolder` swaps roots, so the sidebar keeps the old views instead of flashing "no folder"), document pool (kinds: file/diff/image/pdf/activity/gitgraph), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), per‑group `previews` (md/html source ⇄ preview, default from `settings.mdMode`), `openPreviewToSide`, **light window** flags (`light`, `lightProject`: a file opened on its own — see *Light window*), … |
 | `folders` | the **open repositories** list for the top‑bar switcher — **per‑window**: in‑memory `$state` only (NOT global localStorage, which is shared across instances and caused clobbering), persisted in the active folder's session as `repos` and reseeded by `loadSession({repos:true})` at window startup; `addFolder`/`removeFolder`/`setFolders`/`openFromList`/`cycleRepo`/`selectRepoIndex`/**`moveFolder`** (drag‑to‑reorder in the top bar; the order persists through `repos`) — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file") |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
-| `terminals` | terminal tabs (id/title/shortName/customTitle/autoTitle/color/shell/cwd) + active tab + `focusedId` (real xterm focus); **bell attention** (`notifyTerminalBell`: Claude rings the bell — Orbit enables `preferredNotifChannel:terminal_bell` on launch — → dot on the **repo's tab** + on the session tab + a **sticky, clickable attention toast** (click → `goToTerminal`: switch repo, reveal panel, focus the tab) + a top‑bar **Waiting (N)** pill; persists via title `●` + taskbar `requestUserAttention` while you're away; cleared on focus/open via `clearAttention`→`dismissByKey`); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive); **side‑by‑side panes** per repo (`layouts[rootKey]` columns‑of‑rows, `autoLayout`, `sizes`, `zoomId`; `splitWith`/`showInPane`/`closePane`/`toggleZoom`/`setArrangement`/`setSizes`; invariant: `activeId` is always one of the visible panes — see *Chats side by side*) |
+| `terminals` | terminal tabs (id/title/shortName/customTitle/autoTitle/color/shell/cwd) + active tab + `focusedId` (real xterm focus); **bell attention** (`notifyTerminalBell`: Claude rings the bell — Orbit enables `preferredNotifChannel:terminal_bell` on launch — → dot on the **repo's tab** + on the session tab + a **sticky, clickable attention toast** (click → `goToTerminal`: switch repo, reveal panel, focus the tab) + a top‑bar **Waiting (N)** pill; persists via title `●` + taskbar `requestUserAttention` while you're away; cleared on focus/open via `clearAttention`→`dismissByKey`); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive); **side‑by‑side panes** per repo (`layouts[rootKey]` columns‑of‑rows, `autoLayout`, `sizes`, `zoomId`; `splitWith`/`showInPane`/`closePane`/`toggleZoom`/`setArrangement`/`setSizes`; invariant: `activeId` is always one of the visible panes — see *Chats side by side*); most‑recently‑used tabs per repo (`recentByRoot`) for the **self split** (`selfSplitPartner`); `adoptTerminals` (tabs follow a promoted light window, or the first folder opened); `tabIcon` (shared by panel and strip) |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
 | `claude` | Claude launcher + **shortcuts** + **wrappers** (`.orbit/claude.json`); opens `claude` in a terminal; the wrapper composer copies the composed prompt to the clipboard; **quick add/remove** of prompts & wrappers (`ClaudePrompts.svelte` → writes `claude.json`); invalid JSON **warns** (toast) and keeps the menu instead of silently resetting |
 | `shelf` | shelved folders by category — per‑path entries (`shelved`) **and by‑name rules** (`byName`: hides every folder with that name, incl. nested or recreated — e.g. C# `bin`/`obj`); `.orbit/shelf.json`. Pure hide/group logic split into `shelfRules.ts` (unit‑tested) |
@@ -80,8 +81,8 @@ Three kinds of frontend module, kept separate:
 | `scratch` | one‑click persistent plain‑text scratchpad (`.orbit/scratch.txt`) for notes/prompts; renames a legacy `scratch.md` on first use |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
 | `settings` | **theme** (5 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/**motion** (smooth panel transitions → `--motion-ms`)/webgl/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
-| `layout` | panel sizes/visibility + focused panel + `editorCollapsed` (runtime only: no tabs open → the editor shrinks to its minimum width, see *Editor auto‑collapse*) + `terminalMaximized` (chats side by side, saved in the session) + the **layout motion** API (`animating`, `beginMotion`/`animate`/`motionUntil`/`motionMs` — see *Smooth layout motion*) |
-| `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; `switchFolder` swaps the active folder cleanly (keeps the window's repo list and sidebar view, prefetches the destination session in parallel with saving the current one, decides `editorCollapsed` from the saved tabs up front and shows the new repo's terminals as soon as the root is open — one layout motion) |
+| `layout` | panel sizes/visibility (`sidebarVisible`/`terminalVisible` false = **collapsed into a strip**, see *Collapsible panels*) + focused panel + `editorCollapsed` (runtime only: no tabs open → the editor shrinks to its minimum width, see *Editor auto‑collapse*) + `terminalMaximized` (chats side by side, saved in the session) + the **layout motion** API (`animating`, `beginMotion`/`animate`/`motionUntil`/`motionMs` — see *Smooth layout motion*) |
+| `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; `switchFolder` swaps the active folder cleanly (keeps the window's repo list and sidebar view, prefetches the destination session in parallel with saving the current one, decides `editorCollapsed` from the saved tabs up front and shows the new repo's terminals as soon as the root is open — one layout motion); `openLight` / `promoteLight` (light window and its "Open … as project"; a light window never reads or saves a session) |
 | `toast` | transient notifications, plus a **sticky, clickable `attention`** variant (`notifyAttention`/`dismissByKey`, coalesced by `key`) used by the Claude‑waiting notification |
 | `logs` | **diagnostic logs** (`log`/`logWarn`/`logError`): in‑memory ring buffer + batched on‑disk persistence (Rust `append_log`) + global error capture, all gated by `settings.logging` (default on); `LogViewer` overlay + export (copy / reveal file). Instruments clipboard/paste/terminal to diagnose issues (e.g. the double‑paste) |
 
@@ -122,9 +123,12 @@ first paint loads only the Explorer + the active editor.
   flex‑basis for `--motion-ms`, a token written by `applySettings` from the **"Smooth panel
   transitions"** setting — deliberately *not* `prefers-reduced-motion`, which is permanently on when
   Windows' animation effects are off). The maximized editor is now `width: 0`/`visibility: hidden`
-  rather than `display: none` so it can animate. Show/hide of the two side panels uses Svelte
-  `transition:slide|global` on the component roots (duration 0 until `workspace.ready`, so startup
-  never animates). Terminal panes (`.slot`) keep a permanent left/top/width/height transition that
+  rather than `display: none` so it can animate. Collapse/expand of the two side panels uses
+  `panelSlide` (`lib/motion.ts`, M57) on the component roots — and on the strips that take their place,
+  the splitters (`motion` prop) and the `.gap` — with duration 0 until `workspace.ready`, so startup never
+  animates. Unlike Svelte's `slide` it keeps the side borders at 0 for the whole transition (Chromium rounds a
+  border between 0 and 1 px up to 1 px, so `slide` left 2 px until the last frame) and sets `flex-grow: 0` /
+  `flex-basis: auto` (a filling panel or a fixed basis would ignore the animated width). Terminal panes (`.slot`) keep a permanent left/top/width/height transition that
   `.surface.still` turns off while the surface itself is resizing, during a shell motion or while a
   pane splitter is dragged — the panes must follow the surface frame‑by‑frame then. `Terminal.svelte`
   consults `motionUntil()` in `scheduleFit` and refits xterm **once ~40 ms after the motion ends**
@@ -139,6 +143,22 @@ first paint loads only the Explorer + the active editor.
   transform transition, and `folders.moveFolder` reorders the list **only on drop** (a one‑frame
   `settling` class disables transitions while the DOM reorder lands exactly where the tabs already
   are). The repo row is centered in the top bar (`justify-content: center` on the spacer).
+- **Collapsible panels** (M57) — when `layout.sidebarVisible` / `layout.terminalVisible` is false the panel
+  is *collapsed*: `App.svelte` wraps `.body` in a `.main` row and renders `PanelStrip.svelte` on that edge
+  (`side="left"` / `"right"`), a vertical bar as thick as the status bar (22 px incl. the 1 px border toward the
+  content, chrome background). Left: the views (Explorer, Git + changes dot, Search, Docs, Activity →
+  `selectView` / `openActivity`); right: the repo's terminal tabs in their `color`, with the attention dot
+  (`setActiveTerminal` + expand). A « / » button in each panel header collapses it (after a separator from the
+  view's own actions); » / « at the top of the strip expands. Panel and strip swap in one motion (`panelSlide`).
+- **Light window** (M57) — `startup()` returns `light: true` when the first CLI argument is a file and no
+  explicit folder (`LUME_DIR`) is given ("Open with", double‑click). `persist.openLight(dir, file)` sets
+  `workspace.light`, collapses both panels and opens the folder with `openRoot(dir, { light: true })`
+  (`watch_start` non‑recursive, no git status). While light: no session is read or saved, no `register_window`
+  (so no "reopen all", and closing it leaves the restore set alone), no repo tab, no symbol index, no Claude
+  bell setting written (`.claude/`), and the project tools (Scratchpad/Claude/Run) are hidden — nothing is
+  written into the folder. The top bar shows **Open «X» as project**, where X is `project_root` (nearest
+  ancestor with `.git`) or the folder itself; `promoteLight()` loads that folder as a normal project (its
+  per‑window session, repo list, index, recursive watch), reopens the files and adopts the terminal tabs.
 - **Markdown** — `markdown.ts` renders Markdown to **sanitized** HTML (the WebView has IPC
   access, so a malicious README must not run scripts). `MarkdownView.svelte` is a reading‑mode
   preview with a heading TOC, interactive task lists (writing back to the source), and clickable
@@ -331,8 +351,10 @@ first paint loads only the Explorer + the active editor.
   `.psplit` separators (pointer capture, ~140 px minimum) edit them. Entry points: the panel's **Split**
   menu, the ✨ **New Claude chat** button, `launchClaude(…, { side: true })` / `resumeClaude(id,
   { side: true })` (Claude menu, Activity Chats lens), and a pointer‑based drag of a **tab or pane
-  header** (`elementFromPoint` on `.slot.shown`; the drop zone is the nearest edge within 25%, else the
-  center). A pane header (color bar, name, Claude's summary as subtitle, zoom, pop out, remove) appears
+  header** (`elementFromPoint` on `.slot.shown`; the drop zone is `dropZone` — the nearest edge within a
+  third, else the center). Dragging the visible chat onto an edge of its own pane (no split yet) is a **self
+  split**: it goes to that side and the most recently used other tab of the repo to the other
+  (`splitPartner`, pure + tested); the drop mark only appears when the drop will change something. A pane header (color bar, name, Claude's summary as subtitle, zoom, pop out, remove) appears
   only when split; `layout.terminalMaximized` hides the editor with `display:none` (still mounted). A
   waiting chat that is already visible only pulses its header. **Names and colors**: `TermSession` has
   `shortName` (minimal, numbered per kind: `Claude 2`, `pwsh 1`; run configs keep their name),
@@ -378,8 +400,8 @@ first paint loads only the Explorer + the active editor.
   Windows has no user choice, so script types (`bat`/`cmd`/`ps1`/`sh`/`bash`) are not listed — they must
   keep running on double‑click — and `src-tauri/windows/hooks.nsh` (`NSIS_HOOK_POSTINSTALL`) removes the
   keys an older version left for them, only where Orbit's `Orbit document_backup` value is present.
-  `startup()` opens a file passed as the first CLI argument (`orbit.exe "<file>"`) and uses its
-  parent folder as the workspace.
+  `startup()` opens a file passed as the first CLI argument (`orbit.exe "<file>"`) in a **light window**,
+  with its parent folder as context only (see *Light window*).
 
 ## Backend & IPC
 
@@ -387,11 +409,14 @@ Rust commands are defined with `#[tauri::command]` and registered in `lib.rs` `r
 frontend calls them with `invoke("name", {args})`. Areas:
 
 - **Filesystem** (`lib.rs`): `read_dir`, `read_file`, `write_file`, `create_file`,
-  `create_dir`, `rename_path`, `delete_path`, `list_files`, `search_in_project`, `resolve_existing`, `startup`.
+  `create_dir`, `rename_path`, `delete_path`, `list_files`, `search_in_project`, `resolve_existing`, `startup`
+  (folder/file/search from CLI or env + the `light` flag), `project_root` (nearest ancestor with `.git`).
 - **Session** (`lib.rs`): `load_state`/`save_state` (keyed per folder).
 - **Window** (`lib.rs` + `winsession.rs`): `open_new_window`; `winsession::register_window` (a window
   records its folder + geometry in the per‑window registry) and `winsession::close_all_windows`.
-- **Misc** (`lib.rs`): `reveal_path` (show a path in the OS file manager); `open_url` (open an
+- **Misc** (`lib.rs`): `reveal_path` (show a path in the OS file manager; on Windows `explorer` gets a raw
+  `/select,"<path>"` argument — `Command::arg` would quote the whole argument when the path has a space, and
+  explorer then opens Documents with nothing selected); `open_url` (open an
   http/https link from the terminal in the system browser — other schemes are refused).
 - **Diagnostics** (`lib.rs`): `app_version`; `append_log(text)` (appends to `app_config_dir/logs/orbit-<pid>.log`,
   one file per process, rotated over ~2 MB); `log_file_path` — back the log system (`lib/state/logs.svelte.ts`).
@@ -408,7 +433,8 @@ frontend calls them with `invoke("name", {args})`. Areas:
 - **Symbols** (`symbols.rs`): `scan_symbols(root)` — heuristic project‑wide symbol scan (C#/Java, C/C++,
   TS/JS/Svelte, Python, Rust, Go; std only, no LSP / no `regex`); returns
   `Symbol { name, kind, file, line, container, bases, isAbstract }`.
-- **Watcher** (`watcher.rs`): `watch_start`; emits a debounced **`fs-changed`** event that the
+- **Watcher** (`watcher.rs`): `watch_start(root, recursive?)` (non‑recursive for the light window); emits a
+  debounced **`fs-changed`** event that the
   frontend listens to (refresh tree + git + reload open files + run config + Claude config + shelf
   + Docs index when visible + symbol re‑scan). The watch ignores `.orbit/index` so caching the symbol
   index never re‑triggers itself.

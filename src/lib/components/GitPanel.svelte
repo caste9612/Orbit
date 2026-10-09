@@ -130,10 +130,10 @@
       <span class="grow"></span>
       {#if git.hasRemote}
         <button class="sbtn" title="Fetch (git fetch --all --prune)" aria-label="Fetch" onclick={gitFetch}>
-          <Icon name="cloud-download" size={15} strokeWidth={1.7} />
+          <Icon name="cloud-download" size={14} strokeWidth={1.7} />
         </button>
         <button class="sbtn" class:hot={git.behind > 0} title="Pull (git pull)" aria-label="Pull" onclick={gitPull}>
-          <Icon name="download" size={15} strokeWidth={1.7} />
+          <Icon name="download" size={14} strokeWidth={1.7} />
         </button>
         <button
           class="sbtn"
@@ -142,7 +142,7 @@
           aria-label="Push"
           onclick={gitPush}
         >
-          <Icon name="upload" size={15} strokeWidth={1.7} />
+          <Icon name="upload" size={14} strokeWidth={1.7} />
         </button>
       {/if}
       <button
@@ -153,7 +153,7 @@
         disabled={mergeable.length === 0}
         onclick={toggleMerge}
       >
-        <Icon name="git-merge" size={15} strokeWidth={1.7} />
+        <Icon name="git-merge" size={14} strokeWidth={1.7} />
       </button>
 
       {#if mergeOpen}

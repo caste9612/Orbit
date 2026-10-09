@@ -107,12 +107,13 @@
   .msg {
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 18px; /* riga intera: la notifica è alta 36 (era 36,8) e le icone stanno a margini interi (M57) */
   }
   .x {
     flex: 0 0 auto;
     display: grid;
     place-items: center;
-    width: 26px;
+    width: 25px; /* 24 dentro il bordo sinistro: con la ✕ da 12, 6 px per lato */
     border: 0;
     border-left: 1px solid var(--color-line);
     background: transparent;

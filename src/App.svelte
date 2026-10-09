@@ -409,6 +409,8 @@
           {/if}
         </div>
       {/if}
+      <!-- bottoni 43×29 (barra alta 30 col bordo da 1) con icone DISPARI: margini interi e uguali in
+           entrambi i versi, come i controlli della finestra principale (M57) -->
       <div class="fctrls">
         <button
           class="fc pin"
@@ -418,13 +420,13 @@
           aria-pressed={floatPinned}
           onclick={toggleFloatPin}
         >
-          <Icon name="pin" size={14} strokeWidth={1.7} />
+          <Icon name="pin" size={13} strokeWidth={1.7} />
         </button>
         <button class="fc dock" title="Dock to main window" aria-label="Dock to main window" onclick={dockFloatTerminal}>
           <Icon name="panel-bottom" size={15} strokeWidth={1.6} />
         </button>
         <button class="fc" title="Minimize" aria-label="Minimize" onclick={() => getCurrentWindow().minimize()}>
-          <Icon name="win-minimize" size={14} strokeWidth={1.3} />
+          <Icon name="win-minimize" size={15} strokeWidth={1.3} />
         </button>
         <button class="fc close" title="Close terminal" aria-label="Close terminal" onclick={closeFloatTerminal}>
           <Icon name="x" size={15} strokeWidth={1.6} />
@@ -595,7 +597,7 @@
     height: 100%;
   }
   .fc {
-    width: 42px;
+    width: 43px;
     display: grid;
     place-items: center;
     border: 0;

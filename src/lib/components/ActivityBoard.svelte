@@ -242,10 +242,10 @@
     <div class="spacer"></div>
     <div class="lensbar" role="tablist">
       <button role="tab" class:on={lens === "timeline"} aria-selected={lens === "timeline"} onclick={() => (lens = "timeline")}>
-        <Icon name="activity" size={13} strokeWidth={1.8} /> Timeline
+        <Icon name="activity" size={14} strokeWidth={1.8} /> Timeline
       </button>
       <button role="tab" class:on={lens === "chats"} aria-selected={lens === "chats"} onclick={() => (lens = "chats")}>
-        <Icon name="message" size={13} strokeWidth={1.8} /> Chats
+        <Icon name="message" size={14} strokeWidth={1.8} /> Chats
       </button>
     </div>
     <label class="search">

@@ -42,7 +42,7 @@
     >
       <span class="dot"></span>{settings.logging ? "Collecting" : "Paused"}
     </button>
-    <button class="hbtn" title="Close" aria-label="Close" onclick={closeLogs}><Icon name="x" size={15} strokeWidth={2} /></button>
+    <button class="hbtn" title="Close" aria-label="Close" onclick={closeLogs}><Icon name="x" size={14} strokeWidth={2} /></button>
   </header>
 
   <div class="tools">

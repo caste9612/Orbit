@@ -2572,6 +2572,13 @@ elementi asimmetrici a 0 in entrambi gli assetti di misure (tema VS 2026 e quell
 "Graph" nel pannello Git, di proposito: il padding 5/6 allinea il testo a Changes/History, che hanno la
 sottolineatura da 2 px, e il bottone non ha fondo.
 
+Secondo giro, estendendo il controllo alle viste e finestre che il primo non toccava (pannello Git con upstream,
+diff, Git Graph, board Attività, risultati di ricerca, Docs con anteprima, benvenuto stretto e largo, dialoghi
+prompt/scorciatoie/log/wrapper, notifiche, finestra flottante del terminale): altri 13 elementi. Finestra
+flottante: i 4 bottoni 42×29 → 43 con icone dispari (pin 13, gli altri 15); Fetch/Pull/Push/Merge 15 → 14; lenti
+Timeline/Chats della board 13 → 14; ✕ del visualizzatore di log 15 → 14; notifiche: riga di testo a 18 px (alte 36
+invece di 36,8) e ✕ larga 25 (24 dentro il bordo). In tutto 49 elementi corretti (36 + 13); resta solo "Graph".
+
 ### Trovato e non corretto (fuori dal perimetro)
 Lo stesso file aperto con separatori diversi diventa due documenti distinti (verificato: `\`, `/` e misti → 3
 schede dello stesso file). Succede nei percorsi d'uso normali: Vai alla definizione (`joinPath(root, sym.file)`,
@@ -2591,6 +2598,20 @@ leggera su una cartella con lo spazio nel nome (nessuna scrittura, nessuna regis
 normale riaprendo il pannello, Reveal, promozione) e su un file in una sottocartella di un repo (proposta la
 radice del repo, niente scritto in `src/`), audit di simmetria nei due assetti.
 
+Secondo giro di collaudo (l'utente chiedeva se tutto fosse stato provato; il primo giro non copriva questi casi):
+- strisce: pallino git con modifiche presenti, pallino d'attesa dopo una bell a pannello compresso, clic su Git
+  nella striscia (barra riaperta su quella vista), clic su una chat nella striscia (pannello riaperto su quella
+  scheda, attesa spenta), Ctrl+B e Ctrl+` come tasti veri (CDP `Input.dispatchKeyEvent`);
+- compressione col pannello a tutta larghezza (editor vuoto: l'editor va da 220 a 986 px, monotono) e col pannello
+  massimizzato (l'editor ricompare da 0 a 986): un movimento solo, fermo a ~240 ms;
+- modalità leggera: "Open folder" sulla cartella del file → promozione col file aperto; un'altra cartella → finestra
+  normale, la cartella del file intatta; "chiudi tutte" con una finestra normale e una leggera aperte (due istanze
+  isolate): nel registro c'era solo la normale, si chiudono entrambe e `windows-restore.json` contiene solo la
+  normale; l'avvio nudo successivo riapre una sola finestra;
+- schede aperte senza cartella: `term-1@null` passa alla prima cartella aperta e resta visibile;
+- Reveal anche con virgola e lettere accentate nel percorso (`virgola, accentò\perché è.txt`) e su una cartella
+  (apre la cartella superiore con quella selezionata).
+
 Lezioni di collaudo:
 - su questa macchina `src-tauri/target` era rimasto quello di quando il repo stava in
   `C:\Users\wcast\Desktop\Orbit`: i build script di tauri puntano a percorsi che non esistono più ("failed to read
@@ -2598,7 +2619,11 @@ Lezioni di collaudo:
 - dopo un aggiornamento a caldo Vite importa i moduli con `?t=…`: un `import('/src/…')` da CDP senza quella query
   crea una SECONDA istanza del modulo di stato, separata da quella dell'app → prendere l'URL dal resource timing;
 - due modifiche ravvicinate allo stesso componente: il watcher di Vite ne ha persa una (CSS vecchio servito anche
-  dopo il reload) → `touch` del file.
+  dopo il reload) → `touch` del file;
+- un profilo di prova NUOVO ha "launch Claude in the default terminal" acceso: l'istanza isolata, aperta su una
+  cartella, avvia un `claude` vero (fermo alla domanda di fiducia: niente token né trascrizioni, verificato) →
+  spegnerlo o avviare "nudo"; e chiudere l'istanza col suo albero di processi (`Stop-Process` salta la chiusura
+  ordinata dei PTY).
 
 ---
 

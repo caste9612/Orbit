@@ -50,6 +50,10 @@
     x: `<path d="M18 6 6 18"/><path d="m6 6 12 12"/>`,
     "panel-left": `<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>`,
     "panel-bottom": `<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 15h18"/>`,
+    // comprimi / riapri barra laterale e pannello terminale (strisce, M57): doppia freccia, leggibile
+    // anche a 13 px (un'icona "pannello con freccina" a quella misura diventava una macchia)
+    "chevrons-left": `<path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/>`,
+    "chevrons-right": `<path d="m6 17 5-5-5-5"/><path d="m13 17 5-5-5-5"/>`,
     "git-commit": `<circle cx="12" cy="12" r="3"/><line x1="3" x2="9" y1="12" y2="12"/><line x1="15" x2="21" y1="12" y2="12"/>`,
     refresh: `<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>`,
     activity: `<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>`,

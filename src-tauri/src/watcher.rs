@@ -27,8 +27,10 @@ fn is_excluded(p: &Path) -> bool {
     })
 }
 
+/// `recursive: false` (modalità leggera, file aperto da solo): solo la cartella del file, non tutto
+/// l'albero sotto — può essere Download o la radice di un disco. Default: ricorsivo.
 #[tauri::command]
-pub fn watch_start(app: AppHandle, state: State<WatchState>, root: String) -> Result<(), String> {
+pub fn watch_start(app: AppHandle, state: State<WatchState>, root: String, recursive: Option<bool>) -> Result<(), String> {
     let (tx, rx) = channel::<Vec<String>>();
 
     let mut watcher = recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
@@ -51,9 +53,8 @@ pub fn watch_start(app: AppHandle, state: State<WatchState>, root: String) -> Re
     })
     .map_err(|e| e.to_string())?;
 
-    watcher
-        .watch(Path::new(&root), RecursiveMode::Recursive)
-        .map_err(|e| e.to_string())?;
+    let mode = if recursive.unwrap_or(true) { RecursiveMode::Recursive } else { RecursiveMode::NonRecursive };
+    watcher.watch(Path::new(&root), mode).map_err(|e| e.to_string())?;
 
     // Thread di debounce: coalizza i burst in un solo evento ogni ~250ms.
     let app2 = app.clone();

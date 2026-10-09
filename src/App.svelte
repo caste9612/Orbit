@@ -12,7 +12,9 @@
   import Toaster from "./lib/components/Toaster.svelte";
   import Logo from "./lib/components/Logo.svelte";
   import Icon from "./lib/components/Icon.svelte";
-  import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal, animate } from "./lib/state/layout.svelte";
+  import PanelStrip from "./lib/components/PanelStrip.svelte";
+  import { panelSlide } from "./lib/motion";
+  import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal, animate, motionMs } from "./lib/state/layout.svelte";
   import { listen, emit } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { openFolderDialog, refreshTree, revealInTree } from "./lib/state/explorer.svelte";
@@ -27,7 +29,7 @@
   import { loadDocs } from "./lib/state/docs.svelte";
   import { invalidateFiles } from "./lib/state/projectFiles";
   import { loadSettings, startSettingsAutosave, settingsUI, nudgeFontSize, settings } from "./lib/state/settings.svelte";
-  import { loadSession, startAutosave, setWinKey } from "./lib/state/persist.svelte";
+  import { loadSession, startAutosave, setWinKey, openLight } from "./lib/state/persist.svelte";
   import { initLogs, logsUI } from "./lib/state/logs.svelte";
   import { redockTerminal, terminals, anyNeedsAttention } from "./lib/state/terminals.svelte";
   import { initIndex, scheduleRescan, wsPalette, openWsPalette, navBack, navForward, goToDefinitionAtCursor } from "./lib/state/codeIndex.svelte";
@@ -156,7 +158,8 @@
   // taskbar di Windows (e Alt-Tab) diventano distinguibili invece di essere tutte "Orbit".
   $effect(() => {
     if (isFloatingTerminal) return;
-    const name = workspace.rootName;
+    // finestra leggera (M57): conta il FILE, la sua cartella è solo contesto
+    const name = workspace.light ? (activeFile()?.name ?? workspace.rootName) : workspace.rootName;
     // "●" davanti al titolo quando un terminale aspetta: resta visibile in taskbar/Alt-Tab anche se
     // Orbit è minimizzato o dietro un'altra finestra (caso "ero girato"), finché non lo apri.
     const mark = anyNeedsAttention() ? "● " : "";
@@ -167,10 +170,12 @@
 
   // Registro multi-finestra: comunica al backend la cartella aperta, così un avvio "nudo" può
   // riaprire tutte le finestre della sessione precedente. Reattivo al cambio cartella; mai per le flottanti.
+  // Né per la finestra leggera (M57): la cartella di un file sparso non va nel "riapri tutte" né tra le
+  // schede repo — lo diventa se la promuovi a progetto (light → false fa rigirare l'effetto).
   $effect(() => {
     if (isFloatingTerminal) return;
     const folder = workspace.rootPath;
-    if (folder) {
+    if (folder && !workspace.light) {
       void invoke("register_window", { folder });
       untrack(() => addFolder(folder)); // ogni cartella aperta entra nel selettore repo (no dep su folders.list)
     }
@@ -179,7 +184,8 @@
   // Indice simboli del progetto ("rubrica"): (ri)costruito quando cambia la cartella aperta.
   $effect(() => {
     if (isFloatingTerminal) return;
-    workspace.rootPath; // UNICA dipendenza: re-inizializza al cambio cartella
+    workspace.rootPath; // dipendenze: re-inizializza al cambio cartella e quando una finestra leggera
+    workspace.light; // diventa un progetto (in modalità leggera l'indice resta vuoto, M57)
     // untrack: initIndex legge/scrive codeIndex.symbols (via rebuildSemSets); senza untrack quel
     // read/write nello stesso effetto = loop infinito (effect_update_depth_exceeded → reattività rotta).
     untrack(() => void initIndex());
@@ -251,7 +257,7 @@
       // tratta come "tutto cambiato" per non perdere aggiornamenti. Normalizzo a "/" per il match.
       const changed = Array.isArray(e.payload) ? e.payload.map((p) => p.replace(/\\/g, "/")) : null;
       refreshTree(); // struttura albero (add/del/rename): serve comunque
-      refreshStatus(); // decorazioni git: quasi ogni cambio le tocca
+      if (!workspace.light) refreshStatus(); // decorazioni git: quasi ogni cambio le tocca (non in modalità leggera)
       reloadOpenFiles(changed); // SOLO i file aperti effettivamente cambiati (prima: tutti, ogni evento)
       // menu .orbit/*: ricarica solo se il rispettivo file è tra i cambiati (Claude tocca un sorgente → skip)
       if (!changed || changed.some((p) => p.endsWith("/.orbit/run.json"))) loadRunConfig();
@@ -284,11 +290,14 @@
       /* fuori dal contesto Tauri */
     }
     try {
-      const s = await invoke<{ dir: string | null; file: string | null; search: string | null; winKey: string }>(
+      const s = await invoke<{ dir: string | null; file: string | null; search: string | null; light: boolean; winKey: string }>(
         "startup",
       );
       setWinKey(s.winKey); // chiave di sessione per-finestra (prima di qualunque loadSession)
-      if (s.dir) {
+      if (s.light && s.dir && s.file) {
+        // file sparso ("Apri con", doppio clic): modalità leggera, la sua cartella è solo contesto (M57)
+        await openLight(s.dir, s.file);
+      } else if (s.dir) {
         // avvio esplicito (arg CLI / env, es. "Nuova finestra"): apre quella cartella
         // ripristinandone la sessione (tab/layout + lista repo della finestra) se esiste, altrimenti fresca
         await loadSession(s.dir, { repos: true });
@@ -431,24 +440,35 @@
 {:else}
   <div class="shell">
     <TopBar />
-    <div class="body">
-      {#if layout.sidebarVisible}
-        <Sidebar />
-        <Splitter orientation="vertical" onResize={resizeSidebar} />
+    <!-- M57: barra laterale e pannello terminale si COMPRIMONO in una striscia sul bordo della finestra
+         (stile IntelliJ/VS, spessa quanto la status bar); pannello e striscia si scambiano in un solo
+         movimento, divisori compresi (`motion`) -->
+    <div class="main">
+      {#if !layout.sidebarVisible}
+        <PanelStrip side="left" />
       {/if}
-
-      <EditorArea />
-
-      {#if layout.terminalVisible}
-        {#if layout.terminalMaximized}
-          <!-- pannello a tutta larghezza (chat affiancate): editor nascosto ma montato, niente divisore -->
-        {:else if layout.editorCollapsed}
-          <!-- editor vuoto e collassato: il pannello riempie da solo, niente splitter da trascinare -->
-          <div class="gap"></div>
-        {:else}
-          <Splitter orientation="vertical" onResize={resizeTerminal} />
+      <div class="body">
+        {#if layout.sidebarVisible}
+          <Sidebar />
+          <Splitter orientation="vertical" onResize={resizeSidebar} motion={workspace.ready ? motionMs() : 0} />
         {/if}
-        <TerminalPanel />
+
+        <EditorArea />
+
+        {#if layout.terminalVisible}
+          {#if layout.terminalMaximized}
+            <!-- pannello a tutta larghezza (chat affiancate): editor nascosto ma montato, niente divisore -->
+          {:else if layout.editorCollapsed}
+            <!-- editor vuoto e collassato: il pannello riempie da solo, niente splitter da trascinare -->
+            <div class="gap" transition:panelSlide|global={{ duration: workspace.ready ? motionMs() : 0 }}></div>
+          {:else}
+            <Splitter orientation="vertical" onResize={resizeTerminal} motion={workspace.ready ? motionMs() : 0} />
+          {/if}
+          <TerminalPanel />
+        {/if}
+      </div>
+      {#if !layout.terminalVisible}
+        <PanelStrip side="right" />
       {/if}
     </div>
 
@@ -489,8 +509,17 @@
     flex-direction: column;
     background: var(--color-surface-1);
   }
+  /* riga centrale: [striscia sinistra] corpo [striscia destra] — le strisce compaiono solo coi
+     rispettivi pannelli compressi */
+  .main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+  }
   .body {
     flex: 1;
+    min-width: 0;
     min-height: 0;
     display: flex;
     align-items: stretch;

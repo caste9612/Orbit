@@ -28,6 +28,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { openSettings } from "../state/settings.svelte";
   import { openScratch } from "../state/scratch";
+  import { promoteLight } from "../state/persist.svelte";
   import { basename } from "../util";
 
   const win = getCurrentWindow();
@@ -287,21 +288,22 @@
         title={v.label}
         onclick={() => selectView(v.id)}
       >
-        <Icon name={v.icon} size={15} strokeWidth={1.7} />
+        <!-- icone da 14 in bottoni alti 22: 4 px sopra e sotto (con 15 erano 3 e 4, M57) -->
+        <Icon name={v.icon} size={14} strokeWidth={1.7} />
         <span>{v.label}</span>
         {#if v.id === "git" && changed > 0}<span class="badge">{changed}</span>{/if}
       </button>
     {/each}
     <button class="view" class:active={activeKind === "activity" || (layout.sidebarVisible && layout.sidebarView === "activity")} title="Activity" aria-label="Activity" onclick={openActivity}>
-      <Icon name="activity" size={15} strokeWidth={1.7} />
+      <Icon name="activity" size={14} strokeWidth={1.7} />
       <span>Activity</span>
     </button>
     <span class="sep"></span>
     <button class="navbtn" disabled={nav.back === 0} title={`Back (${backKey})`} aria-label="Navigate back" onclick={navBack}>
-      <Icon name="arrow-left" size={15} strokeWidth={1.8} />
+      <Icon name="arrow-left" size={14} strokeWidth={1.8} />
     </button>
     <button class="navbtn" disabled={nav.fwd === 0} title={`Forward (${fwdKey})`} aria-label="Navigate forward" onclick={navForward}>
-      <Icon name="arrow-right" size={15} strokeWidth={1.8} />
+      <Icon name="arrow-right" size={14} strokeWidth={1.8} />
     </button>
     <button
       class="view only"
@@ -310,12 +312,23 @@
       aria-label="Terminal"
       onclick={toggleTerminal}
     >
-      <Icon name="terminal" size={15} strokeWidth={1.7} />
+      <Icon name="terminal" size={14} strokeWidth={1.7} />
     </button>
   </nav>
 
   <div class="spacer" data-tauri-drag-region>
-    {#if workspace.rootName}
+    {#if workspace.light}
+      <!-- finestra leggera (M57): un file aperto da solo; al posto delle schede repo l'invito a farne
+           un progetto (il repo git che lo contiene, o la sua cartella) -->
+      <button
+        class="lightproj"
+        title={`Open ${workspace.lightProject ?? workspace.rootPath} as a project — tree, git, terminals and Claude`}
+        onclick={() => void promoteLight()}
+      >
+        <Icon name="folder-open" size={12} strokeWidth={1.8} />
+        <span class="lp-label">Open <strong>{basename(workspace.lightProject ?? workspace.rootPath ?? "")}</strong> as project</span>
+      </button>
+    {:else if workspace.rootName}
       <div class="repozone">
         <div class="repobar" bind:this={repobarEl} use:repobarOverflow>
           {#each folders.list as f, i (f.path)}
@@ -340,7 +353,7 @@
                 {/if}
               </button>
               <button class="rt-close" title={active ? "Remove (switch to a neighbor)" : "Remove from list"} aria-label="Remove from list" onclick={() => removeFolder(f.path)}>
-                <Icon name="x" size={11} strokeWidth={2} />
+                <Icon name="x" size={10} strokeWidth={2} />
               </button>
               {#if repoNeedsAttention(f.path)}<span class="rt-attn" title="A terminal in this repo is waiting (Claude finished / needs you)"></span>{/if}
             </div>
@@ -351,11 +364,13 @@
              quindi il "+" diventa ridondante e lo nascondo per recuperare spazio. -->
         {#if overflowing}
           <button class="repoadd" title="All repositories" aria-label="All repositories" onclick={openFolderMenu}>
-            <Icon name="more" size={15} strokeWidth={2} />
+            <Icon name="more" size={14} strokeWidth={2} />
           </button>
         {:else}
+          <!-- 14 px in un bottone 26×22 con bordo da 1: 5 px ai lati e 3 sopra e sotto (con 13 il "+"
+               cadeva a mezzo pixel e si vedeva spostato di 1 px, M57) -->
           <button class="repoadd" title="Add folder…" aria-label="Add folder" onclick={openFolderDialog}>
-            <Icon name="plus" size={13} strokeWidth={2} />
+            <Icon name="plus" size={14} strokeWidth={2} />
           </button>
         {/if}
       </div>
@@ -367,7 +382,7 @@
       {@const waiting = waitingTerminals()}
       <div class="waitpill" title="Claude is waiting — click to open">
         <button class="wp-main" onclick={() => goToTerminal(waiting[0].id)}>
-          <span class="wp-dot"><Icon name="sparkles" size={13} strokeWidth={1.8} /></span>
+          <span class="wp-dot"><Icon name="sparkles" size={12} strokeWidth={1.8} /></span>
           <span class="wp-label">Waiting</span>
           <span class="wp-count">{waiting.length}</span>
         </button>
@@ -378,37 +393,40 @@
         {/if}
       </div>
     {/if}
-    {#if workspace.rootName}
+    <!-- strumenti del PROGETTO: non in una finestra leggera, dove scriverebbero nella cartella del file -->
+    {#if workspace.rootName && !workspace.light}
       <button class="view only" title="Scratchpad — notes & prompts" aria-label="Scratchpad" onclick={openScratch}>
-        <Icon name="note" size={15} strokeWidth={1.7} />
+        <Icon name="note" size={14} strokeWidth={1.7} />
       </button>
       <button class="view only claude" title="Claude…" aria-label="Claude" onclick={openClaudeMenu}>
-        <Icon name="sparkles" size={15} strokeWidth={1.7} />
+        <Icon name="sparkles" size={14} strokeWidth={1.7} />
       </button>
       <button class="view only run" title="Run…" aria-label="Run" onclick={openRunMenu}>
         <Icon name="play" size={14} strokeWidth={1.8} />
       </button>
     {/if}
     <button class="view only" title="New window (another folder)" aria-label="New window" onclick={newWindow}>
-      <Icon name="new-window" size={15} strokeWidth={1.7} />
+      <Icon name="new-window" size={14} strokeWidth={1.7} />
     </button>
     <button class="view only" title="Close all Orbit windows (reopen on next launch)" aria-label="Close all windows" onclick={closeAll}>
-      <Icon name="windows-close" size={15} strokeWidth={1.7} />
+      <Icon name="windows-close" size={14} strokeWidth={1.7} />
     </button>
     <button class="view only" title="Settings" aria-label="Settings" onclick={openSettings}>
-      <Icon name="settings" size={15} strokeWidth={1.7} />
+      <Icon name="settings" size={14} strokeWidth={1.7} />
     </button>
   </div>
 
+  <!-- controlli finestra 45×29 (la top bar è alta 30 con il bordo da 1): icone DISPARI → margini interi
+       e uguali su tutti i lati (con 44 di larghezza nessuna icona poteva centrarsi in entrambi i versi) -->
   <div class="wctrls">
     <button class="wc" title="Minimize" aria-label="Minimize" onclick={() => win.minimize()}>
       <Icon name="win-minimize" size={15} strokeWidth={1.3} />
     </button>
     <button class="wc" title={maximized ? "Restore" : "Maximize"} aria-label="Maximize" onclick={() => win.toggleMaximize()}>
-      <Icon name={maximized ? "win-restore" : "win-maximize"} size={14} strokeWidth={1.3} />
+      <Icon name={maximized ? "win-restore" : "win-maximize"} size={13} strokeWidth={1.3} />
     </button>
     <button class="wc close" title="Close" aria-label="Close" onclick={() => win.close()}>
-      <Icon name="x" size={16} strokeWidth={1.6} />
+      <Icon name="x" size={15} strokeWidth={1.6} />
     </button>
   </div>
 </header>
@@ -718,6 +736,45 @@
     background: var(--color-surface-3);
     color: var(--color-ink);
   }
+  /* finestra leggera (M57): stessa forma di una scheda repo, l'accento compare al passaggio */
+  .lightproj {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+    height: 22px;
+    padding: 0 10px;
+    border: 1px solid var(--color-line);
+    border-radius: var(--r-lg);
+    background: var(--color-surface-1);
+    color: var(--color-ink-muted);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition:
+      background 90ms ease,
+      border-color 90ms ease,
+      color 90ms ease;
+  }
+  .lightproj:hover {
+    color: var(--color-ink);
+    background: rgba(var(--accent-rgb), 0.16);
+    border-color: rgba(var(--accent-rgb), 0.5);
+  }
+  .lightproj :global(svg) {
+    flex: 0 0 auto;
+  }
+  .lp-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lp-label strong {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
 
   .actions {
     display: flex;
@@ -812,7 +869,7 @@
     flex-shrink: 0; /* min/max/close SEMPRE visibili (finestra senza decorazioni) */
   }
   .wc {
-    width: 44px;
+    width: 45px;
     display: grid;
     place-items: center;
     border: 0;

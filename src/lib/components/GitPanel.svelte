@@ -237,10 +237,10 @@
             <span class="t">{e.path}</span>
           </button>
           <button class="fileact" title="Discard changes" aria-label="Discard changes" onclick={() => discardFile(e)}>
-            <Icon name="trash" size={13} strokeWidth={1.8} />
+            <Icon name="trash" size={14} strokeWidth={1.8} />
           </button>
           <button class="fileact" title="Stage" aria-label="Stage" onclick={() => stage(e.path)}>
-            <Icon name="plus" size={15} strokeWidth={2} />
+            <Icon name="plus" size={14} strokeWidth={2} />
           </button>
         </div>
       {/each}
@@ -478,7 +478,8 @@
     font-size: 12.5px;
     border: 0;
     border-radius: var(--r-md);
-    padding: 7px;
+    height: 32px; /* altezza esplicita: dal padding + riga di testo veniva 32,8 e l'icona cadeva a mezzo px (M57) */
+    padding: 0 7px;
     cursor: pointer;
   }
   .primary:hover:not(:disabled) {

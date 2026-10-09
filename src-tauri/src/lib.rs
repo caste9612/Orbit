@@ -19,6 +19,9 @@ struct Startup {
     dir: Option<String>,
     file: Option<String>,
     search: Option<String>,
+    // avviata su un FILE sparso ("Apri con", doppio clic) e non su una cartella: modalità leggera, la
+    // cartella del file fa solo da contesto e non diventa un progetto (niente .orbit/.claude, M57)
+    light: bool,
     win_key: String, // chiave di sessione STABILE di questa finestra (vedi winsession::WinKey)
 }
 
@@ -40,10 +43,13 @@ fn startup(app: AppHandle) -> Startup {
     // se questa istanza è la "restoratrice" di una sessione (avvio nudo con set salvato), apre la
     // cartella della sua voce invece dell'ultima sessione singola.
     if let Some(dir) = winsession::restore_folder(&app) {
-        return Startup { dir: Some(dir), file: None, search: None, win_key };
+        return Startup { dir: Some(dir), file: None, search: None, light: false, win_key };
     }
     let arg = std::env::args().nth(1);
     let arg_file = arg.as_deref().filter(|a| Path::new(a).is_file()).map(str::to_string);
+    // leggera solo se la cartella viene DAL file: con LUME_DIR la cartella è esplicita (test, script)
+    let env_dir = std::env::var("LUME_DIR").ok().filter(|d| Path::new(d).is_dir());
+    let light = arg_file.is_some() && env_dir.is_none();
     let file = std::env::var("LUME_FILE")
         .ok()
         .filter(|f| Path::new(f).is_file())
@@ -51,7 +57,21 @@ fn startup(app: AppHandle) -> Startup {
     let search = std::env::var("LUME_SEARCH")
         .ok()
         .filter(|s| !s.trim().is_empty());
-    Startup { dir: cli_dir(), file, search, win_key }
+    Startup { dir: cli_dir(), file, search, light, win_key }
+}
+
+/// Radice del progetto che contiene `path`: il primo antenato (a partire dalla cartella del file) con
+/// un `.git` (cartella, o file per i worktree). Solo git e non `.orbit`: le versioni precedenti alla
+/// M57 creavano `.orbit/index` anche nelle cartelle dei file aperti da soli, che non sono progetti.
+fn find_project_root(path: &Path) -> Option<PathBuf> {
+    let start = if path.is_dir() { path } else { path.parent()? };
+    start.ancestors().find(|d| d.join(".git").exists()).map(Path::to_path_buf)
+}
+
+/// Modalità leggera: il repo che contiene il file aperto da solo, per il bottone "Open … as project".
+#[tauri::command]
+fn project_root(path: String) -> Option<String> {
+    find_project_root(Path::new(&path)).map(|p| p.to_string_lossy().into_owned())
 }
 
 #[derive(Serialize)]
@@ -360,6 +380,23 @@ fn open_url(url: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Argomento di `explorer` che apre la cartella di `path` e lo seleziona: `/select,"<path>"`, con le
+/// barre rovesciate e le virgolette DOPO la virgola. Passato con `.arg()`, Rust quoterebbe l'intero
+/// argomento quando il path ha uno spazio (`"/select,C:\a b\c.txt"`): explorer non lo riconosce e
+/// apre Documenti senza selezionare nulla (il bug dei repo con lo spazio nel nome).
+#[cfg_attr(not(windows), allow(dead_code))]
+fn explorer_select_arg(path: &str) -> String {
+    let mut p = path.replace('/', "\\");
+    // una barra finale davanti alla virgoletta di chiusura la renderebbe un carattere letterale
+    while p.len() > 3 && p.ends_with('\\') {
+        p.pop();
+    }
+    if p.len() <= 3 {
+        return format!("/select,{p}"); // radice di un disco ("C:\"): niente spazi né virgole
+    }
+    format!("/select,\"{p}\"")
+}
+
 /// Mostra un file/cartella nel file manager dell'OS (lo seleziona dove possibile).
 #[tauri::command]
 fn reveal_path(path: String) -> Result<(), String> {
@@ -369,8 +406,10 @@ fn reveal_path(path: String) -> Result<(), String> {
     }
     #[cfg(target_os = "windows")]
     {
+        use std::os::windows::process::CommandExt;
+        // raw_arg: la riga di comando arriva a explorer così com'è, senza il quoting di Rust
         std::process::Command::new("explorer")
-            .arg(format!("/select,{}", path))
+            .raw_arg(explorer_select_arg(&path))
             .spawn()
             .map_err(|e| e.to_string())?;
     }
@@ -491,6 +530,7 @@ pub fn run() {
             winsession::register_window,
             winsession::close_all_windows,
             reveal_path,
+            project_root,
             open_url,
             resolve_existing,
             app_version,
@@ -637,6 +677,40 @@ mod tests {
         assert_eq!(res.len(), 1);
         assert_eq!(res[0].matches.len(), 1);
         assert_eq!(res[0].matches[0].line, 2, "il match è sulla seconda riga");
+        fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn explorer_select_arg_quotes_the_path_after_the_comma() {
+        // spazio nel path: virgolette attorno al SOLO path (il bug era l'argomento quotato per intero)
+        assert_eq!(
+            explorer_select_arg(r"D:\Progetti\Github\Personal portfolio\index.html"),
+            r#"/select,"D:\Progetti\Github\Personal portfolio\index.html""#
+        );
+        // barre in avanti → rovesciate (explorer non riconosce le "/")
+        assert_eq!(explorer_select_arg("D:/Progetti/Orbit/README.md"), r#"/select,"D:\Progetti\Orbit\README.md""#);
+        // barra finale tolta: davanti alla virgoletta di chiusura la renderebbe letterale
+        assert_eq!(explorer_select_arg(r"D:\Progetti\Orbit\"), r#"/select,"D:\Progetti\Orbit""#);
+        // radice di un disco: resta com'è
+        assert_eq!(explorer_select_arg(r"C:\"), r"/select,C:\");
+    }
+
+    #[test]
+    fn project_root_is_the_nearest_git_ancestor() {
+        let root = temp_root("projroot");
+        create_dir(s(&root.join("repo/.git"))).unwrap();
+        create_file(s(&root.join("repo/src/deep/a.ts"))).unwrap();
+        assert_eq!(find_project_root(&root.join("repo/src/deep/a.ts")), Some(root.join("repo")));
+        assert_eq!(find_project_root(&root.join("repo/src")), Some(root.join("repo")), "anche partendo da una cartella");
+        // worktree: `.git` è un FILE che punta al repo principale
+        create_file(s(&root.join("wt/.git"))).unwrap();
+        create_file(s(&root.join("wt/b.txt"))).unwrap();
+        assert_eq!(find_project_root(&root.join("wt/b.txt")), Some(root.join("wt")));
+        // una cartella con solo `.orbit` (cache lasciata da versioni vecchie) NON è un progetto
+        create_dir(s(&root.join("loose/.orbit/index"))).unwrap();
+        create_file(s(&root.join("loose/c.txt"))).unwrap();
+        let found = find_project_root(&root.join("loose/c.txt"));
+        assert!(found.map_or(true, |p| !p.starts_with(&root)), "nessun repo sotto la cartella di prova");
         fs::remove_dir_all(&root).ok();
     }
 

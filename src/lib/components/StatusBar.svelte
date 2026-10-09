@@ -101,14 +101,14 @@
     </div>
   </div>
   <div class="right">
-    {#if workspace.rootPath}
+    {#if workspace.rootPath && !workspace.light}
       <button
         class="seg idx"
         class:scanning={codeIndex.scanning}
         title={codeIndex.scanning ? "Indexing project symbols…" : "Project symbols — click to re-scan"}
         onclick={() => rescan()}
       >
-        <span class="idxic"><Icon name={codeIndex.scanning ? "refresh" : "code"} size={12} strokeWidth={1.8} /></span>
+        <span class="idxic"><Icon name={codeIndex.scanning ? "refresh" : "code"} size={13} strokeWidth={1.8} /></span>
         <span>{codeIndex.scanning ? "Indexing…" : `${codeIndex.symbols.length} symbol${codeIndex.symbols.length === 1 ? "" : "s"}`}</span>
       </button>
     {/if}
@@ -148,7 +148,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    height: 22px;
+    height: 21px; /* l'interno della barra (22 meno il bordo): con 22 sbordava di mezzo px e le icone da 13
+                     cadevano a 4/5 px (M57) */
     padding: 0 8px;
     background: transparent;
     border: 0;

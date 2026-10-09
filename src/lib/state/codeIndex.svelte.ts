@@ -75,7 +75,8 @@ function rebuildSemSets() {
 
 /** Carica la cache (istantaneo) e poi ri-scansiona in background. Chiamato al cambio cartella. */
 export async function initIndex() {
-  if (!workspace.rootPath) {
+  // modalità leggera (M57): la cartella di un file sparso non si indicizza (né si scrive .orbit/index)
+  if (!workspace.rootPath || workspace.light) {
     codeIndex.symbols = [];
     codeIndex.loaded = false;
     rebuildSemSets();
@@ -102,7 +103,7 @@ async function loadCache() {
 
 export async function rescan() {
   const root = workspace.rootPath;
-  if (!root) return;
+  if (!root || workspace.light) return;
   if (codeIndex.scanning) {
     scanPending = true; // scansione già in corso: ne faremo un'altra appena finisce (es. cambio cartella)
     return;

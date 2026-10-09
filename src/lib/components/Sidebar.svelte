@@ -2,8 +2,8 @@
   import Icon from "./Icon.svelte";
   import Explorer from "./Explorer.svelte";
   import Lazy from "./Lazy.svelte";
-  import { slide } from "svelte/transition";
-  import { layout, setFocusPanel, motionMs } from "../state/layout.svelte";
+  import { panelSlide } from "../motion";
+  import { layout, setFocusPanel, motionMs, toggleSidebar } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog, startCreate, collapseAll } from "../state/explorer.svelte";
   import { settings } from "../state/settings.svelte";
@@ -22,21 +22,23 @@
   );
 </script>
 
-<!-- slide|global: il blocco {#if} che mostra/nasconde la sidebar è in App; niente intro al primo avvio
-     (workspace non ancora pronto → durata 0). `animating` accende la transition della larghezza solo
-     nei cambi programmatici (cambio repo), non trascinando lo splitter. -->
+<!-- panelSlide|global (M57, vedi lib/motion.ts): il blocco {#if} che mostra/comprime la sidebar è in App,
+     insieme alla striscia che ne prende il posto; niente intro al primo avvio (workspace non ancora
+     pronto → durata 0). `animating` accende la transition della larghezza solo nei cambi programmatici
+     (cambio repo), non trascinando lo splitter. -->
 <aside
   class="sidebar"
   class:focused={layout.focusPanel === "sidebar"}
   class:animating={layout.animating}
   style="width:{layout.sidebarWidth}px"
-  transition:slide|global={{ axis: "x", duration: workspace.ready ? motionMs() : 0 }}
+  transition:panelSlide|global={{ duration: workspace.ready ? motionMs() : 0 }}
   onpointerdown={() => setFocusPanel("sidebar")}
 >
   <header class="head">
     <span class="title">{title}</span>
-    {#if layout.sidebarView === "explorer" && (workspace.rootPath || workspace.switching)}
-      <div class="acts">
+    <!-- bottoni 26×26 con icone da 14: 6 px per lato, margini interi e simmetrici (M57) -->
+    <div class="acts">
+      {#if layout.sidebarView === "explorer" && (workspace.rootPath || workspace.switching)}
         <button
           class="act"
           class:on={settings.revealActive}
@@ -45,22 +47,27 @@
           aria-pressed={settings.revealActive}
           onclick={() => (settings.revealActive = !settings.revealActive)}
         >
-          <Icon name="crosshair" size={15} strokeWidth={1.7} />
+          <Icon name="crosshair" size={14} strokeWidth={1.7} />
         </button>
         <button class="act" title="Collapse all folders" aria-label="Collapse all folders" onclick={collapseAll}>
-          <Icon name="collapse-all" size={15} strokeWidth={1.7} />
+          <Icon name="collapse-all" size={14} strokeWidth={1.7} />
         </button>
         <button class="act" title="New File" aria-label="New File" onclick={() => startCreate(workspace.rootPath!, "file")}>
-          <Icon name="file-plus" size={15} strokeWidth={1.7} />
+          <Icon name="file-plus" size={14} strokeWidth={1.7} />
         </button>
         <button class="act" title="New Folder" aria-label="New Folder" onclick={() => startCreate(workspace.rootPath!, "dir")}>
-          <Icon name="folder-plus" size={15} strokeWidth={1.7} />
+          <Icon name="folder-plus" size={14} strokeWidth={1.7} />
         </button>
         <button class="act" title="Open another folder" aria-label="Open another folder" onclick={openFolderDialog}>
-          <Icon name="folder-open" size={15} strokeWidth={1.7} />
+          <Icon name="folder-open" size={14} strokeWidth={1.7} />
         </button>
-      </div>
-    {/if}
+        <span class="hsep" aria-hidden="true"></span>
+      {/if}
+      <!-- comprime la barra in una striscia sul bordo (M57); Ctrl+B o la vista attiva in top bar fanno lo stesso -->
+      <button class="act" title="Collapse sidebar (Ctrl+B)" aria-label="Collapse sidebar" onclick={toggleSidebar}>
+        <Icon name="chevrons-left" size={14} strokeWidth={1.7} />
+      </button>
+    </div>
   </header>
 
   <div class="body">
@@ -173,6 +180,14 @@
   }
   .act.on {
     color: var(--color-accent);
+  }
+  /* separa le azioni della vista dal controllo del pannello (comprimi) */
+  .hsep {
+    flex: 0 0 auto;
+    width: 1px;
+    height: 14px;
+    margin: 0 3px;
+    background: var(--color-line);
   }
   .body {
     flex: 1;

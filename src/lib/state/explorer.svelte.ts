@@ -46,8 +46,10 @@ function makeNode(entry: FsEntry, depth: number): TreeNode {
   return { entry, depth, expanded: false, loaded: false, children: [] };
 }
 
-/** Apre una cartella come radice del workspace e ne carica il primo livello. */
-export async function openRoot(path: string) {
+/** Apre una cartella come radice del workspace e ne carica il primo livello. Con `light` (modalità
+ *  leggera, M57: la cartella di un file aperto da solo) osserva solo quella cartella — non l'albero
+ *  sotto, che può essere Download o un disco intero — e non legge lo stato git. */
+export async function openRoot(path: string, opts: { light?: boolean } = {}) {
   // legge PRIMA: se la cartella è illeggibile lanciamo senza aver cambiato la radice (niente
   // stato a metà — importante per switchFolder, che altrimenti resterebbe su una radice rotta).
   const entries = await invoke<FsEntry[]>("read_dir", { path });
@@ -56,8 +58,8 @@ export async function openRoot(path: string) {
   // ripristina l'espansione salvata di questo repo (switch a schede); altrimenti radici collassate.
   const saved = expandedCache.get(path);
   tree.roots = saved && saved.size ? await buildLevel(path, 0, saved) : entries.map((e) => makeNode(e, 0));
-  await invoke("watch_start", { root: path }).catch(() => {});
-  void refreshStatus(); // popola le decorazioni git dell'albero senza aprire il pannello
+  await invoke("watch_start", { root: path, recursive: !opts.light }).catch(() => {});
+  if (!opts.light) void refreshStatus(); // popola le decorazioni git dell'albero senza aprire il pannello
   void loadRunConfig(); // popola il menu Esegui da .orbit/run.json
   void loadClaudeConfig(); // popola il menu Claude da .orbit/claude.json
   void loadShelf(); // carica le cartelle messe nello scaffale (.orbit/shelf.json)

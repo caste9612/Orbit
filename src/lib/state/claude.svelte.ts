@@ -141,7 +141,8 @@ function buildCommand(prompt?: string): string {
  *  merge NON distruttivo, solo se la notifica bell è attiva e la chiave non è già impostata, e mai se
  *  il file esiste ma è JSON rotto (per non sovrascriverlo). */
 async function ensureBellChannel(root: string) {
-  if (!settings.bellNotify) return;
+  // finestra leggera (M57): nella cartella di un file sparso non si scrive nulla, nemmeno .claude/
+  if (!settings.bellNotify || workspace.light) return;
   const dir = joinPath(root, ".claude");
   const file = joinPath(dir, "settings.local.json");
   let raw: string | null = null;

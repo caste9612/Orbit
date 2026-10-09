@@ -16,6 +16,7 @@ import {
   placeBeside,
   removePane,
   replacePane,
+  splitPartner,
   MAX_PANES,
   type Arrangement,
   type Layout,
@@ -59,6 +60,12 @@ export const TAB_COLORS: { color: string; name: string }[] = [
 /** Nome mostrato sulla scheda: quello dato dall'utente, altrimenti il nome breve numerato. */
 export function displayTitle(t: TermSession): string {
   return t.customTitle ?? t.shortName;
+}
+
+/** Icona di tipo della scheda: ✨ per le chat di Claude, terminale per le shell (la tinta è `t.color`).
+ *  Condivisa da pannello e striscia compressa. */
+export function tabIcon(t: Pick<TermSession, "shell" | "title">): string {
+  return `${t.shell ?? ""} ${t.title}`.toLowerCase().includes("claude") ? "sparkles" : "terminal";
 }
 
 // Contatori per tipo ("Claude", "pwsh", "cmd"…): il nome breve è `<tipo> <n>`, stabile anche se si
@@ -128,6 +135,16 @@ export const terminals = $state({
 
 // Scheda attiva RICORDATA per repo (chiave = root path): cambiando repo si ripristina quella giusta.
 const activeByRoot: Record<string, string> = {};
+// Schede usate più di recente per repo (la prima è l'attiva): servono allo "split di sé" (M57), cioè
+// alla scheda da mettere dall'altra parte quando trascini la chat visibile sul bordo del suo riquadro.
+const recentByRoot: Record<string, string[]> = {};
+function touchRecent(root: string | null, id: string) {
+  const r = (recentByRoot[rootKey(root)] ??= []);
+  const i = r.indexOf(id);
+  if (i !== -1) r.splice(i, 1);
+  r.unshift(id);
+  if (r.length > 16) r.length = 16;
+}
 const sameRoot = (a: string | null, b: string | null) => a === b;
 
 /** Chiave per repo dei riquadri (una cartella non aperta = ""). */
@@ -261,6 +278,16 @@ function activate(id: string) {
   if (terminals.zoomId && terminals.zoomId !== id) terminals.zoomId = null;
   terminals.activeId = id;
   if (root) activeByRoot[root] = id;
+  touchRecent(root, id);
+}
+
+/** La scheda da affiancare a `id` nello "split di sé" (trascini la chat già visibile sul bordo del suo
+ *  riquadro, senza split in corso): la più recente fra le altre della stessa repo. null = nessuna. */
+export function selfSplitPartner(id: string): string | null {
+  const t = terminals.list.find((s) => s.id === id);
+  if (!t) return null;
+  const others = terminals.list.filter((s) => sameRoot(s.root, t.root) && s.id !== id).map((s) => s.id);
+  return splitPartner(id, recentByRoot[rootKey(t.root)] ?? [], others);
 }
 
 /** Affianca `id`. Con `anchor`+`side` (trascinamento sul bordo di un riquadro) la direzione È la
@@ -278,7 +305,13 @@ export function splitWith(id: string, anchor: string | null = null, side?: Side)
     activate(id);
     return;
   }
-  if (anchor && side) {
+  if (anchor === id && side) {
+    // "split di sé": la chat visibile trascinata sul bordo del suo riquadro va da quel lato, dall'altro
+    // la scheda usata più di recente. Con uno split in corso non ha senso (resterebbe dov'è).
+    const partner = panes.length < 2 ? selfSplitPartner(id) : null;
+    if (!partner) return;
+    setLayout(t.root, insertPane([[partner]], id, partner, side), true);
+  } else if (anchor && side) {
     const base: Layout =
       panes.length >= 2
         ? effectiveLayout(t.root, terminals.surfW, terminals.surfH)
@@ -388,6 +421,14 @@ export async function redockTerminal(s: { id: string; title: string; shell: stri
   });
   activate(s.id); // con uno split torna nel riquadro attivo
   layout.terminalVisible = true;
+}
+
+/** Le schede della repo `from` passano a `to`: finestra leggera promossa a progetto, o schede aperte
+ *  quando non c'era nessuna cartella (M57). Prima restavano vive ma nascoste sotto una radice non più
+ *  aperta, senza modo di tornarci. */
+export function adoptTerminals(from: string | null, to: string | null) {
+  if (sameRoot(from, to)) return;
+  for (const t of terminals.list) if (sameRoot(t.root, from)) t.root = to;
 }
 
 /** Click su una scheda: la attiva (con uno split, se non è visibile va nel riquadro attivo). */

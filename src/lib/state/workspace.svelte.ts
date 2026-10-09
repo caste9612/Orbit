@@ -62,6 +62,12 @@ export const workspace = $state({
   // cambio cartella in corso (persist.switchFolder): rootPath è null per qualche decina di ms, ma la
   // UI NON deve mostrare gli stati "nessuna cartella" (lampeggio del bottone "Open folder…")
   switching: false,
+  // Modalità leggera (M57): finestra aperta su un FILE sparso ("Apri con", doppio clic). La cartella del
+  // file fa da contesto e NON da progetto: niente .orbit/.claude scritti, niente indice dei simboli né
+  // Claude né osservazione ricorsiva, niente sessione né lista repo né "riapri tutte". "Open … as
+  // project" (persist.promoteLight) la trasforma in un progetto normale.
+  light: false,
+  lightProject: null as string | null, // repo git che contiene il file: la cartella proposta dal bottone
 });
 
 /** Posizione del cursore nell'editor attivo (per la status bar). */

@@ -1,10 +1,15 @@
 <script lang="ts">
   // Divisore trascinabile tra pannelli. Nessuna dipendenza: usa i pointer events.
+  import { panelSlide } from "../motion";
+
   interface Props {
     orientation: "vertical" | "horizontal";
     onResize: (delta: number) => void;
+    /** Durata (ms) con cui il divisore entra/esce insieme al pannello che accompagna (movimento fluido,
+     *  M57): senza, i suoi 4 px comparivano/sparivano di scatto a inizio o fine animazione. */
+    motion?: number;
   }
-  let { orientation, onResize }: Props = $props();
+  let { orientation, onResize, motion = 0 }: Props = $props();
 
   let dragging = $state(false);
   let last = 0;
@@ -36,6 +41,7 @@
   tabindex="-1"
   class="splitter {orientation}"
   class:dragging
+  transition:panelSlide|global={{ duration: orientation === "vertical" ? motion : 0 }}
   onpointerdown={down}
   onpointermove={move}
   onpointerup={up}

@@ -72,7 +72,7 @@
           onclick={choose}
           onmouseenter={() => (quickopen.index = i)}
         >
-          <span class="ic"><FileGlyph glyph={fi.glyph} color={fi.color} size={15} /></span>
+          <span class="ic"><FileGlyph glyph={fi.glyph} color={fi.color} size={16} /></span>
           <span class="base">{baseOf(f.rel)}</span>
           <span class="dir">{dirOf(f.rel)}</span>
         </button>

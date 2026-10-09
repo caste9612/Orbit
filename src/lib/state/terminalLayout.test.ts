@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   arrange,
   arrangeAuto,
+  dropZone,
   flatten,
   insertPane,
   locate,
@@ -9,7 +10,40 @@ import {
   placeBeside,
   removePane,
   replacePane,
+  splitPartner,
 } from "./terminalLayout";
+
+describe("dropZone (rilascio di una scheda su un riquadro)", () => {
+  it("il bordo più vicino entro un terzo, altrimenti il centro", () => {
+    expect(dropZone(0.9, 0.5)).toBe("right");
+    expect(dropZone(0.7, 0.5)).toBe("right"); // M57: prima (soglia 1/4) qui era uno scambio
+    expect(dropZone(0.1, 0.5)).toBe("left");
+    expect(dropZone(0.5, 0.2)).toBe("top");
+    expect(dropZone(0.5, 0.85)).toBe("bottom");
+    expect(dropZone(0.5, 0.5)).toBe("center");
+    expect(dropZone(0.62, 0.45)).toBe("center");
+  });
+
+  it("vince il bordo più vicino, anche negli angoli", () => {
+    expect(dropZone(0.95, 0.8)).toBe("right");
+    expect(dropZone(0.8, 0.95)).toBe("bottom");
+  });
+});
+
+describe("splitPartner (trascini la chat già visibile sul suo riquadro)", () => {
+  it("dall'altra parte va la scheda usata più di recente", () => {
+    expect(splitPartner("a", ["a", "c", "b"], ["b", "c"])).toBe("c");
+  });
+
+  it("senza cronologia, la prima altra scheda della repo", () => {
+    expect(splitPartner("a", [], ["b", "c"])).toBe("b");
+    expect(splitPartner("a", ["x"], ["b"])).toBe("b"); // x non è più aperta
+  });
+
+  it("nessun'altra scheda → nessuno split", () => {
+    expect(splitPartner("a", ["a"], [])).toBeNull();
+  });
+});
 
 describe("insertPane (drag con direzione)", () => {
   it("a destra crea una colonna, in basso una riga", () => {

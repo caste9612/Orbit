@@ -224,7 +224,7 @@
           <div class="row input" style="top:{idx * ROW}px; height:{ROW}px; padding-left:{6 + r.depth * 14}px">
             <span class="chev"></span>
             <span class="ic" class:dir={edit.kind === "dir"}>
-              <Icon name={edit.kind === "dir" ? "folder" : "file"} size={15} strokeWidth={1.7} />
+              <Icon name={edit.kind === "dir" ? "folder" : "file"} size={16} strokeWidth={1.7} />
             </span>
             <!-- svelte-ignore a11y_autofocus -->
             <input
@@ -260,11 +260,11 @@
             </span>
             {#if n.entry.isDir}
               <span class="ic dir">
-                <Icon name={n.expanded ? "folder-open" : "folder"} size={15} strokeWidth={1.6} />
+                <Icon name={n.expanded ? "folder-open" : "folder"} size={16} strokeWidth={1.6} />
               </span>
             {:else}
               <span class="ic">
-                <FileGlyph glyph={fi.glyph} color={fi.color} size={15} />
+                <FileGlyph glyph={fi.glyph} color={fi.color} size={16} />
               </span>
             {/if}
             {#if renaming}

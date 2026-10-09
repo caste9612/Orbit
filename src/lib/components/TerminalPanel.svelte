@@ -6,7 +6,7 @@
   import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
-  import { slide } from "svelte/transition";
+  import { panelSlide } from "../motion";
   import { layout, toggleTerminal, setFocusPanel, toggleTerminalMaximized, motionMs } from "../state/layout.svelte";
   import { workspace } from "../state/workspace.svelte";
   import {
@@ -35,10 +35,12 @@
     toggleZoom,
     sizesFor,
     setSizes,
+    selfSplitPartner,
+    tabIcon,
     type PaneSizes,
   } from "../state/terminals.svelte";
   import { launchClaude } from "../state/claude.svelte";
-  import { flatten, locate, MAX_PANES, type Arrangement, type Layout, type Side } from "../state/terminalLayout";
+  import { dropZone, flatten, locate, MAX_PANES, type Arrangement, type Layout, type Zone } from "../state/terminalLayout";
 
   interface ShellInfo {
     label: string;
@@ -233,7 +235,7 @@
     if (others.length && panes.length < MAX_PANES) {
       items.push({ label: "Show to the side", header: true, separatorBefore: true });
       for (const t of others) {
-        items.push({ label: t.title, icon: tabVisual(t.shell, t.title).icon, onClick: () => splitWith(t.id) });
+        items.push({ label: t.title, icon: tabIcon(t), onClick: () => splitWith(t.id) });
       }
     }
     // disposizione della repo corrente: auto (adattiva) o una delle due fisse; dopo un trascinamento
@@ -255,8 +257,9 @@
 
   // Drag di una scheda su un riquadro (pointer-based, come le schede dell'editor: con
   // dragDropEnabled l'HTML5 DnD non funziona). Al centro: il riquadro mostra quella scheda; vicino a
-  // un bordo: la scheda si affianca lì (prima per sinistra/alto, dopo per destra/basso).
-  type Zone = "center" | Side;
+  // un bordo (entro un terzo, dropZone): la scheda si affianca lì. Trascinando la chat GIÀ visibile
+  // sul suo riquadro (senza split) un bordo la affianca alla scheda usata più di recente; il segno di
+  // rilascio compare solo se il rilascio farà davvero qualcosa (prima compariva e poi nulla, M57).
   let dragId = $state<string | null>(null);
   let dropTarget = $state<{ id: string; zone: Zone } | null>(null);
   let pending: { id: string; x: number; y: number } | null = null;
@@ -286,24 +289,22 @@
       return;
     }
     const r = slot.getBoundingClientRect();
-    const fx = (e.clientX - r.left) / r.width;
-    const fy = (e.clientY - r.top) / r.height;
-    const near: [Zone, number][] = [
-      ["left", fx],
-      ["right", 1 - fx],
-      ["top", fy],
-      ["bottom", 1 - fy],
-    ];
-    near.sort((a, b) => a[1] - b[1]);
-    dropTarget = { id, zone: near[0][1] < 0.25 ? near[0][0] : "center" };
+    const zone = dropZone((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+    if (id === dragId) {
+      // la chat trascinata È quella del riquadro: al centro non cambierebbe nulla; su un bordo, senza
+      // split in corso, si affianca alla scheda più recente (dall'altra parte). Altrimenti niente segno.
+      dropTarget = !split && zone !== "center" && selfSplitPartner(id) ? { id, zone } : null;
+      return;
+    }
+    dropTarget = { id, zone };
   }
 
   function onTabPointerUp() {
     const id = dragId;
     const t = dropTarget;
-    if (id && t && id !== t.id) {
+    if (id && t) {
       if (t.zone === "center") showInPane(id, t.id);
-      else splitWith(id, t.id, t.zone); // la direzione del rilascio decide colonna o riga
+      else splitWith(id, t.id, t.zone); // la direzione del rilascio decide colonna o riga (t.id === id: split di sé)
     }
     cancelDrag();
   }
@@ -314,18 +315,6 @@
     pending = null;
     window.removeEventListener("pointermove", onTabPointerMove);
     window.removeEventListener("pointerup", onTabPointerUp);
-  }
-
-  // icona + colore identità per tipo di terminale (Claude in accento ✨, shell coi loro colori)
-  function tabVisual(shell: string | null, title: string): { icon: string; color: string } {
-    const s = `${shell ?? ""} ${title}`.toLowerCase();
-    if (s.includes("claude")) return { icon: "sparkles", color: "var(--color-accent)" };
-    if (s.includes("pwsh") || s.includes("powershell")) return { icon: "terminal", color: "#5391fe" };
-    if (s.includes("cmd") || s.includes("comandi")) return { icon: "terminal", color: "#9aa3b2" };
-    if (s.includes("git") || s.includes("bash") || s.includes("zsh") || s.includes("fish"))
-      return { icon: "terminal", color: "#4eaa25" };
-    if (s.includes("wsl")) return { icon: "terminal", color: "#c586c0" };
-    return { icon: "terminal", color: "var(--color-ink-muted)" };
   }
 
   // tornando a fuoco sull'app, la scheda attiva è "vista" → spegni il suo pallino d'attenzione
@@ -434,13 +423,13 @@
   class:dragging={dragId !== null}
   class:animating={layout.animating}
   style="width:{layout.terminalWidth}px"
-  transition:slide|global={{ axis: "x", duration: workspace.ready ? motionMs() : 0 }}
+  transition:panelSlide|global={{ duration: workspace.ready ? motionMs() : 0 }}
   onpointerdown={() => setFocusPanel("terminal")}
 >
   <header class="head">
     <div class="tabs">
       {#each visibleTabs as t (t.id)}
-        {@const tv = tabVisual(t.shell, t.title)}
+        {@const tic = tabIcon(t)}
         <div class="tab" class:active={t.id === terminals.activeId} class:shown={split && shown.includes(t.id)}>
           {#if renameId === t.id}
             <!-- svelte-ignore a11y_autofocus -->
@@ -454,7 +443,7 @@
               oncontextmenu={(e) => openTabMenu(e, t.id)}
               onpointerdown={(e) => onTabPointerDown(e, t.id)}
             >
-              <span class="tic" style="color:{t.color}"><Icon name={tv.icon} size={13} strokeWidth={1.8} /></span>
+              <span class="tic" style="color:{t.color}"><Icon name={tic} size={13} strokeWidth={1.8} /></span>
               {#if t.needsAttention}<span class="attn" aria-hidden="true"></span>{/if}
               <span>{displayTitle(t)}</span>
             </button>
@@ -465,10 +454,10 @@
         </div>
       {/each}
       <button class="newt claude" title="New Claude chat" aria-label="New Claude chat" onclick={() => void launchClaude()}>
-        <Icon name="sparkles" size={14} strokeWidth={1.8} />
+        <Icon name="sparkles" size={13} strokeWidth={1.8} />
       </button>
       <button class="newt" title="New terminal" aria-label="New terminal" onclick={() => addTerminal()}>
-        <Icon name="plus" size={14} strokeWidth={2} />
+        <Icon name="plus" size={13} strokeWidth={2} />
       </button>
       <button class="newt caret" title="Choose shell…" aria-label="Choose shell" onclick={openShellMenu}>
         <Icon name="chevron-down" size={13} strokeWidth={2} />
@@ -491,8 +480,10 @@
       <button class="act" title="Open in floating window (always on top)" aria-label="Floating window" onclick={() => detach()}>
         <Icon name="external-link" size={14} strokeWidth={1.8} />
       </button>
-      <button class="act" title="Hide panel (Ctrl+`)" aria-label="Hide panel" onclick={toggleTerminal}>
-        <Icon name="x" size={15} strokeWidth={1.9} />
+      <span class="hsep" aria-hidden="true"></span>
+      <!-- comprime il pannello in una striscia sul bordo (M57): le chat restano vive e visibili lì -->
+      <button class="act" title="Collapse panel (Ctrl+`)" aria-label="Collapse panel" onclick={toggleTerminal}>
+        <Icon name="chevrons-right" size={14} strokeWidth={1.8} />
       </button>
     </div>
   </header>
@@ -501,7 +492,7 @@
   <div class="surface" class:split class:still={layout.animating || resizing || paneDrag} bind:clientWidth={surfW} bind:clientHeight={surfH}>
     {#each terminals.list as t (t.id)}
       {@const isShownHere = shown.includes(t.id)}
-      {@const tv = tabVisual(t.shell, t.title)}
+      {@const tic = tabIcon(t)}
       <div
         class="slot"
         class:shown={isShownHere}
@@ -522,7 +513,7 @@
             }}
           >
             <span class="pane-bar" style="background:{t.color}" aria-hidden="true"></span>
-            <span class="tic" style="color:{t.color}"><Icon name={tv.icon} size={12} strokeWidth={1.8} /></span>
+            <span class="tic" style="color:{t.color}"><Icon name={tic} size={12} strokeWidth={1.8} /></span>
             {#if t.needsAttention}<span class="attn" aria-hidden="true"></span>{/if}
             {#if renameId === t.id}
               <!-- svelte-ignore a11y_autofocus -->
@@ -752,7 +743,9 @@
   .newt {
     display: grid;
     place-items: center;
-    width: 26px;
+    /* larghezza DISPARI come l'altezza (--h-head pari meno il bordo da 1), icone da 13: margini interi
+       e uguali (M57) */
+    width: 27px;
     height: 100%;
     border: 0;
     background: transparent;
@@ -761,7 +754,7 @@
     flex: 0 0 auto;
   }
   .newt.caret {
-    width: 18px;
+    width: 19px;
     margin-left: -6px;
   }
   .newt.claude {
@@ -798,6 +791,14 @@
   .act.on {
     color: var(--color-accent);
     background: rgba(var(--accent-rgb), 0.14);
+  }
+  /* separa le azioni del pannello dal comando "comprimi" (come nella barra laterale) */
+  .hsep {
+    flex: 0 0 auto;
+    width: 1px;
+    height: 14px;
+    margin: 0 3px;
+    background: var(--color-line);
   }
   /* Superficie a griglia: tutti i terminali restano montati, solo quelli "shown" hanno un posto
      (grid-column/row inline da placement()); gli altri sono display:none e non si ridimensionano. */

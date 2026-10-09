@@ -3,11 +3,11 @@
 // dir dell'app (comandi Rust load_state/save_state). Zero dipendenze.
 import { invoke } from "@tauri-apps/api/core";
 import { confirm } from "@tauri-apps/plugin-dialog";
-import { workspace, fileByPath, restoreGroups, resetDocs, autosaveAll } from "./workspace.svelte";
+import { workspace, fileByPath, restoreGroups, resetDocs, autosaveAll, openFile, activePath } from "./workspace.svelte";
 import { settings } from "./settings.svelte";
 import { openRoot, snapshotExpanded } from "./explorer.svelte";
 import { layout, beginMotion, type SidebarView } from "./layout.svelte";
-import { syncActiveTerminalToRoot } from "./terminals.svelte";
+import { syncActiveTerminalToRoot, adoptTerminals } from "./terminals.svelte";
 import { folders, setFolders } from "./folders.svelte";
 import { notify } from "./toast.svelte";
 import { basename } from "../util";
@@ -171,7 +171,7 @@ function setEditorCollapsedFor(hasTabs: boolean) {
 /** Salva subito (senza debounce) la sessione della cartella attualmente aperta. */
 export async function saveSessionNow() {
   const root = workspace.rootPath;
-  if (!root) return;
+  if (!root || workspace.light) return; // la finestra leggera non lascia sessioni (M57)
   await invoke("save_state", { key: sessionKey(root), data: serialize() }).catch((e) =>
     console.error("save_state", e),
   );
@@ -188,6 +188,11 @@ export type SwitchResult = "switched" | "cancelled" | "failed";
  *  la sessione appena salvata con uno stato vuoto. Se la nuova cartella non è apribile,
  *  ripristina quella precedente (niente finestra vuota) e ritorna `failed`. */
 export async function switchFolder(path: string): Promise<SwitchResult> {
+  // da una finestra leggera, "apri cartella" sulla cartella stessa del file = aprila come progetto
+  if (workspace.light && path === workspace.rootPath) {
+    workspace.lightProject = path;
+    return promoteLight();
+  }
   if (!path || path === workspace.rootPath) return "switched";
   const prev = workspace.rootPath; // per tornare indietro se la nuova non si apre
   const keepView = layout.sidebarView; // "mantieni la vista corrente" allo switch (scelta utente)
@@ -213,15 +218,23 @@ export async function switchFolder(path: string): Promise<SwitchResult> {
   workspace.switching = true; // la sidebar tiene l'albero vecchio invece di mostrare "Open folder…"
   try {
     // 1. preserva le tab della cartella corrente (sotto la sua chiave): serializza subito, scrive in
-    //    parallelo alla lettura della destinazione
+    //    parallelo alla lettura della destinazione (una finestra leggera non salva nulla)
     const saveP = saveSessionNow();
+    // aprire un'altra cartella da una finestra leggera ne fa una finestra normale (M57)
+    workspace.light = false;
+    workspace.lightProject = null;
     workspace.rootPath = null; // 2. sospende l'autosave (niente clobber durante lo scambio)
     resetDocs(); // 3. via i documenti della cartella precedente
     const raw = await rawP;
     await saveP;
     // 4. ripristina la nuova cartella (apre comunque se senza sessione); la sidebar resta com'è; le
-    //    schede terminale della nuova repo compaiono appena la cartella è aperta, prima dei file
-    const sync = () => syncActiveTerminalToRoot(workspace.rootPath);
+    //    schede terminale della nuova repo compaiono appena la cartella è aperta, prima dei file. Le
+    //    schede aperte quando non c'era nessuna cartella passano alla prima che si apre (prima
+    //    restavano vive ma nascoste, senza modo di tornarci).
+    const sync = () => {
+      if (!prev) adoptTerminals(null, workspace.rootPath);
+      syncActiveTerminalToRoot(workspace.rootPath);
+    };
     const ok = await loadSession(path, { keepSidebar: true, raw, onRootOpened: sync });
     if (!ok) {
       // cartella spostata/eliminata: openRoot ha lanciato senza toccare rootPath → niente stato a metà.
@@ -243,6 +256,70 @@ export async function switchFolder(path: string): Promise<SwitchResult> {
   }
 }
 
+/** Modalità leggera (M57): apre `file` usando la sua cartella `dir` solo come contesto — niente
+ *  sessione (né letta né salvata), niente lista repo, barra laterale e pannello compressi in striscia.
+ *  Il repo git che contiene il file, se c'è, è la cartella proposta da "Open … as project". */
+export async function openLight(dir: string, file: string) {
+  workspace.light = true;
+  workspace.lightProject = null;
+  layout.sidebarVisible = false;
+  layout.terminalVisible = false;
+  layout.terminalMaximized = false;
+  layout.editorCollapsed = false;
+  await openRoot(dir, { light: true });
+  await openFile(file);
+  const repo = await invoke<string | null>("project_root", { path: file }).catch(() => null);
+  workspace.lightProject = repo ?? dir;
+}
+
+/** "Open … as project" (M57): la finestra leggera diventa un progetto normale sul repo che contiene il
+ *  file (o sulla sua cartella), con la sessione salvata del progetto, la lista repo, l'indice, git e
+ *  l'osservazione ricorsiva. I file aperti restano aperti, la barra laterale si riapre sull'Explorer. */
+export async function promoteLight(): Promise<SwitchResult> {
+  const from = workspace.rootPath;
+  if (!workspace.light || !from) return "cancelled";
+  const target = workspace.lightProject ?? from;
+  const files = workspace.openFiles.filter((f) => f.kind === "file").map((f) => f.path);
+  const active = activePath();
+  if (settings.autosave) await autosaveAll();
+  const dirty = workspace.openFiles.filter((f) => f.dirty).length;
+  if (dirty > 0) {
+    const ok = await confirm(
+      `${dirty === 1 ? "1 file has" : `${dirty} files have`} unsaved changes that opening the project will discard. Continue?`,
+      { title: "Unsaved changes", kind: "warning" },
+    );
+    if (!ok) return "cancelled";
+  }
+  const rawP = invoke<string | null>("load_state", { key: sessionKey(target) }).catch(() => null);
+  const endMotion = beginMotion();
+  workspace.switching = true;
+  try {
+    workspace.light = false;
+    workspace.lightProject = null;
+    workspace.rootPath = null;
+    resetDocs();
+    // le schede aperte nella finestra leggera passano al progetto (restano vive e visibili)
+    const onRootOpened = () => {
+      adoptTerminals(from, workspace.rootPath);
+      syncActiveTerminalToRoot(workspace.rootPath);
+    };
+    const ok = await loadSession(target, { repos: true, keepSidebar: true, raw: await rawP, onRootOpened });
+    if (!ok) {
+      notify(`Can't open "${basename(target)}" as a project.`, "error");
+      if (active ?? files[0]) await openLight(from, (active ?? files[0])!);
+      return "failed";
+    }
+    for (const f of files) await openFile(f);
+    if (active) await openFile(active); // torna attivo il file che stavi guardando
+    layout.sidebarView = "explorer";
+    layout.sidebarVisible = true;
+    return "switched";
+  } finally {
+    workspace.switching = false;
+    endMotion();
+  }
+}
+
 /** Attiva il salvataggio automatico (debounced) a ogni cambio di sessione/layout.
  *  La sessione è salvata sotto chiave = cartella aperta (per le istanze multiple). */
 export function startAutosave() {
@@ -250,8 +327,9 @@ export function startAutosave() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     $effect(() => {
       const root = workspace.rootPath; // dipendenza
+      const light = workspace.light; // dipendenza: promossa a progetto, la sessione si salva da lì in poi
       const data = serialize(); // legge i campi reattivi → dipendenze tracciate
-      if (!root) return; // niente cartella aperta → niente da persistere
+      if (!root || light) return; // niente cartella aperta (o finestra leggera) → niente da persistere
       const key = sessionKey(root); // chiave per-finestra (<winKey>|<folder>)
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {

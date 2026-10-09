@@ -242,7 +242,7 @@
                   ondragstart={(e) => e.preventDefault()}
                 >
                   <button type="button" class="sel" onclick={() => setActiveTab(g.id, path)} title={path}>
-                    <span class="ti"><FileGlyph glyph={fi.glyph} color={fi.color} size={14} /></span>
+                    <span class="ti"><FileGlyph glyph={fi.glyph} color={fi.color} size={15} /></span>
                     <span class="label">{f.name}</span>
                     {#if f.externallyChanged}
                       <span class="dot warn" aria-label="changed on disk"></span>
@@ -259,7 +259,7 @@
             </div>
             {#if g.tabs.length > 0}
               <button class="tabmore" title="All tabs in this group" aria-label="All tabs" onclick={(e) => openTabMenu(e, g.id)}>
-                <Icon name="chevron-down" size={14} strokeWidth={2} />
+                <Icon name="chevron-down" size={13} strokeWidth={2} />
               </button>
             {/if}
           </div>
@@ -594,8 +594,10 @@
     background: var(--color-warning);
   }
   .close {
-    width: 22px;
-    height: 22px;
+    /* 23×23 con la ✕ da 13: margini interi (5 px) e centrata anche nell'altezza DISPARI della scheda
+       (barra --h-tabs pari, meno 3 px di bordi) — con 22×22 l'icona e il riquadro cadevano a mezzo px (M57) */
+    width: 23px;
+    height: 23px;
     margin-right: 5px;
     display: grid;
     place-items: center;
@@ -785,7 +787,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 8px;
+    height: 30px; /* esplicita: dal padding + riga di testo veniva 30,8 e il glifo cadeva a mezzo px (M57) */
+    padding: 0 8px;
     background: transparent;
     border: 0;
     color: var(--color-ink);

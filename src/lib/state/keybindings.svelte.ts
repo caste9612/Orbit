@@ -37,8 +37,8 @@ export const COMMANDS: Command[] = [
   { id: "prevRepo", label: "Previous repository", category: "Navigation", keys: { orbit: "Ctrl+Shift+Tab", vs: "Ctrl+Shift+Tab", intellij: "Ctrl+Shift+Tab" } },
   { id: "save", label: "Save file", category: "File", keys: { orbit: "Ctrl+S", vs: "Ctrl+S", intellij: "Ctrl+S" } },
   { id: "openFolder", label: "Open folder", category: "File", keys: { orbit: "Ctrl+K", vs: "Ctrl+K", intellij: "Ctrl+K" } },
-  { id: "toggleSidebar", label: "Toggle sidebar", category: "View", keys: { orbit: "Ctrl+B", vs: "Ctrl+B", intellij: "Alt+1" } },
-  { id: "toggleTerminal", label: "Toggle terminal", category: "View", keys: { orbit: "Ctrl+`", vs: "Ctrl+`", intellij: "Alt+F12" } },
+  { id: "toggleSidebar", label: "Collapse / expand sidebar", category: "View", keys: { orbit: "Ctrl+B", vs: "Ctrl+B", intellij: "Alt+1" } },
+  { id: "toggleTerminal", label: "Collapse / expand terminal panel", category: "View", keys: { orbit: "Ctrl+`", vs: "Ctrl+`", intellij: "Alt+F12" } },
 ];
 
 // Scorciatoie FISSE (non configurabili): editor / mouse. Solo per il riepilogo.

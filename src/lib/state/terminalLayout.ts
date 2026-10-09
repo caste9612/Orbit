@@ -49,6 +49,35 @@ export function insertPane(layout: Layout, id: string, anchor: string | null, si
   return next;
 }
 
+/** Dove cade il rilascio di una scheda trascinata su un riquadro. */
+export type Zone = "center" | Side;
+
+/**
+ * Zona di rilascio dalle coordinate relative al riquadro (0..1): il bordo più vicino se entro `edge`
+ * (split da quel lato), altrimenti il centro (scambio). M57: `edge` passa da 1/4 a 1/3 — il segno di
+ * rilascio di un bordo copre METÀ riquadro, e rilasciando "verso destra" al 65-70% ci si aspetta lo
+ * split, non lo scambio.
+ */
+export function dropZone(fx: number, fy: number, edge = 1 / 3): Zone {
+  const near: [Side, number][] = [
+    ["left", fx],
+    ["right", 1 - fx],
+    ["top", fy],
+    ["bottom", 1 - fy],
+  ];
+  near.sort((a, b) => a[1] - b[1]);
+  return near[0][1] < edge ? near[0][0] : "center";
+}
+
+/**
+ * "Split di sé": trascinando la chat GIÀ visibile (nessuno split in corso) sul bordo del suo stesso
+ * riquadro, dall'altra parte va la scheda usata più di recente fra `candidates` (le altre schede della
+ * repo), o la prima disponibile. Prima il rilascio mostrava il segno ma non faceva nulla. null = nessuna.
+ */
+export function splitPartner(id: string, recent: string[], candidates: string[]): string | null {
+  return recent.find((x) => x !== id && candidates.includes(x)) ?? candidates.find((x) => x !== id) ?? null;
+}
+
 /** Toglie `id`; colonne vuote spariscono. Sotto i due riquadri → [] (scheda singola). */
 export function removePane(layout: Layout, id: string): Layout {
   const next = clean(layout.map((c) => c.filter((p) => p !== id)));

@@ -41,6 +41,7 @@
   } from "../state/terminals.svelte";
   import { launchClaude } from "../state/claude.svelte";
   import { dropZone, flatten, locate, MAX_PANES, type Arrangement, type Layout, type Zone } from "../state/terminalLayout";
+  import { focusOnMount } from "../focus";
 
   interface ShellInfo {
     label: string;
@@ -432,8 +433,7 @@
         {@const tic = tabIcon(t)}
         <div class="tab" class:active={t.id === terminals.activeId} class:shown={split && shown.includes(t.id)}>
           {#if renameId === t.id}
-            <!-- svelte-ignore a11y_autofocus -->
-            <input class="rename" autofocus bind:value={renameValue} onkeydown={onRenameKey} onblur={commitRename} aria-label="Tab name" />
+            <input class="rename" use:focusOnMount={{ select: true }} bind:value={renameValue} onkeydown={onRenameKey} onblur={commitRename} aria-label="Tab name" />
           {:else}
             <button
               class="tab-main"
@@ -516,10 +516,9 @@
             <span class="tic" style="color:{t.color}"><Icon name={tic} size={12} strokeWidth={1.8} /></span>
             {#if t.needsAttention}<span class="attn" aria-hidden="true"></span>{/if}
             {#if renameId === t.id}
-              <!-- svelte-ignore a11y_autofocus -->
               <input
                 class="rename"
-                autofocus
+                use:focusOnMount={{ select: true }}
                 bind:value={renameValue}
                 onkeydown={onRenameKey}
                 onblur={commitRename}

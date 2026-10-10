@@ -6,6 +6,7 @@
   import { git, checkout, loadBranches, createBranch } from "../state/git.svelte";
   import { langLabel } from "../util";
   import { codeIndex, rescan } from "../state/codeIndex.svelte";
+  import { focusOnMount } from "../focus";
 
   let af = $derived(activeFile());
   let isFile = $derived(!!af && af.kind === "file");
@@ -78,10 +79,9 @@
           {/each}
           <div class="divider"></div>
           {#if creating}
-            <!-- svelte-ignore a11y_autofocus -->
             <input
               class="newinput"
-              autofocus
+              use:focusOnMount
               bind:value={newName}
               placeholder="new branch name"
               onkeydown={(e) => {

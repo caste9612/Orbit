@@ -25,6 +25,7 @@
   import { indentGuides } from "../editor/indentGuides";
   import { gitGutter, setGitMarks, parseGitMarks } from "../editor/gitGutter";
   import { semanticHighlight } from "../editor/semanticHighlight";
+  import { codeLens, setLenses } from "../editor/codeLens";
   import { setActiveEditor, clearActiveEditor } from "../editor/activeEditor";
   import { settings, isLightTheme } from "../state/settings.svelte";
   import { git, gitRel } from "../state/git.svelte";
@@ -32,10 +33,17 @@
   import { writeClipboard, readClipboard } from "../clipboard";
   import { workspace } from "../state/workspace.svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import { basename, normSlash } from "../util";
+  import { basename, normSlash, relTo } from "../util";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
   import { openSymbols } from "../state/symbols.svelte";
-  import { goToDefinition, semIndex } from "../state/codeIndex.svelte";
+  import {
+    goToDefinition,
+    semIndex,
+    codeIndex,
+    lensesFor,
+    openReferences,
+    openImplementations,
+  } from "../state/codeIndex.svelte";
 
   interface Props {
     doc: string;
@@ -74,6 +82,7 @@
         lineNumbers(),
         gitGutter(),
         semanticHighlight,
+        codeLens(),
         foldGutter(),
         highlightActiveLineGutter(),
         highlightSpecialChars(),
@@ -194,6 +203,27 @@
   $effect(() => {
     semIndex.version;
     untrack(() => view?.dispatch({}));
+  });
+
+  // CodeLens (M60): "N references · M implementations" sopra le dichiarazioni del file, rifatte quando
+  // cambiano l'indice o i conteggi (scansione dopo un salvataggio) o l'impostazione.
+  $effect(() => {
+    semIndex.version;
+    codeIndex.refs;
+    const on = settings.codeLens;
+    const root = workspace.rootPath;
+    if (!view) return;
+    const rel = root ? relTo(path, root) : "";
+    const data = on && rel && rel !== normSlash(path) ? untrack(() => lensesFor(rel)) : [];
+    const lenses = data.map((l) => ({
+      line: l.line,
+      items: l.items.map((it) => ({
+        label: it.label,
+        title: it.title,
+        onClick: () => (it.kind === "refs" ? void openReferences(it.name) : openImplementations(it.name)),
+      })),
+    }));
+    untrack(() => view?.dispatch({ effects: setLenses.of(lenses) }));
   });
 
   // salto a una riga (ricerca, F12/Vai-alla-definizione, Vai-al-simbolo, indietro/avanti).

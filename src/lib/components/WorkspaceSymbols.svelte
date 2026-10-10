@@ -5,7 +5,10 @@
   import Icon from "./Icon.svelte";
   import Backdrop from "./Backdrop.svelte";
   import KindBadge from "./KindBadge.svelte";
+  import FileGlyph from "./FileGlyph.svelte";
+  import { fileIcon } from "../util";
   import { wsPalette, setWsQuery, moveWs, chooseWs, closeWsPalette, codeIndex } from "../state/codeIndex.svelte";
+  import { focusOnMount } from "../focus";
 
   let list: HTMLDivElement | undefined;
   let kbNav = false; // l'ultimo cambio di selezione è da tastiera? (solo allora scrolliamo in vista)
@@ -42,11 +45,10 @@
 <div class="palette" role="dialog" aria-label="Project symbols" transition:fade={{ duration: 80 }}>
   <div class="field">
     <Icon name="search" size={15} strokeWidth={1.8} />
-    <!-- svelte-ignore a11y_autofocus -->
     <input
-      autofocus
+      use:focusOnMount
       type="text"
-      placeholder={wsPalette.pickLabel ? `Definitions of "${wsPalette.pickLabel}"…` : "Project symbols…"}
+      placeholder={wsPalette.pickLabel ? wsPalette.pickTitle : "Project symbols…"}
       value={wsPalette.query}
       oninput={(e) => setWsQuery(e.currentTarget.value)}
       onkeydown={onKey}
@@ -62,8 +64,14 @@
       <div class="msg">{wsPalette.query || wsPalette.pickLabel ? "No match" : "No symbols"}</div>
     {:else}
       {#each wsPalette.results as s, i (s.file + ":" + s.line + ":" + s.name)}
-        <button class="row" class:sel={i === wsPalette.index} onclick={chooseWs} onmouseenter={() => (wsPalette.index = i)}>
-          <span class="ic"><KindBadge kind={s.kind} isAbstract={s.isAbstract} size={16} /></span>
+        <button class="row" class:sel={i === wsPalette.index} class:ref={s.kind === "ref"} onclick={chooseWs} onmouseenter={() => (wsPalette.index = i)}>
+          <!-- un riferimento (CodeLens, M60) è una riga di codice: il glifo del suo file al posto del tipo -->
+          {#if s.kind === "ref"}
+            {@const fi = fileIcon(s.file)}
+            <span class="ic"><FileGlyph glyph={fi.glyph} color={fi.color} size={16} /></span>
+          {:else}
+            <span class="ic"><KindBadge kind={s.kind} isAbstract={s.isAbstract} size={16} /></span>
+          {/if}
           <span class="base">{s.name}</span>
           <span class="cont">{s.container}</span>
           <span class="loc">{s.file}:{s.line}</span>
@@ -164,6 +172,12 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 40%;
+  }
+  /* riferimento (CodeLens): la riga di codice è l'informazione, più spazio e carattere del codice */
+  .row.ref .base {
+    max-width: 66%;
+    font-family: var(--font-mono);
+    font-size: 12px;
   }
   .cont {
     flex: 0 0 auto;

@@ -3,6 +3,7 @@
   import Icon from "./Icon.svelte";
   import Backdrop from "./Backdrop.svelte";
   import { symbols, setSymQuery, moveSym, chooseSym, closeSymbols } from "../state/symbols.svelte";
+  import { focusOnMount } from "../focus";
 
   let list: HTMLDivElement | undefined;
 
@@ -49,9 +50,8 @@
 <div class="palette" role="dialog" aria-label="Go to symbol" transition:fade={{ duration: 80 }}>
   <div class="field">
     <Icon name="search" size={15} strokeWidth={1.8} />
-    <!-- svelte-ignore a11y_autofocus -->
     <input
-      autofocus
+      use:focusOnMount
       type="text"
       placeholder="Go to symbol…"
       value={symbols.query}

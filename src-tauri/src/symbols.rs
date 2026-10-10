@@ -3,7 +3,9 @@
 // sola std — NIENTE crate `regex`, NIENTE LSP — riconoscendo la *forma* delle dichiarazioni per
 // linguaggio. Coerente coi gate (leggerezza, zero dipendenze). Name-based: per i nomi ambigui il
 // frontend mostra un selettore.
+use crate::refs;
 use serde::Serialize;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 #[derive(Serialize, Clone)]
@@ -40,20 +42,36 @@ fn lang_for_ext(ext: &str) -> Option<Lang> {
     })
 }
 
-/// Scansiona il progetto ed estrae le definizioni dei simboli (stesso walk/esclusioni del resto).
+#[derive(Serialize)]
+pub struct ScanResult {
+    symbols: Vec<Symbol>,
+    // M60 (CodeLens): quante volte compare il nome di ogni simbolo, commenti e stringhe esclusi
+    refs: HashMap<String, u32>,
+}
+
+/// Scansiona il progetto: le definizioni dei simboli e, nello stesso giro di file, quante volte compare
+/// ogni loro nome (i "N references" di CodeLens). Fuori dal thread principale (M60): la scansione riparte
+/// a ogni modifica dei file e, su un progetto grande, prima fermava l'interfaccia.
 #[tauri::command]
-pub fn scan_symbols(root: String) -> Result<Vec<Symbol>, String> {
-    let root_path = Path::new(&root);
+pub async fn scan_symbols(root: String) -> Result<ScanResult, String> {
+    tauri::async_runtime::spawn_blocking(move || scan(&root))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+fn scan(root: &str) -> Result<ScanResult, String> {
+    let root_path = Path::new(root);
     let mut out: Vec<Symbol> = Vec::new();
+    let mut counts: HashMap<String, u32> = HashMap::new();
     let mut stack = vec![root_path.to_path_buf()];
-    while let Some(dir) = stack.pop() {
+    'walk: while let Some(dir) = stack.pop() {
         let rd = match std::fs::read_dir(&dir) {
             Ok(r) => r,
             Err(_) => continue,
         };
         for entry in rd.flatten() {
             if out.len() >= 50_000 {
-                return Ok(out); // cap di sicurezza su repo enormi
+                break 'walk; // cap di sicurezza su repo enormi
             }
             let p = entry.path();
             let fname = entry.file_name().to_string_lossy().to_string();
@@ -69,10 +87,12 @@ pub fn scan_symbols(root: String) -> Result<Vec<Symbol>, String> {
                 Some(e) => e.to_lowercase(),
                 None => continue,
             };
-            let lang = match lang_for_ext(&ext) {
-                Some(l) => l,
-                None => continue,
-            };
+            // codice (simboli + riferimenti) o markup di C# (solo riferimenti: XAML, Razor)
+            let lang = lang_for_ext(&ext);
+            let lex = refs::lex_for_ext(&ext);
+            if lang.is_none() && lex.is_none() {
+                continue;
+            }
             if entry.metadata().map(|m| m.len()).unwrap_or(0) > 2_000_000 {
                 continue;
             }
@@ -80,15 +100,23 @@ pub fn scan_symbols(root: String) -> Result<Vec<Symbol>, String> {
                 Ok(c) => c,
                 Err(_) => continue,
             };
-            let rel = p
-                .strip_prefix(root_path)
-                .unwrap_or(&p)
-                .to_string_lossy()
-                .replace('\\', "/");
-            extract(lang, &content, &rel, &mut out);
+            if let Some(lang) = lang {
+                let rel = p
+                    .strip_prefix(root_path)
+                    .unwrap_or(&p)
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                extract(lang, &content, &rel, &mut out);
+            }
+            if let Some(lex) = lex {
+                refs::count_into(&content, lex, &mut counts);
+            }
         }
     }
-    Ok(out)
+    // dei conteggi servono solo i nomi dei simboli (non ogni identificatore del progetto)
+    let names: HashSet<&str> = out.iter().map(|s| s.name.as_str()).collect();
+    counts.retain(|k, _| names.contains(k.as_str()));
+    Ok(ScanResult { symbols: out, refs: counts })
 }
 
 // ---- helper di parsing (solo std) -------------------------------------------
@@ -531,9 +559,11 @@ fn ts(t: &str, file: &str, line: u32, container: &mut String, out: &mut Vec<Symb
             let after = rest[name.len()..].trim_start();
             if after.starts_with('=') {
                 let rhs = after[1..].trim_start();
+                // `(…) =>` sì, `(a ?? 0) - b` no (M60: una lente su una variabile locale); una riga che
+                // finisce con "(" è l'inizio di parametri su più righe
                 let looks_fn = rhs.starts_with("function")
                     || rhs.starts_with("async")
-                    || rhs.starts_with('(')
+                    || (rhs.starts_with('(') && (after.contains("=>") || rhs.trim_end() == "("))
                     || (rhs.starts_with(|c: char| c.is_alphanumeric() || c == '_') && after.contains("=>"));
                 if looks_fn {
                     push(out, name, "function", file, line, container, vec![]);
@@ -802,6 +832,29 @@ mod tests {
         assert!(!n.contains(&"n"), "una const non-funzione non è un simbolo");
         let a = out.iter().find(|s| s.name == "A").unwrap();
         assert!(a.bases.contains(&"B".to_string()) && a.bases.contains(&"C".to_string()));
+    }
+
+    /// Misura (in sola lettura) la scansione con i riferimenti di CodeLens su progetti veri. A mano, in release:
+    /// `ORBIT_SCAN_ROOTS="D:/a;D:/b" cargo test --release --lib symbols::tests::scan_timing -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn scan_timing() {
+        let roots = std::env::var("ORBIT_SCAN_ROOTS").unwrap_or_else(|_| env!("CARGO_MANIFEST_DIR").to_string());
+        for root in roots.split(';').filter(|r| !r.is_empty()) {
+            let t = std::time::Instant::now();
+            let r = scan(root).unwrap();
+            println!("{root}: {} simboli, {} nomi contati, {:?}", r.symbols.len(), r.refs.len(), t.elapsed());
+        }
+    }
+
+    #[test]
+    fn ts_parenthesized_values_are_not_functions() {
+        let src = "const all = (refs[name] ?? 0) - decls;\nconst h = (x: number): string => `${x}`;\nexport const k = (\n  a,\n) => a;";
+        let mut out = vec![];
+        extract(Lang::Ts, src, "a.ts", &mut out);
+        let n = names(&out);
+        assert!(!n.contains(&"all"), "{n:?}");
+        assert!(n.contains(&"h") && n.contains(&"k"), "{n:?}");
     }
 
     #[test]

@@ -2,6 +2,7 @@
 mod activity;
 mod git;
 mod pty;
+mod refs;
 mod symbols;
 mod updater;
 mod watcher;
@@ -582,6 +583,7 @@ pub fn run() {
             pty::list_shells,
             watcher::watch_start,
             symbols::scan_symbols,
+            refs::ref_list,
             activity::scan_activity,
             activity::watch_activity
         ])

@@ -27,6 +27,20 @@ const THEME_SPEC = {
     lineHeight: "1.55",
   },
   "&.cm-focused": { outline: "none" },
+  // CodeLens (M60): riga sottile sopra le dichiarazioni, nel carattere dell'interfaccia come in VS
+  ".cm-lens": {
+    fontFamily: "var(--font-sans)",
+    fontSize: "calc(var(--editor-font-size, 13px) * 0.85)",
+    lineHeight: "1.5",
+    paddingTop: "3px", // staccata dalla riga sopra, attaccata alla dichiarazione
+    paddingRight: "2px",
+    color: "var(--color-ink-subtle)",
+    whiteSpace: "pre",
+    userSelect: "none",
+  },
+  ".cm-lens-item": { cursor: "pointer", transition: "color 90ms ease" },
+  ".cm-lens-item:hover": { color: "var(--color-accent)", textDecoration: "underline" },
+  ".cm-lens-sep": { margin: "0 0.5em", opacity: "0.7" },
   // cursore "fluido": anima lo spostamento del caret mentre si scrive/cancella
   ".cm-cursor, .cm-dropCursor": {
     borderLeftColor: "var(--color-accent)",

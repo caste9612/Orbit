@@ -8,6 +8,7 @@
   import { wrapperUI, closeWrapper, composeWrapper } from "../state/claude.svelte";
   import { notify } from "../state/toast.svelte";
   import { writeClipboard } from "../clipboard";
+  import { focusOnMount } from "../focus";
 
   let input = $state("");
   let composed = $derived(wrapperUI.wrapper ? composeWrapper(wrapperUI.wrapper.template, input) : "");
@@ -36,9 +37,8 @@
     <span class="ctitle">{wrapperUI.wrapper?.name ?? "Wrapper"}</span>
   </div>
 
-  <!-- svelte-ignore a11y_autofocus -->
   <textarea
-    autofocus
+    use:focusOnMount
     bind:value={input}
     placeholder="Scrivi il tuo prompt… (verrà inserito nel template)"
     rows="4"

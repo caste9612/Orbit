@@ -6,6 +6,7 @@
   import { unsavedUI, answerUnsaved } from "../state/unsaved.svelte";
   import { workspace } from "../state/workspace.svelte";
   import { dirname, fileIcon, relTo } from "../util";
+  import { focusOnMount } from "../focus";
 
   let files = $derived(unsavedUI.files);
 </script>
@@ -35,8 +36,7 @@
     <div class="cbtns">
       <button class="cbtn ghost" onclick={() => answerUnsaved("cancel")}>Cancel</button>
       <button class="cbtn danger" onclick={() => answerUnsaved("discard")}>{unsavedUI.discardLabel}</button>
-      <!-- svelte-ignore a11y_autofocus -->
-      <button class="cbtn primary" autofocus onclick={() => answerUnsaved("save")}>{files.length === 1 ? "Save" : "Save all"}</button>
+      <button class="cbtn primary" use:focusOnMount onclick={() => answerUnsaved("save")}>{files.length === 1 ? "Save" : "Save all"}</button>
     </div>
   </div>
 {/if}

@@ -178,6 +178,7 @@ export const settings = $state({
   mdMode: "readme" as MarkdownMode, // apertura .md: anteprima solo per i README (default)
   logging: true, // raccolta log diagnostici (ring buffer + file) per indagare i problemi — disattivabile
   checkUpdates: true, // controlla le release su GitHub all'avvio e ogni 6 ore (M59)
+  codeLens: true, // "N references · M implementations" sopra le dichiarazioni (M60)
 });
 
 export const MIN_FONT = 10;
@@ -280,6 +281,7 @@ export function loadSettings() {
       if (s.mdMode === "readme" || s.mdMode === "preview" || s.mdMode === "source") settings.mdMode = s.mdMode;
       if (typeof s.logging === "boolean") settings.logging = s.logging;
       if (typeof s.checkUpdates === "boolean") settings.checkUpdates = s.checkUpdates;
+      if (typeof s.codeLens === "boolean") settings.codeLens = s.codeLens;
     }
   } catch {
     /* localStorage non disponibile o JSON invalido */
@@ -310,6 +312,7 @@ export function startSettingsAutosave() {
         mdMode: settings.mdMode,
         logging: settings.logging,
         checkUpdates: settings.checkUpdates,
+        codeLens: settings.codeLens,
       });
       applySettings();
       try {

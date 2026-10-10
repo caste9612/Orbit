@@ -167,6 +167,18 @@
 
     <div class="row">
       <div class="label">
+        <span class="name">Code lens</span>
+        <span class="hint">References and implementations above classes and methods (counted by name)</span>
+      </div>
+      <Switch
+        checked={settings.codeLens}
+        onToggle={() => (settings.codeLens = !settings.codeLens)}
+        label="Code lens"
+      />
+    </div>
+
+    <div class="row">
+      <div class="label">
         <span class="name">Autosave</span>
         <span class="hint">Save edited files on focus loss and when switching tabs (IntelliJ-style)</span>
       </div>

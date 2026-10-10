@@ -7,6 +7,7 @@
   import Backdrop from "./Backdrop.svelte";
   import { updates, installUpdate, closeUpdateDialog, openReleaseNotes } from "../state/updater.svelte";
   import { renderMarkdown } from "../markdown";
+  import { focusOnMount } from "../focus";
 
   let info = $derived(updates.available);
   let busy = $derived(updates.phase === "downloading" || updates.phase === "closing" || updates.phase === "installing");
@@ -84,8 +85,7 @@
       {:else}
         <button class="btn ghost" disabled={busy} onclick={closeUpdateDialog}>Later</button>
       {/if}
-      <!-- svelte-ignore a11y_autofocus -->
-      <button class="btn primary" autofocus disabled={busy} onclick={() => void installUpdate()}>
+      <button class="btn primary" use:focusOnMount disabled={busy} onclick={() => void installUpdate()}>
         {updates.phase === "error" ? "Retry" : "Update and restart"}
       </button>
     </footer>

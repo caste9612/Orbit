@@ -169,7 +169,7 @@
   // molte chat iniziano con lo stesso prompt (es. la scorciatoia "recupera contesto") e l'aiTitle
   // esce quasi identico — è quello che la chat ha FATTO a distinguerle, non come sono iniziate.
   function significant(c: Chat): string | null {
-    let pick: WorkUnit | null = c.units.find((u) => u.commit) ?? null;
+    let pick: WorkUnit | null = c.units.find((u) => u.committed) ?? null;
     if (!pick) for (const u of c.units) if (!pick || u.add + u.del > pick.add + pick.del) pick = u;
     const label = pick?.label ?? "";
     return label && label !== sessionLabel(c.units[0]) ? label : null;
@@ -184,7 +184,7 @@
       add += u.add;
       del += u.del;
       prompts += u.prompts.length;
-      if (u.commit) commits++;
+      if (u.committed) commits++; // anche senza hash nell'output (git commit -q)
     }
     return { add, del, prompts, commits };
   }

@@ -60,8 +60,11 @@
       <span class="branch"><Icon name="git-branch" size={11} strokeWidth={1.8} />{unit.branch}</span>
       <span class="sep">·</span>
       <span>{when(unit.end)}</span>
-      <span class="sep">·</span>
-      <span>{unit.prompts.length} {unit.prompts.length === 1 ? "step" : "steps"}</span>
+      {#if unit.prompts.length}
+        <!-- un'unità di seguito (↳) non ha prompt suoi: niente "0 steps" -->
+        <span class="sep">·</span>
+        <span>{unit.prompts.length} {unit.prompts.length === 1 ? "step" : "steps"}</span>
+      {/if}
     </div>
 
     <div class="churn">
@@ -69,6 +72,9 @@
       <span class="nums"><span style="color:{OP_COLOR.A}">+{unit.add}</span> <span style="color:{OP_COLOR.D}">−{unit.del}</span></span>
       {#if unit.commit}
         <span class="commit"><Icon name="git-commit" size={12} strokeWidth={1.7} />committed · {unit.commit}</span>
+      {:else if unit.committed}
+        <!-- commit senza hash nell'output (git commit -q): resta un commit, non "uncommitted" -->
+        <span class="commit"><Icon name="git-commit" size={12} strokeWidth={1.7} />committed</span>
       {:else if unit.live}
         <span class="commit wip">in progress</span>
       {:else}

@@ -31,7 +31,7 @@
       add += u.add;
       del += u.del;
       prompts += u.prompts.length;
-      if (u.commit) commits++;
+      if (u.committed) commits++; // anche senza hash nell'output (git commit -q)
     }
     return { add, del, prompts, commits };
   });

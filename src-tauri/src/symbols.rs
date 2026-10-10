@@ -228,6 +228,9 @@ fn is_control_kw(name: &str) -> bool {
 
 fn extract(lang: Lang, content: &str, file: &str, out: &mut Vec<Symbol>) {
     let mut container = String::new();
+    // TS/JS: rientro del livello più esterno (0, o quello dello <script> di un componente Svelte); una
+    // funzione più rientrata sta dentro un'altra funzione o un blocco
+    let base = if matches!(lang, Lang::Ts) && file.ends_with(".svelte") { svelte_script_indent(content) } else { 0 };
     for (i, raw) in content.lines().enumerate() {
         let line = (i as u32) + 1;
         let t = raw.trim_start();
@@ -237,7 +240,7 @@ fn extract(lang: Lang, content: &str, file: &str, out: &mut Vec<Symbol>) {
         match lang {
             Lang::CSharpLike => cs(t, file, line, &mut container, out),
             Lang::Cpp => cpp(t, file, line, &mut container, out),
-            Lang::Ts => ts(t, file, line, &mut container, out),
+            Lang::Ts => ts(t, raw.len() - t.len() > base, file, line, &mut container, out),
             Lang::Python => py(raw, t, file, line, &mut container, out),
             Lang::Rust => rs(t, file, line, &mut container, out),
             Lang::Go => go(t, file, line, &mut container, out),
@@ -516,7 +519,54 @@ fn ts_bases(rest: &str) -> Vec<String> {
     v
 }
 
-fn ts(t: &str, file: &str, line: u32, container: &mut String, out: &mut Vec<Symbol>) {
+/// Rientro della prima riga di codice nel primo <script> di un componente Svelte (di solito 2 spazi).
+fn svelte_script_indent(content: &str) -> usize {
+    let mut lines = content.lines().skip_while(|l| !l.trim_start().starts_with("<script"));
+    lines.next();
+    lines
+        .find(|l| !l.trim().is_empty())
+        .filter(|l| !l.trim_start().starts_with("</script"))
+        .map_or(0, |l| l.len() - l.trim_start().len())
+}
+
+/// `s` comincia con la parola `w` (non con un identificatore più lungo: `async` sì, `asyncResult` no).
+fn starts_with_word(s: &str, w: &str) -> bool {
+    s.starts_with(w) && !s[w.len()..].starts_with(|c: char| c.is_alphanumeric() || c == '_' || c == '$')
+}
+
+/// Parametri di una arrow function: `(…) =>` o `(…): T =>`, oppure parentesi ancora aperta a fine riga
+/// (parametri su più righe). Non `(a ?? 0) - b` né `(await f()).map((x) => x)`.
+fn paren_arrow(rhs: &str) -> bool {
+    if !rhs.starts_with('(') {
+        return false;
+    }
+    let mut depth = 0;
+    for (i, c) in rhs.char_indices() {
+        if c == '(' {
+            depth += 1;
+        } else if c == ')' {
+            depth -= 1;
+            if depth == 0 {
+                let rest = rhs[i + 1..].trim_start();
+                return rest.starts_with("=>") || (rest.starts_with(':') && rest.contains("=>"));
+            }
+        }
+    }
+    true
+}
+
+/// Il valore assegnato è una funzione: `function`, `async …`, `(…) =>`, `<T,>(…) =>`, `x =>`. Una
+/// chiamata con una callback (`ids.filter((_, i) => …)`) è un valore, non una funzione (M60).
+fn ts_fn_value(rhs: &str) -> bool {
+    let id = lead_ident(rhs);
+    starts_with_word(rhs, "function")
+        || starts_with_word(rhs, "async")
+        || paren_arrow(rhs)
+        || rhs.strip_prefix('<').and_then(|r| r.find('>').map(|i| r[i + 1..].trim_start())).map_or(false, paren_arrow)
+        || (!id.is_empty() && rhs[id.len()..].trim_start().starts_with("=>"))
+}
+
+fn ts(t: &str, nested: bool, file: &str, line: u32, container: &mut String, out: &mut Vec<Symbol>) {
     if t.starts_with("//") || t.starts_with('*') || t.starts_with("/*") {
         return;
     }
@@ -542,6 +592,11 @@ fn ts(t: &str, file: &str, line: u32, container: &mut String, out: &mut Vec<Symb
             }
         }
     }
+    // le funzioni dentro altre funzioni (o blocchi) sono aiutanti locali: fuori dalla rubrica del
+    // progetto, quindi niente lente con il conteggio per nome di `score` o `next` (M60)
+    if nested {
+        return;
+    }
     if let Some(rest) = decl_after(t, "function", TS_FN_MODS) {
         let name = lead_ident(rest);
         if !name.is_empty() {
@@ -557,17 +612,8 @@ fn ts(t: &str, file: &str, line: u32, container: &mut String, out: &mut Vec<Symb
                 return;
             }
             let after = rest[name.len()..].trim_start();
-            if after.starts_with('=') {
-                let rhs = after[1..].trim_start();
-                // `(…) =>` sì, `(a ?? 0) - b` no (M60: una lente su una variabile locale); una riga che
-                // finisce con "(" è l'inizio di parametri su più righe
-                let looks_fn = rhs.starts_with("function")
-                    || rhs.starts_with("async")
-                    || (rhs.starts_with('(') && (after.contains("=>") || rhs.trim_end() == "("))
-                    || (rhs.starts_with(|c: char| c.is_alphanumeric() || c == '_') && after.contains("=>"));
-                if looks_fn {
-                    push(out, name, "function", file, line, container, vec![]);
-                }
+            if after.starts_with('=') && ts_fn_value(after[1..].trim_start()) {
+                push(out, name, "function", file, line, container, vec![]);
             }
             return;
         }
@@ -855,6 +901,34 @@ mod tests {
         let n = names(&out);
         assert!(!n.contains(&"all"), "{n:?}");
         assert!(n.contains(&"h") && n.contains(&"k"), "{n:?}");
+    }
+
+    #[test]
+    fn ts_values_built_with_callbacks_are_not_functions() {
+        let src = "const left = ids.filter((_, i) => i % 2 === 0);\nconst next = clean(layout.map((c) => c));\n\
+                   const r = asyncResult();\nconst s = (await load()).map((x) => x);\nconst f = x => x + 1;\n\
+                   const g = async (a) => a;\nconst h = async x => x;\nconst k = function* () {};\n\
+                   const id = <T,>(x: T): T => x;";
+        let mut out = vec![];
+        extract(Lang::Ts, src, "a.ts", &mut out);
+        assert_eq!(names(&out), ["f", "g", "h", "k", "id"]);
+    }
+
+    #[test]
+    fn ts_nested_functions_are_local() {
+        let src = "export function outer() {\n  const score = (w: number) => w;\n  function inner() {}\n}\n\
+                   export const top = () => 1;";
+        let mut out = vec![];
+        extract(Lang::Ts, src, "a.ts", &mut out);
+        assert_eq!(names(&out), ["outer", "top"]);
+        // in un componente Svelte il livello esterno è il rientro dello <script>
+        let svelte = concat!(
+            "<script lang=\"ts\">\n  import x from \"y\";\n  export function a() {}\n  const b = () => 1;\n",
+            "  function c() {\n    const d = () => 2;\n  }\n</script>\n\n<button onclick={() => a()}>x</button>\n",
+        );
+        let mut out2 = vec![];
+        extract(Lang::Ts, svelte, "src/C.svelte", &mut out2);
+        assert_eq!(names(&out2), ["a", "b", "c"]);
     }
 
     #[test]

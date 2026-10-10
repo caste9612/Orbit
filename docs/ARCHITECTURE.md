@@ -41,9 +41,11 @@ src-tauri/
   src/watcher.rs      # file watcher (emits "fs-changed")
   src/symbols.rs      # heuristic project symbol scanner (scan_symbols) — no LSP, std only
   src/winsession.rs   # multi-window session: per-window registry, reopen-all + close-all, geometry (replaces winstate)
+  src/updater.rs      # in-app updates from GitHub releases (tauri-plugin-updater driven by own commands)
   tauri.conf.json     # window, bundle, productName "Orbit"
   capabilities/       # Tauri permission capabilities
   windows/hooks.nsh   # NSIS post-install hook: removes script associations left by older versions
+scripts/New-Release.ps1 # release: version check, signed installers, latest.json, GitHub release (-Publish)
 scripts/              # footprint measurement (measure-orbit.ps1, measure-orbit-ram.ps1)
 app-icon.svg          # brand mark, single source of the OS icons (see Theming → Brand mark)
 docs/                 # this doc + screenshots
@@ -68,7 +70,7 @@ Three kinds of frontend module, kept separate:
 | `workspace` | open folder (+ `switching`: true while `switchFolder` swaps roots, so the sidebar keeps the old views instead of flashing "no folder"), document pool (kinds: file/diff/image/pdf/activity/gitgraph), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `closeTab` / **`closeTabs`** (several at once, M58 — the next active tab comes from the pure `editorTabs.nextActive`), `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), per‑group `previews` (md/html source ⇄ preview, default from `settings.mdMode`), `openPreviewToSide`, **light window** flags (`light`, `lightProject`: a file opened on its own — see *Light window*), … |
 | `folders` | the **open repositories** list for the top‑bar switcher — **per‑window**: in‑memory `$state` only (NOT global localStorage, which is shared across instances and caused clobbering), persisted in the active folder's session as `repos` and reseeded by `loadSession({repos:true})` at window startup; `addFolder`/`removeFolder`/`setFolders`/`openFromList`/`cycleRepo`/`selectRepoIndex`/**`moveFolder`** (drag‑to‑reorder in the top bar; the order persists through `repos`) — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
 | `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file"); `copyPath` / `copyRelPath` / `revealPath`, shared by the tree and the editor-tab menus |
-| `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
+| `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge**; `workdir` (repo root from `git_status`) and `gitRel(path)`: git paths are relative to the repo root, which is above the open folder when a **subfolder** is opened (M59) |
 | `terminals` | terminal tabs (id/title/shortName/customTitle/autoTitle/color/shell/cwd) + active tab + `focusedId` (real xterm focus); **bell attention** (`notifyTerminalBell`: Claude rings the bell — Orbit enables `preferredNotifChannel:terminal_bell` on launch — → dot on the **repo's tab** + on the session tab + a **sticky, clickable attention toast** (click → `goToTerminal`: switch repo, reveal panel, focus the tab) + a top‑bar **Waiting (N)** pill; persists via title `●` + taskbar `requestUserAttention` while you're away; cleared on focus/open via `clearAttention`→`dismissByKey`); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive); **side‑by‑side panes** per repo (`layouts[rootKey]` columns‑of‑rows, `autoLayout`, `sizes`, `zoomId`; `splitWith`/`showInPane`/`closePane`/`toggleZoom`/`setArrangement`/`setSizes`; invariant: `activeId` is always one of the visible panes — see *Chats side by side*); most‑recently‑used tabs per repo (`recentByRoot`) for the **self split** (`selfSplitPartner`); `adoptTerminals` (tabs follow a promoted light window, or the first folder opened); `tabIcon` (shared by panel and strip) |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
 | `claude` | Claude launcher + **shortcuts** + **wrappers** (`.orbit/claude.json`); opens `claude` in a terminal; the wrapper composer copies the composed prompt to the clipboard; **quick add/remove** of prompts & wrappers (`ClaudePrompts.svelte` → writes `claude.json`); invalid JSON **warns** (toast) and keeps the menu instead of silently resetting |
@@ -83,8 +85,10 @@ Three kinds of frontend module, kept separate:
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
 | `settings` | **theme** (5 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/**motion** (smooth panel transitions → `--motion-ms`)/webgl/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
 | `layout` | panel sizes/visibility (`sidebarVisible`/`terminalVisible` false = **collapsed into a strip**, see *Collapsible panels*) + focused panel + `editorCollapsed` (runtime only: no tabs open → the editor shrinks to its minimum width, see *Editor auto‑collapse*) + `terminalMaximized` (chats side by side, saved in the session) + the **layout motion** API (`animating`, `beginMotion`/`animate`/`motionUntil`/`motionMs` — see *Smooth layout motion*) |
-| `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; `switchFolder` swaps the active folder cleanly (keeps the window's repo list and sidebar view, prefetches the destination session in parallel with saving the current one, decides `editorCollapsed` from the saved tabs up front and shows the new repo's terminals as soon as the root is open — one layout motion); `openLight` / `promoteLight` (light window and its "Open … as project"; a light window never reads or saves a session) |
-| `toast` | transient notifications, plus a **sticky, clickable `attention`** variant (`notifyAttention`/`dismissByKey`, coalesced by `key`) used by the Claude‑waiting notification |
+| `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; **`prepareQuit`** (M59: autosave if on, then the unsaved question, then the session written at once — before the window closes, on a Close‑all request from another window, and before an update) and `settleUnsaved` (the same for a folder switch); `switchFolder` swaps the active folder cleanly (keeps the window's repo list and sidebar view, prefetches the destination session in parallel with saving the current one, decides `editorCollapsed` from the saved tabs up front and shows the new repo's terminals as soon as the root is open — one layout motion); `openLight` / `promoteLight` (light window and its "Open … as project"; a light window never reads or saves a session) |
+| `toast` | transient notifications, plus a **sticky, clickable `attention`** variant (`notifyAttention`/`dismissByKey`, coalesced by `key`, optional `icon`) used by the Claude‑waiting and update notices |
+| `unsaved` | the **one** "unsaved changes" question of the app (M59): `askUnsaved(files)` → `save`/`discard`/`cancel` (a promise; `UnsavedDialog.svelte`, mounted once in App), `resolveUnsaved` (asks and saves; false = cancelled or a save failed). Used by tab closing, window close, Close all, folder switch, "Open as project" and updates |
+| `updater` | in‑app updates (M59): `checkForUpdates` (automatic ~30 s after start and every 6 h unless `settings.checkUpdates` is off — never in dev builds; manual from Settings), `updates` state (available version + notes, dialog phase `downloading`/`closing`/`installing`/`error`, progress), `installUpdate`, `announceUpdated` |
 | `logs` | **diagnostic logs** (`log`/`logWarn`/`logError`): in‑memory ring buffer + batched on‑disk persistence (Rust `append_log`) + global error capture, all gated by `settings.logging` (default on); `LogViewer` overlay + export (copy / reveal file). Instruments clipboard/paste/terminal to diagnose issues (e.g. the double‑paste) |
 
 State is plain **Svelte 5 runes**: `export const x = $state({...})`; components reading those
@@ -93,7 +97,11 @@ fields re‑render automatically. Cross‑module reactive reads (e.g. `git.tick`
 **Editor groups (split view).** The editor area renders N side‑by‑side groups. `openFiles` is the
 shared document pool (content/dirty live here), and each `workspace.groups[i]` holds an ordered list
 of tab paths + its active path — so the same file can appear in several groups. A document is
-dropped from the pool only when no group references it. Tabs are moved / split / reordered with a
+dropped from the pool only when no group references it. Paths enter the workspace **canonical**
+(M59, `util.canonPath`: `\` on Windows) and are compared with `samePath`/`pathKey` (separators and, on
+Windows, letter case don't matter), so go‑to‑definition (`root\` + `src/x.ts`), terminal links and the
+tree all reach the same document — before, they could open one file as two documents, and saving one
+overwrote the other. Sessions saved with mixed forms are merged on restore. Tabs are moved / split / reordered with a
 **pointer‑based** drag in `EditorArea.svelte` (pointer events + `elementFromPoint` hit‑testing):
 this is required because **`dragDropEnabled: true`** in `tauri.conf.json` (so the OS file‑drop events
 carry real paths — see *Drag‑and‑drop* below) suppresses in‑page HTML5 DnD on Windows. A
@@ -409,10 +417,30 @@ first paint loads only the Explorer + the active editor.
   opens the first entry and **re‑spawns** the rest (geometry passed via `ORBIT_WIN_*` env); a launch *with*
   a folder opens only that. The decision is the pure, tested `plan()`. **Close‑all:** `close_all_windows`
   snapshots the live set → restore, then bumps a token in `windows-control.json`; every instance runs a
-  `notify` watcher on the config dir (event‑driven, no polling) and exits on a newer token. **Crash
+  `notify` watcher on the config dir (event‑driven, no polling) and, on a newer token, emits
+  **`orbit-quit-request`** to its frontend, which saves or asks (`prepareQuit`) and then calls `quit_now`
+  (M59: before, they exited at once and unsaved edits were lost; a window whose user cancels stays open and
+  keeps listening). **Closing a window** is two‑phase (M59): `CloseRequested` only saves the geometry — the
+  frontend's `onCloseRequested` may still cancel it for unsaved changes — and the entry leaves the live set on
+  `Destroyed` (`finish_close`; `save_on_exit` does both on `app.exit`). **Crash
   recovery:** `prune_dead()` at startup drops entries whose pid is dead (`pid_alive`, cfg‑gated: Win32
   `OpenProcess` / Unix `kill(pid,0)`), so a crashed window never blocks restore. Applies to `main`;
   `term-float-*` windows stay ephemeral. The window is created `visible: false` and shown after positioning.
+- **Updates (M59)** — `updater.rs` drives the official `tauri-plugin-updater` from Orbit's own commands (no
+  JS package, no plugin permissions): `update_check` reads `latest.json` from the latest GitHub release
+  (`plugins.updater.endpoints`), `update_download` fetches the installer (progress → `update-progress`) and
+  `update_install` checks its **minisign signature** against `plugins.updater.pubkey` and starts it. Before
+  installing, the frontend runs `prepareQuit`, then `winsession::quit_others` snapshots every window for
+  restore and asks the other processes to quit (same token as Close‑all, own baseline moved first), polling
+  `other_instances` (Windows: processes of the SAME exe path, light windows included — what the installer
+  must replace) until they're gone. On Windows the plugin runs the NSIS installer **passive** (`/P /UPDATE /R
+  /ARGS …`) and exits with `std::process::exit`, so its `on_before_exit` hook kills the PTYs and leaves the
+  registry like a normal exit. A marker (`update-restart.json`, valid 10 min) makes the relaunched process
+  ignore the arguments the installer passes back and **reopen every window** (bare‑start restore), and
+  `startup()` reports `updatedTo` for the "updated" notice. TLS is the OS's (`native-tls`: SChannel on
+  Windows, corporate proxy roots included) and the system proxy is honoured. Releases come from
+  `scripts/New-Release.ps1` (signing key outside the repo, `createUpdaterArtifacts` only there so a plain
+  `tauri build` needs no key); `bundle.windows.nsis.installerIcon` gives setup and uninstaller Orbit's icon.
 - **Open with (Windows)** — `bundle.fileAssociations` registers Orbit as a handler for common file
   types, so it shows up in the OS "Open with" menu (registered by the **installer**, not `tauri dev`).
   Caveat: Tauri's NSIS installer makes Orbit the **default** handler of each listed extension wherever
@@ -432,7 +460,10 @@ frontend calls them with `invoke("name", {args})`. Areas:
   (folder/file/search from CLI or env + the `light` flag), `project_root` (nearest ancestor with `.git`).
 - **Session** (`lib.rs`): `load_state`/`save_state` (keyed per folder).
 - **Window** (`lib.rs` + `winsession.rs`): `open_new_window`; `winsession::register_window` (a window
-  records its folder + geometry in the per‑window registry) and `winsession::close_all_windows`.
+  records its folder + geometry in the per‑window registry) and `winsession::close_all_windows`;
+  `quit_now` (exit after the frontend confirmed), `quit_others` / `other_instances` (updates, M59).
+- **Updates** (`updater.rs`): `update_check` → `{ version, current, notes, date }` or null,
+  `update_download` (emits `update-progress` `[received, total]`), `update_install`.
 - **Misc** (`lib.rs`): `reveal_path` (show a path in the OS file manager; on Windows `explorer` gets a raw
   `/select,"<path>"` argument — `Command::arg` would quote the whole argument when the path has a space, and
   explorer then opens Documents with nothing selected); `open_url` (open an
@@ -441,9 +472,11 @@ frontend calls them with `invoke("name", {args})`. Areas:
   one file per process, rotated over ~2 MB); `log_file_path` — back the log system (`lib/state/logs.svelte.ts`).
 - **Activity** (`activity.rs`): `scan_activity(limit)` — scans ALL `~/.claude/projects/*/*.jsonl` and
   returns `WorkUnit[]` (prompt‑first segmentation; camelCase incl. files `{op,path,add,del,userModified}`,
-  cmds, prompts, commit, kind, start/end, live); `watch_activity` — `notify` watcher on `~/.claude/projects`
-  that emits a debounced **`activity-changed`** event for live refresh.
-- **Git** (`git.rs`): `git_status`, `git_diff`, `git_stage`, `git_unstage`, `git_commit`,
+  cmds, prompts, commit, kind, start/end, live); async on a blocking thread with a per‑transcript cache
+  keyed on mtime + size (M59: only changed transcripts are re‑read — 469 ms → 2.5 ms on 206 MiB of
+  transcripts — and the main thread is never blocked); `watch_activity` — `notify` watcher on
+  `~/.claude/projects` that emits a debounced **`activity-changed`** event for live refresh.
+- **Git** (`git.rs`): `git_status` (with `workdir`, the repo root), `git_diff`, `git_stage`, `git_unstage`, `git_commit`,
   `git_branches`, `git_checkout_branch`, `git_create_branch`, `git_discard`, `git_log`, `git_show`,
   `git_graph` (all branches, topological order, parents+refs — powers the Git Graph view; lane layout
   is computed in the frontend, `lib/gitgraph.ts`).
@@ -451,7 +484,10 @@ frontend calls them with `invoke("name", {args})`. Areas:
   streams output as `pty-data-<id>` events.
 - **Symbols** (`symbols.rs`): `scan_symbols(root)` — heuristic project‑wide symbol scan (C#/Java, C/C++,
   TS/JS/Svelte, Python, Rust, Go; std only, no LSP / no `regex`); returns
-  `Symbol { name, kind, file, line, container, bases, isAbstract }`.
+  `Symbol { name, kind, file, line, container, bases, isAbstract }`. C#/Java members (M59): a declaration
+  needs a modifier **before** the name and no expression in front of it (`=`, strings, `.`, unbalanced
+  parentheses, `new`/`return`/`await`…), so calls and `new X()` are no longer indexed as methods; leading
+  attributes/annotations are skipped, generic methods (`Load<T>(…)`) and `Name => …` properties are found.
 - **Watcher** (`watcher.rs`): `watch_start(root, recursive?)` (non‑recursive for the light window); emits a
   debounced **`fs-changed`** event that the
   frontend listens to (refresh tree + git + reload open files + run config + Claude config + shelf
@@ -473,7 +509,8 @@ commands (only Tauri plugin commands need permissions in `capabilities/`).
   fallback) stays global.
 - **Multi‑window session** (app‑global, `winsession.rs`): `app_config_dir()/windows/<id>.json` (one
   per live window: folder + geometry + **`key`** = stable session key), `windows-restore.json` (snapshot
-  to reopen on a bare launch, carries `key` per entry), `windows-control.json` (close‑all token). Each
+  to reopen on a bare launch, carries `key` per entry), `windows-control.json` (close‑all token),
+  `update-restart.json` (written right before an update installs, consumed by the relaunch). Each
   process writes only its own files → race‑free. The stable `key` survives reopen‑all: passed to respawned
   windows via env `ORBIT_WIN_KEY` (see `WinKey`/`resolve_key`), so each reopened window restores ITS session.
 - **Settings** (app‑global): `localStorage["orbit.settings"]`, applied as CSS variables on

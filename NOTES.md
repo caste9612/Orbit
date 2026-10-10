@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -479,7 +479,7 @@ Risultato **misurato** (`npm run build`):
 - Badge col numero di file modificati sul pulsante **Git** della top bar (ingresso rapido
   alla review).
 - Limite noto: se si apre una **sottocartella** di un repo (non la root), i path relativi di
-  git potrebbero non combaciare con quelli dell'albero → decorazioni assenti per quei file.
+  git potrebbero non combaciare con quelli dell'albero → decorazioni assenti per quei file. (Risolto nella M59.)
 
 Verifica: `svelte-check` 0/0; build misurato. Runtime end-to-end (welcome senza CM, terminale
 async, albero che si illumina alle modifiche) da provare con `npm run tauri dev`.
@@ -2584,7 +2584,7 @@ Lo stesso file aperto con separatori diversi diventa due documenti distinti (ver
 schede dello stesso file). Succede nei percorsi d'uso normali: Vai alla definizione (`joinPath(root, sym.file)`,
 con `sym.file` relativo con `/`) e i link del terminale (`joinPath(cwd, p)` con `p` scritto da Claude) producono
 `D:\…\Orbit\src/lib/x.ts`, diverso da `D:\…\Orbit\src\lib\x.ts` dell'albero. Con due copie aperte, salvarne una
-sovrascrive le modifiche dell'altra. Da sistemare normalizzando i percorsi all'ingresso del workspace.
+sovrascrive le modifiche dell'altra. Da sistemare normalizzando i percorsi all'ingresso del workspace. → Corretto nella M59.
 
 ### Verifica
 `svelte-check` 0/0 (261 file), vitest **25/25** (5 nuovi: `dropZone`, `splitPartner`), `cargo test` **34/34** (2
@@ -2715,6 +2715,134 @@ ricaricare la pagina prima di continuare.
   `new X()` (su Orbit, TS/Svelte/Rust, nessuno). Effetti già oggi: F12 su `ArchiveMetadata` apre una lista di 38
   "definizioni" invece di saltare alla classe, rumore in Ctrl+T e nella barra dei correlati. Correzione proposta:
   modificatori solo PRIMA del nome, e nome non preceduto da `new`, `.`, `=`, `return`, `await`.
+  → Corretto nella M59.
+
+---
+
+## Milestone 59 — aggiornamenti da GitHub, nessuna modifica persa alla chiusura, bug noti
+
+Richieste dell'utente (2026-10-10): (1) quando esce una release su GitHub, Orbit lo deve segnalare e aggiornarsi
+senza riscaricare a mano; (2) "se ci sono bug aperti che conosci risolvi e testa"; (3) CodeLens se ne discute
+dopo aver chiuso i punti in sospeso. Branch `m59-updates-and-fixes`, sopra `m58-close-all-image-zoom`.
+
+### Aggiornamenti da GitHub
+- **Scelta**: il plugin ufficiale `tauri-plugin-updater` sull'installer NSIS che c'è già, invece di Velopack
+  (l'opzione B della M58). Dà la stessa cosa — avviso e aggiornamento sul posto — senza migrare
+  l'installazione, senza riscrivere le associazioni "Apri con" e l'hook NSIS. La procedura guidata si vede
+  solo alla prima installazione: gli aggiornamenti sono passivi (solo la barra di avanzamento). Il repo è
+  pubblico: `latest.json` si legge dalla release "latest" senza token.
+- **Comandi Rust** (`updater.rs`, niente pacchetto npm né permessi sul plugin): `update_check`,
+  `update_download` (avanzamento con `update-progress`), `update_install` (firma minisign verificata con la
+  chiave pubblica di `tauri.conf.json`, poi l'installer NSIS passivo `/P /UPDATE /R /ARGS …`).
+- **Interfaccia** (`updater.svelte.ts`, `UpdateDialog.svelte`): controllo ~30 s dopo l'avvio e ogni 6 ore
+  (mai nei build di sviluppo; spegnibile in Impostazioni, dove ci sono anche la versione installata e *Check
+  now*); con una versione nuova un avviso cliccabile una volta per versione e la pillola **Update** in alto
+  (stile della pillola "Waiting", ferma); il dialog mostra le note della release in Markdown (link aperti nel
+  browser), cosa succede al riavvio (finestre e schede tornano; terminali e chat di Claude ripartono, le chat
+  si riprendono da Attività), poi avanzamento, attesa delle altre finestre, installazione, errori con *Retry*.
+- **Finestre**: prima di installare `prepareQuit` (sotto) in questa finestra; `quit_others` fotografa TUTTE
+  le finestre per il ripristino e chiede alle altre di uscire (stesso segnale del "chiudi tutte", baseline
+  propria spostata prima); il frontend aspetta con `other_instances` — su Windows i processi dello STESSO
+  eseguibile, finestre leggere comprese (quello che l'installer deve sostituire). Il plugin su Windows esce
+  con `std::process::exit` dopo aver avviato l'installer, saltando `ExitRequested`: il suo `on_before_exit`
+  chiude i PTY e toglie la finestra dal registro. Un segno (`update-restart.json`, valido 10 minuti) fa sì
+  che il processo rilanciato dall'installer — con gli argomenti della finestra che ha aggiornato — ignori gli
+  argomenti e riapra tutte le finestre; `startup()` restituisce `updatedTo` per l'avviso "aggiornato".
+- **Firma**: chiave privata in `~/.tauri/orbit-updater.key` (stessa convenzione delle chiavi già presenti lì,
+  senza password; va conservata: senza, gli Orbit installati non accettano versioni nuove), la pubblica in
+  `tauri.conf.json`. Gli artefatti firmati li produce solo lo script di rilascio (`--config` con
+  `createUpdaterArtifacts`): in `tauri.conf.json` un `npm run tauri build` senza chiave fallirebbe.
+- **`scripts/New-Release.ps1`** (sul modello di `New-Installer.ps1` di Quiver): versione uguale nei sei punti
+  (il lockfile era rimasto indietro per cinque release), build firmata, `latest.json` con NSIS (`windows-x86_64`
+  e `-nsis`) e MSI (`-msi`), artefatti in `artifacts/release` (ignorata da git), con `-Publish` la release su
+  GitHub dal commit già pushato. Rispetta `CARGO_TARGET_DIR`.
+- **Installer**: `installerIcon` → `setup.exe` e `uninstall.exe` con l'icona di Orbit (era quella generica di
+  NSIS; verificato estraendo l'icona dal setup nuovo).
+- **Dipendenze** (gate "deps al minimo"): `tauri-plugin-updater` 2.12.0 (la 2.13 vuole un Tauri più nuovo)
+  senza default-features: `native-tls` invece di rustls (SChannel su Windows: più leggero e accetta i
+  certificati dei proxy aziendali che Windows accetta) + `system-proxy`; `zip` (tar/flate2) solo fuori da
+  Windows, dove l'aggiornamento è un archivio. `windows-sys` già presente: aggiunta la feature ToolHelp.
+  **Peso** (gate #1), build release vera dello script contro la v0.9.1 pubblicata: eseguibile 5,74 → 6,42 MiB
+  (+0,67, quasi tutto il client HTTPS), setup NSIS 2,85 → 3,11 MiB, MSI 3,51 → 3,84 MiB.
+- **Da sapere**: la v0.9.1 installata non ha l'aggiornamento automatico → la prima versione che lo contiene va
+  installata a mano, le successive arrivano da sole. Una release senza `latest.json`, o marcata pre-release,
+  non viene proposta.
+
+### Bug noti risolti (e testati)
+1. **Chiusura che perdeva le modifiche** (trovato studiando l'aggiornamento): la ✕, `Alt+F4` e "chiudi tutte"
+   chiudevano senza chiedere — con l'autosave acceso si perdeva quanto scritto dopo l'ultimo salvataggio
+   automatico, spento tutto; le altre finestre del "chiudi tutte" uscivano con `app.exit`. Ora
+   `onCloseRequested` → `prepareQuit` (autosave se acceso, poi *Save all / Don't save / Cancel*, poi la
+   sessione scritta subito: l'autosave della sessione è differito di 400 ms). Lato Rust la chiusura è in due
+   fasi: `CloseRequested` salva solo la geometria, l'uscita dal registro avviene a `Destroyed` — altrimenti,
+   annullando, la finestra restava aperta ma fuori dal registro (e un avvio nudo l'avrebbe duplicata). Il
+   "chiudi tutte" chiede a ogni finestra (`orbit-quit-request` → `prepareQuit` → `quit_now`); chi annulla resta
+   aperta e il watcher resta in ascolto. Un solo dialog per tutta l'app (`unsaved.svelte.ts` +
+   `UnsavedDialog.svelte`), usato anche da schede, cambio cartella e "Open as project" (lì prima c'era un
+   confirm nativo a due pulsanti che poteva solo scartare).
+2. **Lo stesso file come due documenti** (M57, "Trovato e non corretto"): i percorsi entrano nel workspace in
+   forma canonica (`util.canonPath`, `\` su Windows) e si confrontano con `samePath`/`pathKey` (separatori e,
+   su Windows, maiuscole indifferenti); le sessioni salvate con le due forme si fondono al ripristino. Anche
+   l'evidenziazione del file attivo in Explorer/MiniTree/Docs e la cronologia di navigazione.
+3. **Attività bloccava l'interfaccia**: `scan_activity` era un comando sincrono (thread principale) che a OGNI
+   modifica di un transcript rileggeva tutti i transcript — 26 file, 206 MiB su questo PC. Ora è async su un
+   thread bloccante con una cache per transcript (data di modifica + dimensione): in release la scansione
+   completa costa 469 ms, quella con la cache 2,5 ms più la rilettura del solo transcript cambiato.
+4. **Scanner C#** (in sospeso dalla M58): il modificatore va cercato solo PRIMA del nome, e davanti al nome non
+   ci devono essere espressioni (`=`, stringhe, `.`, parentesi aperte, `new`/`return`/`await`…). In più:
+   attributi/annotazioni a inizio riga saltati, metodi generici (`Load<T>(…)`, prima mai indicizzati),
+   proprietà `Nome => …` (prima finiva nell'indice il metodo CHIAMATO a destra).
+5. **Decorazioni git in una sottocartella** ("limite noto" dalla M12): `git_status` restituisce anche la radice
+   del repo (`workdir`); albero e margine dell'editor la usano (`repoBase` la ricava dalla cartella aperta,
+   così maiuscole e separatori restano quelli dell'albero; `gitRel` per `git_diff`).
+6. **Scheda attiva fuori vista** (visto nel collaudo M58): la barra scorre (solo lei, con lo scorrimento morbido
+   se il movimento è acceso) finché la scheda attiva è visibile.
+7. **Menu contestuale fuori dallo schermo** vicino al bordo: l'altezza era stimata (5 px per separatore invece
+   di 9, niente etichette su due righe); ora è misurata.
+8. `app_version` dava la versione di Cargo e non quella della configurazione Tauri che usa l'aggiornamento
+   (coincidono nei rilasci, non in una build con `--config`): ora `package_info().version`.
+
+### Verifica
+`svelte-check` 0/0 (268 file), vitest **34/34** (4 nuovi: percorsi canonici), `cargo test` **36/36** (2 nuovi:
+chiamate C# non più dichiarazioni, dichiarazioni ancora trovate) + 1 misura ignorata (`scan_timing`, a mano in
+release). Collaudo nell'istanza di sviluppo isolata (CDP, clic e tasti veri):
+- percorsi: quattro forme dello stesso file (`\`, miste, `/`, minuscole) → un documento e una scheda; Vai alla
+  definizione sulla stessa scheda; la modifica si vede da tutte le forme; sessione con due forme → una scheda;
+- chiusura: ✕ vera con un file non salvato e autosave spento → dialog; *Cancel* → finestra aperta, processo vivo,
+  voce nel registro; ✕ + *Save* → file scritto, processo uscito, registro vuoto, la finestra nel set da riaprire;
+- "chiudi tutte" con due processi: A esce, B chiede per `notes.md`, *Save* → salvato e uscito; il set da riaprire
+  ha entrambe e un avvio nudo le riapre con le loro schede;
+- git in sottocartella: finestra su `docs` → "notes.md M" nell'albero e 2 segni nel margine;
+- schede: 8 aperture → l'ultima visibile (barra scorsa di 458 px), la prima dal menu → di nuovo a 0;
+- menu: 5 voci e 2 separatori aperto a 140 px dal fondo → tutto dentro, a 6 px dal bordo;
+- Attività: durante la prima scansione (2,2 s nel build di debug) un altro comando risponde in 2 ms;
+- scanner sul codice vero di Quiver (`scan_symbols` in sola lettura): metodi 1.659 → 1.237; i 436 tolti erano tutti
+  chiamate (417 per regola, 19 visti a mano: chiamate o metodi chiamati dentro proprietà `=>`);
+  `ArchiveMetadata` da 39 definizioni a 1; 13 metodi generici nuovi.
+
+**Aggiornamento da capo a fondo**, con un prodotto di prova separato da Orbit (`OrbitUpdTest`: eseguibile
+`orbit-updtest.exe` — l'installer NSIS chiude i processi per NOME, quindi non poteva toccare l'Orbit vero —,
+identificativo proprio, niente associazioni né hook, chiave di prova, un server locale al posto di GitHub):
+0.9.90 installata in silenzio; finestra A sul repo di prova e B sulla sottocartella `docs` (due processi);
+modifiche non salvate scritte davvero in entrambe, autosave spento. Il controllo automatico è partito da solo
+dopo 30 s → pillola e avviso; dialog con le note; *Update and restart* → download di 3,1 MB → A chiede
+(*Discard and update* / *Save*) → *Save* → "Closing the other Orbit windows (1 left)" → B chiede → *Save* → B
+esce → installer passivo → in circa 2 secondi entrambe le finestre riaperte sulla 0.9.91 con le loro schede, i
+due file salvati su disco, l'avviso "Orbit updated to 0.9.91" una volta sola; i controlli successivi non trovano
+nulla. Disinstallazione pulita (cartella, voce di disinstallazione, collegamenti); restava
+`HKCU\Software\visialab\OrbitUpdTest`, che il disinstallatore di Tauri lascia apposta, tolta a mano.
+**Script di rilascio** provato senza `-Publish` (build release firmata con la chiave vera, `latest.json` con
+indirizzi e firme giusti); gli artefatti, di una 0.9.1 mai pubblicata, cancellati. Nessuna release pubblicata.
+
+Lezioni di collaudo:
+- il `localStorage` di WebView2 arriva su disco in modo differito: chiudendo il processo con `Stop-Process`
+  subito dopo averlo scritto si perde. Per preparare un profilo di prova si chiude la finestra normalmente;
+  altrimenti la prima apertura di una cartella avvia un `claude` vero (rimasto alla domanda di fiducia:
+  nessun transcript, `~/.claude.json` intatto, verificato, processi chiusi);
+- in un build release i moduli sono in un bundle: niente import dal CDP, si pilota l'app come un utente (clic,
+  `Input.insertText` nell'editor, IPC per i comandi) e le impostazioni si preparano nel `localStorage`;
+- lo strumento PowerShell rifiuta `Remove-Item` con percorsi costruiti da variabili: percorsi espliciti, o `rm`
+  dalla bash dopo aver controllato il percorso.
 
 ---
 

@@ -8,7 +8,7 @@
   <img alt="Platform: Windows, macOS, Linux" src="https://img.shields.io/badge/platform-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-4c8dff?style=flat-square" />
   <img alt="Built with Tauri 2 and Svelte 5" src="https://img.shields.io/badge/built%20with-Tauri%202%20%C2%B7%20Svelte%205-1f9c8a?style=flat-square" />
   <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-7c5cff?style=flat-square" />
-  <img alt="Binary: ~5 MB" src="https://img.shields.io/badge/binary-~5%20MB-2f7ff0?style=flat-square" />
+  <img alt="Binary: ~6 MB" src="https://img.shields.io/badge/binary-~6%20MB-2f7ff0?style=flat-square" />
 </div>
 
 A **lightweight**, beautiful IDE built as a **companion for Claude Code**: edit code, browse
@@ -250,6 +250,15 @@ cross-platform desktop app that weighs almost nothing.
   Orbit window at once, and the next launch **reopens them all at their previous positions**. Each
   window stays its own process; a tiny shared registry in the app config dir coordinates them (no extra
   runtime), and windows left by a crash are pruned so restore keeps working.
+- **No lost edits on close**: closing a window (title-bar ✕, `Alt+F4`, the taskbar) or **Close all** first
+  lets autosave do its part, then asks about whatever is still unsaved — **Save all / Don't save / Cancel**,
+  in each window that has something to save. *Cancel* keeps the window open.
+- **Updates from GitHub**: Orbit checks the [releases](https://github.com/caste9612/Orbit/releases) shortly
+  after starting and every 6 hours (Settings → *Check for updates automatically*, or *Check now*). A new
+  version shows a notice and an **Update** button in the top bar, with its release notes; **Update and
+  restart** downloads the installer, verifies its signature, saves your work (or asks), closes the other
+  Orbit windows and installs in place — then every window reopens where it was, with its tabs. Open
+  terminals and Claude chats restart (resume a chat from Activity).
 - **Color themes**: five full themes, switched live — **Visual Studio 2026 Dark** (the default since
   0.9: neutral charcoal greys sampled from VS 2026, Segoe UI Variable, near-square corners, Fluent-style
   icons, outline file glyphs and VS's purple accent), **Orbit Dark**, **Eclipse** (OLED), **Slate** and
@@ -262,7 +271,8 @@ cross-platform desktop app that weighs almost nothing.
 - **Settings**: theme, keymap preset (incl. Custom), editor/terminal font with **independent sizes**
   (`Ctrl/Cmd+scroll` zooms whichever panel the pointer is over), accent color, smooth-caret toggle,
   **smooth panel transitions**, **autosave**, **default Markdown view** (source / preview / READMEs only), terminal GPU rendering,
-  "launch Claude in the default terminal", "notify when a terminal needs you", and **diagnostic logging** (collect/export logs to investigate issues).
+  "launch Claude in the default terminal", "notify when a terminal needs you", **diagnostic logging** (collect/export logs to investigate issues),
+  and **automatic update checks** (with the installed version and *Check now*).
 
 ---
 
@@ -272,9 +282,9 @@ Measured on Windows (size-optimized release build):
 
 | Item | Size |
 |---|---|
-| Portable `Orbit` binary | ~5.7 MB |
-| MSI installer | ~3.5 MB |
-| NSIS setup | ~2.8 MB |
+| Portable `Orbit` binary | ~6.4 MB (≈0.7 MB of it is the HTTPS client for in-app updates, M59) |
+| MSI installer | ~3.8 MB |
+| NSIS setup | ~3.1 MB |
 | Frontend `dist/` | ~2.8 MB (most of it grammars loaded lazily) |
 | Startup JS chunk | ~546 KB (≈182 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
@@ -296,6 +306,9 @@ memory on top, just as in any terminal. For comparison, an equivalent Electron a
 - **xterm.js + portable-pty** for a real cross-platform terminal (ConPTY on Windows).
 - **git2 / libgit2** with default features off → local operations only (no openssl/libssh2).
 - **notify** for the file watcher.
+- **tauri-plugin-updater** (official) for in-app updates, driven by Orbit's own Rust commands (no JS
+  package): signed installers from GitHub releases, with the system's **native TLS** instead of rustls
+  (lighter, and it trusts the corporate proxies' certificates that Windows trusts).
 - **Lazy-loaded** CodeMirror and xterm so the first paint stays light.
 
 For contributors, an architecture overview is in [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
@@ -353,6 +366,19 @@ npm run tauri dev      # dev mode with hot reload
 ```bash
 npm run tauri build    # binary + installers in src-tauri/target/release
 ```
+
+Releases are built with `scripts/New-Release.ps1` (PowerShell 7): it checks that the version matches in
+all six places, builds the installers **signed** with the update key (`~/.tauri/orbit-updater.key`, kept
+out of the repo — back it up: without it, installed copies can't verify new versions), writes
+`latest.json` for the in-app updater and, with `-Publish`, creates the GitHub release from the pushed
+commit:
+
+```powershell
+.\scripts\New-Release.ps1 -Notes .\notes.md                                 # build only, in artifacts\release
+.\scripts\New-Release.ps1 -Notes .\notes.md -Title "Updates from GitHub" -Publish
+```
+
+A release published without `latest.json` (or marked as pre-release) is not offered to installed copies.
 
 ## Test
 

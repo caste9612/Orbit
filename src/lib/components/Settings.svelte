@@ -252,19 +252,20 @@
         label="Check for updates automatically"
       />
     </div>
-
-    <div class="row">
-      <div class="label">
-        <span class="name">Orbit {version}</span>
-        <span class="hint">{updateHint}</span>
-      </div>
-      {#if updates.available}
-        <button class="control" onclick={() => { closeSettings(); openUpdateDialog(); }}>Update…</button>
-      {:else}
-        <button class="control" disabled={updates.checking} onclick={() => void checkForUpdates(true)}>Check now</button>
-      {/if}
-    </div>
   </div>
+
+  <!-- versione e aggiornamenti fuori dalla lista che scorre: sempre in vista (M61) -->
+  <footer class="foot">
+    <div class="label">
+      <span class="name">Orbit {version}</span>
+      <span class="hint">{updateHint}</span>
+    </div>
+    {#if updates.available}
+      <button class="control" onclick={() => { closeSettings(); openUpdateDialog(); }}>Update…</button>
+    {:else}
+      <button class="control" disabled={updates.checking} onclick={() => void checkForUpdates(true)}>Check now</button>
+    {/if}
+  </footer>
 </div>
 
 <style>
@@ -275,6 +276,9 @@
     left: 50%;
     transform: translateX(-50%);
     width: min(520px, 92vw);
+    max-height: calc(100vh - 110px);
+    display: flex;
+    flex-direction: column;
     background: var(--color-surface-2);
     border: 1px solid var(--color-line-strong);
     border-radius: var(--radius-lg);
@@ -309,9 +313,20 @@
     color: var(--color-ink);
   }
   .body {
+    min-height: 0; /* scorre solo la lista: testata e piè restano fermi */
     padding: 6px 14px 14px;
-    max-height: calc(100vh - 120px);
     overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+  /* 26px a destra = 14 di padding + 12 della scrollbar (app.css) riservata nella lista: il pulsante
+     resta allineato ai controlli delle righe sopra */
+  .foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 11px 26px 11px 14px;
+    border-top: 1px solid var(--color-line);
   }
   .row {
     display: flex;

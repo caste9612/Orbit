@@ -265,7 +265,8 @@ cross-platform desktop app that weighs almost nothing.
   lets autosave do its part, then asks about whatever is still unsaved — **Save all / Don't save / Cancel**,
   in each window that has something to save. *Cancel* keeps the window open.
 - **Updates from GitHub**: Orbit checks the [releases](https://github.com/caste9612/Orbit/releases) shortly
-  after starting and every 6 hours (Settings → *Check for updates automatically*, or *Check now*). A new
+  after starting and every 6 hours (Settings → *Check for updates automatically*); the installed version and
+  **Check now** sit at the foot of Settings, always in view. A new
   version shows a notice and an **Update** button in the top bar, with its release notes; **Update and
   restart** downloads the installer, verifies its signature, saves your work (or asks), closes the other
   Orbit windows and installs in place — then every window reopens where it was, with its tabs. Open
@@ -283,7 +284,7 @@ cross-platform desktop app that weighs almost nothing.
   (`Ctrl/Cmd+scroll` zooms whichever panel the pointer is over), accent color, smooth-caret toggle,
   **code lens**, **smooth panel transitions**, **autosave**, **default Markdown view** (source / preview / READMEs only), terminal GPU rendering,
   "launch Claude in the default terminal", "notify when a terminal needs you", **diagnostic logging** (collect/export logs to investigate issues),
-  and **automatic update checks** (with the installed version and *Check now*).
+  and **automatic update checks** (the installed version and *Check now* are pinned at the foot of the panel).
 
 ---
 

@@ -380,7 +380,9 @@ npm run tauri build    # binary + installers in src-tauri/target/release
 
 Releases are built with `scripts/New-Release.ps1` (PowerShell 7): it checks that the version matches in
 all six places, builds the installers **signed** with the update key (`~/.tauri/orbit-updater.key`, kept
-out of the repo — back it up: without it, installed copies can't verify new versions), writes
+out of the repo and password-protected — the script asks for the password, or reads
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, and checks it before building; back the key up: without it,
+installed copies can't verify new versions), writes
 `latest.json` for the in-app updater and, with `-Publish`, creates the GitHub release from the pushed
 commit:
 

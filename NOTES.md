@@ -2971,6 +2971,13 @@ Build con `scripts/New-Release.ps1` (senza `-Publish`): eseguibile **6,46 MiB** 
 `APP_ASSOCIATE`/`APP_UNASSOCIATE`, `hooks.nsh` incluso e i due hook inseriti; nel `main.wxs` dell'MSI nessun
 `ProgId`; `latest.json` punta agli asset della v1.0.0.
 
+**Chiave di firma con password** (scelta dell'utente prima di pubblicare): la chiave della M59, senza password,
+non era mai uscita (nessuna release pubblicata con la sua chiave pubblica), quindi la 1.0.0 nasce con una chiave
+nuova protetta da password, generata dall'utente nel suo terminale (la password non passa da qui); la vecchia è
+messa da parte in `~/.tauri/orbit-updater-nopass.key`. `New-Release.ps1` chiede la password senza mostrarla (o
+la legge da `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`), la toglie dall'ambiente alla fine e la prova firmando un file
+di prova prima di compilare: provato con la vecchia chiave, password vuota → firma, password sbagliata → errore.
+
 Lezioni di collaudo:
 - Svelte 5: `autofocus` non è una garanzia; per i campi che devono avere il fuoco, `use:focusOnMount`;
 - quando Vite ricarica la pagina intera (modifica a un modulo condiviso) la lista dei terminali riparte da zero

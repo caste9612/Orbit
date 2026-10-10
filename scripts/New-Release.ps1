@@ -34,8 +34,9 @@
     modifiche fuori dal commit, che il commit sia già su GitHub e che la release non esista già.
 
 .PARAMETER KeyPath
-    Chiave privata di firma degli aggiornamenti. Se è protetta da password, mettila in
-    $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD prima di lanciare lo script.
+    Chiave privata di firma degli aggiornamenti, protetta da password (dalla 1.0): lo script la chiede senza
+    mostrarla — o la legge da $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD, l'unico modo senza un terminale
+    interattivo — e la prova prima di compilare.
 
 .EXAMPLE
     .\scripts\New-Release.ps1 -Notes .\notes-1.0.0.md
@@ -96,9 +97,38 @@ if ($Publish) {
 }
 
 # --- 2. compilazione firmata ------------------------------------------------------------------------------
+# La chiave ha una password (dalla 1.0): se non è già nell'ambiente la chiede, senza mostrarla; resta solo in
+# questo processo e alla fine si toglie. La si prova subito firmando un file di prova, così una password
+# sbagliata non costa una compilazione.
+$askedPassword = $false
+if ($null -eq $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) {
+    if ([Console]::IsInputRedirected) {
+        $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ''
+    }
+    else {
+        $secure = Read-Host 'Password della chiave di firma' -AsSecureString
+        $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = [Net.NetworkCredential]::new('', $secure).Password
+    }
+    $askedPassword = $true
+}
+$probe = Join-Path ([IO.Path]::GetTempPath()) "orbit-sign-probe-$PID.txt"
+Set-Content -LiteralPath $probe -Value 'probe' -Encoding utf8NoBOM
+Push-Location $repo
+try {
+    npx tauri signer sign -f $KeyPath $probe *> $null
+    $signed = $LASTEXITCODE -eq 0
+}
+finally {
+    Pop-Location
+    Remove-Item -LiteralPath $probe, "$probe.sig" -ErrorAction SilentlyContinue
+}
+if (-not $signed) {
+    if ($askedPassword) { Remove-Item Env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD -ErrorAction SilentlyContinue }
+    throw "La chiave $KeyPath non si apre con questa password (senza un terminale interattivo mettila prima in `$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD)."
+}
+
 Write-Host "Compilo Orbit $version (installer firmati)..."
 $env:TAURI_SIGNING_PRIVATE_KEY = Get-Content -LiteralPath $KeyPath -Raw
-if ($null -eq $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = '' }
 # gli artefatti firmati SOLO qui: in tauri.conf.json un build normale fallirebbe senza la chiave
 $extra = Join-Path ([IO.Path]::GetTempPath()) "orbit-release-$PID.json"
 '{ "bundle": { "createUpdaterArtifacts": true } }' | Set-Content -LiteralPath $extra -Encoding utf8NoBOM
@@ -113,6 +143,7 @@ finally {
     Pop-Location
     Remove-Item -LiteralPath $extra -ErrorAction SilentlyContinue
     Remove-Item Env:TAURI_SIGNING_PRIVATE_KEY -ErrorAction SilentlyContinue
+    if ($askedPassword) { Remove-Item Env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD -ErrorAction SilentlyContinue }
 }
 
 # --- 3-4. artefatti e latest.json -------------------------------------------------------------------------

@@ -65,8 +65,10 @@ cross-platform desktop app that weighs almost nothing.
 - **Quick Open** (`Ctrl/Cmd+P`) with fuzzy ranking, and full‑text **project search**.
 - **Drag in files**: drop files from your OS file manager onto the editor to open them.
 - On Windows, the installer registers Orbit for common **text, code, image and PDF** files, so it
-  shows up in their **"Open with"** menu. Scripts (`.bat`, `.cmd`, `.ps1`, `.sh`) are deliberately
-  left alone: double-clicking them still runs them.
+  shows up in their **"Open with"** menu — without making itself their **default** app: double-click
+  keeps opening whatever it opened before (installing 1.0 also hands back the defaults that earlier
+  versions had taken over). Scripts (`.bat`, `.cmd`, `.ps1`, `.sh`) are deliberately left alone:
+  double-clicking them still runs them.
 - **Light window for a single file**: a file opened on its own ("Open with", double-click) opens in a
   lightweight window — just the file, with both side panels collapsed. Its folder is only context, not a
   project: Orbit writes nothing into it (no `.orbit`, no `.claude`), doesn't index or watch the tree below,
@@ -109,8 +111,14 @@ cross-platform desktop app that weighs almost nothing.
 - A background **symbol index** of the whole project — classes, interfaces, structs, enums, methods,
   functions and more — for C#/Java, **C/C++**, TypeScript/JavaScript/Svelte, Python, Rust and Go. Built
   by a hand‑rolled Rust scanner (no LSP), cached under `.orbit/index/` and refreshed live as files change.
+  Local helpers declared inside other functions stay out of it.
 - **Go to definition** (`F12`, or `Ctrl/Cmd+click`) jumps across files; ambiguous names show a picker.
 - **Project symbols** (`Ctrl/Cmd+T`): fuzzy‑jump to any symbol in the project.
+- **Code lens** (Visual Studio style): a small line above classes, interfaces, types, methods and
+  functions shows **N references** and, on types, **N implementations** — click it for the list in the
+  palette (file and line, `Enter` jumps there). References are counted **by name** in the same pass that
+  builds the symbol index: the project lines that use the name, skipping comments and strings, with **≈**
+  when the name is declared more than once. Toggle in Settings (*Code lens*).
 - A **related bar** under the breadcrumb shows the symbol around the cursor (type › method) with its
   **base types / interfaces** and **implementers** (click to jump), plus kind badges (class,
   interface, abstract, method…).
@@ -205,8 +213,11 @@ cross-platform desktop app that weighs almost nothing.
   (title, repo, prompts/steps, churn, commits, live): selecting it opens the whole conversation in the
   bottom panel — **every prompt in order**, each with its outcome — with a **▶ Resume this chat** button
   (resuming always restarts the whole session, so the chat is the natural unit). Clicking a unit in the
-  timeline still opens its per‑unit **digest**. A small left panel lists your projects with **on/off
-  toggles** (remembered) to hide noise, plus per‑project mini‑stats.
+  timeline still opens its per‑unit **digest**. A unit is titled with its **commit message** when it
+  produced one (also when the message came through a heredoc), otherwise with its prompt; work that went
+  on without a new prompt — on another branch, or after a commit — shows **↳** and the request it came
+  from. A small left panel lists your projects with **on/off toggles** (remembered) to hide noise, plus
+  per‑project mini‑stats.
 - A **Scratchpad** (📝 in the top bar) opens a persistent plain‑text notes/prompts file
   (`.orbit/scratch.txt`) to jot prompts and reuse them.
 - **Attention when a terminal needs you** — when `claude` finishes a turn or waits for input (Orbit
@@ -270,7 +281,7 @@ cross-platform desktop app that weighs almost nothing.
   conflict warnings) — full reference in Settings → Keyboard shortcuts.
 - **Settings**: theme, keymap preset (incl. Custom), editor/terminal font with **independent sizes**
   (`Ctrl/Cmd+scroll` zooms whichever panel the pointer is over), accent color, smooth-caret toggle,
-  **smooth panel transitions**, **autosave**, **default Markdown view** (source / preview / READMEs only), terminal GPU rendering,
+  **code lens**, **smooth panel transitions**, **autosave**, **default Markdown view** (source / preview / READMEs only), terminal GPU rendering,
   "launch Claude in the default terminal", "notify when a terminal needs you", **diagnostic logging** (collect/export logs to investigate issues),
   and **automatic update checks** (with the installed version and *Check now*).
 

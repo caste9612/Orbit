@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -2843,6 +2843,132 @@ Lezioni di collaudo:
   `Input.insertText` nell'editor, IPC per i comandi) e le impostazioni si preparano nel `localStorage`;
 - lo strumento PowerShell rifiuta `Remove-Item` con percorsi costruiti da variabili: percorsi espliciti, o `rm`
   dalla bash dopo aver controllato il percorso.
+
+---
+
+## Milestone 60 — CodeLens, "Apri con" senza predefinito, rifiniture per la 1.0
+
+Richiesta dell'utente (2026-10-10), dopo il merge e il push della M59: "prima di fare una nuova release
+discutiamo di codelens e chiudiamo tutti i punti aperti? poi alla fine rilascerei 1.0.0". Scelte: la lente
+**sopra la dichiarazione** (come Visual Studio), con **riferimenti e implementazioni** (niente informazioni
+git), il clic apre l'**elenco nella palette**; da chiudere prima della 1.0: associazioni solo "Apri con",
+screenshot del README nuovi, pulizia prima del rilascio. Branch `m60-codelens-associations`.
+
+### CodeLens
+- **Cosa conta.** Niente language server (gate #1): i riferimenti si contano **per nome**, nello stesso giro
+  della scansione dei simboli. `refs.rs` legge ogni file con un lexer per famiglia di linguaggi (C-like, C#,
+  JS/TS/Svelte, Go, Python, markup XAML/Razor): salta commenti e stringhe ma legge le interpolazioni
+  (`$"{x}"`, `` `${x}` ``, f-string), riconosce i lifetime di Rust, le raw string, i prefissi di Python, i
+  numeri. Conta le **righe** che contengono il nome, non le occorrenze: così il numero sulla lente è uguale alle
+  righe dell'elenco (prima prova: 13 lenti su 13 coerenti solo dopo questo cambio). La scansione tiene solo i
+  nomi che sono simboli; `codeIndex` li salva in `.orbit/index/refs.json` accanto a `symbols.json`.
+- **Cosa mostra.** "N references" = righe col nome − dichiarazioni − costruttori; **≈** davanti quando il nome
+  è dichiarato più volte (il conto per nome mescola omonimi). Niente lente sui costruttori e sui metodi
+  speciali di Python. Sui tipi anche "N implementations" (gli implementatori già noti alla barra dei
+  correlati). Impostazione *Code lens*, accesa di default.
+- **Il clic.** *N references* chiama `ref_list(root, name)` (async su un thread bloccante: le righe che
+  contengono il nome, file ≤ 2 MB con prefiltro sul testo, al massimo 2000) e apre la palette di `Ctrl+T` con
+  file e testo della riga (tipo `ref`), le dichiarazioni escluse; Invio salta lì e la cronologia avanti/indietro
+  funziona come per Vai alla definizione. *N implementations* riusa `showImplementers`.
+- **Editor** (`editor/codeLens.ts`): widget di blocco di uno `StateField`, mappati sulle modifiche (le lenti
+  seguono il testo mentre scrivi, si ricalcolano al salvataggio); rientro uguale a quello della riga
+  (padding di `.cm-line` + rientro × `defaultCharacterWidth`: senza il padding erano 6 px a sinistra);
+  testo all'85% della dimensione dell'editor; l'azione su `click` (il `mousedown` viene inghiottito, sennò il
+  cursore saltava sulla riga della lente).
+- **Fuori dal thread principale**: `scan_symbols`, `ref_list` (e già `scan_activity`) sono comandi async — un
+  comando Tauri sincrono gira sul thread principale e blocca la finestra.
+- **Peso** (gate #1): nessuna dipendenza nuova. In release, scansione + conteggi: Orbit 14,3 ms (1.049 simboli,
+  931 nomi), Quiver 21,7 ms (C#, 1.780 simboli, 1.457 nomi) — `symbols::tests::scan_timing`, ignorato, a mano.
+
+### Scanner TS/JS
+Le lenti hanno mostrato simboli che non lo erano:
+- `const all = (refs[name] ?? 0) - decls` era una funzione (bastava una parentesi in testa);
+- `const t = terminals.list.find((s) => s.id === id)`: bastava un `=>` sulla riga → una "funzione `t`" con una
+  lente da 100+ riferimenti (`left`, `right`, `next`… in `terminalLayout.ts`). Ora è una funzione solo se il
+  valore È una funzione: `function`, `async …`, `(…) =>`/`(…): T =>` (parentesi bilanciate, o ancora aperte a
+  fine riga = parametri su più righe), `<T,>(…) =>`, `x =>`;
+- le funzioni dentro altre funzioni sono aiutanti locali e restano fuori dalla rubrica: più rientrate del livello
+  esterno (0, o il rientro dello `<script>` in un componente Svelte).
+Sull'indice di Orbit: 1.072 → 953 simboli; i 119 tolti erano valori (`ALL_THEME_VARS`, `lastRev`, `off`…) o
+aiutanti annidati (`mayQuit`, `tick`, `canon`…), nessuna funzione di primo livello.
+
+### Bug del fuoco (preesistente, trovato col clic sulle lenti)
+La palette aperta da una lente non prendeva il fuoco, e lo stesso valeva per `Ctrl+P` premuto con l'editor
+attivo: **i tasti finivano nel file**. Causa: Svelte 5 applica `autofocus` solo se il fuoco è sul `body`
+(`svelte/src/internal/client/dom/elements/misc.js`). Nuova azione `focusOnMount` (`lib/focus.ts`) al posto di
+`autofocus` in QuickOpen, SymbolPalette, WorkspaceSymbols, WrapperComposer, UnsavedDialog, UpdateDialog,
+StatusBar e nei due campi di rinomina dei terminali (che con `{ select: true }` ora selezionano il nome:
+riselezione al frame dopo, perché xterm riprendeva la selezione).
+
+### "Apri con" senza diventare il programma predefinito
+- **Il problema**: `bundle.fileAssociations` fa scrivere all'installer NSIS di Tauri `APP_ASSOCIATE`, che non
+  aggiunge Orbit ad "Apri con": lo rende il **predefinito** dell'estensione (`HKCU\Software\Classes\.ext` =
+  `Orbit document`, il valore precedente in `Orbit document_backup`). Sul PC dell'utente (letto, non toccato):
+  12 estensioni (`txt md json py js ts cs html png pdf svelte log`) avevano Orbit come predefinito con backup
+  vuoto; dove c'è una `UserChoice` (6 di queste) vince quella.
+- **La soluzione**: `tauri.windows.conf.json` toglie `fileAssociations` solo su Windows (merge patch JSON;
+  macOS e Linux lo usano ancora) e `windows/hooks.nsh` fa la registrazione: il ProgID `Orbit document` (stesso
+  nome, così le scelte "usa sempre Orbit" già fatte continuano a funzionare) con icona e comando, e il ProgID
+  nelle `OpenWithProgids` di ogni estensione. Dove il predefinito è ancora quello messo da un Orbit precedente
+  lo restituisce: il backup, se c'era, altrimenti nessuno — togliendo anche il valore VUOTO che il vecchio
+  disinstallatore lascia (riscrive il backup invece di cancellare), perché un predefinito vuoto in HKCU
+  nasconde quello di sistema. Le `UserChoice` non si toccano; gli script (`bat cmd ps1 sh bash`, tolti dalla
+  v0.8.10) hanno solo la pulizia. La disinstallazione toglie le voci e il ProgID.
+- **Prova** (banco `makensis` con l'`hooks.nsh` vero, ProgID `OrbitTest document` ed estensioni finte
+  `.orbt1-5`, quindi nessuna estensione vera del PC toccata): predefinito nostro con backup vuoto → tolto;
+  con backup → restituito; vuoto lasciato dal disinstallatore → tolto; di un altro programma → intatto; chiave
+  assente → solo "Apri con". Dopo la disinstallazione niente voci, niente chiavi vuote, niente ProgID.
+
+### Attività (difetti trovati preparando gli screenshot)
+- Etichetta "ode-strips": il messaggio di commit si cercava come il primo `-m` del comando, anche dentro
+  `git merge light-mode-strips && git commit …`. Ora solo i flag dopo `git commit`, a parola intera; letti anche
+  `-am`, `--message=`, `-F -` con un heredoc e la here-string di PowerShell (`-m @'…'@`); `\"` dentro le
+  virgolette. `git commit` dentro una stringa (`echo "git commit"`) non è più un commit.
+- "(senza titolo)" su metà delle unità: un'unità senza un prompt suo (lavoro proseguito dopo un cambio di
+  branch o un commit, nello stesso turno) prende ora la richiesta da cui viene, con **↳**; il ripiego finale è
+  "(untitled)". Le unità committate senza hash nell'output (`git commit -q`) risultavano "uncommitted" e non
+  contavano tra i commit delle chat; il dettaglio non mostra più "0 steps" per le unità di seguito.
+- Intestazione: a pannello stretto Timeline/Chats (gruppo con `overflow: hidden`) si restringevano fino a "Ch";
+  ora si accorcia prima il riepilogo (coi puntini, testo intero nel tooltip), poi il filtro.
+- La cache delle unità è solo in memoria: con un Orbit nuovo le etichette si ricalcolano tutte.
+
+### Interfaccia in inglese
+Gli ultimi testi italiani dell'interfaccia: i tempi relativi ("5 min fa" → "5 min ago", date en-GB) in Attività e
+nella cronologia Git, "Testo" → "Plain Text" nella barra di stato, il compositore dei wrapper (segnaposto,
+anteprima, bottoni, avvisi), le regole dello scaffale, il toast "No folder open", i diff senza differenze, un
+errore di configurazione. Le scorciatoie predefinite di Claude e la sezione generata del CLAUDE.md restano in
+italiano: sono contenuto, non interfaccia.
+
+### Screenshot del README
+Rifatti tutti e tre con l'interfaccia attuale (barra repo centrata, strisce, CodeLens, Attività corretta), stessa
+inquadratura di prima: finestra 2000×1125 catturata a 2600×1463. Con il CDP:
+`Page.captureScreenshot` con `clip.scale: 1.3` ridisegna il testo alla risoluzione maggiore senza cambiare
+`devicePixelRatio`; `Emulation.setDeviceMetricsOverride` invece lo cambia, xterm fa le righe più alte senza
+rifittare e l'ultima riga delle chat usciva dal riquadro. Le chat sono `claude` veri nell'istanza di prova, che
+eredita `CLAUDE_CODE_CHILD_SESSION`: niente transcript (lo dice la riga "Transcript saving is off"). In
+Attività compare solo Orbit: gli altri progetti dell'utente (un repo privato, progetti di lavoro) sono tolti
+dalla lista nel profilo dell'istanza di prova, non in quello vero — un README pubblico non li deve mostrare.
+
+### Verifica
+`svelte-check` 0/0 (270 file), vitest **36/36** (2 nuovi: testi in inglese), `cargo test` **48/48** (12 nuovi:
+7 del lexer dei riferimenti — commenti, stringhe e interpolazioni per C#, JS, Rust, Python, Go e markup, numeri,
+righe invece di occorrenze —, 3 dello scanner TS, 2 di Attività) + 2 misure ignorate. Collaudo nell'istanza
+isolata (CDP, clic veri) su una copia del codice C# di Quiver e una del codice di Orbit:
+- lenti sopra le dichiarazioni allineate al testo (335,2 px entrambe); *4 references* su `IWindowsIntegration`
+  → palette con 4 righe, dichiarazione esclusa, Invio alla riga 45, Indietro torna; *2 implementations* → 2;
+- digitando sopra una dichiarazione la lente la segue; il toggle le spegne e le riaccende; le palette prendono
+  il fuoco anche dall'editor (prima i tasti finivano nel file);
+- Attività sui transcript veri: etichette dai commit (anche `-F -`), seguiti con ↳, "Timeline" e "Chats" interi
+  a 660 px di editor, "now"/"committed" nel dettaglio.
+
+Lezioni di collaudo:
+- Svelte 5: `autofocus` non è una garanzia; per i campi che devono avere il fuoco, `use:focusOnMount`;
+- quando Vite ricarica la pagina intera (modifica a un modulo condiviso) la lista dei terminali riparte da zero
+  ma i PTY restano vivi nel backend: si chiudono con `pty_kill` (gli id ripartono da `term-1`);
+- Python su Windows scrive `\r\n` in modalità testo: per i file del repo `newline=""` (il `.gitattributes` con
+  `eol=lf` normalizza il commit, non la copia di lavoro);
+- in PowerShell i nomi delle variabili non distinguono le maiuscole: `$h` (l'handle) sovrascriveva il parametro
+  `$H` (l'altezza) → finestra alta 32.767 px.
 
 ---
 

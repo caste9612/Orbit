@@ -26,13 +26,14 @@ src/
                       #   plain .ts helpers: dotorbit.ts (.orbit config), projectFiles.ts (list_files cache),
                       #   scratch.ts (scratchpad); pure, vitest-tested logic: shelfRules.ts, terminalLayout.ts,
                       #   editorTabs.ts
-    editor/           # CodeMirror extensions (theme, indent guides, git gutter, semantic overlay) + outline.ts (symbols), activeEditor.ts
+    editor/           # CodeMirror extensions (theme, indent guides, git gutter, semantic overlay, code lens) + outline.ts (symbols), activeEditor.ts
     assets/           # orbit-wordmark.svg (the brand wordmark as vector paths)
     util.ts           # pure helpers (paths, file icons, language label, time)
     markdown.ts       # Markdown → sanitized HTML (marked + DOMPurify, lazy) + heading TOC
     clipboard.ts      # centralized copy/paste: Tauri clipboard plugin + navigator fallback, explicit success
     gitgraph.ts       # Git Graph lane layout (pure): commits + parents → lanes and segments to draw
     motion.ts         # panelSlide: side transition of the shell panels, strips and splitters (M57)
+    focus.ts          # focusOnMount: focus (and select) an input on mount — Svelte 5's autofocus doesn't (M60)
 src-tauri/
   src/lib.rs          # Rust entry: fs/session/window commands + run() (registers all)
   src/git.rs          # git commands (libgit2), incl. git_graph (branch/commit graph)
@@ -40,11 +41,13 @@ src-tauri/
   src/pty.rs          # terminal/PTY commands
   src/watcher.rs      # file watcher (emits "fs-changed")
   src/symbols.rs      # heuristic project symbol scanner (scan_symbols) — no LSP, std only
+  src/refs.rs         # code lens references: identifier lexer (no comments/strings), counts by name, ref_list
   src/winsession.rs   # multi-window session: per-window registry, reopen-all + close-all, geometry (replaces winstate)
   src/updater.rs      # in-app updates from GitHub releases (tauri-plugin-updater driven by own commands)
   tauri.conf.json     # window, bundle, productName "Orbit"
+  tauri.windows.conf.json # Windows overrides: no bundle.fileAssociations ("Open with" lives in hooks.nsh)
   capabilities/       # Tauri permission capabilities
-  windows/hooks.nsh   # NSIS post-install hook: removes script associations left by older versions
+  windows/hooks.nsh   # NSIS hooks: Orbit in "Open with" without becoming the default; hands back older defaults
 scripts/New-Release.ps1 # release: version check, signed installers, latest.json, GitHub release (-Publish)
 scripts/              # footprint measurement (measure-orbit.ps1, measure-orbit-ram.ps1)
 app-icon.svg          # brand mark, single source of the OS icons (see Theming → Brand mark)
@@ -78,7 +81,7 @@ Three kinds of frontend module, kept separate:
 | `search` | project text search (debounced) |
 | `quickopen` | Ctrl+P fuzzy file finder |
 | `symbols` | **Go to Symbol** palette (Ctrl+Shift+O): outline of the active editor + fuzzy filter |
-| `codeIndex` | **project symbol index** (the "address book") from `scan_symbols`, cached in `.orbit/index/`: **Go to definition** (F12/Ctrl+click), **Project symbols** palette (Ctrl+T), the related‑bar context (`contextAt`), the **semantic‑overlay name sets** (`semSets`/`semIndex` → type & function names for the editor overlay), and the **back/forward nav history** (records jumps *and* file/tab switches; `nav` counts drive the top‑bar arrows) |
+| `codeIndex` | **project symbol index** (the "address book") from `scan_symbols`, cached in `.orbit/index/`: **Go to definition** (F12/Ctrl+click), **Project symbols** palette (Ctrl+T), the related‑bar context (`contextAt`), the **semantic‑overlay name sets** (`semSets`/`semIndex` → type & function names for the editor overlay), the **code lens** data (`refs` counts from `index/refs.json`, `lensesFor`, `openReferences`/`openImplementations`), and the **back/forward nav history** (records jumps *and* file/tab switches; `nav` counts drive the top‑bar arrows) |
 | `keybindings` | central **command registry** + keyboard matcher/dispatch, with per‑preset keys (Orbit/VS/IntelliJ) **plus a user‑built `custom` keymap** (`settings.customKeys`, rebind per command) and the shortcuts‑reference panel; `keyStringFromEvent` captures a rebind, `conflictKeys` flags duplicates |
 | `activity` | **Activity** view: work units from `scan_activity` across all `~/.claude/projects` (prompt‑first segmentation in Rust); project on/off toggles `activityPrefs` (persisted, hides noise) + `openActivity`; live refresh via `watch_activity`→`activity-changed` |
 | `scratch` | one‑click persistent plain‑text scratchpad (`.orbit/scratch.txt`) for notes/prompts; renames a legacy `scratch.md` on first use |
@@ -235,6 +238,21 @@ first paint loads only the Explorer + the active editor.
   own move and pre‑set the current position to dodge async races. `RelatedBar.svelte` (under the breadcrumb) shows `contextAt`'s enclosing symbol
   (type › method) with clickable base types / implementers and `KindBadge.svelte` monograms; it reserves
   its height when the file has symbols (no layout shift) and empties when the cursor is outside a symbol.
+- **Code lens (M60)** — `editor/codeLens.ts`: block widgets from a `StateField`
+  (`Decoration.widget({ block: true, side: -1 })`) above each declaration line, mapped through edits and
+  replaced by the `setLenses` effect; each lens is indented like its line (`.cm-line` padding + indent ×
+  `defaultCharacterWidth`) and acts on `click` (its `mousedown` is swallowed so the caret doesn't move).
+  `Editor.svelte` feeds it from `codeIndex.lensesFor(relPath)` in an `$effect` on the symbol index, the
+  `refs` counts, `settings.codeLens` and the file. The counts come from the **same walk** as the symbols:
+  `refs.rs` lexes each file per language family (C‑like, C#, JS/TS/Svelte, Go, Python, markup — comments
+  and strings skipped, interpolations read, Rust lifetimes and raw strings, Python prefixes) and counts the
+  **lines** containing each identifier, so the number on the lens equals the rows of the list; the scan
+  keeps only names that are symbols and `codeIndex` caches them in `.orbit/index/refs.json`. A lens shows
+  `refs − declarations − constructors`, with **≈** when the name is declared more than once; constructors
+  and Python dunders get none. *N references* calls `ref_list(root, name)` (async: every matching line,
+  ≤ 2000, declarations filtered out) and shows it in the `Ctrl+T` palette (file glyph + line text, the
+  `ref` kind); *N implementations* reuses `showImplementers`. On Quiver (C#, 1,780 symbols) scan + counts
+  take ~22 ms in release.
 - **Follow active file (reveal)** — `settings.revealActive` (the ⌖ toggle in the explorer toolbar)
   drives an `$effect` in `App.svelte` that calls `explorer.revealInTree(activeFile.path)`: it expands
   the active file's ancestor folders (matched by segment name, case‑insensitive, lazy‑loading as
@@ -257,7 +275,10 @@ first paint loads only the Explorer + the active editor.
   toolbar (`EditorArea.svelte`); reuses the terminal model (`cwd`/`initCommand`), no new Rust command.
 - **Activity (work units)** — `activity.rs`'s `scan_activity` reads ALL `~/.claude/projects/*/*.jsonl`
   transcripts and reconstructs **work units** (PROMPT‑FIRST: each user prompt + the files/commands it
-  triggers = one unit; a `git commit` labels the unit it falls in; a branch change is a hard boundary;
+  triggers = one unit; a `git commit` labels the unit it falls in — the message is read only from flags
+  after `git commit` (`-m`, `-am`, `--message=`, `-F -` with a heredoc, PowerShell here‑strings) —; a unit
+  with no prompt of its own (work that went on after a branch change or a commit) is labelled `↳ <the
+  request it came from>`; a branch change is a hard boundary;
   file +/− from `toolUseResult.structuredPatch`, the full prompt text is kept for the digest). `watch_activity`
   watches `~/.claude/projects` (notify) and emits **`activity-changed`** for live refresh. Frontend:
   `activity.svelte.ts` (state + `loadActivity` + project on/off `activityPrefs`, persisted; `sessionColor` =
@@ -441,12 +462,19 @@ first paint loads only the Explorer + the active editor.
   Windows, corporate proxy roots included) and the system proxy is honoured. Releases come from
   `scripts/New-Release.ps1` (signing key outside the repo, `createUpdaterArtifacts` only there so a plain
   `tauri build` needs no key); `bundle.windows.nsis.installerIcon` gives setup and uninstaller Orbit's icon.
-- **Open with (Windows)** — `bundle.fileAssociations` registers Orbit as a handler for common file
-  types, so it shows up in the OS "Open with" menu (registered by the **installer**, not `tauri dev`).
-  Caveat: Tauri's NSIS installer makes Orbit the **default** handler of each listed extension wherever
-  Windows has no user choice, so script types (`bat`/`cmd`/`ps1`/`sh`/`bash`) are not listed — they must
-  keep running on double‑click — and `src-tauri/windows/hooks.nsh` (`NSIS_HOOK_POSTINSTALL`) removes the
-  keys an older version left for them, only where Orbit's `Orbit document_backup` value is present.
+- **Open with (Windows)** — Orbit shows up in the OS "Open with" menu of common text, code, image and
+  PDF files (registered by the **installer**, not `tauri dev`) **without becoming their default**.
+  `bundle.fileAssociations` (still used on macOS/Linux) is nulled for Windows in `tauri.windows.conf.json`
+  (JSON merge patch), because Tauri's NSIS installer makes Orbit the default handler of every listed
+  extension (`HKCU\Software\Classes\.ext` = `Orbit document`, the old value in `Orbit document_backup`).
+  Instead `src-tauri/windows/hooks.nsh` (`NSIS_HOOK_POSTINSTALL`) writes the `Orbit document` ProgID (same
+  name, so an "always use Orbit" already chosen keeps working) and adds it to each extension's
+  `OpenWithProgids`; where the default is still the one an older Orbit set — or the empty value its
+  uninstaller left, which would hide the system default — it hands back the backup or removes it. User
+  choices (`UserChoice`) are never touched; script types (`bat`/`cmd`/`ps1`/`sh`/`bash`) only get that
+  clean‑up, so they keep running on double‑click. `NSIS_HOOK_PREUNINSTALL` removes the entries and the
+  ProgID. `ORBIT_PROGID` and `ORBIT_FOR_EACH_EXT` can be redefined before including the file: the M60 test
+  bench ran install and uninstall with a fake ProgID on fake extensions (5 starting states).
   `startup()` opens a file passed as the first CLI argument (`orbit.exe "<file>"`) in a **light window**,
   with its parent folder as context only (see *Light window*).
 
@@ -483,8 +511,13 @@ frontend calls them with `invoke("name", {args})`. Areas:
 - **Terminal** (`pty.rs`): `pty_spawn`, `pty_write`, `pty_resize`, `pty_kill`, `pty_alive`, `list_shells`;
   streams output as `pty-data-<id>` events.
 - **Symbols** (`symbols.rs`): `scan_symbols(root)` — heuristic project‑wide symbol scan (C#/Java, C/C++,
-  TS/JS/Svelte, Python, Rust, Go; std only, no LSP / no `regex`); returns
-  `Symbol { name, kind, file, line, container, bases, isAbstract }`. C#/Java members (M59): a declaration
+  TS/JS/Svelte, Python, Rust, Go; std only, no LSP / no `regex`); async (blocking thread, M60); returns
+  `{ symbols: Symbol[], refs: Record<name, lines> }` with
+  `Symbol { name, kind, file, line, container, bases, isAbstract }` and the code lens counts. TS/JS (M60): a
+  value built with a callback (`const t = list.find((x) => …)`) is not a function, and functions nested in
+  other functions (indented past the top level, or past the `<script>` of a Svelte component) are local
+  helpers and stay out (1,072 → 953 symbols on Orbit, none at top level lost). `ref_list(root, name)`
+  (`refs.rs`, async) lists the lines that use a name for the code lens palette. C#/Java members (M59): a declaration
   needs a modifier **before** the name and no expression in front of it (`=`, strings, `.`, unbalanced
   parentheses, `new`/`return`/`await`…), so calls and `new X()` are no longer indexed as methods; leading
   attributes/annotations are skipped, generic methods (`Load<T>(…)`) and `Name => …` properties are found.
@@ -566,6 +599,9 @@ theme's ink colors (readable on Orbit Light too); the planet keeps the brand gra
 - **Path helpers** are centralized in `util.ts` (`normSlash`, `relTo`, `joinPath`, `basename`,
   `dirname`) — don't re‑implement path normalization in components.
 - Reusable UI primitives: `Backdrop.svelte` (popup overlay) and `Switch.svelte` (toggle).
+- **Focus on mount with `use:focusOnMount`** (`lib/focus.ts`), never `autofocus`: Svelte 5 applies
+  `autofocus` only when nothing else has the focus, so a palette opened from the editor stayed unfocused and
+  the keys went into the file (M60). `use:focusOnMount={{ select: true }}` also selects the text.
 
 ## Develop / build / test
 

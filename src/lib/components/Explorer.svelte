@@ -17,6 +17,8 @@
     cancelEdit,
     deleteEntry,
     copyPath,
+    copyRelPath,
+    revealPath,
     type TreeNode,
   } from "../state/explorer.svelte";
   import { openFile, openInNewGroup, workspace, activePath } from "../state/workspace.svelte";
@@ -26,9 +28,8 @@
   import { decorations } from "../state/git.svelte";
   import { shelf, relOf, isHidden, byCategory, shelveByName, isNameRuled, unshelveName } from "../state/shelf.svelte";
   import { notify } from "../state/toast.svelte";
-  import { fileIcon, basename, dirname, joinPath, normSlash, relTo, runCommand } from "../util";
+  import { fileIcon, basename, dirname, joinPath, normSlash, runCommand } from "../util";
   import { writeClipboard } from "../clipboard";
-  import { invoke } from "@tauri-apps/api/core";
 
   // Lista virtuale ad altezza fissa: rende solo le righe nel viewport (+overscan).
   const ROW = 22;
@@ -147,20 +148,10 @@
     layout.terminalVisible = true;
     addTerminal({ title: basename(dir) || "Terminal", cwd: dir });
   }
-  // copia il percorso relativo alla radice del progetto
-  async function copyRelPath(path: string) {
-    const rel = relTo(path, workspace.rootPath) || basename(path);
-    const ok = await writeClipboard(rel);
-    notify(ok ? "Relative path copied" : "Copy failed", ok ? "success" : "error", 1200);
-  }
   // copia solo il nome del file/cartella
   async function copyName(name: string) {
     const ok = await writeClipboard(name);
     notify(ok ? "Name copied" : "Copy failed", ok ? "success" : "error", 1200);
-  }
-  // mostra il file/cartella nel file manager dell'OS (comando Rust)
-  function revealPath(path: string) {
-    void invoke("reveal_path", { path }).catch((e) => console.error("reveal_path", e));
   }
 
   function menuItems(node: TreeNode | null): MenuItem[] {

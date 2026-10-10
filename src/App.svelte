@@ -103,6 +103,8 @@
       "wheel",
       (e) => {
         if (!e.ctrlKey) return;
+        // sopra un'immagine Ctrl+rotella ingrandisce l'immagine (AssetView, M58), non il font dell'editor
+        if ((e.target as Element | null)?.closest(".imgview")) return;
         // CAPTURE: intercettiamo PRIMA che CodeMirror o xterm (col mouse-reporting di Claude) si
         // mangino l'evento → lo zoom funziona su editor e su QUALSIASI terminale, non solo quelli "lisci".
         e.preventDefault();

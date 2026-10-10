@@ -5,11 +5,13 @@
   import Editor from "./LazyEditor.svelte";
   import Lazy from "./Lazy.svelte";
   import Backdrop from "./Backdrop.svelte";
+  import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
   import orbitWordmark from "../assets/orbit-wordmark.svg";
   import { onMount, onDestroy } from "svelte";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
-  import { fileIcon, relTo, runCommand } from "../util";
+  import { dirname, fileIcon, relTo, runCommand } from "../util";
   import { runFile } from "../state/run.svelte";
+  import { copyPath, copyRelPath, revealPath } from "../state/explorer.svelte";
   import { layout, setFocusPanel } from "../state/layout.svelte";
   import {
     workspace,
@@ -18,7 +20,7 @@
     fileByPath,
     setActiveTab,
     setActiveGroup,
-    closeTab,
+    closeTabs,
     moveTab,
     reorderTab,
     splitWithTab,
@@ -157,29 +159,84 @@
     cancelDrag(); // smontaggio a metà drag: rimuovi i listener pointer su window
   });
 
-  // chiusura: se ci sono modifiche non salvate (ultima copia aperta) chiede Salva/Scarta/Annulla
-  // con un dialog in-app a 3 pulsanti (il confirm nativo di Tauri ne ha solo 2: niente "Salva").
-  let unsavedPrompt = $state<{ groupId: string; file: OpenFile } | null>(null);
-  function tryClose(groupId: string, f: OpenFile) {
-    const refs = workspace.groups.filter((g) => g.tabs.includes(f.path)).length;
-    if (f.dirty && f.kind === "file" && refs <= 1) {
-      unsavedPrompt = { groupId, file: f };
+  // chiusura di una o più schede: se tra i documenti che spariscono del tutto (nessun'altra copia aperta
+  // in un altro gruppo) ci sono modifiche non salvate chiede Salva/Non salvare/Annulla, una volta sola
+  // per tutti, con un dialog in-app a 3 pulsanti (il confirm nativo di Tauri ne ha solo 2: niente "Salva").
+  type CloseTarget = { groupId: string; path: string };
+  let unsavedPrompt = $state<{ targets: CloseTarget[]; dirty: OpenFile[] } | null>(null);
+  function requestClose(targets: CloseTarget[]) {
+    if (!targets.length) return;
+    const closing = new Set(targets.map((t) => `${t.groupId}\n${t.path}`));
+    const lost = (path: string) => workspace.groups.every((g) => !g.tabs.includes(path) || closing.has(`${g.id}\n${path}`));
+    const paths = new Set(targets.map((t) => t.path));
+    const dirty = workspace.openFiles.filter((f) => f.dirty && f.kind === "file" && paths.has(f.path) && lost(f.path));
+    if (dirty.length) {
+      unsavedPrompt = { targets, dirty };
       return;
     }
-    closeTab(groupId, f.path);
+    closeTargets(targets);
+  }
+  function closeTargets(targets: CloseTarget[]) {
+    const byGroup = new Map<string, string[]>();
+    for (const t of targets) byGroup.set(t.groupId, [...(byGroup.get(t.groupId) ?? []), t.path]);
+    for (const [groupId, paths] of byGroup) closeTabs(groupId, paths);
+  }
+  function tryClose(groupId: string, f: OpenFile) {
+    requestClose([{ groupId, path: f.path }]);
   }
   async function doSaveClose() {
     const p = unsavedPrompt;
     if (!p) return;
     unsavedPrompt = null;
-    await savePath(p.file.path);
-    if (!p.file.dirty) closeTab(p.groupId, p.file.path); // chiude solo se il salvataggio è riuscito
+    for (const f of p.dirty) await savePath(f.path);
+    // chiude solo ciò che si è salvato: un salvataggio fallito lascia aperta la sua scheda (con l'errore)
+    closeTargets(p.targets.filter((t) => !fileByPath(t.path)?.dirty));
   }
   function doDiscardClose() {
     const p = unsavedPrompt;
     if (!p) return;
     unsavedPrompt = null;
-    closeTab(p.groupId, p.file.path);
+    closeTargets(p.targets);
+  }
+
+  // menu contestuale delle schede (tasto destro): chiusure multiple come in Visual Studio / VS Code,
+  // più i percorsi e "Reveal" come nel menu dell'albero
+  let tabCtx = $state<{ x: number; y: number; groupId: string; path: string } | null>(null);
+  function openTabCtx(e: MouseEvent, groupId: string, path: string) {
+    e.preventDefault();
+    tabCtx = { x: e.clientX, y: e.clientY, groupId, path };
+  }
+  const inGroup = (groupId: string, paths: string[]) => paths.map((path) => ({ groupId, path }));
+  /** Tutte le schede di tutti i gruppi (Close all con l'editor diviso). */
+  const everyTab = () => workspace.groups.flatMap((g) => inGroup(g.id, g.tabs));
+  function tabCtxItems(): MenuItem[] {
+    const c = tabCtx;
+    const g = c && workspace.groups.find((x) => x.id === c.groupId);
+    const f = c && fileByPath(c.path);
+    if (!c || !g || !f) return [];
+    const i = g.tabs.indexOf(c.path);
+    const others = g.tabs.filter((p) => p !== c.path);
+    const right = g.tabs.slice(i + 1);
+    const saved = g.tabs.filter((p) => !fileByPath(p)?.dirty);
+    const split = workspace.groups.length > 1;
+    const items: MenuItem[] = [
+      { label: "Close", icon: "x", onClick: () => tryClose(g.id, f) },
+      { label: "Close others", disabled: !others.length, onClick: () => requestClose(inGroup(g.id, others)) },
+      { label: "Close to the right", disabled: !right.length, onClick: () => requestClose(inGroup(g.id, right)) },
+      { label: "Close saved", disabled: !saved.length, onClick: () => requestClose(inGroup(g.id, saved)) },
+      // con l'editor diviso "Close all" chiude tutto; "… in this group" solo il riquadro della scheda
+      ...(split ? [{ label: "Close all in this group", onClick: () => requestClose(inGroup(g.id, g.tabs)) }] : []),
+      { label: "Close all", onClick: () => requestClose(everyTab()) },
+    ];
+    // i documenti su disco (non diff, Attività, grafo): percorsi e "Reveal" come nell'albero
+    if (f.kind === "file" || f.kind === "image" || f.kind === "pdf") {
+      items.push(
+        { label: "Copy path", icon: "copy", separatorBefore: true, onClick: () => void copyPath(f.path) },
+        { label: "Copy relative path", icon: "copy", onClick: () => void copyRelPath(f.path) },
+        { label: "Reveal in Explorer", icon: "external-link", onClick: () => revealPath(f.path) },
+      );
+    }
+    return items;
   }
 
   // segmenti del percorso (relativo alla radice) per il breadcrumb
@@ -239,6 +296,7 @@
                   class:dragging={dragging && drag?.path === path && drag?.groupId === g.id}
                   data-path={path}
                   onpointerdown={(e) => onTabPointerDown(e, g.id, path)}
+                  oncontextmenu={(e) => openTabCtx(e, g.id, path)}
                   ondragstart={(e) => e.preventDefault()}
                 >
                   <button type="button" class="sel" onclick={() => setActiveTab(g.id, path)} title={path}>
@@ -390,36 +448,74 @@
   {#if grp}
     <Backdrop onClose={() => (tabMenu = null)} z={90} />
     <div class="tabmenu" style="right:{tm.right}px; top:{tm.top}px">
-      {#each grp.tabs as path (path)}
-        {@const f = fileByPath(path)}
-        {#if f}
-          {@const fi = tabIcon(f)}
-          <div class="tabmenu-row" class:active={grp.activePath === path}>
-            <button class="tabmenu-sel" title={path} onclick={() => { setActiveTab(grp.id, path); tabMenu = null; }}>
-              <span class="ti"><FileGlyph glyph={fi.glyph} color={fi.color} size={14} /></span>
-              <span class="label">{f.name}</span>
-              {#if f.externallyChanged}<span class="dot warn"></span>{:else if f.dirty}<span class="dot"></span>{/if}
-            </button>
-            <button class="tabmenu-x" aria-label="Close {f.name}" onclick={() => tryClose(grp.id, f)}>
-              <Icon name="x" size={12} strokeWidth={2} />
-            </button>
-          </div>
-        {/if}
-      {/each}
+      <div class="tabmenu-list">
+        {#each grp.tabs as path (path)}
+          {@const f = fileByPath(path)}
+          {#if f}
+            {@const fi = tabIcon(f)}
+            <div class="tabmenu-row" class:active={grp.activePath === path}>
+              <button class="tabmenu-sel" title={path} onclick={() => { setActiveTab(grp.id, path); tabMenu = null; }}>
+                <span class="ti"><FileGlyph glyph={fi.glyph} color={fi.color} size={14} /></span>
+                <span class="label">{f.name}</span>
+                {#if f.externallyChanged}<span class="dot warn"></span>{:else if f.dirty}<span class="dot"></span>{/if}
+              </button>
+              <button class="tabmenu-x" aria-label="Close {f.name}" onclick={() => tryClose(grp.id, f)}>
+                <Icon name="x" size={12} strokeWidth={2} />
+              </button>
+            </div>
+          {/if}
+        {/each}
+      </div>
+      <!-- fuori dalla lista che scorre: con tante schede resta sempre a portata -->
+      <div class="tabmenu-sep"></div>
+      <button
+        class="tabmenu-sel tabmenu-all"
+        onclick={() => {
+          // le schede PRIMA di chiudere il menu: grp è un {@const} che si ricalcola su tabMenu, e a menu
+          // chiuso (tabMenu null) leggerlo lancerebbe un errore
+          const targets = inGroup(grp.id, grp.tabs);
+          tabMenu = null;
+          requestClose(targets);
+        }}
+      >
+        <span class="ti"><Icon name="x" size={14} strokeWidth={2} /></span>
+        <span class="label">{workspace.groups.length > 1 ? "Close all in this group" : "Close all"}</span>
+      </button>
     </div>
   {/if}
 {/if}
 
+{#if tabCtx}
+  <ContextMenu x={tabCtx.x} y={tabCtx.y} items={tabCtxItems()} onClose={() => (tabCtx = null)} />
+{/if}
+
 {#if unsavedPrompt}
+  {@const dirty = unsavedPrompt.dirty}
   <Backdrop onClose={() => (unsavedPrompt = null)} dim z={120} />
   <div class="confirm" role="dialog" aria-modal="true" aria-label="Unsaved changes">
     <div class="ctitle">Unsaved changes</div>
-    <p class="cmsg">Do you want to save the changes to <b>{unsavedPrompt.file.name}</b>?</p>
+    {#if dirty.length === 1}
+      <p class="cmsg">Do you want to save the changes to <b>{dirty[0].name}</b>?</p>
+    {:else}
+      <p class="cmsg">Do you want to save the changes to these {dirty.length} files?</p>
+      <ul class="cfiles">
+        {#each dirty.slice(0, 6) as f (f.path)}
+          {@const fi = fileIcon(f.name)}
+          {@const dir = relTo(dirname(f.path), workspace.rootPath)}
+          <li title={f.path}>
+            <span class="ti"><FileGlyph glyph={fi.glyph} color={fi.color} size={14} /></span>
+            <span class="label">{f.name}</span>
+            {#if dir}<span class="cdir">{dir}</span>{/if}
+          </li>
+        {/each}
+        {#if dirty.length > 6}<li class="more">and {dirty.length - 6} more</li>{/if}
+      </ul>
+    {/if}
     <div class="cbtns">
       <button class="cbtn ghost" onclick={() => (unsavedPrompt = null)}>Cancel</button>
       <button class="cbtn danger" onclick={doDiscardClose}>Don't save</button>
       <!-- svelte-ignore a11y_autofocus -->
-      <button class="cbtn primary" autofocus onclick={doSaveClose}>Save</button>
+      <button class="cbtn primary" autofocus onclick={doSaveClose}>{dirty.length === 1 ? "Save" : "Save all"}</button>
     </div>
   </div>
 {/if}
@@ -763,12 +859,35 @@
     z-index: 91;
     width: 250px;
     max-height: 60vh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     padding: 4px;
     background: var(--color-surface-2);
     border: 1px solid var(--color-line-strong);
     border-radius: var(--radius);
     box-shadow: var(--shadow-pop);
+  }
+  .tabmenu-list {
+    min-height: 0;
+    overflow-y: auto;
+  }
+  /* come il separatore del menu contestuale */
+  .tabmenu-sep {
+    flex: 0 0 auto;
+    height: 1px;
+    margin: 4px 6px;
+    background: var(--color-line);
+  }
+  /* > per prevalere su .tabmenu-sel (definita dopo): nella colonna del menu non deve allungarsi */
+  .tabmenu > .tabmenu-all {
+    flex: 0 0 auto;
+    border-radius: var(--r-md);
+  }
+  .tabmenu > .tabmenu-all:hover {
+    background: var(--color-surface-3);
+  }
+  .tabmenu-all .ti {
+    color: var(--color-ink-muted);
   }
   .tabmenu-row {
     display: flex;
@@ -921,6 +1040,38 @@
   .cmsg b {
     color: var(--color-ink);
     font-weight: 600;
+  }
+  /* più file da salvare (Close all / others…): sotto la domanda, come nel menu delle schede, con la
+     cartella in grigio per distinguere i file omonimi */
+  .cfiles {
+    margin: -6px 0 16px;
+    padding: 0;
+    list-style: none;
+    font-size: 12.5px;
+    color: var(--color-ink);
+  }
+  .cfiles li {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 22px;
+    min-width: 0;
+  }
+  .cfiles .label {
+    flex: 0 0 auto;
+    max-width: 60%;
+  }
+  .cdir {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--color-ink-subtle);
+    font-size: 11.5px;
+  }
+  .cfiles .more {
+    padding-left: 21px; /* sotto i nomi: glifo 14 + spazio 7 */
+    color: var(--color-ink-subtle);
   }
   .cbtns {
     display: flex;

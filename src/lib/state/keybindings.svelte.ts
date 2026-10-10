@@ -48,6 +48,8 @@ export const FIXED: { label: string; key: string; category: string }[] = [
   { label: "Redo", key: "Ctrl+Y", category: "Editor" },
   { label: "Go to definition (mouse)", key: "Ctrl+Click", category: "Editor" },
   { label: "Zoom font", key: "Ctrl+Wheel", category: "Editor" },
+  { label: "Zoom image (over an image)", key: "Ctrl+Wheel", category: "Editor" },
+  { label: "Image: actual size / fit", key: "Double-click", category: "Editor" },
   { label: "Switch to repository 1–9", key: "Ctrl+1…9", category: "Navigation" },
 ];
 

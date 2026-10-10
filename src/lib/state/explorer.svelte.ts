@@ -324,3 +324,15 @@ export async function deleteEntry(path: string, name: string, isDir: boolean) {
 export async function copyPath(path: string) {
   if (!(await writeClipboard(path))) notify("Copy failed", "error");
 }
+
+/** Copia il percorso relativo alla radice del progetto (menu dell'albero e delle schede). */
+export async function copyRelPath(path: string) {
+  const rel = relTo(path, workspace.rootPath) || basename(path);
+  const ok = await writeClipboard(rel);
+  notify(ok ? "Relative path copied" : "Copy failed", ok ? "success" : "error", 1200);
+}
+
+/** Mostra il file/cartella nel file manager dell'OS (comando Rust; su Windows lo seleziona). */
+export function revealPath(path: string) {
+  void invoke("reveal_path", { path }).catch((e) => console.error("reveal_path", e));
+}

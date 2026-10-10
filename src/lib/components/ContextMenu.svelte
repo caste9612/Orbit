@@ -8,6 +8,7 @@
     icon?: string;
     swatch?: string; // pallino colorato al posto dell'icona (scelta colore delle schede terminale)
     danger?: boolean;
+    disabled?: boolean; // voce visibile ma spenta (es. "Close to the right" sull'ultima scheda)
     separatorBefore?: boolean;
     header?: boolean; // riga-titolo di sezione (non cliccabile)
     onClick?: () => void;
@@ -42,7 +43,7 @@
     {#if item.header}
       <div class="mhead">{item.label}</div>
     {:else}
-      <button class="item" class:danger={item.danger} role="menuitem" onclick={() => pick(item)}>
+      <button class="item" class:danger={item.danger} role="menuitem" disabled={item.disabled} onclick={() => pick(item)}>
         <span class="ic">
           {#if item.icon}<Icon name={item.icon} size={14} strokeWidth={1.7} />{:else if item.swatch}<span class="swatch" style="background:{item.swatch}"></span>{/if}
         </span>
@@ -91,6 +92,12 @@
   .item.danger:hover {
     background: rgba(241, 76, 76, 0.16);
     color: #ff9b9b;
+  }
+  .item:disabled,
+  .item:disabled:hover {
+    color: var(--color-ink-subtle);
+    background: transparent;
+    cursor: default;
   }
   .ic {
     flex: 0 0 16px;

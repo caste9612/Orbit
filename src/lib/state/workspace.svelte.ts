@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { basename, assetKind, normSlash } from "../util";
 import { notify } from "./toast.svelte";
 import { settings } from "./settings.svelte";
+import { nextActive } from "./editorTabs";
 
 // Hook cronologia di navigazione (indietro/avanti): codeIndex registra qui una funzione che salva
 // la posizione CORRENTE prima che cambi il file/tab attivo. `dest` = path di destinazione (per non
@@ -333,6 +334,21 @@ export function closeTab(groupId: string, path: string) {
   g.tabs.splice(i, 1);
   dropPreview(g, path);
   if (g.activePath === path) g.activePath = g.tabs[i] ?? g.tabs[i - 1] ?? null;
+  dropEmptyGroup(g);
+  pruneDocs();
+}
+
+/**
+ * Chiude più tab di un gruppo in un colpo (Close others / to the right / saved / all): stessa regola di
+ * closeTab per la nuova tab attiva (la prima rimasta a destra di quella chiusa, se no a sinistra).
+ */
+export function closeTabs(groupId: string, paths: string[]) {
+  const g = groupById(groupId);
+  if (!g) return;
+  const drop = new Set(paths);
+  g.activePath = nextActive(g.tabs, g.activePath, drop);
+  g.tabs = g.tabs.filter((p) => !drop.has(p));
+  g.previews = g.previews.filter((p) => !drop.has(p));
   dropEmptyGroup(g);
   pruneDocs();
 }

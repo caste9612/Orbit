@@ -2709,6 +2709,12 @@ ricaricare la pagina prima di continuare.
   simboli) e 34 ms su Quiver (203 file, 2008 simboli), in Node. Il nome è unico per l'80% dei simboli di Orbit e il
   60% di quelli di Quiver (overload, `Dispose`, proprietà omonime). `git blame` sui file più grandi: 60–80 ms. Il
   limite non è il costo ma la precisione sui nomi condivisi.
+- **Difetto dello scanner C# trovato nel sondaggio** (non corretto, in attesa): `cs()` accetta una riga come
+  dichiarazione di metodo se contiene una QUALSIASI parola di `CS_MODS`, e fra queste c'è `new` → `var m = new
+  ArchiveMetadata();` diventa il "metodo" `ArchiveMetadata`. Su Quiver 416 "metodi" C# su 1.649 sono chiamate o
+  `new X()` (su Orbit, TS/Svelte/Rust, nessuno). Effetti già oggi: F12 su `ArchiveMetadata` apre una lista di 38
+  "definizioni" invece di saltare alla classe, rumore in Ctrl+T e nella barra dei correlati. Correzione proposta:
+  modificatori solo PRIMA del nome, e nome non preceduto da `new`, `.`, `=`, `return`, `await`.
 
 ---
 

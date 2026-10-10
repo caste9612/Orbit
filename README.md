@@ -64,11 +64,11 @@ cross-platform desktop app that weighs almost nothing.
   (VS Code's *reveal*).
 - **Quick Open** (`Ctrl/Cmd+P`) with fuzzy ranking, and full‑text **project search**.
 - **Drag in files**: drop files from your OS file manager onto the editor to open them.
-- On Windows, the installer registers Orbit for common **text, code, image and PDF** files, so it
-  shows up in their **"Open with"** menu — without making itself their **default** app: double-click
-  keeps opening whatever it opened before (installing 1.0 also hands back the defaults that earlier
-  versions had taken over). Scripts (`.bat`, `.cmd`, `.ps1`, `.sh`) are deliberately left alone:
-  double-clicking them still runs them.
+- On Windows, the setup (`Orbit_…_x64-setup.exe`) registers Orbit for common **text, code, image and
+  PDF** files, so it shows up in their **"Open with"** menu — without making itself their **default**
+  app: double-click keeps opening whatever it opened before (installing 1.0 also hands back the defaults
+  that earlier versions had taken over). Scripts (`.bat`, `.cmd`, `.ps1`, `.sh`) are deliberately left
+  alone: double-clicking them still runs them. The MSI package doesn't register "Open with".
 - **Light window for a single file**: a file opened on its own ("Open with", double-click) opens in a
   lightweight window — just the file, with both side panels collapsed. Its folder is only context, not a
   project: Orbit writes nothing into it (no `.orbit`, no `.claude`), doesn't index or watch the tree below,
@@ -293,11 +293,11 @@ Measured on Windows (size-optimized release build):
 
 | Item | Size |
 |---|---|
-| Portable `Orbit` binary | ~6.4 MB (≈0.7 MB of it is the HTTPS client for in-app updates, M59) |
-| MSI installer | ~3.8 MB |
+| Portable `Orbit` binary | ~6.5 MB (≈0.7 MB of it is the HTTPS client for in-app updates, M59) |
+| MSI installer | ~3.9 MB |
 | NSIS setup | ~3.1 MB |
-| Frontend `dist/` | ~2.8 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~546 KB (≈182 KB gzipped) |
+| Frontend `dist/` | ~2.9 MB (most of it grammars loaded lazily) |
+| Startup JS chunk | ~553 KB (≈185 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own

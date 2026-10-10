@@ -5,7 +5,7 @@
     pubblica su GitHub.
 
 .DESCRIPTION
-    Gli Orbit installati (dalla v0.10) controllano
+    Gli Orbit installati (dalla v1.0) controllano
     https://github.com/caste9612/Orbit/releases/latest/download/latest.json: se la versione lì è più nuova
     propongono di aggiornare, scaricano l'installer, ne verificano la firma con la chiave pubblica di
     tauri.conf.json e lo avviano. Per questo ogni release deve avere installer firmati e latest.json, ed è
@@ -38,8 +38,8 @@
     $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD prima di lanciare lo script.
 
 .EXAMPLE
-    .\scripts\New-Release.ps1 -Notes .\notes-0.10.0.md
-    .\scripts\New-Release.ps1 -Notes .\notes-0.10.0.md -Title "Updates from GitHub" -Publish
+    .\scripts\New-Release.ps1 -Notes .\notes-1.0.0.md
+    .\scripts\New-Release.ps1 -Notes .\notes-1.0.0.md -Title "CodeLens and updates from GitHub" -Publish
 #>
 param(
     [Parameter(Mandatory)] [string]$Notes,

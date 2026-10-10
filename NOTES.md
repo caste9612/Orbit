@@ -2918,6 +2918,9 @@ riselezione al frame dopo, perché xterm riprendeva la selezione).
   `.orbt1-5`, quindi nessuna estensione vera del PC toccata): predefinito nostro con backup vuoto → tolto;
   con backup → restituito; vuoto lasciato dal disinstallatore → tolto; di un altro programma → intatto; chiave
   assente → solo "Apri con". Dopo la disinstallazione niente voci, niente chiavi vuote, niente ProgID.
+- **Solo NSIS**: gli hook valgono per il setup; l'**MSI** (WiX), che prima rendeva Orbit predefinito come
+  l'NSIS, ora non registra nessun "Apri con". Il setup è l'installer consigliato (README, note di rilascio);
+  per l'MSI servirebbe un frammento WiX con `OpenWithProgids`.
 
 ### Attività (difetti trovati preparando gli screenshot)
 - Etichetta "ode-strips": il messaggio di commit si cercava come il primo `-m` del comando, anche dentro
@@ -2960,6 +2963,13 @@ isolata (CDP, clic veri) su una copia del codice C# di Quiver e una del codice d
   il fuoco anche dall'editor (prima i tasti finivano nel file);
 - Attività sui transcript veri: etichette dai commit (anche `-F -`), seguiti con ↳, "Timeline" e "Chats" interi
   a 660 px di editor, "now"/"committed" nel dettaglio.
+
+**Versione 1.0.0.** Prima del build la pulizia scelta dall'utente: `cargo clean` del vecchio `src-tauri/target`
+(14,6 GiB), via lo stash col rumore di npm 11 (`"peer": true` nel lockfile) e i branch locali già fusi in `main`.
+Build con `scripts/New-Release.ps1` (senza `-Publish`): eseguibile **6,46 MiB** (+0,04 sulla M59), setup NSIS
+**3,13 MiB**, MSI **3,86 MiB**, chunk iniziale 553 KiB (185 KiB gzip). Nello script NSIS generato nessun
+`APP_ASSOCIATE`/`APP_UNASSOCIATE`, `hooks.nsh` incluso e i due hook inseriti; nel `main.wxs` dell'MSI nessun
+`ProgId`; `latest.json` punta agli asset della v1.0.0.
 
 Lezioni di collaudo:
 - Svelte 5: `autofocus` non è una garanzia; per i campi che devono avere il fuoco, `use:focusOnMount`;

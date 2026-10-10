@@ -474,7 +474,9 @@ first paint loads only the Explorer + the active editor.
   choices (`UserChoice`) are never touched; script types (`bat`/`cmd`/`ps1`/`sh`/`bash`) only get that
   clean‑up, so they keep running on double‑click. `NSIS_HOOK_PREUNINSTALL` removes the entries and the
   ProgID. `ORBIT_PROGID` and `ORBIT_FOR_EACH_EXT` can be redefined before including the file: the M60 test
-  bench ran install and uninstall with a fake ProgID on fake extensions (5 starting states).
+  bench ran install and uninstall with a fake ProgID on fake extensions (5 starting states). The hooks are
+  NSIS‑only: the **MSI** (WiX) package registers no "Open with" at all (a WiX fragment with
+  `OpenWithProgids` would be the equivalent).
   `startup()` opens a file passed as the first CLI argument (`orbit.exe "<file>"`) in a **light window**,
   with its parent folder as context only (see *Light window*).
 

@@ -3037,6 +3037,61 @@ Verifica: svelte-check 0/0 (270 file), vitest 36/36. Istanza devtest con area cl
 - con `updates.available` simulato dal modulo compaiono "Version 1.0.1 is available", **Update…** e il pulsante
   *Update* nella barra in alto.
 
+### Misure di performance della 1.0 (2026-10-11)
+Domanda dell'utente: com'è messa la leggerezza, se la GPU è sfruttata, cosa migliorare. Le ultime misure erano
+della v0.2.0 (M21, M28, M36).
+
+Metodo:
+- build release isolata (`orbit-perf`, profilo `com.visialab.lume.perftest`) aperta su un **clone** del repo Orbit;
+- finestra 1280×800, WebView2 154;
+- RAM privata reale (private working set) di core e WebView2; CPU in % di **un** core.
+
+| Scenario | WebGL off (default) | WebGL on |
+|---|---|---|
+| Finestra vuota (1 shell) | 105 MB | — |
+| Repo aperto, 1 terminale, a riposo | 120 MB | 127 MB |
+| + 3 file e 4 terminali, a riposo | 155 MB | 158 MB |
+| Dopo 30.000 righe in un terminale (scrollback pieno) | 165 MB | 152 MB |
+| CPU a riposo | ~0 % | ~0 % |
+| Spinner tipo Claude (8 righe ridisegnate a 10 fps) | 14,7 % | 5,6 % |
+| Raffica di 30.000 righe colorate | 0,94 s di CPU | 0,36 s di CPU |
+| VRAM del processo GPU | 35–40 MB | 47–59 MB |
+
+- **Avvio**: prima pittura 0,36 s dopo l'avvio del processo, finestra visibile a ~0,63 s.
+- **GPU**: WebView2 compone e rasterizza sulla GPU: `gpu_compositing`, `rasterization` e più thread di raster
+  attivi, ANGLE/Direct3D 11 sulla scheda dedicata, WebGL e WebGPU disponibili. Il terminale usa la GPU solo
+  col WebGL di xterm: ~2,6× meno CPU (spinner e raffica), con RAM praticamente uguale e +10–20 MB di VRAM.
+- **Uso reale** (l'Orbit 1.0.0 installato, 1 finestra, 5 terminali di cui 4 chat Claude, WebGL acceso):
+  - Orbit: 243 MB, di cui renderer 138 e GPU 55; CPU 0,13 % della macchina; VRAM 127 MB.
+  - I 4 processi `claude` pesano ~3 GB, fuori da Orbit.
+- **Rispetto alla 0.x**: 206–225 MB a riposo allora, 105–120 MB oggi. Il calo viene in gran parte da WebView2.
+- **Dimensioni**: binario 6,46 MiB, NSIS 3,13 MiB, MSI 3,86 MiB, `dist/` 2,85 MiB. Il chunk d'ingresso è di
+  553 KiB (184 KiB gzip) e contiene CodeMirror, importato staticamente da `outline.ts` tramite
+  `symbols.svelte.ts`: prima della M29 era di 174 KB.
+
+Punti caldi trovati rileggendo il codice (le misure sopra non li coprono):
+- **Ogni `fs-changed` lavora su tutto il progetto.** Rifà l'albero, chiama `git_status` e `git_upstream`, che
+  sono comandi sincroni e quindi girano sul thread principale, e rifà la scansione completa dell'indice: ogni
+  file viene riletto, e il risultato passa da JS e torna su disco. Durante una sessione Claude succede a ogni
+  salvataggio.
+- **Indice del codice in `$state` profondo.** `$state.raw` non è usato da nessuna parte, quindi ogni simbolo
+  diventa un proxy; `contextAt` e `lensesFor` scorrono tutti i simboli.
+- **Attività.** Ogni transcript che cambia viene riletto per intero, ogni scansione clona tutte le unità, e la
+  cache in Rust non ha limiti.
+- **Minori:**
+  - animazioni di attenzione infinite su `box-shadow`;
+  - log diagnostico acceso di default, con un buffer di 2000 voci in stato profondo;
+  - scrollback di 5000 righe per ogni terminale montato (~7–10 MB di heap JS quando è pieno).
+
+Lezioni di collaudo:
+- un clic a coordinate fisse ha dato il fuoco all'editor dell'istanza di prova, aperta sul repo vero con
+  l'autosave acceso: il comando digitato è finito in un sorgente (ripristinato con `git checkout`);
+- `button.newt` seleziona per primo "New Claude chat": ha avviato 3 sessioni Claude ferme, chiuse subito.
+
+Regole per le prove: clone del repo, `autosave:false`, `aria-label="New terminal"`, fuoco al terminale via
+`.xterm-helper-textarea` col controllo di `document.activeElement`, e prova interrotta se compare `claude.exe`.
+Niente sessioni Claude vere nei test: consumano i token dell'utente.
+
 ---
 
 ## Ambiente di sviluppo verificato

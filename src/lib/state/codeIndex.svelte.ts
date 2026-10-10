@@ -6,7 +6,7 @@ import { untrack } from "svelte";
 import { invoke } from "@tauri-apps/api/core";
 import { workspace, openFileAt, editorStatus, activeFile, setBeforeNavigate } from "./workspace.svelte";
 import { orbitPath } from "./dotorbit";
-import { joinPath } from "../util";
+import { joinPath, samePath } from "../util";
 import { notify } from "./toast.svelte";
 import { getActiveEditor } from "../editor/activeEditor";
 
@@ -298,7 +298,7 @@ export async function jumpTo(sym: ProjectSymbol) {
   const target = joinPath(root, sym.file);
   const cur = activeFile();
   // cross-file: lo registra l'hook in openFile. Stesso file (l'hook lo salta) → registro qui.
-  if (cur && cur.kind === "file" && cur.path === target) pushCurrent();
+  if (cur && cur.kind === "file" && samePath(cur.path, target)) pushCurrent();
   await openFileAt(target, sym.line);
 }
 
@@ -338,7 +338,7 @@ function pushCurrent() {
 function recordOnNavigate(dest: string) {
   if (navigating) return; // il movimento viene da navBack/navForward: non creare nuove voci
   const cur = currentPos();
-  if (!cur || cur.path === dest) return; // niente attivo o stesso file → non è un "indietro" utile
+  if (!cur || samePath(cur.path, dest)) return; // niente attivo o stesso file → non è un "indietro" utile
   pushCurrent();
 }
 setBeforeNavigate(recordOnNavigate);

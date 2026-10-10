@@ -180,10 +180,6 @@ const TS_FN_MODS: &[&str] = &["export", "default", "async", "declare"];
 const RS_MODS: &[&str] = &["pub", "pub(crate)", "pub(super)"];
 const RS_FN_MODS: &[&str] = &["pub", "pub(crate)", "pub(super)", "async", "const", "unsafe", "extern"];
 
-fn has_any(t: &str, set: &[&str]) -> bool {
-    t.split_whitespace().any(|w| set.contains(&w))
-}
-
 /// True se prima della parola-chiave `kw` compare il token `word` (es. "abstract" prima di "class").
 fn before_has(t: &str, kw: &str, word: &str) -> bool {
     t.split(kw).next().map_or(false, |p| p.split_whitespace().any(|w| w == word))
@@ -280,24 +276,143 @@ fn cs(t: &str, file: &str, line: u32, container: &mut String, out: &mut Vec<Symb
             }
         }
     }
-    if !has_any(t, CS_MODS) {
-        return; // metodi/proprietà: senza un modificatore è troppo rischioso
-    }
+    // M59: il modificatore va cercato SOLO prima del nome. Prima bastava una parola di CS_MODS in un
+    // punto qualsiasi della riga, e `new` è anche un modificatore → `var m = new Foo();` diventava il
+    // "metodo" Foo, come `obj.Call(… new X())` (su Quiver un "metodo" C# su quattro era una chiamata).
+    let t = strip_leading_attributes(t);
     // proprietà auto: "... Name { get ..."
     if let Some(pos) = t.find("{ get").or_else(|| t.find("{get")) {
-        let name = trail_ident(&t[..pos]);
-        if !name.is_empty() && !is_control_kw(name) {
+        if let Some(name) = cs_declared_name(&t[..pos]) {
             push(out, name, "property", file, line, container, vec![]);
             return;
         }
     }
-    // metodo: identificatore subito prima della prima '('
-    if let Some(pos) = t.find('(') {
-        let name = trail_ident(&t[..pos]);
-        if !name.is_empty() && !is_control_kw(name) {
-            push(out, name, "method", file, line, container, vec![]);
+    // proprietà con corpo a espressione: "public string Key => KeyOf(x);" (nessuna '(' prima di "=>";
+    // un metodo `Foo() => …` ce l'ha). Prima qui finiva nell'indice il metodo CHIAMATO (KeyOf).
+    if let Some(pos) = t.find("=>") {
+        if !t[..pos].contains('(') {
+            if let Some(name) = cs_declared_name(&t[..pos]) {
+                push(out, name, "property", file, line, container, vec![]);
+                return;
+            }
         }
     }
+    // metodo/costruttore: il primo identificatore seguito da '(' con una dichiarazione davanti (con un
+    // tipo di ritorno tupla la prima '(' è quella del tipo, quindi si provano tutte)
+    let mut from = 0;
+    while let Some(rel) = t[from..].find('(') {
+        let pos = from + rel;
+        if let Some(name) = cs_declared_name(&t[..pos]) {
+            push(out, name, "method", file, line, container, vec![]);
+            return;
+        }
+        from = pos + 1;
+    }
+}
+
+/// Toglie dall'inizio della riga gli attributi C# (`[Fact]`, `[DllImport("x.dll")]`) e le annotazioni
+/// Java (`@Override`, `@SuppressWarnings("x")`): le loro virgolette e parentesi non sono la dichiarazione.
+fn strip_leading_attributes(mut t: &str) -> &str {
+    loop {
+        t = t.trim_start();
+        let rest = if t.starts_with('[') {
+            balanced_end(t, '[', ']').map(|end| &t[end..])
+        } else if let Some(after_at) = t.strip_prefix('@') {
+            let name = lead_ident(after_at);
+            if name.is_empty() || name == "interface" {
+                None
+            } else {
+                let tail = &after_at[name.len()..];
+                if tail.starts_with('(') {
+                    balanced_end(tail, '(', ')').map(|end| &tail[end..])
+                } else {
+                    Some(tail)
+                }
+            }
+        } else {
+            None
+        };
+        match rest {
+            Some(r) => t = r,
+            None => return t,
+        }
+    }
+}
+
+/// Offset subito dopo la chiusura che bilancia l'apertura iniziale di `s` (None se non si chiude).
+fn balanced_end(s: &str, open: char, close: char) -> Option<usize> {
+    let mut depth = 0i32;
+    for (i, c) in s.char_indices() {
+        if c == open {
+            depth += 1;
+        } else if c == close {
+            depth -= 1;
+            if depth == 0 {
+                return Some(i + c.len_utf8());
+            }
+        }
+    }
+    None
+}
+
+/// Nome dichiarato alla fine di `before` (il testo prima di '(' o di '{ get'), se ciò che lo precede è
+/// davvero una dichiarazione: almeno un modificatore, nessuna espressione (`=`, stringhe, accesso con
+/// `.`, parentesi aperte) e l'ultima parola non è `new`/`return`/`await`… Gli argomenti generici
+/// (`Load<T>`) si saltano: prima un metodo generico non entrava nell'indice.
+fn cs_declared_name(before: &str) -> Option<&str> {
+    let mut b = before.trim_end();
+    if b.ends_with('>') {
+        let bytes = b.as_bytes();
+        let mut depth = 0i32;
+        let mut cut = None;
+        for i in (0..bytes.len()).rev() {
+            match bytes[i] {
+                b'>' => depth += 1,
+                b'<' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        cut = Some(i);
+                        break;
+                    }
+                }
+                _ => {}
+            }
+        }
+        b = b[..cut?].trim_end();
+    }
+    let name = trail_ident(b);
+    if name.is_empty() || is_control_kw(name) || name.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+        return None;
+    }
+    let prefix = b[..b.len() - name.len()].trim_end();
+    if prefix.is_empty() || prefix.ends_with('.') || prefix.contains(['=', '"', '\'']) {
+        return None;
+    }
+    let mut depth = 0i32;
+    for c in prefix.chars() {
+        match c {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth < 0 {
+                    return None;
+                }
+            }
+            _ => {}
+        }
+    }
+    if depth != 0 {
+        return None; // dentro gli argomenti di una chiamata
+    }
+    let words: Vec<&str> = prefix.split_whitespace().collect();
+    let last = *words.last()?;
+    if matches!(
+        last,
+        "new" | "return" | "await" | "throw" | "yield" | "else" | "case" | "in" | "is" | "as" | "using" | "var" | "goto"
+    ) {
+        return None;
+    }
+    words.iter().any(|w| CS_MODS.contains(w)).then_some(name)
 }
 
 // ---- C / C++ ----------------------------------------------------------------
@@ -572,6 +687,58 @@ mod tests {
         let m = out.iter().find(|s| s.name == "GetTotal").unwrap();
         assert_eq!(m.kind, "method");
         assert_eq!(m.container, "OrderService");
+    }
+
+    #[test]
+    fn csharp_calls_are_not_declarations() {
+        // M59: righe vere di Quiver che finivano nell'indice come "metodi"
+        let src = concat!(
+            "public class Adorner {\n",
+            "    var metadata = new ArchiveMetadata();\n",
+            "    using var archive = new TempArchive();\n",
+            "    drawingContext.DrawText(_text, new Point(rect.X + Padding.Width, rect.Y));\n",
+            "            new Typeface(font, FontStyles.Normal, FontWeights.Medium, FontStretches.Normal), 12, foreground,\n",
+            "    Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },\n",
+            "    CopyCheck.Differences(Path.Combine(_temp.Root, \"A\"), new string[0]);\n",
+            "    private readonly Foo _foo = new Foo();\n",
+            "    return new Result(x);\n",
+            "    Console.WriteLine(\"public void Fake()\");\n",
+            "}\n",
+        );
+        let mut out = vec![];
+        extract(Lang::CSharpLike, src, "a.cs", &mut out);
+        assert_eq!(names(&out), vec!["Adorner"]);
+    }
+
+    #[test]
+    fn csharp_declarations_still_found() {
+        let src = concat!(
+            "public class Store {\n",
+            "    public void Dispose() => _temp.Dispose();\n",
+            "    public static T Load<T>(string path) where T : new() {\n",
+            "    public (int a, int b) Pair() => (1, 2);\n",
+            "    [DllImport(\"user32.dll\")] public static extern int MessageBox(IntPtr h);\n",
+            "    public override string ToString() { return \"x\"; }\n",
+            "    public Store(int x) : base(x) { }\n",
+            "    protected new void Hide() { }\n",
+            "    [JsonPropertyName(\"n\")] public string Name { get; set; }\n",
+            "    @Override public String toString() {\n",
+            "    public string Key => KeyOf(FolderPath, IsGeneral);\n",
+            "    public int Count => items.Count(x => x > 0);\n",
+            "    private readonly Func<int> f = () => 1;\n",
+            "}\n",
+        );
+        let mut out = vec![];
+        extract(Lang::CSharpLike, src, "a.cs", &mut out);
+        let n = names(&out);
+        for want in ["Store", "Dispose", "Load", "Pair", "MessageBox", "ToString", "Hide", "Name", "toString", "Key", "Count"] {
+            assert!(n.contains(&want), "manca {want}: {n:?}");
+        }
+        assert_eq!(n.iter().filter(|x| **x == "Dispose").count(), 1);
+        assert!(!n.contains(&"KeyOf") && !n.contains(&"f"), "chiamate o campi presi per membri: {n:?}");
+        for p in ["Name", "Key", "Count"] {
+            assert_eq!(out.iter().find(|s| s.name == p).unwrap().kind, "property", "{p}");
+        }
     }
 
     #[test]

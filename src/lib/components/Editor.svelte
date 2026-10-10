@@ -27,12 +27,12 @@
   import { semanticHighlight } from "../editor/semanticHighlight";
   import { setActiveEditor, clearActiveEditor } from "../editor/activeEditor";
   import { settings, isLightTheme } from "../state/settings.svelte";
-  import { git } from "../state/git.svelte";
+  import { git, gitRel } from "../state/git.svelte";
   import { notify } from "../state/toast.svelte";
   import { writeClipboard, readClipboard } from "../clipboard";
   import { workspace } from "../state/workspace.svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import { basename, normSlash, relTo } from "../util";
+  import { basename, normSlash } from "../util";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
   import { openSymbols } from "../state/symbols.svelte";
   import { goToDefinition, semIndex } from "../state/codeIndex.svelte";
@@ -234,12 +234,10 @@
     }
   }
 
-  // path relativo alla radice del repo (per git_diff); null se fuori dal workspace
+  // path relativo alla radice del REPO (per git_diff, M59: non alla cartella aperta, che può esserne una
+  // sottocartella); null se fuori dal repo
   function relPath(): string | null {
-    const root = workspace.rootPath;
-    if (!root) return null;
-    const rel = relTo(path, root);
-    return rel && rel !== normSlash(path) ? rel : null;
+    return gitRel(path) || null;
   }
 
   async function loadGutter() {

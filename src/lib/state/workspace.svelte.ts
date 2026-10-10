@@ -2,7 +2,7 @@
 // (split view, stile VS Code). Ogni gruppo ha le sue tab e il suo file attivo; lo stesso
 // documento può vivere in più gruppi (contenuto/dirty condivisi dal pool `openFiles`).
 import { invoke } from "@tauri-apps/api/core";
-import { basename, assetKind, normSlash } from "../util";
+import { basename, assetKind, normSlash, canonPath, samePath, isUnder, pathKey } from "../util";
 import { notify } from "./toast.svelte";
 import { settings } from "./settings.svelte";
 import { nextActive } from "./editorTabs";
@@ -77,7 +77,15 @@ export const editorStatus = $state({ line: 1, col: 1 });
 // ---- lookup ---------------------------------------------------------------
 
 export function fileByPath(path: string): OpenFile | undefined {
-  return workspace.openFiles.find((f) => f.path === path);
+  // prima il confronto esatto (le schede usano il percorso del documento), poi lo stesso file scritto
+  // con altri separatori o maiuscole (M59)
+  return workspace.openFiles.find((f) => f.path === path) ?? workspace.openFiles.find((f) => samePath(f.path, path));
+}
+
+/** Percorso con cui un file entra nel workspace: quello del documento già aperto, se c'è, altrimenti la
+ *  forma canonica. Così lo stesso file non diventa mai due documenti (salvarne uno calpestava l'altro). */
+function docPath(path: string): string {
+  return fileByPath(path)?.path ?? canonPath(path);
 }
 
 export function activeGroup(): EditorGroup | undefined {
@@ -182,6 +190,7 @@ async function loadDoc(path: string) {
 
 /** Apre un file in un gruppo (default: quello attivo) e lo rende attivo. */
 export async function openFile(path: string, groupId?: string) {
+  path = docPath(path);
   beforeNav?.(path); // cronologia: registra la posizione che stiamo lasciando (sincrono, pre-await)
   await loadDoc(path);
   const g = (groupId ? groupById(groupId) : undefined) ?? ensureActiveGroup();
@@ -355,6 +364,7 @@ export function closeTabs(groupId: string, paths: string[]) {
 
 /** Chiude un documento ovunque sia aperto (usato da delete/closeUnder). */
 export function closeFile(path: string) {
+  path = docPath(path);
   for (const g of [...workspace.groups]) {
     const i = g.tabs.indexOf(path);
     if (i === -1) continue;
@@ -426,6 +436,7 @@ export function splitWithTab(fromGroupId: string, path: string) {
 
 /** Apre un file in un NUOVO gruppo affiancato (split) — usato da "Apri di lato" dell'albero. */
 export async function openInNewGroup(path: string) {
+  path = docPath(path);
   beforeNav?.(path); // cronologia: registra la posizione lasciata
   await loadDoc(path); // carica prima: niente gruppo vuoto lampeggiante durante l'await
   const g: EditorGroup = {
@@ -443,13 +454,13 @@ export async function openInNewGroup(path: string) {
 /** Riallinea pool e gruppi dopo un rename su disco (di un file o di una cartella). */
 export function renameOpenPaths(oldPath: string, newPath: string) {
   const map = new Map<string, string>();
+  const to = canonPath(newPath);
   for (const f of workspace.openFiles) {
     if (f.kind === "diff" || f.kind === "activity") continue; // id sintetici (diff/activity): niente path reale da rimappare
     let next: string | null = null;
-    if (f.path === oldPath) next = newPath;
-    else if (f.path.startsWith(oldPath + "/") || f.path.startsWith(oldPath + "\\")) {
-      next = newPath + f.path.slice(oldPath.length);
-    }
+    // separatori e maiuscole indifferenti (M59); i separatori non cambiano la lunghezza del prefisso
+    if (samePath(f.path, oldPath)) next = to;
+    else if (isUnder(f.path, oldPath)) next = to + f.path.slice(oldPath.replace(/[\\/]+$/, "").length);
     if (next) {
       map.set(f.path, next);
       f.path = next;
@@ -467,9 +478,7 @@ export function renameOpenPaths(oldPath: string, newPath: string) {
 /** Chiude le tab del file eliminato (o dei file sotto la cartella eliminata). */
 export function closeUnder(path: string) {
   for (const f of [...workspace.openFiles]) {
-    if (f.path === path || f.path.startsWith(path + "/") || f.path.startsWith(path + "\\")) {
-      closeFile(f.path);
-    }
+    if (isUnder(f.path, path)) closeFile(f.path);
   }
 }
 
@@ -556,16 +565,26 @@ export async function restoreGroups(
   saved: { tabs: string[]; active: string | null; previews?: string[] }[],
   activeIndex: number,
 ) {
-  const allPaths = [...new Set(saved.flatMap((g) => g.tabs))];
+  // sessioni salvate prima della M59 possono avere lo stesso file in due forme (`src/x` e `src\x`):
+  // ognuna si riporta alla prima forma vista, e le schede doppie si fondono
+  const first = new Map<string, string>();
+  const canon = (p: string) => {
+    const k = pathKey(p);
+    if (!first.has(k)) first.set(k, canonPath(p));
+    return first.get(k)!;
+  };
+  const uniq = (ps: string[]) => [...new Set(ps.map(canon))];
+  const allPaths = uniq(saved.flatMap((g) => g.tabs));
   for (const p of allPaths) await loadDoc(p);
   const loaded = new Set(workspace.openFiles.map((f) => f.path));
   const groups: EditorGroup[] = [];
   for (const g of saved) {
-    const tabs = g.tabs.filter((p) => loaded.has(p));
+    const tabs = uniq(g.tabs).filter((p) => loaded.has(p));
     if (tabs.length === 0) continue;
-    const active = g.active && tabs.includes(g.active) ? g.active : tabs[0];
+    const savedActive = g.active ? canon(g.active) : null;
+    const active = savedActive && tabs.includes(savedActive) ? savedActive : tabs[0];
     // anteprime salvate (filtrate sulle tab valide); sessioni vecchie: ricalcolo da mdMode
-    const previews = (g.previews ?? tabs.filter((p) => initialPreview(basename(p)))).filter((p) =>
+    const previews = (g.previews ? uniq(g.previews) : tabs.filter((p) => initialPreview(basename(p)))).filter((p) =>
       tabs.includes(p),
     );
     groups.push({ id: newGroupId(), tabs, activePath: active, previews });

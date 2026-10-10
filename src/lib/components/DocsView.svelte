@@ -2,6 +2,7 @@
   import Icon from "./Icon.svelte";
   import { docs, loadDocs, openDoc, type DocNode } from "../state/docs.svelte";
   import { workspace, activePath } from "../state/workspace.svelte";
+  import { samePath } from "../util";
 
   // (ri)carica l'albero quando cambia la cartella aperta (e al primo montaggio)
   $effect(() => {
@@ -57,7 +58,7 @@
   {:else}
     <button
       class="row page"
-      class:active={n.path === activePath()}
+      class:active={!!n.path && samePath(n.path, activePath() ?? "")}
       style="padding-left:{depth * 12 + 27}px"
       onclick={() => openDoc(n)}
       title={n.rel}

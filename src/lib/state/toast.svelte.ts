@@ -8,6 +8,7 @@ export interface Toast {
   sticky?: boolean; // niente auto-dismiss: resta finché click / ✕ / rimozione esterna
   onClick?: () => void; // azione al click sul corpo (es. vai al terminale che aspetta)
   key?: string; // coalescing/dedup: due notifiche con la stessa key non si duplicano
+  icon?: string; // icona al posto di quella del tipo (es. "download" per gli aggiornamenti, M59)
 }
 
 export const toasts = $state({ list: [] as Toast[] });
@@ -23,7 +24,7 @@ export function notify(message: string, kind: Toast["kind"] = "info", ms = 2600)
 
 /** Notifica PERSISTENTE e cliccabile (no auto-dismiss). `key` evita i doppioni: se ne esiste già una
  *  con la stessa key non ne aggiunge un'altra. La si rimuove con dismissByKey (o click / ✕). */
-export function notifyAttention(opts: { key: string; message: string; onClick?: () => void }) {
+export function notifyAttention(opts: { key: string; message: string; onClick?: () => void; icon?: string }) {
   if (toasts.list.some((t) => t.key === opts.key)) return; // coalescing
   counter += 1;
   toasts.list.push({
@@ -33,6 +34,7 @@ export function notifyAttention(opts: { key: string; message: string; onClick?: 
     sticky: true,
     onClick: opts.onClick,
     key: opts.key,
+    icon: opts.icon,
   });
 }
 

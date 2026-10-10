@@ -28,7 +28,8 @@
   import { invoke } from "@tauri-apps/api/core";
   import { openSettings } from "../state/settings.svelte";
   import { openScratch } from "../state/scratch";
-  import { promoteLight } from "../state/persist.svelte";
+  import { promoteLight, prepareQuit } from "../state/persist.svelte";
+  import { updates, openUpdateDialog } from "../state/updater.svelte";
   import { basename } from "../util";
 
   const win = getCurrentWindow();
@@ -50,6 +51,8 @@
       { title: "Close all windows", kind: "warning" },
     );
     if (!ok) return;
+    // le modifiche di questa finestra; le altre finestre chiedono da sé quando ricevono il segnale (M59)
+    if (!(await prepareQuit())) return;
     try {
       await invoke("close_all_windows");
     } catch (e) {
@@ -378,6 +381,13 @@
   </div>
 
   <div class="actions">
+    {#if updates.available}
+      <!-- 12 px in 22 con bordo da 1: 4 px sopra e sotto -->
+      <button class="updpill" title="Orbit {updates.available.version} is available — click to update" onclick={openUpdateDialog}>
+        <Icon name="download" size={12} strokeWidth={1.8} />
+        <span class="up-label">Update</span>
+      </button>
+    {/if}
     {#if anyNeedsAttention()}
       {@const waiting = waitingTerminals()}
       <div class="waitpill" title="Claude is waiting — click to open">
@@ -799,6 +809,25 @@
   }
 
   /* notifica "Claude in attesa": pill compatto in accento, persistente ma non invadente */
+  /* versione nuova disponibile (M59): come il pill "Waiting", ma fermo */
+  .updpill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 22px;
+    margin-right: 4px;
+    padding: 0 8px;
+    border: 1px solid rgba(var(--accent-rgb), 0.5);
+    border-radius: var(--r-md);
+    background: rgba(var(--accent-rgb), 0.14);
+    color: var(--color-accent);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .updpill:hover {
+    background: rgba(var(--accent-rgb), 0.22);
+  }
   .waitpill {
     display: inline-flex;
     align-items: stretch;
@@ -905,7 +934,8 @@
       transform: none;
     }
     /* il pill "Waiting" resta (icona + conteggio); nascondi solo la parola per risparmiare spazio */
-    .waitpill .wp-label {
+    .waitpill .wp-label,
+    .updpill .up-label {
       display: none;
     }
   }

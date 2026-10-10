@@ -3,6 +3,7 @@ mod activity;
 mod git;
 mod pty;
 mod symbols;
+mod updater;
 mod watcher;
 mod winsession;
 
@@ -23,6 +24,8 @@ struct Startup {
     // cartella del file fa solo da contesto e non diventa un progetto (niente .orbit/.claude, M57)
     light: bool,
     win_key: String, // chiave di sessione STABILE di questa finestra (vedi winsession::WinKey)
+    // riaperta dall'installer di un aggiornamento (M59): la versione nuova, per l'avviso "aggiornato"
+    updated_to: Option<String>,
 }
 
 /// Cartella passata da CLI/env: LUME_DIR, oppure il primo arg se è una cartella (`lume /progetto`),
@@ -40,10 +43,16 @@ fn cli_dir() -> Option<String> {
 #[tauri::command]
 fn startup(app: AppHandle) -> Startup {
     let win_key = winsession::this_key(&app); // chiave stabile (impostata da winsession::init)
+    let updated_to = app.state::<winsession::UpdatedTo>().0.lock().unwrap_or_else(|e| e.into_inner()).clone();
     // se questa istanza è la "restoratrice" di una sessione (avvio nudo con set salvato), apre la
     // cartella della sua voce invece dell'ultima sessione singola.
     if let Some(dir) = winsession::restore_folder(&app) {
-        return Startup { dir: Some(dir), file: None, search: None, light: false, win_key };
+        return Startup { dir: Some(dir), file: None, search: None, light: false, win_key, updated_to };
+    }
+    // riaperta dopo un aggiornamento senza finestre da ripristinare: avvio nudo (gli argomenti sono
+    // quelli della finestra che ha aggiornato, ripassati dall'installer)
+    if updated_to.is_some() {
+        return Startup { dir: None, file: None, search: None, light: false, win_key, updated_to };
     }
     let arg = std::env::args().nth(1);
     let arg_file = arg.as_deref().filter(|a| Path::new(a).is_file()).map(str::to_string);
@@ -57,7 +66,7 @@ fn startup(app: AppHandle) -> Startup {
     let search = std::env::var("LUME_SEARCH")
         .ok()
         .filter(|s| !s.trim().is_empty());
-    Startup { dir: cli_dir(), file, search, light, win_key }
+    Startup { dir: cli_dir(), file, search, light, win_key, updated_to }
 }
 
 /// Radice del progetto che contiene `path`: il primo antenato (a partire dalla cartella del file) con
@@ -437,10 +446,11 @@ fn reveal_path(path: String) -> Result<(), String> {
 }
 
 // ---- Log diagnostici (opzionali, gated dal toggle "logging" in Impostazioni) ----
-/// Versione dell'app: nell'header dei log disambigua QUALE build ha prodotto il log.
+/// Versione dell'app: nell'header dei log disambigua QUALE build ha prodotto il log. Quella della
+/// configurazione Tauri (M59), la stessa che l'aggiornamento confronta con la release.
 #[tauri::command]
-fn app_version() -> String {
-    env!("CARGO_PKG_VERSION").to_string()
+fn app_version(app: AppHandle) -> String {
+    app.package_info().version.to_string()
 }
 
 /// File di log di QUESTA istanza (uno per processo → niente race tra finestre diverse).
@@ -487,6 +497,9 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(updater::PendingUpdate::default())
+        .manage(winsession::UpdatedTo::default())
         .manage(pty::PtyManager::default())
         .manage(watcher::WatchState::default())
         .manage(winsession::LastNormal::default())
@@ -498,8 +511,14 @@ pub fn run() {
         .setup(|app| {
             // ripristina la geometria della finestra principale (e l'intera sessione, se avvio nudo) e la mostra
             let handle = app.handle().clone();
+            // riaperta dall'installer dopo un aggiornamento (M59): si ignorano gli argomenti (quelli della
+            // finestra che ha aggiornato) e si riaprono TUTTE le finestre, come da un avvio nudo
+            let updated = winsession::take_update_marker(&handle);
+            let arg_dir = if updated.is_some() { None } else { cli_dir() };
+            *handle.state::<winsession::UpdatedTo>().0.lock().unwrap_or_else(|e| e.into_inner()) =
+                updated.map(|u| u.to);
             match app.get_webview_window("main") {
-                Some(win) => winsession::init(&handle, &win, cli_dir()),
+                Some(win) => winsession::init(&handle, &win, arg_dir),
                 None => {
                     // non dovrebbe accadere (la finestra in config ha label "main"); ma con visible:false
                     // una finestra mai mostrata sarebbe irrecuperabile (decorations off) → mostra ciò che c'è.
@@ -529,6 +548,12 @@ pub fn run() {
             open_new_window,
             winsession::register_window,
             winsession::close_all_windows,
+            winsession::quit_now,
+            winsession::quit_others,
+            winsession::other_instances,
+            updater::update_check,
+            updater::update_download,
+            updater::update_install,
             reveal_path,
             project_root,
             open_url,

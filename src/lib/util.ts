@@ -21,6 +21,38 @@ export function normSlash(p: string): string {
   return p.replace(/\\/g, "/").replace(/\/+$/, "");
 }
 
+/** Percorso Windows: lettera di unità (`C:\`, `c:/`) o UNC (`\\server`, `\\?\`). */
+function isWinPath(p: string): boolean {
+  return /^[A-Za-z]:[\\/]/.test(p) || /^[\\/]{2}[^\\/]/.test(p);
+}
+
+/**
+ * Forma canonica con cui un percorso entra nel workspace (M59): su Windows i separatori diventano `\`,
+ * come nell'albero e nel sistema. Prima Vai alla definizione (`root\` + `src/x.ts`) e i link del
+ * terminale aprivano lo stesso file come un secondo documento, e salvarne uno calpestava l'altro.
+ */
+export function canonPath(p: string): string {
+  return isWinPath(p) ? p.replace(/\//g, "\\") : p;
+}
+
+/** Chiave di confronto: separatori indifferenti e, su Windows, maiuscole indifferenti (il file system non
+ *  le distingue). Solo per confrontare: per mostrare e aprire si usa il percorso vero. */
+export function pathKey(p: string): string {
+  return isWinPath(p) ? p.replace(/\\/g, "/").toLowerCase() : p;
+}
+
+/** Stesso file? (vedi pathKey) */
+export function samePath(a: string, b: string): boolean {
+  return a === b || pathKey(a) === pathKey(b);
+}
+
+/** `p` è `dir` stessa o sta dentro `dir`? */
+export function isUnder(p: string, dir: string): boolean {
+  const k = pathKey(p);
+  const d = pathKey(dir).replace(/[\\/]+$/, "");
+  return k === d || k.startsWith(d + "/") || k.startsWith(d + "\\");
+}
+
 /** Percorso di `abs` relativo a `root` (separatori "/"): "" se coincide con root,
  *  l'assoluto normalizzato se `abs` non è sotto `root`. */
 export function relTo(abs: string, root: string | null): string {

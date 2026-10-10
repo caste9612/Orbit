@@ -5,7 +5,7 @@
   import FileGlyph from "./FileGlyph.svelte";
   import Self from "./MiniTree.svelte";
   import { openFile, activePath } from "../state/workspace.svelte";
-  import { fileIcon } from "../util";
+  import { fileIcon, samePath } from "../util";
 
   interface FsEntry {
     name: string;
@@ -42,7 +42,7 @@
     {@const fi = fileIcon(e.name)}
     <button
       class="mini-row"
-      class:active={!e.isDir && activePath() === e.path}
+      class:active={!e.isDir && samePath(e.path, activePath() ?? "")}
       style="padding-left:{8 + depth * 13}px"
       onclick={() => activate(e)}
       title={e.name}

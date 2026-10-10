@@ -69,7 +69,7 @@ pub struct WinKey(pub Mutex<String>);
 pub struct OpenFolder(pub Mutex<Option<String>>);
 
 // Coordinamento "chiudi tutte": `quitting` = questo processo sta uscendo per un chiudi-tutte (così
-// la sua on_close non riscrive il ripristino, già salvato da chi ha avviato); `baseline` = il token
+// la sua finish_close non riscrive il ripristino, già salvato da chi ha avviato); `baseline` = il token
 // del file di controllo letto all'avvio (un token più alto = un altro processo ha chiesto la chiusura).
 #[derive(Default)]
 pub struct QuitState {
@@ -309,15 +309,15 @@ fn update_own_geom(app: &AppHandle, win: &WebviewWindow) {
     write_json_atomic(&p, &entry);
 }
 
-/// Alla chiusura: salva la geometria finale nel proprio file, fa lo SNAPSHOT del set vivo nel file di
-/// ripristino (salvo durante un "chiudi tutte"), poi cancella il proprio file. Idempotente.
-fn on_close(app: &AppHandle, win: &WebviewWindow) {
+/// Finestra chiusa davvero: fa lo SNAPSHOT del set vivo nel file di ripristino (salvo durante un
+/// "chiudi tutte"), poi cancella il proprio file. Idempotente. La geometria finale è già nel file:
+/// l'ha scritta la richiesta di chiusura (M59: qui la finestra può essere già distrutta).
+fn finish_close(app: &AppHandle) {
     let id = this_id(app);
     let Some(p) = entry_path(app, &id) else { return };
     if !p.exists() {
-        return; // già gestita (es. CloseRequested poi ExitRequested)
+        return; // già gestita (es. Destroyed poi ExitRequested)
     }
-    update_own_geom(app, win); // geometria finale nel proprio file (incluso nello snapshot sotto)
     // snapshot del set VIVO → ripristino. SALTATO durante un "chiudi tutte": lo snapshot completo
     // l'ha già scritto chi ha avviato la chiusura (altrimenti ogni finestra che esce lo rimpicciolirebbe).
     let quitting = app.state::<QuitState>().quitting.load(Ordering::SeqCst);
@@ -402,7 +402,10 @@ pub fn init(app: &AppHandle, win: &WebviewWindow, arg_dir: Option<String>) {
         // perdita di fuoco → salva la geometria corrente nel proprio file (così "chiudi tutte" e il
         // ripristino vedono dove la finestra è ORA, non dove era stata aperta).
         WindowEvent::Focused(false) => update_own_geom(&app2, &w),
-        WindowEvent::CloseRequested { .. } => on_close(&app2, &w),
+        // richiesta di chiusura: la finestra può ancora restare aperta (modifiche non salvate e l'utente
+        // annulla, M59) → qui solo la geometria; l'uscita dal registro avviene a finestra distrutta.
+        WindowEvent::CloseRequested { .. } => update_own_geom(&app2, &w),
+        WindowEvent::Destroyed => finish_close(&app2),
         _ => {}
     });
 
@@ -443,9 +446,11 @@ pub fn restore_folder(app: &AppHandle) -> Option<String> {
     g.clone()
 }
 
-/// Rete di sicurezza all'uscita: salva come una chiusura normale (idempotente).
+/// Rete di sicurezza all'uscita (es. `app.exit()` del "chiudi tutte"): geometria e registro come una
+/// chiusura normale (idempotente).
 pub fn save_on_exit(app: &AppHandle, win: &WebviewWindow) {
-    on_close(app, win);
+    update_own_geom(app, win);
+    finish_close(app);
 }
 
 // --- "chiudi tutte" (coordinamento tra processi) ----------------------------
@@ -503,13 +508,169 @@ pub fn close_all_windows(app: AppHandle) {
             write_json_atomic(&rp, &live);
         }
     }
-    // 3) segnala alle altre istanze di uscire, poi esci anche tu
-    write_token(&app, now_token());
+    // 3) segnala alle altre istanze di uscire, poi esci anche tu. Il frontend di questa finestra ha già
+    //    chiesto per le sue modifiche (M59): la baseline spostata prima evita di richiederlo col proprio segnale.
+    let token = now_token();
+    app.state::<QuitState>().baseline.store(token, Ordering::SeqCst);
+    write_token(&app, token);
     begin_quit(&app);
 }
 
+/// Uscita confermata dal frontend (dopo aver salvato o scartato le modifiche): "chiudi tutte" chiesto
+/// da un'altra istanza, o aggiornamento.
+#[tauri::command]
+pub fn quit_now(app: AppHandle) {
+    begin_quit(&app);
+}
+
+/// Un'altra istanza chiede a questa di uscire. Non si esce subito (M59): il frontend salva la sessione
+/// e chiede per le modifiche non salvate, poi chiama `quit_now`; se l'utente annulla, resta aperta.
+/// Senza la finestra principale (o il suo frontend) non c'è nulla da salvare: si esce.
+fn request_quit(app: &AppHandle) {
+    use tauri::Emitter;
+    let asked = app.get_webview_window("main").map(|w| w.emit("orbit-quit-request", ()).is_ok()).unwrap_or(false);
+    if !asked {
+        begin_quit(app);
+    }
+}
+
+/// Aggiornamento (M59): fotografa TUTTE le finestre per riaprirle dopo il riavvio e chiede alle ALTRE
+/// di uscire (stesso segnale del "chiudi tutte"). Questa resta viva — installerà l'aggiornamento — e
+/// ignora il proprio segnale (baseline spostata prima di scriverlo). Ritorna quante altre istanze ci sono.
+#[tauri::command]
+pub fn quit_others(app: AppHandle) -> usize {
+    if let Some(win) = app.get_webview_window("main") {
+        update_own_geom(&app, &win);
+    }
+    let live = load_live(&app);
+    if !live.is_empty() {
+        if let Some(rp) = restore_path(&app) {
+            write_json_atomic(&rp, &live);
+        }
+    }
+    let token = now_token();
+    app.state::<QuitState>().baseline.store(token, Ordering::SeqCst);
+    write_token(&app, token);
+    other_instances(app)
+}
+
+/// Altri processi di Orbit ancora aperti. Su Windows si contano i processi dello STESSO eseguibile: è
+/// ciò che l'installer deve sostituire, e include le finestre leggere (che non sono nel registro).
+#[tauri::command]
+pub fn other_instances(app: AppHandle) -> usize {
+    #[cfg(windows)]
+    {
+        let _ = app;
+        other_processes_of_this_exe()
+    }
+    #[cfg(not(windows))]
+    {
+        let me = this_id(&app);
+        load_live(&app)
+            .iter()
+            .filter(|e| e.id != me && pid_of(&e.id).map(pid_alive).unwrap_or(false))
+            .count()
+    }
+}
+
+#[cfg(windows)]
+fn other_processes_of_this_exe() -> usize {
+    use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
+    };
+    use windows_sys::Win32::System::Threading::{
+        OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION,
+    };
+    let Ok(me) = std::env::current_exe() else { return 0 };
+    let my_path = me.to_string_lossy().to_lowercase();
+    let my_name = me.file_name().map(|n| n.to_string_lossy().to_lowercase()).unwrap_or_default();
+    let my_pid = std::process::id();
+    let mut count = 0;
+    // SAFETY: API Win32 con buffer e struct dimensionati qui; ogni handle aperto viene chiuso.
+    unsafe {
+        let snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if snap == INVALID_HANDLE_VALUE {
+            return 0;
+        }
+        let mut pe: PROCESSENTRY32W = std::mem::zeroed();
+        pe.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
+        let mut more = Process32FirstW(snap, &mut pe) != 0;
+        while more {
+            let len = pe.szExeFile.iter().position(|&c| c == 0).unwrap_or(pe.szExeFile.len());
+            let name = String::from_utf16_lossy(&pe.szExeFile[..len]).to_lowercase();
+            if pe.th32ProcessID != my_pid && name == my_name {
+                // stesso nome: conta solo se è lo stesso FILE (non, per esempio, un build di sviluppo)
+                let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pe.th32ProcessID);
+                if !h.is_null() {
+                    let mut buf = [0u16; 1024];
+                    let mut n = buf.len() as u32;
+                    if QueryFullProcessImageNameW(h, 0, buf.as_mut_ptr(), &mut n) != 0
+                        && String::from_utf16_lossy(&buf[..n as usize]).to_lowercase() == my_path
+                    {
+                        count += 1;
+                    }
+                    CloseHandle(h);
+                }
+            }
+            more = Process32NextW(snap, &mut pe) != 0;
+        }
+        CloseHandle(snap);
+    }
+    count
+}
+
+/// Segna (o, se l'installazione fallisce, toglie) questo processo come in uscita per un aggiornamento:
+/// la sua chiusura non riscrive lo snapshot di ripristino (l'ha già scritto `quit_others`).
+pub fn mark_quitting(app: &AppHandle, on: bool) {
+    app.state::<QuitState>().quitting.store(on, Ordering::SeqCst);
+}
+
+// --- riavvio dopo un aggiornamento (M59) ------------------------------------
+// Prima di avviare l'installer si lascia un segno (update-restart.json). L'istanza che parte subito
+// dopo (rilanciata dall'installer, magari con gli argomenti della finestra che ha aggiornato) lo
+// consuma: ignora gli argomenti e riapre TUTTE le finestre fotografate da `quit_others`, poi avvisa
+// "aggiornato alla vX". Valido pochi minuti: un avvio molto più tardi è un avvio normale.
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct UpdateRestart {
+    pub from: String,
+    pub to: String,
+    pub at: u64, // ms dall'epoch
+}
+
+// versione a cui Orbit è appena stato aggiornato (letta da `startup()` per l'avviso)
+#[derive(Default)]
+pub struct UpdatedTo(pub Mutex<Option<String>>);
+
+fn update_marker_path(app: &AppHandle) -> Option<PathBuf> {
+    app.path().app_config_dir().ok().map(|d| d.join("update-restart.json"))
+}
+
+pub fn write_update_marker(app: &AppHandle, from: &str, to: &str) {
+    if let Some(p) = update_marker_path(app) {
+        write_json_atomic(&p, &UpdateRestart { from: from.into(), to: to.into(), at: now_token() });
+    }
+}
+
+pub fn clear_update_marker(app: &AppHandle) {
+    if let Some(p) = update_marker_path(app) {
+        let _ = std::fs::remove_file(p);
+    }
+}
+
+/// All'avvio: legge e cancella il segno; Some solo se è recente (10 minuti).
+pub fn take_update_marker(app: &AppHandle) -> Option<UpdateRestart> {
+    let p = update_marker_path(app)?;
+    let s = std::fs::read_to_string(&p).ok()?;
+    let _ = std::fs::remove_file(&p);
+    let m: UpdateRestart = serde_json::from_str(&s).ok()?;
+    (now_token().saturating_sub(m.at) < 10 * 60 * 1000).then_some(m)
+}
+
 /// Watcher del file di controllo: se un'altra istanza ha chiesto il "chiudi tutte" (token oltre il
-/// baseline d'avvio), questa istanza esce. Un watcher `notify` per processo sulla cartella di config.
+/// baseline d'avvio), questa istanza chiede al frontend di salvare ed esce (`request_quit`). Un
+/// watcher `notify` per processo sulla cartella di config.
 pub fn start_quit_watcher(app: &AppHandle) {
     app.state::<QuitState>().baseline.store(read_token(app), Ordering::SeqCst);
     let Some(cdir) = control_path(app).and_then(|p| p.parent().map(|d| d.to_path_buf())) else { return };
@@ -526,9 +687,12 @@ pub fn start_quit_watcher(app: &AppHandle) {
                 continue;
             }
             let qs = app2.state::<QuitState>();
-            if read_token(&app2) > qs.baseline.load(Ordering::SeqCst) {
-                begin_quit(&app2);
-                break;
+            let token = read_token(&app2);
+            if token > qs.baseline.load(Ordering::SeqCst) && !qs.quitting.load(Ordering::SeqCst) {
+                // la richiesta si consuma: se l'utente annulla l'uscita (modifiche non salvate) la finestra
+                // resta aperta e il watcher resta in ascolto per le richieste successive
+                qs.baseline.store(token, Ordering::SeqCst);
+                request_quit(&app2);
             }
         }
         drop(watcher);

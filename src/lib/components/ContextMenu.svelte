@@ -22,12 +22,14 @@
   }
   let { x, y, items, onClose }: Props = $props();
 
-  // Tiene il menu dentro la finestra (stima compatta: ~210px largo, righe da 28px).
+  // Tiene il menu dentro la finestra: largo 210 px; l'altezza è quella MISURATA (M59: la stima contava
+  // 5 px per separatore invece di 9 e ignorava le etichette su due righe → vicino al bordo usciva).
   const W = 210;
   const rowH = 28;
-  let height = $derived(items.length * rowH + items.filter((i) => i.separatorBefore).length * 5 + 8);
-  let left = $derived(Math.min(x, window.innerWidth - W - 6));
-  let top = $derived(Math.min(y, window.innerHeight - height - 6));
+  let measured = $state(0);
+  let height = $derived(measured || items.length * rowH + items.filter((i) => i.separatorBefore).length * 9 + 10);
+  let left = $derived(Math.max(6, Math.min(x, window.innerWidth - W - 6)));
+  let top = $derived(Math.max(6, Math.min(y, window.innerHeight - height - 6)));
 
   function pick(item: MenuItem) {
     onClose();
@@ -37,7 +39,7 @@
 
 <Backdrop {onClose} z={90} closeOnRightClick />
 
-<div class="menu" style="left:{left}px; top:{top}px; width:{W}px" role="menu" transition:scale={{ duration: 90, start: 0.97, opacity: 0.3 }}>
+<div class="menu" style="left:{left}px; top:{top}px; width:{W}px" role="menu" bind:offsetHeight={measured} transition:scale={{ duration: 90, start: 0.97, opacity: 0.3 }}>
   {#each items as item, i (i)}
     {#if item.separatorBefore}<div class="sep"></div>{/if}
     {#if item.header}

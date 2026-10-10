@@ -28,7 +28,7 @@
   import { decorations } from "../state/git.svelte";
   import { shelf, relOf, isHidden, byCategory, shelveByName, isNameRuled, unshelveName } from "../state/shelf.svelte";
   import { notify } from "../state/toast.svelte";
-  import { fileIcon, basename, dirname, joinPath, normSlash, runCommand } from "../util";
+  import { fileIcon, basename, dirname, joinPath, normSlash, runCommand, samePath } from "../util";
   import { writeClipboard } from "../clipboard";
 
   // Lista virtuale ad altezza fissa: rende solo le righe nel viewport (+overscan).
@@ -239,7 +239,7 @@
           <button
             type="button"
             class="row"
-            class:active={!n.entry.isDir && activePath() === n.entry.path}
+            class:active={!n.entry.isDir && samePath(n.entry.path, activePath() ?? "")}
             class:target={menu?.node?.entry.path === n.entry.path}
             style="top:{idx * ROW}px; height:{ROW}px; padding-left:{6 + n.depth * 14}px"
             onclick={() => !renaming && activate(n)}

@@ -7,11 +7,13 @@
   import Backdrop from "./Backdrop.svelte";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
   import orbitWordmark from "../assets/orbit-wordmark.svg";
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
+  import { settings } from "../state/settings.svelte";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
-  import { dirname, fileIcon, relTo, runCommand } from "../util";
+  import { fileIcon, relTo, runCommand } from "../util";
   import { runFile } from "../state/run.svelte";
   import { copyPath, copyRelPath, revealPath } from "../state/explorer.svelte";
+  import { askUnsaved } from "../state/unsaved.svelte";
   import { layout, setFocusPanel } from "../state/layout.svelte";
   import {
     workspace,
@@ -60,6 +62,24 @@
   // fs-changed), annullo tutto così overlay e indicatori non restano bloccati.
   $effect(() => {
     if (drag && !workspace.groups.some((g) => g.tabs.includes(drag!.path))) cancelDrag();
+  });
+
+  // La scheda attiva sempre visibile nella sua barra (M59): aprendo un file con molte schede, o
+  // scegliendolo dal menu "tutte le schede", la nuova restava fuori vista a destra. Scorrimento manuale
+  // e solo della barra (scrollIntoView sposterebbe anche i contenitori con overflow:hidden).
+  $effect(() => {
+    const key = workspace.groups.map((g) => `${g.id}:${g.activePath ?? ""}:${g.tabs.length}`).join("|");
+    void key;
+    void tick().then(() => {
+      for (const bar of document.querySelectorAll<HTMLElement>(".editor-area .tabs")) {
+        const tab = bar.querySelector<HTMLElement>(".tab.active");
+        if (!tab) continue;
+        const b = bar.getBoundingClientRect();
+        const t = tab.getBoundingClientRect();
+        const dx = t.left < b.left ? t.left - b.left : t.right > b.right ? t.right - b.right : 0;
+        if (dx) bar.scrollBy({ left: dx, behavior: settings.motion ? "smooth" : "auto" });
+      }
+    });
   });
 
   // menu "tutte le schede" del riquadro (overflow), per vederle/chiuderle quando sono molte
@@ -161,18 +181,22 @@
 
   // chiusura di una o più schede: se tra i documenti che spariscono del tutto (nessun'altra copia aperta
   // in un altro gruppo) ci sono modifiche non salvate chiede Salva/Non salvare/Annulla, una volta sola
-  // per tutti, con un dialog in-app a 3 pulsanti (il confirm nativo di Tauri ne ha solo 2: niente "Salva").
+  // per tutti (dialog condiviso, unsaved.svelte.ts)
   type CloseTarget = { groupId: string; path: string };
-  let unsavedPrompt = $state<{ targets: CloseTarget[]; dirty: OpenFile[] } | null>(null);
-  function requestClose(targets: CloseTarget[]) {
+  async function requestClose(targets: CloseTarget[]) {
     if (!targets.length) return;
     const closing = new Set(targets.map((t) => `${t.groupId}\n${t.path}`));
     const lost = (path: string) => workspace.groups.every((g) => !g.tabs.includes(path) || closing.has(`${g.id}\n${path}`));
     const paths = new Set(targets.map((t) => t.path));
     const dirty = workspace.openFiles.filter((f) => f.dirty && f.kind === "file" && paths.has(f.path) && lost(f.path));
     if (dirty.length) {
-      unsavedPrompt = { targets, dirty };
-      return;
+      const choice = await askUnsaved(dirty);
+      if (choice === "cancel") return;
+      if (choice === "save") {
+        for (const f of dirty) await savePath(f.path);
+        // chiude solo ciò che si è salvato: un salvataggio fallito lascia aperta la sua scheda (con l'errore)
+        targets = targets.filter((t) => !fileByPath(t.path)?.dirty);
+      }
     }
     closeTargets(targets);
   }
@@ -182,21 +206,7 @@
     for (const [groupId, paths] of byGroup) closeTabs(groupId, paths);
   }
   function tryClose(groupId: string, f: OpenFile) {
-    requestClose([{ groupId, path: f.path }]);
-  }
-  async function doSaveClose() {
-    const p = unsavedPrompt;
-    if (!p) return;
-    unsavedPrompt = null;
-    for (const f of p.dirty) await savePath(f.path);
-    // chiude solo ciò che si è salvato: un salvataggio fallito lascia aperta la sua scheda (con l'errore)
-    closeTargets(p.targets.filter((t) => !fileByPath(t.path)?.dirty));
-  }
-  function doDiscardClose() {
-    const p = unsavedPrompt;
-    if (!p) return;
-    unsavedPrompt = null;
-    closeTargets(p.targets);
+    void requestClose([{ groupId, path: f.path }]);
   }
 
   // menu contestuale delle schede (tasto destro): chiusure multiple come in Visual Studio / VS Code,
@@ -487,37 +497,6 @@
 
 {#if tabCtx}
   <ContextMenu x={tabCtx.x} y={tabCtx.y} items={tabCtxItems()} onClose={() => (tabCtx = null)} />
-{/if}
-
-{#if unsavedPrompt}
-  {@const dirty = unsavedPrompt.dirty}
-  <Backdrop onClose={() => (unsavedPrompt = null)} dim z={120} />
-  <div class="confirm" role="dialog" aria-modal="true" aria-label="Unsaved changes">
-    <div class="ctitle">Unsaved changes</div>
-    {#if dirty.length === 1}
-      <p class="cmsg">Do you want to save the changes to <b>{dirty[0].name}</b>?</p>
-    {:else}
-      <p class="cmsg">Do you want to save the changes to these {dirty.length} files?</p>
-      <ul class="cfiles">
-        {#each dirty.slice(0, 6) as f (f.path)}
-          {@const fi = fileIcon(f.name)}
-          {@const dir = relTo(dirname(f.path), workspace.rootPath)}
-          <li title={f.path}>
-            <span class="ti"><FileGlyph glyph={fi.glyph} color={fi.color} size={14} /></span>
-            <span class="label">{f.name}</span>
-            {#if dir}<span class="cdir">{dir}</span>{/if}
-          </li>
-        {/each}
-        {#if dirty.length > 6}<li class="more">and {dirty.length - 6} more</li>{/if}
-      </ul>
-    {/if}
-    <div class="cbtns">
-      <button class="cbtn ghost" onclick={() => (unsavedPrompt = null)}>Cancel</button>
-      <button class="cbtn danger" onclick={doDiscardClose}>Don't save</button>
-      <!-- svelte-ignore a11y_autofocus -->
-      <button class="cbtn primary" autofocus onclick={doSaveClose}>{dirty.length === 1 ? "Save" : "Save all"}</button>
-    </div>
-  </div>
 {/if}
 
 <style>
@@ -1009,104 +988,5 @@
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.03em;
-  }
-
-  /* dialog "modifiche non salvate" a 3 pulsanti (Salva / Non salvare / Annulla) */
-  .confirm {
-    position: fixed;
-    z-index: 121;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: min(420px, 90vw);
-    background: var(--color-surface-2);
-    border: 1px solid var(--color-line-strong);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-pop);
-    padding: 18px 20px 16px;
-  }
-  .ctitle {
-    font-size: 14px;
-    font-weight: 650;
-    color: var(--color-ink);
-    margin-bottom: 8px;
-  }
-  .cmsg {
-    margin: 0 0 16px;
-    font-size: 12.5px;
-    line-height: 1.45;
-    color: var(--color-ink-muted);
-  }
-  .cmsg b {
-    color: var(--color-ink);
-    font-weight: 600;
-  }
-  /* più file da salvare (Close all / others…): sotto la domanda, come nel menu delle schede, con la
-     cartella in grigio per distinguere i file omonimi */
-  .cfiles {
-    margin: -6px 0 16px;
-    padding: 0;
-    list-style: none;
-    font-size: 12.5px;
-    color: var(--color-ink);
-  }
-  .cfiles li {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    height: 22px;
-    min-width: 0;
-  }
-  .cfiles .label {
-    flex: 0 0 auto;
-    max-width: 60%;
-  }
-  .cdir {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--color-ink-subtle);
-    font-size: 11.5px;
-  }
-  .cfiles .more {
-    padding-left: 21px; /* sotto i nomi: glifo 14 + spazio 7 */
-    color: var(--color-ink-subtle);
-  }
-  .cbtns {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-  }
-  .cbtn {
-    height: 30px;
-    padding: 0 14px;
-    border-radius: var(--r-md);
-    border: 1px solid var(--color-line-strong);
-    background: var(--color-surface-3);
-    color: var(--color-ink);
-    font-size: 12.5px;
-    cursor: pointer;
-  }
-  .cbtn:hover {
-    background: var(--color-surface-4);
-  }
-  .cbtn.ghost {
-    background: transparent;
-  }
-  .cbtn.danger {
-    color: #ff9b9b;
-  }
-  .cbtn.danger:hover {
-    background: rgba(241, 76, 76, 0.16);
-  }
-  .cbtn.primary {
-    background: var(--color-accent);
-    border-color: var(--color-accent);
-    color: #08111f;
-    font-weight: 600;
-  }
-  .cbtn.primary:hover {
-    filter: brightness(1.08);
   }
 </style>

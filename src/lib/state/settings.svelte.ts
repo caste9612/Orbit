@@ -177,6 +177,7 @@ export const settings = $state({
   autosave: true, // salva i file modificati su perdita di focus e cambio tab (stile IntelliJ)
   mdMode: "readme" as MarkdownMode, // apertura .md: anteprima solo per i README (default)
   logging: true, // raccolta log diagnostici (ring buffer + file) per indagare i problemi — disattivabile
+  checkUpdates: true, // controlla le release su GitHub all'avvio e ogni 6 ore (M59)
 });
 
 export const MIN_FONT = 10;
@@ -278,6 +279,7 @@ export function loadSettings() {
       if (typeof s.autosave === "boolean") settings.autosave = s.autosave;
       if (s.mdMode === "readme" || s.mdMode === "preview" || s.mdMode === "source") settings.mdMode = s.mdMode;
       if (typeof s.logging === "boolean") settings.logging = s.logging;
+      if (typeof s.checkUpdates === "boolean") settings.checkUpdates = s.checkUpdates;
     }
   } catch {
     /* localStorage non disponibile o JSON invalido */
@@ -307,6 +309,7 @@ export function startSettingsAutosave() {
         autosave: settings.autosave,
         mdMode: settings.mdMode,
         logging: settings.logging,
+        checkUpdates: settings.checkUpdates,
       });
       applySettings();
       try {

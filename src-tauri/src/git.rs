@@ -32,6 +32,9 @@ pub struct GitStatus {
     is_repo: bool,
     branch: Option<String>,
     entries: Vec<StatusEntry>,
+    // radice del repo (i percorsi di `entries` sono relativi a questa, non alla cartella aperta): con una
+    // SOTTOCARTELLA del repo aperta le decorazioni andavano cercate qui (M59)
+    workdir: Option<String>,
 }
 
 fn index_code(s: Status) -> Option<String> {
@@ -75,6 +78,7 @@ pub fn git_status(root: String) -> Result<GitStatus, String> {
                 is_repo: false,
                 branch: None,
                 entries: vec![],
+                workdir: None,
             })
         }
     };
@@ -103,10 +107,14 @@ pub fn git_status(root: String) -> Result<GitStatus, String> {
         });
     }
     entries.sort_by(|a, b| a.path.cmp(&b.path));
+    let workdir = repo
+        .workdir()
+        .map(|w| w.to_string_lossy().trim_end_matches(['/', '\\']).to_string());
     Ok(GitStatus {
         is_repo: true,
         branch,
         entries,
+        workdir,
     })
 }
 

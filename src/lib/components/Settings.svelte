@@ -6,6 +6,22 @@
   import { settings, closeSettings, MONO_FONTS, ACCENTS, THEMES, type AccentName, type ThemeName } from "../state/settings.svelte";
   import { openShortcuts } from "../state/keybindings.svelte";
   import { openLogs } from "../state/logs.svelte";
+  import { invoke } from "@tauri-apps/api/core";
+  import { updates, checkForUpdates, openUpdateDialog } from "../state/updater.svelte";
+
+  let version = $state("");
+  void invoke<string>("app_version")
+    .then((v) => (version = v))
+    .catch(() => {});
+  let updateHint = $derived(
+    updates.available
+      ? `Version ${updates.available.version} is available`
+      : updates.checking
+        ? "Checking…"
+        : updates.checked
+          ? "Up to date"
+          : "New releases install in place and reopen your windows",
+  );
 
   const accentNames = Object.keys(ACCENTS) as AccentName[];
   // il predefinito (VS 2026) per primo, poi gli altri nell'ordine di definizione
@@ -211,6 +227,30 @@
         <span class="hint">View, filter and export the collected logs</span>
       </div>
       <button class="control" onclick={() => { closeSettings(); openLogs(); }}>Open logs…</button>
+    </div>
+
+    <div class="row">
+      <div class="label">
+        <span class="name">Check for updates automatically</span>
+        <span class="hint">At startup and every 6 hours, from the releases on GitHub</span>
+      </div>
+      <Switch
+        checked={settings.checkUpdates}
+        onToggle={() => (settings.checkUpdates = !settings.checkUpdates)}
+        label="Check for updates automatically"
+      />
+    </div>
+
+    <div class="row">
+      <div class="label">
+        <span class="name">Orbit {version}</span>
+        <span class="hint">{updateHint}</span>
+      </div>
+      {#if updates.available}
+        <button class="control" onclick={() => { closeSettings(); openUpdateDialog(); }}>Update…</button>
+      {:else}
+        <button class="control" disabled={updates.checking} onclick={() => void checkForUpdates(true)}>Check now</button>
+      {/if}
     </div>
   </div>
 </div>

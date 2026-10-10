@@ -5,7 +5,7 @@ import { workspace, openDiff } from "./workspace.svelte";
 import { notify } from "./toast.svelte";
 import { addTerminal } from "./terminals.svelte";
 import { layout, setFocusPanel } from "./layout.svelte";
-import { basename, normSlash } from "../util";
+import { basename, normSlash, relTo } from "../util";
 import type { GraphCommit } from "../gitgraph";
 
 export interface StatusEntry {
@@ -41,17 +41,43 @@ export const git = $state({
   behind: 0,
   upstream: null as string | null, // es. "origin/main"; null se il branch non traccia un remoto
   hasRemote: false, // il repo ha almeno un remoto configurato
+  // radice del repo: i percorsi di staged/unstaged sono relativi a questa. Coincide con la cartella
+  // aperta, tranne quando si apre una sua SOTTOCARTELLA (M59: prima lì niente decorazioni né gutter)
+  workdir: null as string | null,
 });
+
+/** Radice del repo nella forma dell'albero (maiuscole e separatori della cartella aperta): se il repo
+ *  sta sopra la cartella aperta, la si ricava da questa togliendo tanti livelli quanti ne mancano. */
+function repoBase(): string | null {
+  const root = workspace.rootPath;
+  const wd = git.workdir;
+  if (!root || !wd) return root;
+  const extra = relTo(root, wd); // es. "src/app" (vuoto se coincidono)
+  if (!extra) return root;
+  if (extra === normSlash(root)) return wd; // la cartella aperta non sta nel repo: non dovrebbe succedere
+  let base = normSlash(root);
+  for (let i = extra.split("/").length; i > 0; i--) base = base.slice(0, base.lastIndexOf("/"));
+  return base;
+}
+
+/** Percorso di `path` relativo alla radice del repo (come lo vuole git), "" se fuori dal repo. */
+export function gitRel(path: string): string {
+  const base = repoBase();
+  if (!base) return "";
+  const rel = relTo(path, base);
+  return rel && rel !== normSlash(path) ? rel : "";
+}
 
 export async function refreshStatus() {
   if (!workspace.rootPath) return;
   git.loading = true;
   try {
-    const s = await invoke<{ isRepo: boolean; branch: string | null; entries: StatusEntry[] }>(
+    const s = await invoke<{ isRepo: boolean; branch: string | null; entries: StatusEntry[]; workdir: string | null }>(
       "git_status",
       { root: workspace.rootPath },
     );
     git.isRepo = s.isRepo;
+    git.workdir = s.workdir;
     git.branch = s.branch;
     workspace.branch = s.branch;
     git.staged = s.entries.filter((e) => e.staged);
@@ -263,8 +289,10 @@ export function decorations(): { files: Map<string, string>; dirs: Set<string> }
   const root = workspace.rootPath;
   if (!root) return { files, dirs };
   const rootN = normSlash(root);
+  // i percorsi di git sono relativi alla radice del repo, che può stare SOPRA la cartella aperta
+  const baseN = normSlash(repoBase() ?? root);
   const add = (rel: string, code: string) => {
-    const abs = `${rootN}/${normSlash(rel)}`;
+    const abs = `${baseN}/${normSlash(rel)}`;
     if (files.has(abs)) return;
     files.set(abs, code);
     let d = abs.slice(0, abs.lastIndexOf("/"));

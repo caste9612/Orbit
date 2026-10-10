@@ -11,9 +11,11 @@
 use notify::{recommended_watcher, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use serde_json::Value;
-use std::path::Path;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 use std::sync::Mutex;
+use std::time::SystemTime;
 use tauri::{AppHandle, Emitter, State};
 
 #[derive(Serialize, Clone, Default)]
@@ -417,11 +419,47 @@ fn clip(s: &str, n: usize) -> String {
     }
 }
 
+// Cache per transcript (M59): una scansione rilegge solo i transcript cambiati (data di modifica o
+// dimensione diverse). Prima ogni scansione rileggeva e ri-analizzava TUTTI i transcript — 206 MiB sul PC
+// dell'utente — sul thread principale (comando sincrono), e ripartiva a ogni modifica di un transcript:
+// con la vista Attività aperta, mentre Claude lavorava, l'interfaccia si bloccava di continuo.
+struct Cached {
+    mtime: Option<SystemTime>,
+    len: u64,
+    units: Vec<WorkUnit>, // `live` sempre false qui: si calcola a ogni scansione
+}
+static CACHE: Mutex<Option<HashMap<PathBuf, Cached>>> = Mutex::new(None);
+
 /// Scansiona TUTTI i progetti in ~/.claude/projects e ricostruisce le unità di lavoro, dalla più
 /// recente. `limit` cappa il numero di unità restituite (default 500). Marca `live` l'ultima unità
-/// di una sessione il cui transcript è stato modificato negli ultimi ~2 minuti.
+/// di una sessione il cui transcript è stato modificato negli ultimi ~2 minuti. Gira fuori dal thread
+/// principale (M59): async + spawn_blocking, l'interfaccia resta reattiva anche alla prima scansione.
 #[tauri::command]
-pub fn scan_activity(limit: Option<usize>) -> Result<Vec<WorkUnit>, String> {
+pub async fn scan_activity(limit: Option<usize>) -> Result<Vec<WorkUnit>, String> {
+    tauri::async_runtime::spawn_blocking(move || scan(limit))
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+/// Unità di un transcript: dalla cache se il file non è cambiato, altrimenti lette e analizzate.
+fn units_of(p: &Path, sid: &str, mtime: Option<SystemTime>, len: u64) -> Option<Vec<WorkUnit>> {
+    if let Some(c) = CACHE.lock().unwrap_or_else(|e| e.into_inner()).as_ref().and_then(|m| m.get(p)) {
+        if c.mtime == mtime && c.len == len {
+            return Some(c.units.clone());
+        }
+    }
+    let content = std::fs::read_to_string(p).ok()?;
+    let lines: Vec<Value> = content.lines().filter_map(|l| serde_json::from_str(l).ok()).collect();
+    let units = segment(&lines, sid);
+    CACHE
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .get_or_insert_with(HashMap::new)
+        .insert(p.to_path_buf(), Cached { mtime, len, units: units.clone() });
+    Some(units)
+}
+
+fn scan(limit: Option<usize>) -> Result<Vec<WorkUnit>, String> {
     let home = std::env::var("USERPROFILE")
         .ok()
         .or_else(|| std::env::var("HOME").ok())
@@ -429,6 +467,7 @@ pub fn scan_activity(limit: Option<usize>) -> Result<Vec<WorkUnit>, String> {
     let dir = Path::new(&home).join(".claude").join("projects");
     let now = std::time::SystemTime::now();
     let mut out: Vec<WorkUnit> = Vec::new();
+    let mut seen: Vec<PathBuf> = Vec::new();
 
     let projects = match std::fs::read_dir(&dir) {
         Ok(r) => r,
@@ -452,20 +491,15 @@ pub fn scan_activity(limit: Option<usize>) -> Result<Vec<WorkUnit>, String> {
                 Some(s) if !s.is_empty() => s.to_string(),
                 _ => continue,
             };
-            let fresh = entry
-                .metadata()
-                .ok()
-                .and_then(|m| m.modified().ok())
+            let meta = entry.metadata().ok();
+            let mtime = meta.as_ref().and_then(|m| m.modified().ok());
+            let len = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+            let fresh = mtime
                 .and_then(|t| now.duration_since(t).ok())
                 .map(|d| d.as_secs() < 120)
                 .unwrap_or(false);
-            // TODO(perf): per transcript grandi conviene una cache in .orbit/index keyed sull'mtime.
-            let content = match std::fs::read_to_string(&p) {
-                Ok(c) => c,
-                Err(_) => continue,
-            };
-            let lines: Vec<Value> = content.lines().filter_map(|l| serde_json::from_str(l).ok()).collect();
-            let mut units = segment(&lines, &sid);
+            let Some(mut units) = units_of(&p, &sid, mtime, len) else { continue };
+            seen.push(p);
             if fresh {
                 if let Some(last) = units.last_mut() {
                     last.live = true;
@@ -473,6 +507,10 @@ pub fn scan_activity(limit: Option<usize>) -> Result<Vec<WorkUnit>, String> {
             }
             out.extend(units);
         }
+    }
+    // la cache tiene solo i transcript che esistono ancora
+    if let Some(m) = CACHE.lock().unwrap_or_else(|e| e.into_inner()).as_mut() {
+        m.retain(|k, _| seen.contains(k));
     }
     // più recenti in cima (il timestamp ISO ordina lessicograficamente).
     out.sort_by(|a, b| b.end.cmp(&a.end));
@@ -670,5 +708,21 @@ mod tests {
         let cmd = "git commit -m \"$(cat <<'EOF'\nfeat: cosa fatta\n\ndettagli\nEOF\n)\"";
         let msg = commit_message(cmd).unwrap();
         assert!(msg.starts_with("feat: cosa fatta"), "got: {msg}");
+    }
+
+    /// Misura (sui transcript VERI di questo PC, in sola lettura): la prima scansione legge tutto, come
+    /// faceva ogni scansione prima della M59; la seconda usa la cache. A mano, in release:
+    /// `cargo test --release --lib activity::tests::scan_timing -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn scan_timing() {
+        let t = std::time::Instant::now();
+        let a = scan(Some(500)).unwrap();
+        let full = t.elapsed();
+        let t = std::time::Instant::now();
+        let b = scan(Some(500)).unwrap();
+        let cached = t.elapsed();
+        assert_eq!(a.len(), b.len());
+        println!("unità: {} · prima scansione (tutto): {full:?} · seconda (cache): {cached:?}", a.len());
     }
 }

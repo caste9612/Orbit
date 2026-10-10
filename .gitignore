@@ -36,3 +36,6 @@ vite.config.ts.timestamp-*
 # icone mobile generate da `tauri icon` (progetto desktop, non servono)
 src-tauri/icons/android/
 src-tauri/icons/ios/
+
+# release preparate da scripts/New-Release.ps1 (installer firmati + latest.json)
+/artifacts

@@ -2,8 +2,9 @@
 // le rispettive tab e tab attiva, gruppo attivo e stato dei pannelli, in un JSON nella config
 // dir dell'app (comandi Rust load_state/save_state). Zero dipendenze.
 import { invoke } from "@tauri-apps/api/core";
-import { confirm } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { workspace, fileByPath, restoreGroups, resetDocs, autosaveAll, openFile, activePath } from "./workspace.svelte";
+import { resolveUnsaved } from "./unsaved.svelte";
 import { settings } from "./settings.svelte";
 import { openRoot, snapshotExpanded } from "./explorer.svelte";
 import { layout, beginMotion, type SidebarView } from "./layout.svelte";
@@ -177,6 +178,35 @@ export async function saveSessionNow() {
   );
 }
 
+/** Prima di lasciare i documenti aperti (cambio cartella, finestra che si chiude, aggiornamento): con
+ *  l'autosave ON si salvano subito; quel che resta modificato (conflitti, o autosave spento) passa dalla
+ *  domanda Save all / Don't save / Cancel. false = l'utente ha annullato o un salvataggio è fallito. */
+export async function settleUnsaved(opts: { discardLabel?: string } = {}): Promise<boolean> {
+  if (settings.autosave) await autosaveAll();
+  const dirty = workspace.openFiles.filter((f) => f.dirty && f.kind === "file");
+  return resolveUnsaved(dirty, opts);
+}
+
+/** Prima che la finestra si chiuda o il processo esca ("chiudi tutte", aggiornamento — M59): nessuna
+ *  modifica si perde senza chiedere, e la sessione si scrive subito (l'autosave è differito di 400 ms).
+ *  Se serve una risposta, la finestra viene in primo piano (può essere un'altra a chiedere l'uscita). */
+export async function prepareQuit(opts: { discardLabel?: string } = {}): Promise<boolean> {
+  if (settings.autosave) await autosaveAll();
+  const dirty = workspace.openFiles.filter((f) => f.dirty && f.kind === "file");
+  if (dirty.length) {
+    try {
+      const w = getCurrentWindow();
+      await w.unminimize();
+      await w.setFocus();
+    } catch {
+      /* fuori dal contesto Tauri */
+    }
+    if (!(await resolveUnsaved(dirty, opts))) return false;
+  }
+  await saveSessionNow();
+  return true;
+}
+
 /** Esito di `switchFolder`: `switched` = ora siamo su `path`; `cancelled` = l'utente ha annullato
  *  (edit non salvati) e siamo rimasti dov'eravamo; `failed` = la cartella non si è aperta (spostata/
  *  eliminata) e abbiamo ripristinato la precedente. Il chiamante distingue "annullato" da "morta". */
@@ -202,16 +232,8 @@ export async function switchFolder(path: string): Promise<SwitchResult> {
   if (prev) snapshotExpanded(prev); // salva l'albero espanso del repo che stai lasciando
   // modifiche non salvate: con l'autosave ON le salviamo subito (come su blur/cambio-tab) invece di
   // chiedere conferma. Resta `dirty` solo ciò che l'autosave NON tocca — i file in conflitto (cambiati
-  // anche su disco): per QUELLI si chiede comunque conferma prima di scartarli con resetDocs.
-  if (settings.autosave) await autosaveAll();
-  const dirty = workspace.openFiles.filter((f) => f.dirty).length;
-  if (dirty > 0) {
-    const ok = await confirm(
-      `${dirty === 1 ? "1 file has" : `${dirty} files have`} unsaved changes that switching folder will discard. Continue?`,
-      { title: "Unsaved changes", kind: "warning" },
-    );
-    if (!ok) return "cancelled";
-  }
+  // anche su disco), o tutto ad autosave spento: per QUELLI Save all / Don't save / Cancel (M59).
+  if (!(await settleUnsaved())) return "cancelled";
   // Movimento fluido: tutto il layout della nuova cartella (larghezze, pannello massimizzato, editor
   // collassato, riquadri) arriva in una transizione sola; i terminali rifittano una volta alla fine.
   const endMotion = beginMotion();
@@ -281,15 +303,7 @@ export async function promoteLight(): Promise<SwitchResult> {
   const target = workspace.lightProject ?? from;
   const files = workspace.openFiles.filter((f) => f.kind === "file").map((f) => f.path);
   const active = activePath();
-  if (settings.autosave) await autosaveAll();
-  const dirty = workspace.openFiles.filter((f) => f.dirty).length;
-  if (dirty > 0) {
-    const ok = await confirm(
-      `${dirty === 1 ? "1 file has" : `${dirty} files have`} unsaved changes that opening the project will discard. Continue?`,
-      { title: "Unsaved changes", kind: "warning" },
-    );
-    if (!ok) return "cancelled";
-  }
+  if (!(await settleUnsaved())) return "cancelled";
   const rawP = invoke<string | null>("load_state", { key: sessionKey(target) }).catch(() => null);
   const endMotion = beginMotion();
   workspace.switching = true;

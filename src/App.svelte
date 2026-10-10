@@ -13,6 +13,7 @@
   import Logo from "./lib/components/Logo.svelte";
   import Icon from "./lib/components/Icon.svelte";
   import PanelStrip from "./lib/components/PanelStrip.svelte";
+  import UnsavedDialog from "./lib/components/UnsavedDialog.svelte";
   import { panelSlide } from "./lib/motion";
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal, animate, motionMs } from "./lib/state/layout.svelte";
   import { listen, emit } from "@tauri-apps/api/event";
@@ -29,7 +30,8 @@
   import { loadDocs } from "./lib/state/docs.svelte";
   import { invalidateFiles } from "./lib/state/projectFiles";
   import { loadSettings, startSettingsAutosave, settingsUI, nudgeFontSize, settings } from "./lib/state/settings.svelte";
-  import { loadSession, startAutosave, setWinKey, openLight } from "./lib/state/persist.svelte";
+  import { loadSession, startAutosave, setWinKey, openLight, prepareQuit } from "./lib/state/persist.svelte";
+  import { updates, startUpdateChecks, announceUpdated } from "./lib/state/updater.svelte";
   import { initLogs, logsUI } from "./lib/state/logs.svelte";
   import { redockTerminal, terminals, anyNeedsAttention } from "./lib/state/terminals.svelte";
   import { initIndex, scheduleRescan, wsPalette, openWsPalette, navBack, navForward, goToDefinitionAtCursor } from "./lib/state/codeIndex.svelte";
@@ -136,10 +138,14 @@
   let offFsChanged: (() => void) | undefined;
   let offRedock: (() => void) | undefined;
   let offFocus: (() => void) | undefined;
+  let offCloseReq: (() => void) | undefined;
+  let offQuitReq: (() => void) | undefined;
   onDestroy(() => {
     offFsChanged?.();
     offRedock?.();
     offFocus?.();
+    offCloseReq?.();
+    offQuitReq?.();
   });
 
   // Autosave (stile IntelliJ) — cambio tab/file: salva il documento che stai LASCIANDO.
@@ -253,6 +259,25 @@
     }
     addWheelZoom();
     startSettingsAutosave();
+    // Chiusura (X, Alt+F4, barra delle applicazioni) e uscita chiesta da un'altra finestra ("chiudi tutte",
+    // aggiornamento): prima si salvano le modifiche, o si chiede, e la sessione (M59). Annullare = la
+    // finestra resta aperta. Prima la X chiudeva e basta: quanto scritto dopo l'ultimo autosave si perdeva.
+    // Un errore imprevisto non deve intrappolare: si esce come prima (l'handler che lancia non chiude più).
+    const mayQuit = () =>
+      prepareQuit().catch((err) => {
+        console.error("prepareQuit", err);
+        return true;
+      });
+    try {
+      offCloseReq = await getCurrentWindow().onCloseRequested(async (e) => {
+        if (!(await mayQuit())) e.preventDefault();
+      });
+      offQuitReq = await listen("orbit-quit-request", async () => {
+        if (await mayQuit()) await invoke("quit_now");
+      });
+    } catch {
+      /* fuori dal contesto Tauri */
+    }
     // aggiornamento in tempo reale: il backend emette fs-changed (debounced) coi path cambiati.
     offFsChanged = await listen<string[]>("fs-changed", (e) => {
       // path assoluti cambiati → ricarico in modo SELETTIVO. Fallback (payload assente/non-array):
@@ -292,10 +317,16 @@
       /* fuori dal contesto Tauri */
     }
     try {
-      const s = await invoke<{ dir: string | null; file: string | null; search: string | null; light: boolean; winKey: string }>(
-        "startup",
-      );
+      const s = await invoke<{
+        dir: string | null;
+        file: string | null;
+        search: string | null;
+        light: boolean;
+        winKey: string;
+        updatedTo: string | null;
+      }>("startup");
       setWinKey(s.winKey); // chiave di sessione per-finestra (prima di qualunque loadSession)
+      if (s.updatedTo) announceUpdated(s.updatedTo); // riaperta dall'installer di un aggiornamento (M59)
       if (s.light && s.dir && s.file) {
         // file sparso ("Apri con", doppio clic): modalità leggera, la sua cartella è solo contesto (M57)
         await openLight(s.dir, s.file);
@@ -323,6 +354,7 @@
       launchClaude();
     }
     workspace.ready = true; // sessione caricata: il pannello può creare una shell normale se serve
+    startUpdateChecks(); // release nuove su GitHub (M59): poco dopo l'avvio, poi ogni 6 ore
   });
 
   // Dispatch tastiera centralizzato: il tasto premuto → comando (secondo il preset attivo) → azione.
@@ -503,6 +535,10 @@
   {#if promptsUI.open}
     <Lazy load={() => import("./lib/components/ClaudePrompts.svelte")} />
   {/if}
+  {#if updates.open}
+    <Lazy load={() => import("./lib/components/UpdateDialog.svelte")} />
+  {/if}
+  <UnsavedDialog />
   <Toaster />
 {/if}
 

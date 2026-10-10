@@ -33,8 +33,19 @@ notify = "6"
 # Liveness dei pid: recupero post-crash della sessione multi-finestra (scarta le voci di processi
 # morti, che altrimenti bloccherebbero il "riapri tutte"). Versioni GIÀ presenti nell'albero come
 # dipendenze transitive → costo di compilazione nullo. Cfg-gated per piattaforma.
+# ToolHelp (M59): contare le altre istanze dello stesso eseguibile prima di installare un aggiornamento.
+#
+# Aggiornamenti dalle release GitHub (M59): plugin ufficiale di Tauri, usato dai comandi Rust (niente
+# pacchetto npm). TLS NATIVO al posto di rustls: su Windows è SChannel con i certificati del sistema
+# (funziona dietro i proxy aziendali che ispezionano il TLS) e il binario è più leggero; proxy di sistema.
+# `zip` (tar/flate2) serve solo fuori da Windows: su macOS l'aggiornamento è un .app.tar.gz, su Windows
+# si scarica direttamente l'installer NSIS firmato.
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_Threading"] }
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_Threading", "Win32_System_Diagnostics_ToolHelp"] }
+tauri-plugin-updater = { version = "2", default-features = false, features = ["native-tls", "system-proxy"] }
+
+[target.'cfg(not(windows))'.dependencies]
+tauri-plugin-updater = { version = "2", default-features = false, features = ["native-tls", "system-proxy", "zip"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

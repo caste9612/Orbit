@@ -22,7 +22,7 @@
           dismiss(t.id);
         }}
       >
-        <span class="ti"><Icon name={icon[t.kind] ?? "git-commit"} size={14} strokeWidth={2} /></span>
+        <span class="ti"><Icon name={t.icon ?? icon[t.kind] ?? "git-commit"} size={14} strokeWidth={2} /></span>
         <span class="msg">{t.message}</span>
       </button>
       {#if t.sticky}

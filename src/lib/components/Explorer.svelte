@@ -302,11 +302,11 @@
             </button>
             {#if catOpen[cat.category]}
               {#each cat.names as nm (nm)}
-                <div class="srule" title="Regola: nasconde tutte le cartelle «{nm}»">
+                <div class="srule" title="Rule: hides every folder named “{nm}”">
                   <span class="ic"><Icon name="archive" size={13} strokeWidth={1.6} /></span>
                   <span class="sfname">{nm}</span>
-                  <span class="spath">tutte le cartelle</span>
-                  <button class="rule-x" title="Rimuovi regola «{nm}»" aria-label="Rimuovi regola" onclick={() => unshelveName(nm)}>
+                  <span class="spath">all folders</span>
+                  <button class="rule-x" title="Remove the rule for “{nm}”" aria-label="Remove rule" onclick={() => unshelveName(nm)}>
                     <Icon name="x" size={12} strokeWidth={2} />
                   </button>
                 </div>

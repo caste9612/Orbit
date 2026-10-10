@@ -120,7 +120,7 @@ export async function loadUpstream() {
 /** Lancia un comando git in una nuova tab del terminale, nella radice del progetto. */
 function runGit(label: string, command: string) {
   if (!workspace.rootPath) {
-    notify("Nessuna cartella aperta", "error");
+    notify("No folder open", "error");
     return;
   }
   layout.terminalVisible = true;

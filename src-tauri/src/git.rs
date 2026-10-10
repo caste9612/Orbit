@@ -148,7 +148,7 @@ pub fn git_diff(root: String, path: String, staged: bool) -> Result<String, Stri
     .map_err(|e| e.to_string())?;
 
     if out.is_empty() {
-        out.push_str("(nessuna differenza testuale)");
+        out.push_str("(no textual differences)");
     }
     Ok(out)
 }
@@ -359,7 +359,7 @@ pub fn git_show(root: String, id: String) -> Result<String, String> {
     })
     .map_err(|e| e.to_string())?;
     if out.is_empty() {
-        out.push_str("(nessuna differenza)");
+        out.push_str("(no differences)");
     }
     Ok(out)
 }

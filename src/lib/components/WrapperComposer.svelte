@@ -16,10 +16,10 @@
   async function copy() {
     if (!input.trim()) return;
     if (await writeClipboard(composed)) {
-      notify("Prompt copiato — incollalo in Claude", "success", 1800);
+      notify("Prompt copied — paste it into Claude", "success", 1800);
       closeWrapper();
     } else {
-      notify("Copia negli appunti non riuscita", "error");
+      notify("Couldn't copy to the clipboard", "error");
     }
   }
   function onKey(e: KeyboardEvent) {
@@ -31,7 +31,7 @@
 </script>
 
 <Backdrop onClose={closeWrapper} dim z={120} />
-<div class="composer" role="dialog" aria-modal="true" aria-label="Componi prompt" transition:fade={{ duration: 80 }}>
+<div class="composer" role="dialog" aria-modal="true" aria-label="Compose prompt" transition:fade={{ duration: 80 }}>
   <div class="chead">
     <Icon name={wrapperUI.wrapper?.icon ?? "sparkles"} size={15} strokeWidth={1.7} />
     <span class="ctitle">{wrapperUI.wrapper?.name ?? "Wrapper"}</span>
@@ -40,21 +40,21 @@
   <textarea
     use:focusOnMount
     bind:value={input}
-    placeholder="Scrivi il tuo prompt… (verrà inserito nel template)"
+    placeholder="Write your prompt… (it goes into the template)"
     rows="4"
     spellcheck="false"
     onkeydown={onKey}
   ></textarea>
 
-  <div class="plabel">Anteprima del testo composto</div>
+  <div class="plabel">Preview of the composed text</div>
   <pre class="preview">{composed}</pre>
 
   <div class="cbtns">
-    <span class="hint">Ctrl+Enter per copiare</span>
-    <button class="cbtn ghost" onclick={closeWrapper}>Annulla</button>
+    <span class="hint">Ctrl+Enter to copy</span>
+    <button class="cbtn ghost" onclick={closeWrapper}>Cancel</button>
     <button class="cbtn primary" disabled={!input.trim()} onclick={copy}>
       <Icon name="copy" size={14} strokeWidth={1.8} />
-      Copia negli appunti
+      Copy to clipboard
     </button>
   </div>
 </div>

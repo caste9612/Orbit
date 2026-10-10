@@ -467,14 +467,14 @@ fn log_file(app: &AppHandle) -> Option<PathBuf> {
 fn log_file_path(app: AppHandle) -> Result<String, String> {
     log_file(&app)
         .map(|p| p.to_string_lossy().into_owned())
-        .ok_or_else(|| "config dir non disponibile".to_string())
+        .ok_or_else(|| "config dir not available".to_string())
 }
 
 /// Appende testo al log di questa istanza (crea la cartella; ruota il file oltre ~2 MB).
 #[tauri::command]
 fn append_log(app: AppHandle, text: String) -> Result<(), String> {
     use std::io::Write;
-    let path = log_file(&app).ok_or_else(|| "config dir non disponibile".to_string())?;
+    let path = log_file(&app).ok_or_else(|| "config dir not available".to_string())?;
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     }

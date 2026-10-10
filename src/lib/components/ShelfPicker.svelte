@@ -68,10 +68,10 @@
     class="byname"
     class:on={applyByName}
     onclick={() => (applyByName = !applyByName)}
-    title="Nascondi TUTTE le cartelle chiamate «{name}», anche annidate o ricreate dopo (es. bin/obj di una soluzione C#)"
+    title="Hide EVERY folder named “{name}”, nested or re-created later too (e.g. bin/obj of a C# solution)"
   >
     <span class="box">{#if applyByName}<Icon name="check" size={12} strokeWidth={2.4} />{/if}</span>
-    <span class="bn">Tutte le cartelle «{name}»</span>
+    <span class="bn">All folders named “{name}”</span>
   </button>
 
   {#if cats.length}

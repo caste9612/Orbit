@@ -224,27 +224,28 @@ const LANG_BY_EXT: Record<string, string> = {
   json: "JSON", jsonc: "JSON", html: "HTML", htm: "HTML", xml: "XML",
   css: "CSS", scss: "SCSS", sass: "Sass", less: "Less", md: "Markdown", markdown: "Markdown",
   toml: "TOML", yaml: "YAML", yml: "YAML", ini: "INI", sh: "Shell", bash: "Shell",
-  ps1: "PowerShell", sql: "SQL", txt: "Testo", svg: "SVG",
+  ps1: "PowerShell", sql: "SQL", txt: "Plain Text", svg: "SVG",
   properties: "Properties", iml: "XML", jsonl: "JSON", map: "JSON", csv: "CSV",
   bat: "Batch", cmd: "Batch", log: "Log", gradle: "Gradle", groovy: "Groovy", conf: "Config",
 };
 
-/** Nome del linguaggio per un file (fallback "Testo"). */
+/** Nome del linguaggio per un file (fallback "Plain Text"). */
 export function langLabel(name: string): string {
   const lower = name.toLowerCase();
   const ext = lower.includes(".") ? lower.slice(lower.lastIndexOf(".") + 1) : "";
-  return LANG_BY_EXT[ext] ?? "Testo";
+  return LANG_BY_EXT[ext] ?? "Plain Text";
 }
 
-/** Tempo relativo compatto in italiano (es. "5 min fa", "2 h fa", "3 g fa"). */
+/** Tempo relativo compatto, in inglese come il resto dell'interfaccia (es. "5 min ago", "2 h ago",
+ *  "3 d ago"; oltre un mese la data). Fino alla M60 era in italiano ("5 min fa"). */
 export function relativeTime(unixSeconds: number): string {
   const diff = Date.now() / 1000 - unixSeconds;
-  if (diff < 60) return "ora";
-  if (diff < 3600) return `${Math.floor(diff / 60)} min fa`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} h fa`;
-  if (diff < 2592000) return `${Math.floor(diff / 86400)} g fa`;
+  if (diff < 60) return "now";
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} h ago`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)} d ago`;
   const d = new Date(unixSeconds * 1000);
-  return d.toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 // Estensioni mostrabili inline come immagine (il WebView le renderizza nativamente).

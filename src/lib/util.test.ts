@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canonPath, isUnder, pathKey, samePath } from "./util";
+import { canonPath, isUnder, langLabel, pathKey, relativeTime, samePath } from "./util";
 
 describe("percorsi canonici (M59: lo stesso file non si apre due volte)", () => {
   it("su Windows i separatori diventano \\", () => {
@@ -25,5 +25,20 @@ describe("percorsi canonici (M59: lo stesso file non si apre due volte)", () => 
     expect(isUnder("D:\\Repo\\src", "D:\\Repo\\src")).toBe(true);
     expect(isUnder("D:\\Repo\\src2\\x.ts", "D:\\Repo\\src")).toBe(false);
     expect(isUnder("/home/u/src/x.ts", "/home/u/src")).toBe(true);
+  });
+});
+
+describe("testi dell'interfaccia in inglese (M60)", () => {
+  it("tempo relativo", () => {
+    const now = Date.now() / 1000;
+    expect(relativeTime(now - 20)).toBe("now");
+    expect(relativeTime(now - 5 * 60)).toBe("5 min ago");
+    expect(relativeTime(now - 2 * 3600)).toBe("2 h ago");
+    expect(relativeTime(now - 3 * 86400)).toBe("3 d ago");
+    expect(relativeTime(Date.UTC(2025, 2, 12, 12) / 1000)).toBe("12 Mar 2025");
+  });
+  it("linguaggio dei file di testo e sconosciuti", () => {
+    expect(langLabel("notes.txt")).toBe("Plain Text");
+    expect(langLabel("LICENSE")).toBe("Plain Text");
   });
 });

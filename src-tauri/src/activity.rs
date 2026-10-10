@@ -62,11 +62,22 @@ struct Acc {
     committed: bool,
     commit_msg: Option<String>,
     commit_hash: Option<String>,
+    // l'ultima richiesta della sessione, che sopravvive al flush: etichetta di un'unità senza prompt suo
+    // (lavoro proseguito su un altro branch o dopo un commit, nello stesso turno)
+    last_prompt: Option<String>,
 }
 
 impl Acc {
     fn has_work(&self) -> bool {
         !self.files.is_empty() || !self.cmds.is_empty()
+    }
+    /// Azzera per l'unità successiva, conservando il branch corrente e l'ultima richiesta.
+    fn reset(&mut self) {
+        let branch = std::mem::take(&mut self.branch);
+        let last = self.last_prompt.take();
+        *self = Acc::default();
+        self.branch = branch;
+        self.last_prompt = last;
     }
     fn touch(&mut self, ts: &str) {
         if ts.is_empty() {
@@ -148,6 +159,7 @@ fn segment(lines: &[Value], session_id: &str) -> Vec<WorkUnit> {
                 // prompt-first: ogni nuovo prompt chiude l'unità precedente e ne apre una nuova
                 flush(&mut acc, &mut units, &mut idx, session_id, &title, &repo);
                 acc.touch(ts);
+                acc.last_prompt = Some(text.clone());
                 acc.prompts.push(text);
             }
             continue;
@@ -196,9 +208,7 @@ fn segment(lines: &[Value], session_id: &str) -> Vec<WorkUnit> {
 // conservando il branch corrente per l'unità successiva.
 fn flush(acc: &mut Acc, units: &mut Vec<WorkUnit>, idx: &mut u32, sid: &str, title: &str, repo: &str) {
     if !acc.has_work() {
-        let branch = std::mem::take(&mut acc.branch);
-        *acc = Acc::default();
-        acc.branch = branch;
+        acc.reset();
         return;
     }
     let (add, del) = acc.files.iter().fold((0u32, 0u32), |(a, d), f| (a + f.add, d + f.del));
@@ -224,9 +234,7 @@ fn flush(acc: &mut Acc, units: &mut Vec<WorkUnit>, idx: &mut u32, sid: &str, tit
         live: false,
     });
     *idx += 1;
-    let branch = std::mem::take(&mut acc.branch);
-    *acc = Acc::default();
-    acc.branch = branch;
+    acc.reset();
 }
 
 fn infer_kind(acc: &Acc) -> String {
@@ -296,33 +304,108 @@ fn make_label(acc: &Acc) -> String {
     if let Some(m) = &acc.commit_msg {
         return clip(&first_line(m), 90);
     }
-    "(senza titolo)".to_string()
+    // nessun prompt suo (lavoro proseguito su un altro branch o dopo un commit): la richiesta che lo ha
+    // avviato, segnata come seguito (M60; prima era "(senza titolo)")
+    if let Some(p) = &acc.last_prompt {
+        return format!("↳ {}", clip(&first_line(p), 88));
+    }
+    "(untitled)".to_string()
+}
+
+/// Posizione di `git commit` usato come comando (non dentro una stringa, non `git commit-tree`).
+fn git_commit_at(cmd: &str) -> Option<usize> {
+    let mut from = 0;
+    while let Some(rel) = cmd[from..].find("git commit") {
+        let at = from + rel;
+        let end = at + "git commit".len();
+        let before_ok = cmd[..at].chars().next_back().map_or(true, |c| c.is_whitespace() || matches!(c, ';' | '&' | '|' | '('));
+        let after_ok = cmd[end..].chars().next().map_or(true, char::is_whitespace);
+        if before_ok && after_ok {
+            return Some(at);
+        }
+        from = end;
+    }
+    None
 }
 
 fn is_git_commit(cmd: &str) -> bool {
-    cmd.contains("git commit")
+    git_commit_at(cmd).is_some()
 }
 
-// Estrae il messaggio da `git commit -m "..."` (o '...'), o la parola dopo -m se non quotato.
-// Gestisce anche lo stile heredoc di Claude Code — `-m "$(cat <<'EOF' … EOF)"` — dove il
-// messaggio vero inizia dopo la prima newline (senza questo, la label mostrava "$(cat <<'EOF'").
+// Messaggio di un `git commit` (best-effort, per l'etichetta): `-m "…"`/`-m '…'`/`-m parola`, anche nei flag
+// uniti (`-am`) e `--message=…`; lo stile heredoc di Claude Code — `-m "$(cat <<'EOF' … EOF)"`, dove il
+// messaggio vero inizia dopo la prima newline —, `-F -` con un heredoc e la here-string di PowerShell
+// (`-m @'…'@`). Solo i flag DOPO `git commit` e a parola intera: un "-m" dentro un'altra parola
+// (`git merge light-mode-strips && git commit …`) dava l'etichetta "ode-strips" (M60).
 fn commit_message(cmd: &str) -> Option<String> {
-    let idx = cmd.find("-m")?;
-    let rest = cmd[idx + 2..].trim_start();
-    let first = rest.chars().next()?;
+    let mut s = &cmd[git_commit_at(cmd)? + "git commit".len()..];
+    loop {
+        s = s.trim_start_matches([' ', '\t']);
+        if s.is_empty() || s.starts_with(['\n', '\r', '&', ';', '|', ')']) {
+            return None;
+        }
+        if let Some(v) = s.strip_prefix("--message=") {
+            return quoted_arg(v);
+        }
+        let end = s.find(char::is_whitespace).unwrap_or(s.len());
+        let (tok, rest) = (&s[..end], s[end..].trim_start_matches([' ', '\t']));
+        let short = tok.len() > 1 && tok.starts_with('-') && tok[1..].bytes().all(|b| b.is_ascii_alphabetic());
+        if (short && tok.ends_with('m')) || tok == "--message" {
+            return quoted_arg(rest);
+        }
+        if (short && tok.ends_with('F')) || tok == "--file" || tok == "--file=-" {
+            // solo da stdin (`-F -`) il messaggio è nel comando: un heredoc
+            let is_stdin = tok == "--file=-" || (rest.starts_with('-') && rest[1..].chars().next().map_or(true, char::is_whitespace));
+            return if is_stdin { heredoc_body(rest) } else { None };
+        }
+        s = rest;
+    }
+}
+
+/// Argomento in testa a `s`: fra virgolette (anche su più righe), here-string di PowerShell o una parola.
+fn quoted_arg(s: &str) -> Option<String> {
+    if let Some(r) = s.strip_prefix("@'").or_else(|| s.strip_prefix("@\"")) {
+        let close = if s.as_bytes()[1] == b'\'' { "'@" } else { "\"@" };
+        let body = r.split_once('\n')?.1;
+        return Some(body.lines().take_while(|l| !l.starts_with(close)).collect::<Vec<_>>().join("\n"));
+    }
+    let first = s.chars().next()?;
     if first == '"' || first == '\'' {
-        let after = &rest[first.len_utf8()..];
-        let end = after.find(first)?;
-        let raw = &after[..end];
+        // fino alla virgoletta di chiusura; fra "…" un \" non chiude
+        let after = &s[1..];
+        let mut end = None;
+        let mut esc = false;
+        for (i, c) in after.char_indices() {
+            if esc {
+                esc = false;
+            } else if c == '\\' && first == '"' {
+                esc = true;
+            } else if c == first {
+                end = Some(i);
+                break;
+            }
+        }
+        let raw = &after[..end?];
         let msg = raw
             .trim_start()
             .strip_prefix("$(cat <<")
             .and_then(|r| r.split_once('\n').map(|(_, body)| body))
             .unwrap_or(raw);
-        Some(msg.to_string())
+        Some(if first == '"' { msg.replace("\\\"", "\"") } else { msg.to_string() })
     } else {
-        rest.split_whitespace().next().map(|s| s.to_string())
+        s.split_whitespace().next().map(|w| w.to_string())
     }
+}
+
+/// Corpo del primo heredoc in `s` (`<<'EOF'`, `<<"EOF"`, `<<EOF`, `<<-EOF`): le righe fino al delimitatore.
+fn heredoc_body(s: &str) -> Option<String> {
+    let spec = s[s.find("<<")? + 2..].trim_start_matches('-').trim_start_matches([' ', '\t']);
+    let (head, body) = spec.split_once('\n')?;
+    let delim = head.split_whitespace().next()?.trim_matches(['\'', '"']);
+    if delim.is_empty() {
+        return None;
+    }
+    Some(body.lines().take_while(|l| l.trim() != delim).collect::<Vec<_>>().join("\n"))
 }
 
 // Hash del commit dall'output (best-effort): "[main 1a2b3c4] msg" / "[main (root-commit) 1a2b3c4]".
@@ -708,6 +791,38 @@ mod tests {
         let cmd = "git commit -m \"$(cat <<'EOF'\nfeat: cosa fatta\n\ndettagli\nEOF\n)\"";
         let msg = commit_message(cmd).unwrap();
         assert!(msg.starts_with("feat: cosa fatta"), "got: {msg}");
+    }
+
+    #[test]
+    fn commit_message_only_from_flags_after_git_commit() {
+        // un "-m" dentro un'altra parola prima del commit dava l'etichetta "ode-strips" (M60)
+        let cmd = "git checkout main && git merge --ff-only light-mode-strips && git commit -m \"docs: allinea\"";
+        assert_eq!(commit_message(cmd).as_deref(), Some("docs: allinea"));
+        assert!(!is_git_commit("git merge --ff-only light-mode-strips"));
+        assert!(!is_git_commit("echo \"git commit -m x\""));
+        assert_eq!(commit_message("git commit -qam 'fix: y'").as_deref(), Some("fix: y"));
+        assert_eq!(commit_message("git commit --message=\"feat: z\"").as_deref(), Some("feat: z"));
+        assert_eq!(commit_message("git commit -m \"fix: \\\"a\\\" b\"").as_deref(), Some("fix: \"a\" b"));
+        assert_eq!(commit_message("git commit --amend --no-edit"), None);
+        // `-F -` con un heredoc e la here-string di PowerShell
+        let heredoc = "git add -A && git commit -q -F - <<'EOF'\nfeat: heredoc\n\ncorpo\nEOF\ngit log -1";
+        assert_eq!(commit_message(heredoc).as_deref(), Some("feat: heredoc\n\ncorpo"));
+        assert_eq!(commit_message("git commit -m @'\nfix: ps\n\ncorpo\n'@").as_deref(), Some("fix: ps\n\ncorpo"));
+    }
+
+    #[test]
+    fn unit_without_its_own_prompt_continues_the_last_request() {
+        // cambio branch a metà turno: la seconda unità non ha un prompt suo (prima: "(senza titolo)")
+        let lines = vec![
+            prompt("2026-06-25T10:00:00Z", "main", "unisci e pubblica"),
+            edit("2026-06-25T10:01:00Z", "main", "/repo/a.ts", 2, 0),
+            edit("2026-06-25T10:02:00Z", "release", "/repo/b.ts", 1, 0),
+        ];
+        let u = segment(&lines, "S6");
+        assert_eq!(u.len(), 2);
+        assert_eq!(u[0].label, "unisci e pubblica");
+        assert_eq!(u[1].label, "↳ unisci e pubblica");
+        assert!(u[1].prompts.is_empty());
     }
 
     /// Misura (sui transcript VERI di questo PC, in sola lettura): la prima scansione legge tutto, come

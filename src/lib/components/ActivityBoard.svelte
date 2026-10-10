@@ -88,6 +88,9 @@
     }
     return [...last.entries()].sort((a, b) => b[1].localeCompare(a[1])).map(([r]) => r);
   });
+  const summary = $derived(
+    `${stats.units} today${stats.live ? ` · ${stats.live} live` : ""} · ${cols.length} ${cols.length === 1 ? "repo" : "repos"}`,
+  );
 
   // sequenza VERTICALE per tempo (asse condiviso, più recente in alto): UNA RIGA PER UNITÀ, messa nella
   // colonna del suo repo → scendendo si legge l'ordine temporale reale tra i repo. Divisori per giorno.
@@ -238,7 +241,7 @@
 <div class="board">
   <header class="bhead">
     <h1 class="h">Activity</h1>
-    <span class="sub">{stats.units} today{stats.live ? ` · ${stats.live} live` : ""} · {cols.length} {cols.length === 1 ? "repo" : "repos"}</span>
+    <span class="sub" title={summary}>{summary}</span>
     <div class="spacer"></div>
     <div class="lensbar" role="tablist">
       <button role="tab" class:on={lens === "timeline"} aria-selected={lens === "timeline"} onclick={() => (lens = "timeline")}>
@@ -422,12 +425,20 @@
     border-bottom: 1px solid var(--color-line);
   }
   .h {
+    flex: 0 0 auto;
     margin: 0;
     font-size: 16px;
     font-weight: 680;
     letter-spacing: 0.2px;
   }
+  /* a pannello stretto cede spazio per primo il riepilogo (coi puntini), poi il filtro; i bottoni mai
+     (Timeline/Chats, con overflow hidden, si restringevano fino a "Ch") */
   .sub {
+    flex: 0 100 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: var(--color-ink-subtle);
     font-size: 11.5px;
     font-family: var(--font-mono);
@@ -436,6 +447,7 @@
     flex: 1;
   }
   .lensbar {
+    flex: 0 0 auto;
     display: inline-flex;
     border: 1px solid var(--color-line);
     border-radius: var(--r-lg);
@@ -461,12 +473,13 @@
     color: var(--color-ink);
   }
   .search {
+    flex: 0 1 200px;
+    min-width: 120px;
     display: flex;
     align-items: center;
     gap: 7px;
     height: 28px;
     padding: 0 10px;
-    width: 200px;
     border: 1px solid var(--color-line);
     border-radius: var(--r-lg);
     background: var(--color-surface-1);

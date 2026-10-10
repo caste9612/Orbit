@@ -309,7 +309,7 @@ fn cs(t: &str, file: &str, line: u32, container: &mut String, out: &mut Vec<Symb
     }
     // M59: il modificatore va cercato SOLO prima del nome. Prima bastava una parola di CS_MODS in un
     // punto qualsiasi della riga, e `new` è anche un modificatore → `var m = new Foo();` diventava il
-    // "metodo" Foo, come `obj.Call(… new X())` (su Quiver un "metodo" C# su quattro era una chiamata).
+    // "metodo" Foo, come `obj.Call(… new X())` (su un progetto C# vero un "metodo" su quattro era una chiamata).
     let t = strip_leading_attributes(t);
     // proprietà auto: "... Name { get ..."
     if let Some(pos) = t.find("{ get").or_else(|| t.find("{get")) {
@@ -767,15 +767,15 @@ mod tests {
 
     #[test]
     fn csharp_calls_are_not_declarations() {
-        // M59: righe vere di Quiver che finivano nell'indice come "metodi"
+        // M59: righe tipiche di un progetto C# vero che finivano nell'indice come "metodi"
         let src = concat!(
             "public class Adorner {\n",
-            "    var metadata = new ArchiveMetadata();\n",
-            "    using var archive = new TempArchive();\n",
+            "    var metadata = new Metadata();\n",
+            "    using var archive = new TempFile();\n",
             "    drawingContext.DrawText(_text, new Point(rect.X + Padding.Width, rect.Y));\n",
             "            new Typeface(font, FontStyles.Normal, FontWeights.Medium, FontStretches.Normal), 12, foreground,\n",
             "    Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },\n",
-            "    CopyCheck.Differences(Path.Combine(_temp.Root, \"A\"), new string[0]);\n",
+            "    Diff.Compare(Path.Combine(_temp.Root, \"A\"), new string[0]);\n",
             "    private readonly Foo _foo = new Foo();\n",
             "    return new Result(x);\n",
             "    Console.WriteLine(\"public void Fake()\");\n",

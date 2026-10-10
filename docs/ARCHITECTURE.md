@@ -251,7 +251,7 @@ first paint loads only the Explorer + the active editor.
   `refs − declarations − constructors`, with **≈** when the name is declared more than once; constructors
   and Python dunders get none. *N references* calls `ref_list(root, name)` (async: every matching line,
   ≤ 2000, declarations filtered out) and shows it in the `Ctrl+T` palette (file glyph + line text, the
-  `ref` kind); *N implementations* reuses `showImplementers`. On Quiver (C#, 1,780 symbols) scan + counts
+  `ref` kind); *N implementations* reuses `showImplementers`. On a real C# project (1,780 symbols) scan + counts
   take ~22 ms in release.
 - **Follow active file (reveal)** — `settings.revealActive` (the ⌖ toggle in the explorer toolbar)
   drives an `$effect` in `App.svelte` that calls `explorer.revealInTree(activeFile.path)`: it expands

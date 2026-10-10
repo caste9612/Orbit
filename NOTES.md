@@ -2057,7 +2057,7 @@ mostrava per forza la stessa vista. Migrato lo stato a livello di GRUPPO:
 
 ### Verifica
 `svelte-check` 0/0 (259 file), vitest 9/9. Collaudo nell'app reale via CDP
-(`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` + `LUME_DIR`/`LUME_FILE` sul dossier brevetto di Visia,
+(`WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` + `LUME_DIR`/`LUME_FILE` su un documento reale,
 HTML self-contained da ~434 KB): toggle → iframe `http://asset.localhost/...` con title/h1/45k
 caratteri renderizzati (screenshot nativo `PrintWindow`: tipografia, web font e layout corretti —
 lo screenshot CDP del target principale mostra l'iframe bianco perché OOPIF, artefatto noto);
@@ -2629,7 +2629,7 @@ Lezioni di collaudo:
 
 ## Milestone 58 — chiudi tutte le schede, zoom delle immagini
 
-Richieste dell'utente (2026-10-10), quattro punti: (1) la differenza fra l'installer di Orbit e quello di Quiver
+Richieste dell'utente (2026-10-10), quattro punti: (1) la differenza fra l'installer di Orbit e quello di un altro suo progetto
 ("ha l'icona e sembra più bello"), (2) zoomare le immagini come il codice, (3) una funzione "close all tabs", (4)
 pianificare le indicazioni che Visual Studio mette sopra metodi e classi (CodeLens). Qui (2) e (3); (1) e (4) sono
 analisi in attesa di una scelta (in fondo). Branch `m58-close-all-image-zoom`, sopra `light-mode-strips`.
@@ -2700,19 +2700,19 @@ ricaricare la pagina prima di continuare.
 
 ### In sospeso: installer e "CodeLens" (analisi per la scelta dell'utente)
 - **Installer**: Orbit usa l'NSIS di Tauri senza `installerIcon`, `headerImage` né `sidebarImage`, quindi `setup.exe`
-  e `uninstall.exe` hanno l'icona generica di NSIS (estratta e verificata) e la procedura guidata classica. Quiver
-  usa Velopack (`vpk pack --icon …`): un clic, icona dell'app, installazione per l'utente in `%LOCALAPPDATA%`,
-  aggiornamenti delta. Opzioni proposte: icona e immagini NSIS (il minimo), Velopack come Quiver (vanno rifatte le
+  e `uninstall.exe` hanno l'icona generica di NSIS (estratta e verificata) e la procedura guidata classica. L'altro
+  progetto usa Velopack (`vpk pack --icon …`): un clic, icona dell'app, installazione per l'utente in `%LOCALAPPDATA%`,
+  aggiornamenti delta. Opzioni proposte: icona e immagini NSIS (il minimo), Velopack come l'altro progetto (vanno rifatte le
   associazioni dei file e la migrazione dall'installazione NSIS), un template NSIS proprio (sconsigliato).
 - **CodeLens**: sondaggio sui due repo, in sola lettura dalla rubrica `.orbit/index/symbols.json`. Contare i
   riferimenti per nome su tutto il progetto, saltando commenti e stringhe, costa 23 ms su Orbit (97 file, 921
-  simboli) e 34 ms su Quiver (203 file, 2008 simboli), in Node. Il nome è unico per l'80% dei simboli di Orbit e il
-  60% di quelli di Quiver (overload, `Dispose`, proprietà omonime). `git blame` sui file più grandi: 60–80 ms. Il
+  simboli) e 34 ms su un progetto C# privato (203 file, 2008 simboli), in Node. Il nome è unico per l'80% dei simboli di Orbit e il
+  60% di quelli del progetto C# (overload, `Dispose`, proprietà omonime). `git blame` sui file più grandi: 60–80 ms. Il
   limite non è il costo ma la precisione sui nomi condivisi.
 - **Difetto dello scanner C# trovato nel sondaggio** (non corretto, in attesa): `cs()` accetta una riga come
   dichiarazione di metodo se contiene una QUALSIASI parola di `CS_MODS`, e fra queste c'è `new` → `var m = new
-  ArchiveMetadata();` diventa il "metodo" `ArchiveMetadata`. Su Quiver 416 "metodi" C# su 1.649 sono chiamate o
-  `new X()` (su Orbit, TS/Svelte/Rust, nessuno). Effetti già oggi: F12 su `ArchiveMetadata` apre una lista di 38
+  Metadata();` diventa il "metodo" `Metadata`. Sul progetto C# 416 "metodi" C# su 1.649 sono chiamate o
+  `new X()` (su Orbit, TS/Svelte/Rust, nessuno). Effetti già oggi: F12 su una classe molto istanziata apre una lista di 38
   "definizioni" invece di saltare alla classe, rumore in Ctrl+T e nella barra dei correlati. Correzione proposta:
   modificatori solo PRIMA del nome, e nome non preceduto da `new`, `.`, `=`, `return`, `await`.
   → Corretto nella M59.
@@ -2752,7 +2752,7 @@ dopo aver chiuso i punti in sospeso. Branch `m59-updates-and-fixes`, sopra `m58-
   senza password; va conservata: senza, gli Orbit installati non accettano versioni nuove), la pubblica in
   `tauri.conf.json`. Gli artefatti firmati li produce solo lo script di rilascio (`--config` con
   `createUpdaterArtifacts`): in `tauri.conf.json` un `npm run tauri build` senza chiave fallirebbe.
-- **`scripts/New-Release.ps1`** (sul modello di `New-Installer.ps1` di Quiver): versione uguale nei sei punti
+- **`scripts/New-Release.ps1`** (sul modello dello script di rilascio dell'altro progetto): versione uguale nei sei punti
   (il lockfile era rimasto indietro per cinque release), build firmata, `latest.json` con NSIS (`windows-x86_64`
   e `-nsis`) e MSI (`-msi`), artefatti in `artifacts/release` (ignorata da git), con `-Publish` la release su
   GitHub dal commit già pushato. Rispetta `CARGO_TARGET_DIR`.
@@ -2816,9 +2816,9 @@ release). Collaudo nell'istanza di sviluppo isolata (CDP, clic e tasti veri):
 - schede: 8 aperture → l'ultima visibile (barra scorsa di 458 px), la prima dal menu → di nuovo a 0;
 - menu: 5 voci e 2 separatori aperto a 140 px dal fondo → tutto dentro, a 6 px dal bordo;
 - Attività: durante la prima scansione (2,2 s nel build di debug) un altro comando risponde in 2 ms;
-- scanner sul codice vero di Quiver (`scan_symbols` in sola lettura): metodi 1.659 → 1.237; i 436 tolti erano tutti
+- scanner sul codice vero del progetto C# (`scan_symbols` in sola lettura): metodi 1.659 → 1.237; i 436 tolti erano tutti
   chiamate (417 per regola, 19 visti a mano: chiamate o metodi chiamati dentro proprietà `=>`);
-  `ArchiveMetadata` da 39 definizioni a 1; 13 metodi generici nuovi.
+  la classe di prima da 39 definizioni a 1; 13 metodi generici nuovi.
 
 **Aggiornamento da capo a fondo**, con un prodotto di prova separato da Orbit (`OrbitUpdTest`: eseguibile
 `orbit-updtest.exe` — l'installer NSIS chiude i processi per NOME, quindi non poteva toccare l'Orbit vero —,
@@ -2878,7 +2878,7 @@ screenshot del README nuovi, pulizia prima del rilascio. Branch `m60-codelens-as
 - **Fuori dal thread principale**: `scan_symbols`, `ref_list` (e già `scan_activity`) sono comandi async — un
   comando Tauri sincrono gira sul thread principale e blocca la finestra.
 - **Peso** (gate #1): nessuna dipendenza nuova. In release, scansione + conteggi: Orbit 14,3 ms (1.049 simboli,
-  931 nomi), Quiver 21,7 ms (C#, 1.780 simboli, 1.457 nomi) — `symbols::tests::scan_timing`, ignorato, a mano.
+  931 nomi), un progetto C# 21,7 ms (1.780 simboli, 1.457 nomi) — `symbols::tests::scan_timing`, ignorato, a mano.
 
 ### Scanner TS/JS
 Le lenti hanno mostrato simboli che non lo erano:
@@ -2956,8 +2956,8 @@ dalla lista nel profilo dell'istanza di prova, non in quello vero — un README 
 `svelte-check` 0/0 (270 file), vitest **36/36** (2 nuovi: testi in inglese), `cargo test` **48/48** (12 nuovi:
 7 del lexer dei riferimenti — commenti, stringhe e interpolazioni per C#, JS, Rust, Python, Go e markup, numeri,
 righe invece di occorrenze —, 3 dello scanner TS, 2 di Attività) + 2 misure ignorate. Collaudo nell'istanza
-isolata (CDP, clic veri) su una copia del codice C# di Quiver e una del codice di Orbit:
-- lenti sopra le dichiarazioni allineate al testo (335,2 px entrambe); *4 references* su `IWindowsIntegration`
+isolata (CDP, clic veri) su una copia di un progetto C# privato e una del codice di Orbit:
+- lenti sopra le dichiarazioni allineate al testo (335,2 px entrambe); *4 references* su un'interfaccia
   → palette con 4 righe, dichiarazione esclusa, Invio alla riga 45, Indietro torna; *2 implementations* → 2;
 - digitando sopra una dichiarazione la lente la segue; il toggle le spegne e le riaccende; le palette prendono
   il fuoco anche dall'editor (prima i tasti finivano nel file);
@@ -2978,6 +2978,11 @@ messa da parte in `~/.tauri/orbit-updater-nopass.key`. `New-Release.ps1` chiede 
 la legge da `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`), la toglie dall'ambiente alla fine e la prova firmando un file
 di prova prima di compilare: provato con la vecchia chiave, password vuota → firma, password sbagliata → errore.
 
+**Rilasciato in v1.0.0** il 2026-10-10: "Orbit v1.0.0 — CodeLens and updates from GitHub", tag `v1.0.0` sul
+commit `1db093a`, pubblicata dall'utente nel suo terminale con `New-Release.ps1 -Publish` (setup, MSI, le due
+firme e `latest.json`). È la prima versione con l'aggiornamento automatico: dalla 0.9.1 si installa a mano, le
+successive arrivano da sole. Dopo l'installazione la chiave vecchia (`orbit-updater-nopass.key`) si può cancellare.
+
 Lezioni di collaudo:
 - Svelte 5: `autofocus` non è una garanzia; per i campi che devono avere il fuoco, `use:focusOnMount`;
 - quando Vite ricarica la pagina intera (modifica a un modulo condiviso) la lista dei terminali riparte da zero
@@ -2986,6 +2991,23 @@ Lezioni di collaudo:
   `eol=lf` normalizza il commit, non la copia di lavoro);
 - in PowerShell i nomi delle variabili non distinguono le maiuscole: `$h` (l'handle) sovrascriveva il parametro
   `$H` (l'altezza) → finestra alta 32.767 px.
+
+### Riservatezza (il repo è pubblico)
+Su richiesta dell'utente, a fine lavoro: i commit pubblicati in questa sessione sono stati controllati (nessuna
+chiave privata, password, token, email o percorso personale; nessun file sensibile tracciato) e dal testo attuale
+sono stati tolti i riferimenti a cose private finite nelle note: il nome dell'altro progetto dell'utente (privato)
+con nomi e righe del suo codice in un test dello scanner C#, e un documento di lavoro usato in un collaudo della
+M52. Restano nella storia dei commit già pubblicati (toglierli vorrebbe dire riscriverla e forzare il push di
+`main` e del tag della release). **Regola**: nelle note, nei test e negli screenshot solo Orbit e dati finti —
+niente nomi di progetti privati o di lavoro, documenti, percorsi personali, segreti.
+
+### Punti aperti dopo la 1.0
+- L'MSI non registra "Apri con" (servirebbe un frammento WiX con `OpenWithProgids`); il setup NSIS è quello
+  consigliato.
+- Le scorciatoie predefinite di Claude sono in italiano: è contenuto, non interfaccia, ma per utenti non italiani
+  andrebbero in inglese.
+- Idee rimandate nella discussione della 1.0: parentesi colorate, segni nella barra di scorrimento, effetto Mica.
+- La notifica a campanella di Claude funziona nell'uso (confermato dall'utente): punto chiuso.
 
 ---
 

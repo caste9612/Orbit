@@ -34,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~5 MB binary, ~220 MB RAM at rest (mostly the shared system
-  WebView — Orbit's own Rust core is ~30 MB), and a ~542 KB startup chunk (≈181 KB gzipped).
+  WebView — Orbit's own Rust core is ~30 MB), and a ~546 KB startup chunk (≈182 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -87,12 +87,19 @@ cross-platform desktop app that weighs almost nothing.
 - **Go to symbol** (`Ctrl/Cmd+Shift+O`): fuzzy‑jump to functions, classes, methods and more in the
   active file (extracted from the editor's syntax tree).
 - **Right‑click menu**: cut / copy / paste / select all / go to symbol.
-- View **images and PDFs** inline (native viewer).
+- View **images and PDFs** inline (native viewer). Images open fitted to the pane and **zoom like
+  the code**: `Ctrl/Cmd+scroll` zooms around the pointer, **double-click** (or the percentage in the
+  corner, next to the image size) switches between fit and 100%, and a zoomed image pans by dragging
+  or scrolling; from 300% pixels stay sharp. Each image keeps its zoom while you switch tabs.
 - **HTML preview**: a source ⇄ preview toggle renders `.html` files in a sandboxed frame
   (scripts disabled) — anchors, relative assets and data URIs work as in a browser. Also available
   side-by-side ("open preview to the side"), auto-refreshing on save.
 - **Split view**: drag a tab to the edge to open files side by side (N panes); drag tabs between
   panes, or within a bar to reorder. A per-pane **"all tabs" menu** lists and closes tabs when many.
+- **Right-click a tab** for **Close**, **Close others**, **Close to the right**, **Close saved** and
+  **Close all** (with the editor split, also *Close all in this group*), plus copy path, copy relative
+  path and reveal in Explorer; *Close all* is also at the bottom of the "all tabs" menu. Unsaved files
+  are asked about once, all together (**Save all / Don't save / Cancel**).
 - **Word wrap** for long lines (the line-number gutter stays correct, VS Code-style).
 - Auto-reload of open files changed on disk, with a conflict indicator for unsaved edits; closing
   an unsaved file asks **Save / Don't save / Cancel**.
@@ -269,7 +276,7 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~3.5 MB |
 | NSIS setup | ~2.8 MB |
 | Frontend `dist/` | ~2.8 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~542 KB (≈181 KB gzipped) |
+| Startup JS chunk | ~546 KB (≈182 KB gzipped) |
 | RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own
@@ -314,7 +321,8 @@ lives in [NOTES.md](./NOTES.md).
 | `Ctrl/Cmd+B` | Collapse / expand the sidebar |
 | ``Ctrl/Cmd+` `` | Collapse / expand the terminal panel |
 | `Ctrl/Cmd+Shift+C` / `+V` | Copy / paste in the terminal |
-| `Ctrl/Cmd+scroll` | Zoom the font of the panel under the pointer |
+| `Ctrl/Cmd+scroll` | Zoom the font of the panel under the pointer (over an image: zoom the image) |
+| Double-click an image | Switch between fit and 100% |
 
 > These are the **Orbit** preset; switch to **Visual Studio** / **IntelliJ**, or make a **Custom**
 > keymap by rebinding individual commands, in Settings → Keyboard shortcuts.

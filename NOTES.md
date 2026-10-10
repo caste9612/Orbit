@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -2624,6 +2624,91 @@ Lezioni di collaudo:
   cartella, avvia un `claude` vero (fermo alla domanda di fiducia: niente token né trascrizioni, verificato) →
   spegnerlo o avviare "nudo"; e chiudere l'istanza col suo albero di processi (`Stop-Process` salta la chiusura
   ordinata dei PTY).
+
+---
+
+## Milestone 58 — chiudi tutte le schede, zoom delle immagini
+
+Richieste dell'utente (2026-10-10), quattro punti: (1) la differenza fra l'installer di Orbit e quello di Quiver
+("ha l'icona e sembra più bello"), (2) zoomare le immagini come il codice, (3) una funzione "close all tabs", (4)
+pianificare le indicazioni che Visual Studio mette sopra metodi e classi (CodeLens). Qui (2) e (3); (1) e (4) sono
+analisi in attesa di una scelta (in fondo). Branch `m58-close-all-image-zoom`, sopra `light-mode-strips`.
+
+### Chiudere più schede (menu contestuale come in Visual Studio / VS Code)
+- Prima c'erano solo la ✕ della singola scheda e il menu "tutte le schede"; nessun menu contestuale sulle schede.
+- Tasto destro su una scheda: **Close**, **Close others**, **Close to the right**, **Close saved**, **Close all**
+  (con l'editor diviso anche *Close all in this group*: "Close all" chiude tutto, l'altra solo il riquadro della
+  scheda), poi *Copy path*, *Copy relative path* e *Reveal in Explorer* per i documenti su disco (non diff, Attività,
+  grafo), con le stesse funzioni dell'albero (`copyRelPath` e `revealPath` spostate da `Explorer.svelte` a
+  `explorer.svelte.ts`). Le voci che non si applicano sono spente, non nascoste: il menu ha sempre la stessa forma
+  (`MenuItem.disabled`, nuovo in `ContextMenu`).
+- *Close all* anche in fondo al menu "tutte le schede", fuori dalla lista che scorre.
+- `workspace.closeTabs(groupId, paths)` chiude più schede di un gruppo con una sola potatura del pool; la nuova
+  scheda attiva segue la regola di `closeTab` (la prima rimasta a destra, poi a sinistra), estratta nella funzione
+  pura `editorTabs.nextActive` e coperta da vitest.
+- Modifiche non salvate: ogni chiusura passa da `requestClose(targets)`, che chiede **una volta sola** per tutti i
+  documenti modificati che sparirebbero del tutto (uno aperto anche in un altro riquadro non si perde, e non si
+  chiede). Il dialog ha *Save all / Don't save / Cancel* e l'elenco dei file (glifo, nome e cartella in grigio, per
+  distinguere gli omonimi; oltre sei, "and N more"). *Save all* chiude solo ciò che si è salvato: un salvataggio
+  fallito lascia aperta la sua scheda, con l'errore.
+- Nessuna scorciatoia: quella nota è un accordo (Ctrl+K Ctrl+W di VS Code, e Ctrl+K in Orbit apre una cartella), e
+  Visual Studio e IntelliJ non ne hanno una predefinita.
+
+### Zoom delle immagini, come il codice
+- Prima: `<img>` con `max-width/max-height: 100%`, e Ctrl+rotella cambiava il font dell'editor anche sopra
+  un'immagine (il gestore globale di `App.svelte`, in cattura).
+- Ora l'immagine si dimensiona in JS su un "palco" (adatta = `min(1, vista / misura naturale)`, come prima: le
+  piccole restano al 100%), a posizioni intere, così al 100% è nitida.
+- **Ctrl+rotella**: livelli tondi dal 5% al 3200% con "adatta" in mezzo, ancorati al cursore (il pixel sotto il
+  puntatore resta lì, `flushSync` prima di riposizionare lo scorrimento). I delta si sommano: un pinch del
+  touchpad scatta come una tacca. Il gestore globale salta `.imgview`.
+- **Doppio clic**, o la percentuale nell'angolo accanto alle misure: adatta ⇄ 100% (200% se è già al 100%).
+- Ingrandita si sposta **trascinandola** (cursore a mano) o con la rotella; niente barre di scorrimento: comparendo
+  e sparendo spostavano l'immagine di mezza barra a ogni scatto.
+- Da 300% `image-rendering: pixelated` (come VS Code): i pixel restano netti.
+- Zoom e posizione restano per immagine finché Orbit è aperto (la vista si rimonta a ogni cambio di scheda).
+- La scacchiera della trasparenza sta solo dietro l'immagine e si sposta con lei (prima riempiva la vista).
+- File illeggibile: "This image can't be displayed" invece dell'icona rotta.
+
+### Verifica
+`svelte-check` 0/0 (263 file), vitest **30/30** (5 nuovi, `nextActive`). Build frontend OK: chunk d'avvio **546 KiB**
+(182 KiB gzip; +4 KiB per menu e dialog dell'editor); il visualizzatore resta un chunk a parte (4 KiB di JS e 2 di
+CSS). Backend non toccato. Build release non eseguito.
+Collaudo con clic, tasto destro, doppio clic, trascinamenti e rotella veri (CDP) nell'istanza isolata `devtest`:
+- schede: *Close to the right* (attiva fra le chiuse → diventa attiva quella cliccata), voce spenta sull'ultima
+  scheda, *Close saved*, *Close all* con due file modificati (*Cancel* non chiude nulla; *Don't save* chiude tutto e
+  il disco resta com'era; *Save all* con un file in sola lettura: l'altro si salva e si chiude, quello resta aperto
+  con "Accesso negato"), editor diviso con lo stesso file modificato nei due riquadri (*Close all in this group*
+  senza domande, il documento resta nell'altro), menu sulla scheda Attività (senza voci di percorso), Esc, dialog
+  con 8 file;
+- immagini: 2400×1600 adattata al 22%; sei tacche → 25, 33, 50, 67, 75, 100% con il pixel sotto il cursore fermo
+  (±1 px) da quando l'immagine esce dalla vista (prima è centrata, e cresce dal centro); ritorno ad "adatta" e sotto
+  (20%); in "adatta" segue la vista (barra laterale compressa: dal 22 al 32%); doppio clic → 100% ancorato
+  (pixel 521,267 contro 520,8,267,2) e ritorno; trascinamento di 100 px → 100 px di scorrimento; clic sulla
+  percentuale; rotella semplice che scorre; memoria al cambio di scheda; 48×32 → 200% → pixelated da 300% → fermo a
+  3200%; PNG trasparente; SVG con misure; SVG con il solo viewBox (WebView2 dà 50×150 per un 1:3, senza
+  deformare); file rotto; Ctrl+rotella su editor e terminale cambia ancora i loro font, sopra l'immagine no;
+- simmetria: glifo di *Close all* 8/8 px nel suo riquadro, glifi del dialog 4/4, percentuale 2/2.
+
+Bug trovato in collaudo e corretto: il *Close all* del menu "tutte le schede" non faceva nulla. `grp` è un
+`{@const}` che dipende da `tabMenu`: azzerato il menu, rileggerlo lanciava un errore. Ora le schede si leggono prima
+di chiudere il menu, come già facevano le righe della lista.
+
+Lezione di collaudo: dopo l'aggiornamento a caldo di un modulo di stato (`workspace.svelte.ts`) l'interfaccia
+restava legata all'istanza vecchia e il CDP scriveva in quella nuova (zero schede a video, quattro nello stato) →
+ricaricare la pagina prima di continuare.
+
+### In sospeso: installer e "CodeLens" (analisi per la scelta dell'utente)
+- **Installer**: Orbit usa l'NSIS di Tauri senza `installerIcon`, `headerImage` né `sidebarImage`, quindi `setup.exe`
+  e `uninstall.exe` hanno l'icona generica di NSIS (estratta e verificata) e la procedura guidata classica. Quiver
+  usa Velopack (`vpk pack --icon …`): un clic, icona dell'app, installazione per l'utente in `%LOCALAPPDATA%`,
+  aggiornamenti delta. Opzioni proposte: icona e immagini NSIS (il minimo), Velopack come Quiver (vanno rifatte le
+  associazioni dei file e la migrazione dall'installazione NSIS), un template NSIS proprio (sconsigliato).
+- **CodeLens**: sondaggio sui due repo, in sola lettura dalla rubrica `.orbit/index/symbols.json`. Contare i
+  riferimenti per nome su tutto il progetto, saltando commenti e stringhe, costa 23 ms su Orbit (97 file, 921
+  simboli) e 34 ms su Quiver (203 file, 2008 simboli), in Node. Il nome è unico per l'80% dei simboli di Orbit e il
+  60% di quelli di Quiver (overload, `Dispose`, proprietà omonime). `git blame` sui file più grandi: 60–80 ms. Il
+  limite non è il costo ma la precisione sui nomi condivisi.
 
 ---
 

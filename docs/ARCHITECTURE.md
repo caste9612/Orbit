@@ -24,7 +24,8 @@ src/
     components/       # UI (Svelte components)
     state/            # reactive state + actions (Svelte 5 runes in .svelte.ts);
                       #   plain .ts helpers: dotorbit.ts (.orbit config), projectFiles.ts (list_files cache),
-                      #   scratch.ts (scratchpad); pure, vitest-tested logic: shelfRules.ts, terminalLayout.ts
+                      #   scratch.ts (scratchpad); pure, vitest-tested logic: shelfRules.ts, terminalLayout.ts,
+                      #   editorTabs.ts
     editor/           # CodeMirror extensions (theme, indent guides, git gutter, semantic overlay) + outline.ts (symbols), activeEditor.ts
     assets/           # orbit-wordmark.svg (the brand wordmark as vector paths)
     util.ts           # pure helpers (paths, file icons, language label, time)
@@ -64,9 +65,9 @@ Three kinds of frontend module, kept separate:
 
 | Module | Owns |
 |---|---|
-| `workspace` | open folder (+ `switching`: true while `switchFolder` swaps roots, so the sidebar keeps the old views instead of flashing "no folder"), document pool (kinds: file/diff/image/pdf/activity/gitgraph), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), per‑group `previews` (md/html source ⇄ preview, default from `settings.mdMode`), `openPreviewToSide`, **light window** flags (`light`, `lightProject`: a file opened on its own — see *Light window*), … |
+| `workspace` | open folder (+ `switching`: true while `switchFolder` swaps roots, so the sidebar keeps the old views instead of flashing "no folder"), document pool (kinds: file/diff/image/pdf/activity/gitgraph), **editor groups** (split view) + active group/tab, branch; `openFile`, `openInNewGroup`, `moveTab`, `splitWithTab`, `closeTab` / **`closeTabs`** (several at once, M58 — the next active tab comes from the pure `editorTabs.nextActive`), `saveActive`, **`autosaveAll`** (IntelliJ‑style), a `beforeNavigate` hook (feeds the nav history), per‑group `previews` (md/html source ⇄ preview, default from `settings.mdMode`), `openPreviewToSide`, **light window** flags (`light`, `lightProject`: a file opened on its own — see *Light window*), … |
 | `folders` | the **open repositories** list for the top‑bar switcher — **per‑window**: in‑memory `$state` only (NOT global localStorage, which is shared across instances and caused clobbering), persisted in the active folder's session as `repos` and reseeded by `loadSession({repos:true})` at window startup; `addFolder`/`removeFolder`/`setFolders`/`openFromList`/`cycleRepo`/`selectRepoIndex`/**`moveFolder`** (drag‑to‑reorder in the top bar; the order persists through `repos`) — switching the active repo reuses `persist.switchFolder` (one active root at a time) |
-| `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file") |
+| `explorer` | the lazy file tree + inline file ops (new/rename/delete); **reveal active file** (`revealInTree`, used by "follow active file"); `copyPath` / `copyRelPath` / `revealPath`, shared by the tree and the editor-tab menus |
 | `git` | status, diff, branches, commit, discard, history, **gutter `tick`**, tree decorations, **upstream ahead/behind + fetch/pull/push/merge** |
 | `terminals` | terminal tabs (id/title/shortName/customTitle/autoTitle/color/shell/cwd) + active tab + `focusedId` (real xterm focus); **bell attention** (`notifyTerminalBell`: Claude rings the bell — Orbit enables `preferredNotifChannel:terminal_bell` on launch — → dot on the **repo's tab** + on the session tab + a **sticky, clickable attention toast** (click → `goToTerminal`: switch repo, reveal panel, focus the tab) + a top‑bar **Waiting (N)** pill; persists via title `●` + taskbar `requestUserAttention` while you're away; cleared on focus/open via `clearAttention`→`dismissByKey`); **per‑repo**: each session is tagged with its `root` so the tab bar shows only the active repo's terminals (all stay mounted, PTYs alive); **side‑by‑side panes** per repo (`layouts[rootKey]` columns‑of‑rows, `autoLayout`, `sizes`, `zoomId`; `splitWith`/`showInPane`/`closePane`/`toggleZoom`/`setArrangement`/`setSizes`; invariant: `activeId` is always one of the visible panes — see *Chats side by side*); most‑recently‑used tabs per repo (`recentByRoot`) for the **self split** (`selfSplitPartner`); `adoptTerminals` (tabs follow a promoted light window, or the first folder opened); `tabIcon` (shared by panel and strip) |
 | `run` | `.orbit/run.json` run configs + "Set up for Claude" |
@@ -269,10 +270,28 @@ first paint loads only the Explorer + the active editor.
   creates an `image`/`pdf` doc (no text read); `AssetView.svelte` shows it via Tauri's **asset
   protocol** (`convertFileSrc`, no base64 — needs `assetProtocol` in `tauri.conf` + the
   `protocol-asset` Cargo feature): images in `<img>`, PDFs in an `<iframe>` (WebView2's viewer).
+  **Image zoom (M58)**: the image is sized in JS on a "stage" (fit = `min(1, view / natural size)`, or an
+  explicit scale; integer offsets, so 100% is crisp) inside a scroll view with **hidden scrollbars**
+  (scrollbars appearing and disappearing would shift the image by half a bar at every zoom step).
+  `Ctrl+wheel` steps through round levels (5%…3200%, "fit" included) and keeps the image point under the
+  pointer fixed (`flushSync` before re-scrolling, so the scroll is not clamped to the old size); wheel
+  deltas accumulate, so a touchpad pinch steps like wheel notches. The window-level `Ctrl+wheel` font
+  zoom in `App.svelte` skips `.imgview`. Double-click and the corner percentage toggle fit ⇄ 100% (200%
+  for images already at 100%); dragging pans; `image-rendering: pixelated` from 300%. Zoom and scroll are
+  remembered per path in a module-level map, since the view remounts at every tab switch. If the engine
+  reports no natural size (WebView2 always gives one, even for an SVG with only a `viewBox`; other
+  webviews may not), the image keeps the old CSS fit, without zoom.
 - **Drag‑and‑drop (OS files)** — `EditorArea` listens to `getCurrentWebview().onDragDropEvent` and
   opens dropped file paths (requires `dragDropEnabled: true`; the same flag forces the pointer‑based
   tab drag above). `assetProtocol.scope` is `["**"]`, consistent with `read_file` already exposing
   any path over IPC; the Markdown preview is DOMPurify‑sanitized.
+- **Editor tab menu (M58)** — right‑click on a tab (`EditorArea`): Close / Close others / Close to the
+  right / Close saved / Close all (plus *Close all in this group* when the editor is split), then copy
+  path / copy relative path / reveal in Explorer for files on disk. Entries that don't apply are shown
+  **disabled** (`MenuItem.disabled` in `ContextMenu`). Every close goes through `requestClose(targets)`:
+  the dirty documents that would disappear entirely (no copy left open in another group) get **one**
+  Save all / Don't save / Cancel dialog, and a failed save keeps its tab open. The "all tabs" dropdown
+  ends with the same *Close all*.
 - **Editor context menu** — right‑click in `Editor.svelte` opens a `ContextMenu` (cut/copy/paste/
   select‑all/go‑to‑symbol) acting on the CodeMirror `view`. The native WebView2 menu/drag are
   suppressed app‑wide via `<svelte:window oncontextmenu/ondragstart>` in `App.svelte` (kept in

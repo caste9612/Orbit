@@ -8,7 +8,7 @@
   <img alt="Platform: Windows, macOS, Linux" src="https://img.shields.io/badge/platform-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-4c8dff?style=flat-square" />
   <img alt="Built with Tauri 2 and Svelte 5" src="https://img.shields.io/badge/built%20with-Tauri%202%20%C2%B7%20Svelte%205-1f9c8a?style=flat-square" />
   <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-7c5cff?style=flat-square" />
-  <img alt="Binary: ~6 MB" src="https://img.shields.io/badge/binary-~6%20MB-2f7ff0?style=flat-square" />
+  <img alt="Binary: ~6.6 MB" src="https://img.shields.io/badge/binary-~6.6%20MB-2f7ff0?style=flat-square" />
 </div>
 
 A **lightweight**, beautiful IDE built as a **companion for Claude Code**: edit code, browse
@@ -33,7 +33,7 @@ cross-platform desktop app that weighs almost nothing.
   review); files Claude edits **reload by themselves**, changed files are **highlighted in the
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
-- **It is genuinely small.** A ~6.5 MB binary, ~120 MB of RAM at rest with a project open (mostly the
+- **It is genuinely small.** A ~6.6 MB binary, ~120 MB of RAM at rest with a project open (mostly the
   shared system WebView — Orbit's own Rust core is ~6 MB), and a ~274 KB startup chunk (≈93 KB gzipped).
 
 ### Project gates (non-negotiable)
@@ -215,7 +215,8 @@ cross-platform desktop app that weighs almost nothing.
   the same repo stay distinguishable. The second lens, **Chats**, shows **one card per conversation**
   (title, repo, prompts/steps, churn, commits, live): selecting it opens the whole conversation in the
   bottom panel — **every prompt in order**, each with its outcome — with a **▶ Resume this chat** button
-  (resuming always restarts the whole session, so the chat is the natural unit). Clicking a unit in the
+  (resuming always restarts the whole session, so the chat is the natural unit; if that chat is already open
+  in a tab, it takes you there). Clicking a unit in the
   timeline still opens its per‑unit **digest**. A unit is titled with its **commit message** when it
   produced one (also when the message came through a heredoc), otherwise with its prompt; work that went
   on without a new prompt — on another branch, or after a commit — shows **↳** and the request it came
@@ -335,9 +336,10 @@ memory on top, just as in any terminal. For comparison, an equivalent Electron a
 - **Tauri 2** (Rust + the system WebView), **not** Electron → no bundled Chromium, tiny binary.
 - **Svelte 5 + Vite + TypeScript**, **not** SvelteKit → no router/SSR for a single-window app,
   smaller dependency tree, full control of the bundle.
-- **Tailwind v4** (CSS-first `@theme` tokens) for the dark theme — a single source of truth.
-- **CodeMirror 6**, **not** Monaco → far lighter; hand-written dark theme (VS Code Dark+ palette),
-  grammars code-split and loaded on demand.
+- **Tailwind v4** (CSS-first `@theme` tokens) for the design tokens — a single source of truth for all
+  five themes.
+- **CodeMirror 6**, **not** Monaco → far lighter; a hand-written editor theme that follows Orbit's themes
+  (a VS Code Dark+ style syntax palette, plus a light one), grammars code-split and loaded on demand.
 - **xterm.js + portable-pty** for a real cross-platform terminal (ConPTY on Windows).
 - **git2 / libgit2** with default features off → local operations only (no openssl/libssh2).
 - **notify** for the file watcher.
@@ -387,6 +389,7 @@ dependency) lives in [NOTES.md](./NOTES.md).
   (committed/shared). Format is documented to Claude in `CLAUDE.md` via the Claude menu's
   "Update CLAUDE.md for Claude".
 - `.orbit/shelf.json` — shelved folders by category (a personal view preference; git-ignored).
+- `.orbit/scratch.txt` — the Scratchpad (📝): notes and prompts kept with the project.
 - `.orbit/index/` — cached project symbol index for code navigation (rebuilt automatically; git-ignored).
 
 ---
@@ -397,6 +400,8 @@ dependency) lives in [NOTES.md](./NOTES.md).
 npm install
 npm run tauri dev      # dev mode with hot reload
 ```
+
+Debugging, an isolated test instance, tests and recipes: [docs/10-development.md](./docs/10-development.md).
 
 ## Build
 
@@ -418,6 +423,7 @@ commit:
 ```
 
 A release published without `latest.json` (or marked as pre-release) is not offered to installed copies.
+The whole procedure and the in-app update flow: [docs/11-release.md](./docs/11-release.md).
 
 ## Test
 

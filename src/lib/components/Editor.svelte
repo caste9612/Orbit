@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
-  import { EditorState, Compartment } from "@codemirror/state";
+  import { EditorState, EditorSelection, Compartment } from "@codemirror/state";
   import {
     EditorView,
     keymap,
@@ -32,7 +32,7 @@
   import { git, gitRel } from "../state/git.svelte";
   import { notify } from "../state/toast.svelte";
   import { writeClipboard, readClipboard } from "../clipboard";
-  import { workspace } from "../state/workspace.svelte";
+  import { workspace, recallView, rememberView } from "../state/workspace.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { basename, normSlash, relTo } from "../util";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
@@ -49,6 +49,7 @@
   interface Props {
     doc: string;
     path: string;
+    groupId?: string; // gruppo (riquadro) della scheda: la posizione nel file è per scheda (M66)
     readonly?: boolean;
     rev?: number;
     gotoLine?: number | null;
@@ -60,6 +61,7 @@
   let {
     doc,
     path,
+    groupId = "",
     readonly = false,
     rev = 0,
     gotoLine = null,
@@ -78,8 +80,13 @@
   const caretConf = new Compartment(); // stile del cursore (Impostazioni → Editor cursor, M63)
 
   onMount(() => {
+    // dove eri in questo file (M66): cursore e prima riga in vista, nei limiti del testo attuale (il file
+    // può essere cambiato su disco nel frattempo). Un salto (gotoLine) vince: lo applica l'effetto sotto.
+    const saved = recallView(groupId, path);
+    const clamp = (n: number) => Math.max(0, Math.min(n, doc.length));
     const state = EditorState.create({
       doc,
+      selection: saved ? EditorSelection.single(clamp(saved.anchor), clamp(saved.head)) : undefined,
       extensions: [
         lineNumbers(),
         gitGutter(),
@@ -142,22 +149,59 @@
             const line = u.state.doc.lineAt(head);
             onCursor(line.number, head - line.from + 1);
           }
+          if (u.docChanged || u.selectionSet) keepView();
         }),
       ],
     });
     view = new EditorView({ state, parent: host });
+    if (saved && gotoLine == null) {
+      lastTop = clamp(saved.top);
+      view.dispatch({ effects: EditorView.scrollIntoView(lastTop, { y: "start", yMargin: 0 }) });
+    }
+    view.scrollDOM.addEventListener("scroll", onScroll, { passive: true });
     view.focus();
     setActiveEditor(view); // editor attivo (per "Vai al simbolo")
     view.dom.addEventListener("focusin", () => view && setActiveEditor(view));
-    onCursor?.(1, 1); // posizione iniziale del cursore
+    {
+      const head = view.state.selection.main.head; // posizione iniziale (ripristinata) del cursore
+      const line = view.state.doc.lineAt(head);
+      onCursor?.(line.number, head - line.from + 1);
+    }
     void loadLanguage();
     void loadGutter();
     return () => {
+      // uno scroll ancora da registrare: si misura ora (se l'editor è ancora nella pagina)
+      if (scrollTimer) {
+        clearTimeout(scrollTimer);
+        keepView(true);
+      }
+      view?.scrollDOM.removeEventListener("scroll", onScroll);
       if (view) clearActiveEditor(view);
       view?.destroy();
       view = undefined; // i path async (doPaste/doCut dopo l'await su clipboard) vedono view assente → no-op
     };
   });
+
+  /** Ricorda cursore e prima riga in vista di questa scheda (M66). La riga in cima si misura solo dopo uno
+   *  scroll (e solo con l'editor ancora nella pagina: smontato misurerebbe 0); il cursore a ogni cambio. */
+  let lastTop = 0;
+  function keepView(measure = false) {
+    if (!view) return;
+    if (measure && view.dom.isConnected) {
+      const visibleTop = view.scrollDOM.getBoundingClientRect().top - view.documentTop;
+      lastTop = view.lineBlockAtHeight(Math.max(0, visibleTop)).from;
+    }
+    const sel = view.state.selection.main;
+    rememberView(groupId, path, { anchor: sel.anchor, head: sel.head, top: lastTop });
+  }
+  let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+  function onScroll() {
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => {
+      scrollTimer = undefined;
+      keepView(true);
+    }, 120);
+  }
 
   // reload esterno (rev cambiato): rimpiazza il doc preservando la vista, senza dirty
   $effect(() => {

@@ -23,6 +23,15 @@ import {
   type Side,
 } from "./terminalLayout";
 
+/** Cosa ricreare al riavvio (M66): shell e chat tornano, i lavori (Esegui, git) no. */
+export type TermKind = "shell" | "claude" | "run";
+
+/** Conversazione di Claude in una scheda: id per `--resume` e cartella in cui riprenderla. */
+export interface ChatRef {
+  id: string;
+  cwd: string | null;
+}
+
 export interface TermSession {
   id: string;
   title: string; // nome di nascita completo ("Claude · Aggiorna documentazione", "PowerShell 7"…): tooltip e icona di tipo
@@ -37,6 +46,9 @@ export interface TermSession {
   started: boolean; // initCommand già inviato (evita ri-esecuzione al remount)
   attach: boolean; // true = si collega a un PTY esistente (terminale reincollato dalla finestra flottante)
   needsAttention: boolean; // la bell ha suonato (Claude ha finito / aspetta input) mentre non lo guardavi
+  kind: TermKind; // scelto alla nascita (M66): decide cosa torna al riavvio
+  chat: ChatRef | null; // conversazione di Claude che gira qui (dal registro di Claude Code o da --resume)
+  dormant: boolean; // ripristinata al riavvio e non ancora avviata: parte quando la si vede (M66)
 }
 
 let counter = 0;
@@ -129,6 +141,9 @@ export const terminals = $state({
   // FORMA del layout (numero di righe per colonna) resta quella: cambiata la forma si riparte equi
   sizes: {} as Record<string, PaneSizes>,
   zoomId: null as string | null, // riquadro ingrandito temporaneamente (gli altri restano vivi)
+  // schede estratte in una finestra flottante (M66): fuori dal pannello ma ancora di questa finestra, così
+  // tornano al riavvio e rientrano con tipo e chat (il redock le rimette nella lista)
+  floating: [] as TermSession[],
   surfW: 0, // dimensioni della superficie del pannello (le aggiorna TerminalPanel): servono alle
   surfH: 0, // scelte "automatiche" fatte qui (placeBeside, arrange)
 });
@@ -237,6 +252,9 @@ export interface NewTerminal {
   initCommand?: string | null;
   /** true = si apre in un nuovo riquadro accanto a quello attivo (chat affiancate). */
   side?: boolean;
+  /** default: "run" con un comando iniziale (Esegui, git), altrimenti "shell"; le chat passano "claude" */
+  kind?: TermKind;
+  chat?: ChatRef | null;
 }
 
 /** Crea una nuova tab terminale e la rende attiva. Ritorna l'id. Con `side` la affianca a quella
@@ -259,10 +277,68 @@ export function addTerminal(opts: NewTerminal = {}): string {
     started: false,
     attach: false,
     needsAttention: false,
+    kind: opts.kind ?? (opts.initCommand ? "run" : "shell"),
+    chat: opts.chat ?? null,
+    dormant: false,
   });
   if (opts.side) splitWith(id);
   else activate(id);
   return id;
+}
+
+// ---- ripristino al riavvio (M66; salvataggio e avvio in terminalPersist.svelte.ts) -------------------
+
+/** Ricrea una scheda salvata, ADDORMENTATA (nessun processo finché non la si vede). Ritorna il nuovo id. */
+export function restoreTerminal(
+  s: Pick<TermSession, "kind" | "title" | "shortName" | "customTitle" | "autoTitle" | "color" | "shell" | "cwd" | "chat">,
+  root: string | null,
+): string {
+  counter += 1;
+  const id = `term-${counter}`;
+  // i nomi numerati ripartono dopo quelli ripristinati ("Claude 3" → la prossima è "Claude 4")
+  const m = /^(.*) (\d+)$/.exec(s.shortName);
+  if (m) kindCounters[m[1]] = Math.max(kindCounters[m[1]] ?? 0, Number(m[2]));
+  terminals.list.push({
+    id,
+    title: s.title,
+    shortName: s.shortName,
+    customTitle: s.customTitle,
+    autoTitle: s.autoTitle,
+    color: s.color,
+    shell: s.shell,
+    cwd: s.cwd,
+    root,
+    initCommand: null, // lo decide il risveglio (wakeTerminal): con la configurazione Claude della sua repo
+    started: false,
+    attach: false,
+    needsAttention: false,
+    kind: s.kind,
+    chat: s.chat,
+    dormant: true,
+  });
+  return id;
+}
+
+/** Disposizione, modalità e dimensioni dei riquadri e scheda attiva di una repo ripristinata. */
+export function restoreRepoTerminals(root: string | null, lay: Layout, auto: boolean, sizes: PaneSizes | null, activeId: string | null) {
+  const k = rootKey(root);
+  if (flatten(lay).length >= 2) terminals.layouts[k] = lay;
+  terminals.autoLayout[k] = auto;
+  if (sizes) terminals.sizes[k] = sizes;
+  if (root && activeId) {
+    activeByRoot[root] = activeId;
+    touchRecent(root, activeId);
+  }
+}
+
+/** Scheda attiva ricordata per la repo (per il salvataggio). */
+export function rememberedActive(root: string | null): string | null {
+  return root ? (activeByRoot[root] ?? null) : null;
+}
+
+/** La scheda della repo che mostra già la conversazione `chatId` (attiva o addormentata), se c'è. */
+export function tabWithChat(root: string | null, chatId: string): TermSession | null {
+  return terminals.list.find((t) => sameRoot(t.root, root) && t.chat?.id === chatId) ?? null;
 }
 
 /** Rende `id` la scheda attiva della sua repo; con uno split in corso, se non è già visibile prende
@@ -387,10 +463,14 @@ function removeAt(i: number) {
   if (!anyNeedsAttention()) cancelTaskbarAttention(); // niente più in attesa → spegni la taskbar
 }
 
-/** Toglie una tab dalla lista SENZA uccidere il PTY (per estrarla in finestra flottante). */
+/** Toglie una tab dalla lista SENZA uccidere il PTY (per estrarla in finestra flottante). Resta fra le
+ *  `floating` della finestra: al riavvio torna come scheda, al redock rientra con tipo e chat. */
 export function removeTerminalKeepPty(id: string) {
   const i = terminals.list.findIndex((t) => t.id === id);
-  if (i !== -1) removeAt(i);
+  if (i === -1) return;
+  const t = terminals.list[i];
+  removeAt(i);
+  if (!terminals.floating.some((f) => f.id === id)) terminals.floating.push(t);
 }
 
 /** Reincolla un terminale estratto: si ricollega al PTY esistente (attach), senza rispawn.
@@ -402,6 +482,8 @@ export async function redockTerminal(s: { id: string; title: string; shell: stri
     return;
   }
   const alive = await invoke<boolean>("pty_alive", { id: s.id }).catch(() => false);
+  const fi = terminals.floating.findIndex((f) => f.id === s.id);
+  const was = fi !== -1 ? terminals.floating.splice(fi, 1)[0] : null;
   if (!alive) return; // PTY morto → niente tab zombie
   const root = workspace.rootPath;
   terminals.list.push({
@@ -409,15 +491,18 @@ export async function redockTerminal(s: { id: string; title: string; shell: stri
     title: s.title, // la finestra flottante porta il nome MOSTRATO: resta tale anche dopo il rientro
     shortName: s.title,
     customTitle: null,
-    autoTitle: null,
+    autoTitle: was?.autoTitle ?? null,
     color: s.color || TAB_COLORS[0].color,
     shell: s.shell,
-    cwd: null,
+    cwd: was?.cwd ?? null,
     root,
     initCommand: null,
     started: true,
     attach: true,
     needsAttention: false,
+    kind: was?.kind ?? "shell",
+    chat: was?.chat ?? null,
+    dormant: false,
   });
   activate(s.id); // con uno split torna nel riquadro attivo
   layout.terminalVisible = true;

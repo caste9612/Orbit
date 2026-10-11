@@ -46,6 +46,33 @@ export interface EditorGroup {
   // per-documento, così lo stesso file può stare sorgente in un riquadro e anteprima in un altro
 }
 
+// Posizione nei file (M66): cursore e prima riga in vista, per scheda (gruppo + file), così cambiando
+// scheda o riaprendo Orbit si torna dove eri (prima l'editor ripartiva dall'inizio a ogni cambio di scheda).
+// Fuori dallo stato reattivo: cursore e scroll cambiano di continuo e non devono far ripartire effetti; la
+// sessione li legge quando si salva. `top` è la posizione del primo carattere della riga in cima.
+export interface ViewPos {
+  anchor: number;
+  head: number;
+  top: number;
+}
+const viewByTab = new Map<string, ViewPos>();
+const viewByPath = new Map<string, ViewPos>(); // ultima del file in qualunque gruppo: per un file riaperto o spostato
+const tabKey = (groupId: string, path: string) => `${groupId}\n${path}`;
+
+export function rememberView(groupId: string, path: string, v: ViewPos) {
+  viewByTab.set(tabKey(groupId, path), v);
+  viewByPath.delete(path); // in fondo = la più recente
+  viewByPath.set(path, v);
+  if (viewByPath.size > 300) viewByPath.delete(viewByPath.keys().next().value!);
+}
+export function recallView(groupId: string, path: string): ViewPos | null {
+  return viewByTab.get(tabKey(groupId, path)) ?? viewByPath.get(path) ?? null;
+}
+/** Solo la posizione di QUESTA scheda (per la sessione). */
+export function tabView(groupId: string, path: string): ViewPos | null {
+  return viewByTab.get(tabKey(groupId, path)) ?? null;
+}
+
 let groupCounter = 0;
 function newGroupId(): string {
   groupCounter += 1;
@@ -381,6 +408,7 @@ export function resetDocs() {
   workspace.openFiles = [];
   workspace.groups = [];
   workspace.activeGroupId = "";
+  viewByTab.clear(); // le posizioni dei gruppi chiusi (la sessione salvata le ha già)
 }
 
 /** Riordina una tab dentro lo stesso gruppo. */
@@ -562,7 +590,7 @@ export async function reloadOpenFiles(changed: string[] | null = null) {
 
 /** Ripristina i gruppi salvati (carica i documenti nel pool, salta i file spariti). */
 export async function restoreGroups(
-  saved: { tabs: string[]; active: string | null; previews?: string[] }[],
+  saved: { tabs: string[]; active: string | null; previews?: string[]; views?: Record<string, number[]> }[],
   activeIndex: number,
 ) {
   // sessioni salvate prima della M59 possono avere lo stesso file in due forme (`src/x` e `src\x`):
@@ -587,7 +615,14 @@ export async function restoreGroups(
     const previews = (g.previews ? uniq(g.previews) : tabs.filter((p) => initialPreview(basename(p)))).filter((p) =>
       tabs.includes(p),
     );
-    groups.push({ id: newGroupId(), tabs, activePath: active, previews });
+    const id = newGroupId();
+    groups.push({ id, tabs, activePath: active, previews });
+    // posizione salvata di ogni scheda (M66): [anchor, head, top]
+    for (const [p, v] of Object.entries(g.views ?? {})) {
+      const path = canon(p);
+      if (tabs.includes(path) && Array.isArray(v) && v.length === 3 && v.every((x) => Number.isInteger(x) && x >= 0))
+        rememberView(id, path, { anchor: v[0], head: v[1], top: v[2] });
+    }
   }
   if (groups.length === 0) return;
   workspace.groups = groups;

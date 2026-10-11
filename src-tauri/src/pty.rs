@@ -19,6 +19,14 @@ struct PtySession {
     writer: Box<dyn Write + Send>,
     child: Box<dyn portable_pty::Child + Send + Sync>,
     token: u64,
+    spawned_ms: u64, // avvio della shell (ms dall'epoch): una chat registrata prima non è sua (pid riciclato)
+}
+
+fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
 }
 
 type Sessions = Arc<Mutex<HashMap<String, PtySession>>>;
@@ -126,6 +134,38 @@ pub fn list_shells() -> Vec<ShellInfo> {
     out
 }
 
+/// Chat di Claude in corso nei terminali `ids` (M66): per ognuno l'id della conversazione e la cartella,
+/// dal registro di Claude Code (vedi claudeproc.rs). Servono a riprendere le chat al riavvio. La visita dei
+/// processi gira fuori dal thread principale.
+#[tauri::command]
+pub async fn pty_claude_sessions(
+    state: State<'_, PtyManager>,
+    ids: Vec<String>,
+) -> Result<HashMap<String, crate::claudeproc::ChatInfo>, String> {
+    let roots: Vec<(String, u32, u64)> = {
+        let sessions = state.sessions.lock().map_err(|e| e.to_string())?;
+        ids.into_iter()
+            .filter_map(|id| {
+                let s = sessions.get(&id)?;
+                let pid = s.child.process_id()?;
+                Some((id, pid, s.spawned_ms))
+            })
+            .collect()
+    };
+    if roots.is_empty() {
+        return Ok(HashMap::new());
+    }
+    tauri::async_runtime::spawn_blocking(move || crate::claudeproc::chats_under(&roots))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Quali conversazioni hanno un transcript (M66): solo quelle si riprendono con `--resume`.
+#[tauri::command(async)]
+pub fn claude_transcripts(ids: Vec<String>) -> Vec<bool> {
+    crate::claudeproc::transcripts_exist(&ids)
+}
+
 #[tauri::command]
 pub fn pty_spawn(
     app: AppHandle,
@@ -184,6 +224,7 @@ pub fn pty_spawn(
             writer,
             child,
             token,
+            spawned_ms: now_ms(),
         },
     );
 

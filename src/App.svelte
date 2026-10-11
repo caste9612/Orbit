@@ -31,6 +31,7 @@
   import { invalidateFiles } from "./lib/state/projectFiles";
   import { loadSettings, startSettingsAutosave, settingsUI, nudgeFontSize, settings } from "./lib/state/settings.svelte";
   import { loadSession, startAutosave, setWinKey, openLight, prepareQuit } from "./lib/state/persist.svelte";
+  import { setTerminalsKey, restoreTerminals, startTerminalPersistence } from "./lib/state/terminalPersist.svelte";
   import { updates, startUpdateChecks, announceUpdated } from "./lib/state/updater.svelte";
   import { initLogs, logsUI } from "./lib/state/logs.svelte";
   import { redockTerminal, terminals, anyNeedsAttention, tabIcon } from "./lib/state/terminals.svelte";
@@ -332,6 +333,7 @@
         updatedTo: string | null;
       }>("startup");
       setWinKey(s.winKey); // chiave di sessione per-finestra (prima di qualunque loadSession)
+      setTerminalsKey(s.winKey); // e dei suoi terminali (M66)
       if (s.updatedTo) announceUpdated(s.updatedTo); // riaperta dall'installer di un aggiornamento (M59)
       if (s.light && s.dir && s.file) {
         // file sparso ("Apri con", doppio clic): modalità leggera, la sua cartella è solo contesto (M57)
@@ -354,9 +356,18 @@
       console.error("startup", e);
     }
     startAutosave(); // d'ora in poi persiste cartella, tab e pannelli
-    // Terminale di default all'avvio: Claude SOLO qui (se abilitato, c'è una cartella e il pannello
-    // è mostrato). L'icona terminale e il "+" creano sempre shell normali → niente Claude a sorpresa.
-    if (layout.terminalVisible && settings.claudeTerminal && workspace.rootPath && terminals.list.length === 0) {
+    // terminali e chat della volta scorsa (M66): tornano addormentati, partono quando si vedono
+    await restoreTerminals().catch((e) => console.error("ripristino terminali", e));
+    startTerminalPersistence();
+    // Terminale di default all'avvio: Claude SOLO qui (se abilitato, c'è una cartella, il pannello è
+    // mostrato e la repo non ha già schede ripristinate). L'icona terminale e il "+" creano sempre shell
+    // normali → niente Claude a sorpresa.
+    if (
+      layout.terminalVisible &&
+      settings.claudeTerminal &&
+      workspace.rootPath &&
+      !terminals.list.some((t) => t.root === workspace.rootPath)
+    ) {
       launchClaude();
     }
     workspace.ready = true; // sessione caricata: il pannello può creare una shell normale se serve

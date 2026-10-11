@@ -3,10 +3,10 @@
 // dir dell'app (comandi Rust load_state/save_state). Zero dipendenze.
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { workspace, fileByPath, restoreGroups, resetDocs, autosaveAll, openFile, activePath } from "./workspace.svelte";
+import { workspace, fileByPath, restoreGroups, resetDocs, autosaveAll, openFile, activePath, tabView } from "./workspace.svelte";
 import { resolveUnsaved } from "./unsaved.svelte";
 import { settings } from "./settings.svelte";
-import { openRoot, snapshotExpanded } from "./explorer.svelte";
+import { openRoot, snapshotExpanded, expandedRel, seedExpanded } from "./explorer.svelte";
 import { layout, beginMotion, type SidebarView } from "./layout.svelte";
 import { syncActiveTerminalToRoot, adoptTerminals } from "./terminals.svelte";
 import { folders, setFolders } from "./folders.svelte";
@@ -28,6 +28,7 @@ interface SavedGroup {
   tabs: string[];
   active: string | null;
   previews?: string[]; // tab in anteprima (md/html) del gruppo
+  views?: Record<string, number[]>; // M66: posizione per scheda, [anchor, head, prima riga in vista]
 }
 
 interface Session {
@@ -38,6 +39,7 @@ interface Session {
   activeGroup?: number;
   files?: string[]; // v1 (legacy): un solo gruppo
   active?: string | null;
+  expanded?: string[]; // M66: cartelle espanse nell'albero, relative alla radice
   layout: {
     sidebarView: SidebarView;
     sidebarVisible: boolean;
@@ -56,7 +58,12 @@ function serialize(): string {
     if (tabs.length === 0) continue;
     if (g.id === workspace.activeGroupId) activeGroup = groups.length;
     const active = g.activePath && tabs.includes(g.activePath) ? g.activePath : tabs[0];
-    groups.push({ tabs, active, previews: g.previews.filter((p) => tabs.includes(p)) });
+    const views: Record<string, number[]> = {};
+    for (const p of tabs) {
+      const v = tabView(g.id, p);
+      if (v) views[p] = [v.anchor, v.head, v.top];
+    }
+    groups.push({ tabs, active, previews: g.previews.filter((p) => tabs.includes(p)), views });
   }
   const data: Session = {
     v: 2,
@@ -64,6 +71,7 @@ function serialize(): string {
     repos: folders.list.map((f) => f.path), // la lista repo della finestra vive nella sua sessione
     groups,
     activeGroup,
+    expanded: workspace.rootPath ? expandedRel(workspace.rootPath) : [],
     layout: {
       sidebarView: layout.sidebarView,
       sidebarVisible: layout.sidebarVisible,
@@ -147,6 +155,7 @@ export async function loadSession(
 
   const root = s.root ?? rootHint ?? null;
   if (!root) return false;
+  if (Array.isArray(s.expanded)) seedExpanded(root, s.expanded.filter((p) => typeof p === "string")); // M66
   try {
     await openRoot(root);
   } catch {
@@ -195,6 +204,13 @@ export async function settleUnsaved(opts: { discardLabel?: string } = {}): Promi
   return resolveUnsaved(dirty, opts);
 }
 
+// Lavori da finire prima che la finestra si chiuda (M66: i terminali salvano le chat in corso). Registrati
+// da chi ne ha bisogno, così persist non importa quei moduli (niente cicli).
+const beforeQuit: (() => Promise<void>)[] = [];
+export function onBeforeQuit(fn: () => Promise<void>) {
+  beforeQuit.push(fn);
+}
+
 /** Prima che la finestra si chiuda o il processo esca ("chiudi tutte", aggiornamento — M59): nessuna
  *  modifica si perde senza chiedere, e la sessione si scrive subito (l'autosave è differito di 400 ms).
  *  Se serve una risposta, la finestra viene in primo piano (può essere un'altra a chiedere l'uscita). */
@@ -211,6 +227,7 @@ export async function prepareQuit(opts: { discardLabel?: string } = {}): Promise
     }
     if (!(await resolveUnsaved(dirty, opts))) return false;
   }
+  for (const fn of beforeQuit) await fn().catch((e) => console.error("prima di chiudere", e));
   await saveSessionNow();
   return true;
 }
@@ -360,8 +377,12 @@ export function startAutosave() {
     $effect(() => {
       const root = workspace.rootPath; // dipendenza
       const light = workspace.light; // dipendenza: promossa a progetto, la sessione si salva da lì in poi
+      const switching = workspace.switching; // dipendenza: a cambio finito si salva lo stato completo
       const data = serialize(); // legge i campi reattivi → dipendenze tracciate
       if (!root || light) return; // niente cartella aperta (o finestra leggera) → niente da persistere
+      // a metà di un cambio repo la nuova cartella è aperta ma schede e albero non ancora: salvarla ora
+      // scriverebbe una sessione vuota (M66)
+      if (switching) return;
       const key = sessionKey(root); // chiave per-finestra (<winKey>|<folder>)
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {

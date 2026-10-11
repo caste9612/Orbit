@@ -410,6 +410,7 @@
                   <Editor
                     doc={af.content}
                     path={af.path}
+                    groupId={g.id}
                     readonly={af.readonly}
                     rev={af.rev}
                     gotoLine={af.gotoLine}

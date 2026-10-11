@@ -34,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~6.5 MB binary, ~120 MB of RAM at rest with a project open (mostly the
-  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~268 KB startup chunk (≈91 KB gzipped).
+  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~274 KB startup chunk (≈93 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -173,6 +173,7 @@ cross-platform desktop app that weighs almost nothing.
 - **Pop out** terminals into **floating windows** that carry the live session (`claude` keeps
   running) — detach **several** at once — with the app's own chrome: a **pin** toggles *always‑on‑top*
   on/off, a badge shows the project **folder + branch**, and you can **dock** any back with one click.
+  Closing Orbit's window closes them too; they come back as tabs next time.
 
 **Git** (local, via libgit2)
 - Status, diff, stage/unstage, commit, branch switch/create (from the status bar too), discard
@@ -232,7 +233,15 @@ cross-platform desktop app that weighs almost nothing.
 ![The Activity view — a timeline of work units across all your repos, with the selected unit's digest in the panel below and Claude Code in the integrated terminal](docs/screenshot-activity.png)
 
 **Workspace**
-- Session persistence per folder (reopens last folder, tabs and panel layout).
+- **Pick up where you left off**: reopening Orbit brings back every window with its repository tabs
+  and, for each repo, its editor tabs **at the line and scroll position you left them**, the **expanded
+  folders** of the Explorer, the panel layout — and its **terminals**: tab names, colors, folders, the
+  side‑by‑side chats, and your **Claude chats, resumed** (`claude --resume`, in their folder). Only what
+  you can see starts right away; the other tabs and repos start when you open them, so a launch doesn't
+  spin up a process per chat. Shells come back fresh (without their old output); Run tabs (jobs) don't
+  come back. Orbit reads which conversation each tab is showing from Claude Code's own registry of
+  running chats, so it follows a `/clear`, and a `claude` you started by hand in a shell. Switching tabs
+  keeps the position in each file too.
 - **Several folders in one window**: a row of **repository tabs** in the top bar keeps your projects
   one click apart. Switching the active repo swaps its **content** — tree, git, branch, search,
   Run/Claude menus, and the **terminal tabs** (each repo keeps its own live PTYs) — while **keeping your
@@ -271,8 +280,8 @@ cross-platform desktop app that weighs almost nothing.
   **Check now** sit at the foot of Settings, always in view. A new
   version shows a notice and an **Update** button in the top bar, with its release notes; **Update and
   restart** downloads the installer, verifies its signature, saves your work (or asks), closes the other
-  Orbit windows and installs in place — then every window reopens where it was, with its tabs. Open
-  terminals and Claude chats restart (resume a chat from Activity).
+  Orbit windows and installs in place — then every window reopens where it was, with its tabs,
+  terminals and Claude chats.
 - **Color themes**: five full themes, switched live — **Visual Studio 2026 Dark** (the default since
   0.9: neutral charcoal greys sampled from VS 2026, Segoe UI Variable, near-square corners, Fluent-style
   icons, outline file glyphs and VS's purple accent), **Orbit Dark**, **Eclipse** (OLED), **Slate** and
@@ -311,7 +320,7 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~3.9 MB |
 | NSIS setup | ~3.1 MB |
 | Frontend `dist/` | ~2.9 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~268 KB (≈91 KB gzipped; the editor and the terminal load on demand) |
+| Startup JS chunk | ~274 KB (≈93 KB gzipped; the editor and the terminal load on demand) |
 | RAM at rest (project open) | ~120 MB private working set with one terminal, ~160 MB with four terminals and three files open (Orbit + WebView2; the Rust core is ~6 MB, ~30 MB with the symbol index of a very large project — the rest is the shared system WebView, inherent to Tauri) |
 | Under load | Claude saving a file every second in a 5,400-file project: ~23% of one CPU core, the UI answering in ~2 ms (99th percentile) |
 

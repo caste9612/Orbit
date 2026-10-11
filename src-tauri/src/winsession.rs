@@ -405,7 +405,12 @@ pub fn init(app: &AppHandle, win: &WebviewWindow, arg_dir: Option<String>) {
         // richiesta di chiusura: la finestra può ancora restare aperta (modifiche non salvate e l'utente
         // annulla, M59) → qui solo la geometria; l'uscita dal registro avviene a finestra distrutta.
         WindowEvent::CloseRequested { .. } => update_own_geom(&app2, &w),
-        WindowEvent::Destroyed => finish_close(&app2),
+        // chiusa la finestra principale, i terminali estratti in finestre flottanti non hanno più dove
+        // rientrare e da soli terrebbero vivo il processo: si esce. Tornano come schede al prossimo avvio (M66).
+        WindowEvent::Destroyed => {
+            finish_close(&app2);
+            app2.exit(0);
+        }
         _ => {}
     });
 

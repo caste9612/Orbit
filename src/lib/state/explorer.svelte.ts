@@ -1,7 +1,7 @@
 // Albero file: lazy per directory; la UI virtualizza il rendering.
 import { invoke } from "@tauri-apps/api/core";
 import { open, confirm } from "@tauri-apps/plugin-dialog";
-import { basename, dirname, isUnder, joinPath, relTo, samePath } from "../util";
+import { basename, dirname, isUnder, joinPath, pathKey, relTo, samePath } from "../util";
 import { workspace, renameOpenPaths, closeUnder } from "./workspace.svelte";
 import { refreshStatus } from "./git.svelte";
 import { loadRunConfig } from "./run.svelte";
@@ -32,7 +32,31 @@ export const tree = $state({ roots: [] as TreeNode[] });
 
 // Cache in-RAM (per finestra) delle cartelle espanse di ciascun repo: passando da un repo all'altro e
 // tornando indietro si ritrova l'albero espanso com'era, invece che collassato. Vedi snapshotExpanded/openRoot.
+// Le chiavi sono `pathKey` (separatori e, su Windows, maiuscole indifferenti): dalla sessione salvata (M66)
+// i percorsi tornano ricostruiti, non per forza identici a quelli di read_dir.
 const expandedCache = new Map<string, Set<string>>();
+
+/** Cartelle espanse della repo aperta, relative alla radice, per la sessione (M66). Legge `expanded` dei
+ *  nodi: dentro l'effetto di salvataggio, aprire o chiudere una cartella risalva la sessione. */
+export function expandedRel(root: string): string[] {
+  const out: string[] = [];
+  const walk = (nodes: TreeNode[]) => {
+    for (const n of nodes) {
+      if (!n.entry.isDir || !n.expanded) continue;
+      if (isUnder(n.entry.path, root)) out.push(relTo(n.entry.path, root));
+      walk(n.children);
+    }
+  };
+  walk(tree.roots);
+  return out;
+}
+
+/** Cartelle espanse salvate nella sessione di `root` (M66), se in questa finestra non ce n'è già una copia
+ *  più recente (un cambio repo la tiene in memoria). */
+export function seedExpanded(root: string, rel: string[]) {
+  if (expandedCache.has(root) || !rel.length) return;
+  expandedCache.set(root, new Set(rel.map((r) => pathKey(joinPath(root, r)))));
+}
 
 /** Memorizza le cartelle espanse del repo `root` (da chiamare PRIMA di smontarlo, es. al cambio repo). */
 export function snapshotExpanded(root: string) {
@@ -211,7 +235,7 @@ export async function refreshTree() {
 function collectExpanded(nodes: TreeNode[], set: Set<string>) {
   for (const n of nodes) {
     if (n.entry.isDir && n.expanded) {
-      set.add(n.entry.path);
+      set.add(pathKey(n.entry.path));
       collectExpanded(n.children, set);
     }
   }
@@ -231,7 +255,7 @@ async function buildLevel(
   const nodes: TreeNode[] = [];
   for (const e of entries) {
     const node = makeNode(e, depth);
-    if (e.isDir && expanded.has(e.path)) {
+    if (e.isDir && expanded.has(pathKey(e.path))) {
       node.expanded = true;
       node.loaded = true;
       node.children = await buildLevel(e.path, depth + 1, expanded);

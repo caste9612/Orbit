@@ -1,5 +1,6 @@
 // Orbit — backend Tauri: filesystem, sessione, git, pty, watcher.
 mod activity;
+mod claudeproc;
 mod git;
 mod pty;
 mod refs;
@@ -349,14 +350,18 @@ fn load_state(app: AppHandle, key: Option<String>) -> Option<String> {
     std::fs::read_to_string(session_file(&app, &resolved).ok()?).ok()
 }
 
+/// `pointer: false` per gli stati che non sono la sessione di una cartella (i terminali della finestra,
+/// M66): non devono diventare "l'ultima cartella aperta".
 #[tauri::command]
-fn save_state(app: AppHandle, key: String, data: String) -> Result<(), String> {
+fn save_state(app: AppHandle, key: String, data: String, pointer: Option<bool>) -> Result<(), String> {
     let file = session_file(&app, &key)?;
     if let Some(parent) = file.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     std::fs::write(file, data).map_err(|e| e.to_string())?;
-    let _ = std::fs::write(last_pointer(&app)?, &key); // aggiorna "ultima cartella"
+    if pointer != Some(false) {
+        let _ = std::fs::write(last_pointer(&app)?, &key); // aggiorna "ultima cartella"
+    }
     Ok(())
 }
 
@@ -590,6 +595,8 @@ pub fn run() {
             pty::pty_resize,
             pty::pty_kill,
             pty::pty_alive,
+            pty::pty_claude_sessions,
+            pty::claude_transcripts,
             pty::list_shells,
             watcher::watch_start,
             symbols::scan_symbols,

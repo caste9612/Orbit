@@ -5,7 +5,7 @@
 // INTERATTIVO nel terminale, così l'utente supervisiona (cruciale per commit/push).
 import { invoke } from "@tauri-apps/api/core";
 import { workspace, openFile } from "./workspace.svelte";
-import { addTerminal } from "./terminals.svelte";
+import { addTerminal, tabWithChat, setActiveTerminal } from "./terminals.svelte";
 import { layout } from "./layout.svelte";
 import { settings } from "./settings.svelte";
 import { readOrbitConfig, ensureOrbitFile, teachClaudeSection } from "./dotorbit";
@@ -178,7 +178,17 @@ export async function launchClaude(prompt?: string, title = "Claude", opts: { si
   if (!root) return;
   await ensureBellChannel(root); // abilita la bell PRIMA di avviare claude (la legge all'avvio)
   layout.terminalVisible = true;
-  addTerminal({ title, cwd: root, initCommand: buildCommand(prompt), side: opts.side });
+  addTerminal({ title, cwd: root, initCommand: buildCommand(prompt), side: opts.side, kind: "claude" });
+}
+
+/** Riga di comando per una chat ripristinata al riavvio (M66), calcolata quando parte, cioè con la sua
+ *  repo attiva: rilegge `.orbit/claude.json` (flag come --model) e accende la bell come una chat nuova.
+ *  Con `resumeId` riprende quella conversazione, altrimenti apre una chat nuova. */
+export async function chatCommand(resumeId: string | null): Promise<string> {
+  const root = workspace.rootPath;
+  if (root) await ensureBellChannel(root);
+  await loadClaudeConfig().catch(() => {});
+  return resumeId && /^[A-Za-z0-9-]+$/.test(resumeId) ? `${buildCommand()} --resume ${resumeId}` : buildCommand();
 }
 
 export function runShortcut(s: ClaudeShortcut) {
@@ -253,9 +263,22 @@ export function removeWrapper(index: number) {
 export async function resumeClaude(id: string, opts: { side?: boolean } = {}) {
   const root = workspace.rootPath;
   if (!root || !/^[A-Za-z0-9-]+$/.test(id)) return; // id sessione = UUID: niente injection
-  await ensureBellChannel(root);
   layout.terminalVisible = true;
-  addTerminal({ title: "Claude · resume", cwd: root, initCommand: `${buildCommand()} --resume ${id}`, side: opts.side });
+  // già aperta in una scheda (anche ripristinata e non ancora partita, M66): si va lì, niente doppione
+  const open = tabWithChat(root, id);
+  if (open) {
+    setActiveTerminal(open.id);
+    return;
+  }
+  await ensureBellChannel(root);
+  addTerminal({
+    title: "Claude · resume",
+    cwd: root,
+    initCommand: `${buildCommand()} --resume ${id}`,
+    side: opts.side,
+    kind: "claude",
+    chat: { id, cwd: root },
+  });
 }
 
 const TEMPLATE = JSON.stringify(

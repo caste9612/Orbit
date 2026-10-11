@@ -40,6 +40,7 @@
     type PaneSizes,
   } from "../state/terminals.svelte";
   import { launchClaude } from "../state/claude.svelte";
+  import { wakeTerminal } from "../state/terminalPersist.svelte";
   import { dropZone, flatten, locate, MAX_PANES, type Arrangement, type Layout, type Zone } from "../state/terminalLayout";
   import { focusOnMount } from "../focus";
 
@@ -134,6 +135,14 @@
     zoom ? [[zoom]] : split ? effectiveLayout(workspace.rootPath, surfW, surfH) : terminals.activeId ? [[terminals.activeId]] : [],
   );
   let shown = $derived(flatten(shownLayout));
+
+  // schede ripristinate al riavvio (M66): partono quando entrano in vista, le altre restano addormentate
+  $effect(() => {
+    for (const id of shown) {
+      const t = terminals.list.find((x) => x.id === id);
+      if (t?.dormant) void wakeTerminal(t);
+    }
+  });
 
   // ---- geometria dei riquadri ------------------------------------------------------------------
   // Posizionamento ASSOLUTO in px dalle frazioni (colonne, e righe per colonna): a differenza di una
@@ -549,19 +558,21 @@
           </div>
         {/if}
         <div class="pane-body">
-          <Terminal
-            id={t.id}
-            cwd={t.cwd ?? workspace.rootPath}
-            persistent={true}
-            shell={t.shell}
-            active={t.id === terminals.activeId}
-            attach={t.attach}
-            initCommand={t.started ? null : t.initCommand}
-            onStart={() => (t.started = true)}
-            onBell={() => notifyTerminalBell(t.id)}
-            onTitle={(x: string) => setAutoTitle(t.id, x)}
-            chat={tabIcon(t) === "sparkles"}
-          />
+          {#if !t.dormant}
+            <Terminal
+              id={t.id}
+              cwd={t.cwd ?? workspace.rootPath}
+              persistent={true}
+              shell={t.shell}
+              active={t.id === terminals.activeId}
+              attach={t.attach}
+              initCommand={t.started ? null : t.initCommand}
+              onStart={() => (t.started = true)}
+              onBell={() => notifyTerminalBell(t.id)}
+              onTitle={(x: string) => setAutoTitle(t.id, x)}
+              chat={tabIcon(t) === "sparkles"}
+            />
+          {/if}
         </div>
         {#if dropTarget?.id === t.id}
           <div class="dropmark {dropTarget.zone}" aria-hidden="true"></div>

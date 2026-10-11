@@ -86,7 +86,7 @@ const kindCounters: Record<string, number> = {};
 const SHELL_SHORT: Record<string, string> = {
   powershell: "pwsh",
   "powershell 7": "pwsh7",
-  "prompt dei comandi": "cmd",
+  "command prompt": "cmd",
   "git bash": "bash",
   wsl: "wsl",
 };

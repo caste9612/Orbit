@@ -25,7 +25,7 @@ let runInvalid = false; // per non ripetere il toast a ogni fs-changed finché i
 export async function loadRunConfig() {
   const { data, status } = await readOrbitConfig<{ configurations?: unknown }>("run.json");
   if (status === "invalid") {
-    if (!runInvalid) notify("`.orbit/run.json`: JSON non valido — menu Esegui invariato", "error", 3500);
+    if (!runInvalid) notify("`.orbit/run.json`: invalid JSON — the Run menu is unchanged", "error", 3500);
     runInvalid = true;
     return; // tieni le config correnti: meglio del menu vuoto
   }

@@ -240,8 +240,8 @@ cross-platform desktop app that weighs almost nothing.
   you can see starts right away; the other tabs and repos start when you open them, so a launch doesn't
   spin up a process per chat. Shells come back fresh (without their old output); Run tabs (jobs) don't
   come back. Orbit reads which conversation each tab is showing from Claude Code's own registry of
-  running chats, so it follows a `/clear`, and a `claude` you started by hand in a shell. Switching tabs
-  keeps the position in each file too.
+  running chats, so a `claude` you started by hand in a shell comes back too. Switching tabs keeps the
+  position in each file too.
 - **Several folders in one window**: a row of **repository tabs** in the top bar keeps your projects
   one click apart. Switching the active repo swaps its **content** — tree, git, branch, search,
   Run/Claude menus, and the **terminal tabs** (each repo keeps its own live PTYs) — while **keeping your
@@ -346,9 +346,11 @@ memory on top, just as in any terminal. For comparison, an equivalent Electron a
   (lighter, and it trusts the corporate proxies' certificates that Windows trusts).
 - **Lazy-loaded** CodeMirror and xterm so the first paint stays light.
 
-For contributors, an architecture overview is in [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
-The complete decision log (one entry per milestone, with the rationale for every dependency)
-lives in [NOTES.md](./NOTES.md).
+For contributors, the **developer documentation** is in [docs/](./docs/README.md): an
+[architecture overview](./docs/ARCHITECTURE.md), then one page per area — frontend state, UI shell,
+editor, terminal, Claude & Activity, code navigation, persistence, backend, settings & themes,
+development, release. The complete decision log (one entry per milestone, with the rationale for every
+dependency) lives in [NOTES.md](./NOTES.md).
 
 ---
 

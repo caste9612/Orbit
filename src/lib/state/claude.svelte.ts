@@ -82,7 +82,7 @@ export async function loadClaudeConfig() {
     wrappers?: unknown;
   }>("claude.json");
   if (status === "invalid") {
-    if (!claudeInvalid) notify("`.orbit/claude.json`: JSON non valido — menu Claude invariato", "error", 3500);
+    if (!claudeInvalid) notify("`.orbit/claude.json`: invalid JSON — the Claude menu is unchanged", "error", 3500);
     claudeInvalid = true;
     return; // tieni shortcut/wrapper correnti: meglio del reset ai default a sorpresa
   }
@@ -237,7 +237,7 @@ async function saveClaudeConfig() {
     claude.loaded = true;
     claudeInvalid = false; // ciò che abbiamo scritto è valido per costruzione
   } catch (e) {
-    notify(`Salvataggio di claude.json non riuscito: ${e}`, "error");
+    notify(`Couldn't save claude.json: ${e}`, "error");
     console.error("claude.json", e);
   }
 }

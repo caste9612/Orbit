@@ -109,7 +109,7 @@ pub fn list_shells() -> Vec<ShellInfo> {
         if let Some(p) = which("pwsh.exe") {
             out.push(ShellInfo { label: "PowerShell 7".into(), program: p });
         }
-        out.push(ShellInfo { label: "Prompt dei comandi".into(), program: "cmd.exe".into() });
+        out.push(ShellInfo { label: "Command Prompt".into(), program: "cmd.exe".into() });
         let git_bash = r"C:\Program Files\Git\bin\bash.exe";
         if std::path::Path::new(git_bash).exists() {
             out.push(ShellInfo { label: "Git Bash".into(), program: git_bash.into() });

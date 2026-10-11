@@ -73,3 +73,11 @@ a `.orbit/claude.json`: Orbit ricarica il menu automaticamente.
 - `claude.json` — comando, scorciatoie e wrapper Claude (sopra).
 - `shelf.json` — cartelle nello scaffale (preferenza personale, git-ignored).
 <!-- /orbit:claude-config -->
+
+## Documentazione del codice di Orbit
+
+Lavorando sul codice di Orbit: la documentazione per sviluppatori è in `docs/` (indice `docs/README.md`,
+poi `docs/ARCHITECTURE.md` e una pagina per area: stato, shell, editor, terminale, Claude, navigazione,
+persistenza, backend, impostazioni, sviluppo, rilascio); le decisioni e le misure, milestone per
+milestone, in `NOTES.md`. Quando una modifica cambia come funziona qualcosa, aggiorna nello stesso commit
+la pagina di quell'area (in inglese, come il README).

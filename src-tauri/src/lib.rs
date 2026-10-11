@@ -10,7 +10,6 @@ mod watcher;
 mod winsession;
 
 use serde::Serialize;
-use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager};
 
@@ -168,7 +167,8 @@ fn rename_path(from: String, to: String) -> Result<(), String> {
 }
 
 /// Elimina (definitivamente) un file o una cartella con il suo contenuto.
-#[tauri::command]
+// async (M68): cancellare una cartella grande (es. node_modules) richiede secondi
+#[tauri::command(async)]
 fn delete_path(path: String) -> Result<(), String> {
     let p = Path::new(&path);
     if p.is_dir() {
@@ -331,9 +331,56 @@ fn list_files(root: String) -> Result<Vec<FileRef>, String> {
 
 fn session_file(app: &AppHandle, key: &str) -> Result<PathBuf, String> {
     let dir = app.path().app_config_dir().map_err(|e| e.to_string())?.join("sessions");
-    let mut h = std::collections::hash_map::DefaultHasher::new();
-    key.hash(&mut h);
-    Ok(dir.join(format!("{:016x}.json", h.finish())))
+    Ok(dir.join(format!("{:016x}.json", session_hash(key))))
+}
+
+/// Nome del file di una sessione: l'hash della sua chiave. Fissato qui (M68) invece di usare `DefaultHasher`,
+/// che la libreria standard non garantisce uguale fra versioni di Rust: se cambiasse, dopo un aggiornamento
+/// ogni finestra perderebbe sessioni e terminali. È SipHash-1-3 con chiavi zero sui byte della chiave seguiti
+/// da 0xFF, cioè quello che `DefaultHasher` calcolava per una `&str` quando i file esistenti sono nati: i nomi
+/// non cambiano.
+fn session_hash(key: &str) -> u64 {
+    let mut data = Vec::with_capacity(key.len() + 1);
+    data.extend_from_slice(key.as_bytes());
+    data.push(0xff);
+    siphash13(&data)
+}
+
+/// SipHash-1-3 a 64 bit con chiave (0, 0).
+fn siphash13(data: &[u8]) -> u64 {
+    fn round(v: &mut [u64; 4]) {
+        v[0] = v[0].wrapping_add(v[1]);
+        v[1] = v[1].rotate_left(13) ^ v[0];
+        v[0] = v[0].rotate_left(32);
+        v[2] = v[2].wrapping_add(v[3]);
+        v[3] = v[3].rotate_left(16) ^ v[2];
+        v[0] = v[0].wrapping_add(v[3]);
+        v[3] = v[3].rotate_left(21) ^ v[0];
+        v[2] = v[2].wrapping_add(v[1]);
+        v[1] = v[1].rotate_left(17) ^ v[2];
+        v[2] = v[2].rotate_left(32);
+    }
+    let mut v = [0x736f6d6570736575u64, 0x646f72616e646f6d, 0x6c7967656e657261, 0x7465646279746573];
+    let chunks = data.chunks_exact(8);
+    let rest = chunks.remainder();
+    for c in chunks {
+        let m = u64::from_le_bytes(c.try_into().expect("8 byte"));
+        v[3] ^= m;
+        round(&mut v);
+        v[0] ^= m;
+    }
+    let mut b = (data.len() as u64) << 56;
+    for (i, &x) in rest.iter().enumerate() {
+        b |= (x as u64) << (8 * i);
+    }
+    v[3] ^= b;
+    round(&mut v);
+    v[0] ^= b;
+    v[2] ^= 0xff;
+    round(&mut v);
+    round(&mut v);
+    round(&mut v);
+    v[0] ^ v[1] ^ v[2] ^ v[3]
 }
 
 fn last_pointer(app: &AppHandle) -> Result<PathBuf, String> {
@@ -628,6 +675,31 @@ mod tests {
     use std::sync::atomic::{AtomicU32, Ordering};
 
     static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+    const SESSION_KEYS: [&str; 6] = ["", "a", "1234567", "12345678", "k1791704813816-9|C:\\Progetti\\repo", "k1|#terminals"];
+    // calcolati anche con un'implementazione indipendente (Python), che riproduce il nome di un file di
+    // sessione reale: sono i nomi che i file hanno sempre avuto
+    const GOLDEN_SESSION_NAMES: [&str; 6] =
+        ["30406ea523c53def", "719b50b9a4f0e9f3", "b9a4f30e757fe044", "40cc4e544a5af2cd", "dcbbf0717a129776", "0c19cf1ecbb36b48"];
+
+    #[test]
+    fn nomi_delle_sessioni_uguali_a_quelli_di_sempre() {
+        // con questo Rust il nostro hash coincide con DefaultHasher, che ha dato il nome ai file esistenti.
+        // Se una versione futura di Rust cambiasse DefaultHasher, questo test fallirebbe: i nomi restano i
+        // nostri (test sotto) e questo si può togliere.
+        use std::hash::{Hash, Hasher};
+        for k in SESSION_KEYS {
+            let mut h = std::collections::hash_map::DefaultHasher::new();
+            k.hash(&mut h);
+            assert_eq!(session_hash(k), h.finish(), "chiave {k:?}");
+        }
+    }
+
+    #[test]
+    fn nomi_delle_sessioni_fissati() {
+        let got: Vec<String> = SESSION_KEYS.iter().map(|k| format!("{:016x}", session_hash(k))).collect();
+        assert_eq!(got, GOLDEN_SESSION_NAMES);
+    }
 
     fn temp_root(tag: &str) -> PathBuf {
         let n = COUNTER.fetch_add(1, Ordering::SeqCst);

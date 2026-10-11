@@ -9,6 +9,16 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::path::Path;
 
+// Le scritture git (indice, branch, working tree) girano fuori dal thread principale (M68): un cambio di
+// branch su un repo grande riscrive la cartella di lavoro e bloccava la finestra. Ma una alla volta: prima,
+// sincrone, le metteva in fila il thread della finestra; in parallelo due scritture dell'indice si
+// scontrerebbero su `index.lock` (lo "stage all" ne lancia una per file, tutte insieme).
+static GIT_WRITE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn write_lock() -> std::sync::MutexGuard<'static, ()> {
+    GIT_WRITE.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 /// Il percorso è ignorato da git (.gitignore, .git/info/exclude, regole globali)? Per i giri sui file del
 /// progetto (indice, riferimenti, ricerca, Quick Open) e per il watcher (M62): output di build, cartelle
 /// di prova, ambienti virtuali… non si analizzano e non fanno ripartire git e indice. Fuori da un repo, o
@@ -166,8 +176,9 @@ pub fn git_diff(root: String, path: String, staged: bool) -> Result<String, Stri
     Ok(out)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_stage(root: String, path: String) -> Result<(), String> {
+    let _scrittura = write_lock();
     let repo = open(&root)?;
     let mut index = repo.index().map_err(|e| e.to_string())?;
     let p = Path::new(&path);
@@ -184,8 +195,9 @@ pub fn git_stage(root: String, path: String) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_unstage(root: String, path: String) -> Result<(), String> {
+    let _scrittura = write_lock();
     let repo = open(&root)?;
     match repo.head().ok().and_then(|h| h.peel(ObjectType::Commit).ok()) {
         Some(obj) => {
@@ -202,8 +214,9 @@ pub fn git_unstage(root: String, path: String) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_commit(root: String, message: String) -> Result<String, String> {
+    let _scrittura = write_lock();
     let repo = open(&root)?;
     let mut index = repo.index().map_err(|e| e.to_string())?;
     let tree_oid = index.write_tree().map_err(|e| e.to_string())?;
@@ -252,8 +265,9 @@ pub fn git_branches(root: String) -> Result<Branches, String> {
     Ok(Branches { current, all })
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_checkout_branch(root: String, name: String) -> Result<(), String> {
+    let _scrittura = write_lock();
     let repo = open(&root)?;
     let refname = format!("refs/heads/{}", name);
     let obj = repo.revparse_single(&refname).map_err(|e| e.to_string())?;
@@ -264,8 +278,9 @@ pub fn git_checkout_branch(root: String, name: String) -> Result<(), String> {
 
 /// Annulla le modifiche di un file: gli untracked vengono eliminati, i file tracciati
 /// riportati allo stato di HEAD (workdir + index). Operazione distruttiva (conferma a UI).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_discard(root: String, path: String) -> Result<(), String> {
+    let _scrittura = write_lock();
     let repo = open(&root)?;
     let status = repo.status_file(Path::new(&path)).map_err(|e| e.to_string())?;
     // untracked puro → rimuovi dal disco (HEAD non lo conosce)
@@ -334,8 +349,9 @@ pub fn git_log(root: String, limit: usize) -> Result<Vec<CommitInfo>, String> {
 }
 
 /// Crea un nuovo branch da HEAD e ci passa sopra (create + switch).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_create_branch(root: String, name: String) -> Result<(), String> {
+    let _scrittura = write_lock();
     let repo = open(&root)?;
     let commit = repo
         .head()

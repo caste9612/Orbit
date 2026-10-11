@@ -30,6 +30,13 @@ clipboard), `tauri-plugin-updater` (used from Rust only: no JS package, no permi
   - `#[tauri::command(async)]` puts them on a thread pool: file reads and writes, search, file lists,
     git status, diff, log, graph, show, branches, upstream;
   - `async fn` + `spawn_blocking` serves the scans: symbols, references, Activity, Claude chats.
+- Since M68 the **git writes** run off the main thread too (stage, unstage, commit, discard, create and
+  switch branch), and so does deleting files and folders.
+  - A branch switch on a big repository rewrites the working folder, and deleting a `node_modules`
+    takes seconds; both used to freeze the window.
+  - The git writes go through one lock (`GIT_WRITE` in `git.rs`): in parallel, two index writes would
+    collide on `index.lock`. "Stage all" sends one call per file at once; the main thread used to line
+    them up.
 - Before M62, a large repository's `git status` stalled every IPC call after each save. Now the 99th
   percentile of IPC latency under load is about 2 ms.
 
@@ -60,7 +67,7 @@ clipboard), `tauri-plugin-updater` (used from Rust only: no JS package, no permi
 |---|---|
 | `pty_spawn(id, cols, rows, cwd?, shell?)` | Starts a shell; returns `false` if the id already exists (re-attach, the initial command must not be sent) |
 | `pty_write` · `pty_resize` · `pty_kill` · `pty_alive` | Input, size, close, liveness (floating windows check it before docking) |
-| `list_shells` | Shells found on the machine — Windows: PowerShell, PowerShell 7 (if installed), Command Prompt, Git Bash, WSL; elsewhere: `$SHELL`, bash, zsh, fish, sh |
+| `list_shells` | Shells found on the machine — Windows: PowerShell, PowerShell 7 (if installed), Command Prompt, Git Bash (in Program Files, in the per-user install, or next to the `git.exe` on `PATH`), WSL; elsewhere: `$SHELL`, bash, zsh, fish, sh |
 | `pty_claude_sessions(ids)` | Claude conversation id and folder running in each terminal (M66) |
 | `claude_transcripts(ids)` | Which conversations have a transcript, i.e. can be resumed (M66) |
 

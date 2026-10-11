@@ -630,11 +630,10 @@ fn read_more(c: &mut Cached, p: &Path, sid: &str, len: u64) -> Option<()> {
 }
 
 fn scan(limit: Option<usize>) -> Result<Vec<WorkUnit>, String> {
-    let home = std::env::var("USERPROFILE")
-        .ok()
-        .or_else(|| std::env::var("HOME").ok())
-        .ok_or_else(|| "home dir not found".to_string())?;
-    Ok(scan_in(&Path::new(&home).join(".claude").join("projects"), limit))
+    // la cartella di Claude Code: CLAUDE_CONFIG_DIR se impostata, altrimenti ~/.claude (M68: prima solo
+    // ~/.claude, mentre il ripristino delle chat seguiva già la variabile)
+    let dir = crate::claudeproc::claude_dir().ok_or_else(|| "home dir not found".to_string())?;
+    Ok(scan_in(&dir.join("projects"), limit))
 }
 
 /// Unità di lavoro di tutti i transcript sotto `dir` (una sottocartella per progetto).
@@ -709,8 +708,7 @@ pub struct ActivityWatchState {
 }
 
 fn claude_projects_dir() -> Option<std::path::PathBuf> {
-    let home = std::env::var("USERPROFILE").ok().or_else(|| std::env::var("HOME").ok())?;
-    let dir = Path::new(&home).join(".claude").join("projects");
+    let dir = crate::claudeproc::claude_dir()?.join("projects");
     if dir.is_dir() {
         Some(dir)
     } else {

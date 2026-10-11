@@ -98,6 +98,39 @@ pub struct ShellInfo {
     program: String,
 }
 
+/// Git Bash: dove l'installer di Git lo mette per tutti (`%ProgramFiles%\Git`) o per l'utente
+/// (`%LOCALAPPDATA%\Programs\Git`), oppure accanto al `git.exe` del PATH (M68: prima solo
+/// `C:\Program Files\Git`). Mai il `bash.exe` di System32, che è quello di WSL.
+#[cfg(windows)]
+fn find_git_bash() -> Option<String> {
+    let mut cands: Vec<std::path::PathBuf> = Vec::new();
+    for (var, sub) in [("ProgramFiles", "Git"), ("ProgramW6432", "Git"), ("LOCALAPPDATA", "Programs\\Git")] {
+        if let Some(base) = std::env::var_os(var) {
+            cands.push(std::path::Path::new(&base).join(sub).join("bin").join("bash.exe"));
+        }
+    }
+    if let Some(git) = which("git.exe") {
+        cands.extend(git_bash_beside(std::path::Path::new(&git)));
+    }
+    cands.into_iter().find(|p| p.is_file()).map(|p| p.to_string_lossy().into_owned())
+}
+
+/// Dove può stare `bin\bash.exe` rispetto a un `git.exe` di Git for Windows, che sta in `<radice>\cmd`,
+/// `<radice>\bin` o `<radice>\mingw64\bin`. Pura, senza accesso al disco.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn git_bash_beside(git_exe: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut out = Vec::new();
+    let mut dir = git_exe.parent();
+    for _ in 0..2 {
+        let Some(d) = dir else { break };
+        if let Some(root) = d.parent() {
+            out.push(root.join("bin").join("bash.exe"));
+        }
+        dir = d.parent();
+    }
+    out
+}
+
 /// Shell disponibili sul sistema (per il selettore "nuovo terminale"). Solo quelle
 /// effettivamente presenti, così non si tenta di lanciare un programma inesistente.
 #[tauri::command]
@@ -110,9 +143,8 @@ pub fn list_shells() -> Vec<ShellInfo> {
             out.push(ShellInfo { label: "PowerShell 7".into(), program: p });
         }
         out.push(ShellInfo { label: "Command Prompt".into(), program: "cmd.exe".into() });
-        let git_bash = r"C:\Program Files\Git\bin\bash.exe";
-        if std::path::Path::new(git_bash).exists() {
-            out.push(ShellInfo { label: "Git Bash".into(), program: git_bash.into() });
+        if let Some(git_bash) = find_git_bash() {
+            out.push(ShellInfo { label: "Git Bash".into(), program: git_bash });
         }
         if which("wsl.exe").is_some() {
             out.push(ShellInfo { label: "WSL".into(), program: "wsl.exe".into() });
@@ -326,4 +358,27 @@ pub fn pty_kill(state: State<PtyManager>, id: String) -> Result<(), String> {
 #[tauri::command]
 pub fn pty_alive(state: State<PtyManager>, id: String) -> bool {
     state.sessions.lock().map(|s| s.contains_key(&id)).unwrap_or(false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::git_bash_beside;
+    use std::path::Path;
+
+    fn ends(p: &Path, tail: &str) -> bool {
+        p.to_string_lossy().replace('\\', "/").ends_with(tail)
+    }
+
+    #[test]
+    fn git_bash_accanto_al_git_del_path() {
+        // installer di Git for Windows: <radice>/cmd/git.exe
+        let c = git_bash_beside(Path::new("C:/Git/cmd/git.exe"));
+        assert!(ends(&c[0], "C:/Git/bin/bash.exe"), "{c:?}");
+        // <radice>/mingw64/bin/git.exe: la seconda risalita trova <radice>/bin
+        let c = git_bash_beside(Path::new("D:/Tools/Git/mingw64/bin/git.exe"));
+        assert!(c.iter().any(|p| ends(p, "D:/Tools/Git/bin/bash.exe")), "{c:?}");
+        // Git portatile: <radice>/bin/git.exe
+        let c = git_bash_beside(Path::new("E:/PortableGit/bin/git.exe"));
+        assert!(ends(&c[0], "E:/PortableGit/bin/bash.exe"), "{c:?}");
+    }
 }

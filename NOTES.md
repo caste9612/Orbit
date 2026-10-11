@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [v1.1.0](#versione-110)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -3589,16 +3589,72 @@ codice». Le scelte, con tre domande:
 
 ---
 
+## Milestone 68 — quattro correzioni trovate scrivendo la documentazione
+
+Alla domanda dell'utente «ci sono altre cose da fare? cose che hai scoperto mentre scrivi la
+documentazione?», l'elenco controllato sul codice. L'utente ha scelto di correggere subito i quattro punti
+qui sotto. Il testo che Orbit scrive nei progetti (scorciatoie Claude predefinite, sezioni di `CLAUDE.md`)
+resta in italiano, per sua scelta.
+
+**1. Scritture git e cancellazioni fuori dal thread principale.** La M62 aveva spostato status, diff, log
+ecc., ma non:
+- stage, unstage, commit e discard;
+- creare e cambiare branch: su un repo grande un cambio di branch riscrive la cartella di lavoro e
+  bloccava la finestra;
+- `delete_path`: un `node_modules` richiede secondi.
+
+Ora sono `(async)`. Le scritture git passano da un lock (`GIT_WRITE`): prima le metteva in fila il thread
+della finestra, e in parallelo due scritture dell'indice si scontrerebbero su `index.lock`. "Stage all" ne
+lancia una per file, tutte insieme (`Promise.all`), ignorando gli errori: senza lock si sarebbero persi file
+senza avviso.
+
+**2. L'Attività segue `CLAUDE_CONFIG_DIR`**, come già il ripristino delle chat (M66):
+`claudeproc::claude_dir()` per la scansione e per il watcher. Prima leggeva sempre `~/.claude/projects`: con
+la cartella di Claude spostata, l'Attività restava vuota.
+
+**3. Nomi stabili dei file di sessione.** Il nome era l'hash di `DefaultHasher`, che la libreria standard
+non garantisce uguale fra versioni di Rust: se cambiasse, dopo un aggiornamento ogni finestra perderebbe
+sessioni e terminali.
+- Ora `session_hash` lo calcola da sé: SipHash-1-3 con chiavi zero sui byte della chiave più `0xFF`, cioè
+  esattamente quello che `DefaultHasher` dava.
+- I nomi non cambiano. Un'implementazione indipendente in Python riproduce il nome del file di sessione
+  reale indicato da `last_session.txt`.
+- Due test: uguaglianza con `DefaultHasher` (con questo Rust) e valori fissi.
+
+**4. Git Bash dovunque sia installato Git.** Prima solo `C:\Program Files\Git\bin\bash.exe`. Ora anche
+`%ProgramW6432%`, l'installazione per utente (`%LOCALAPPDATA%\Programs\Git`) e accanto al `git.exe` del
+PATH (`<radice>\cmd`, `\bin`, `\mingw64\bin` → `<radice>\bin\bash.exe`; funzione pura con test). Mai il
+`bash.exe` di System32, che è WSL.
+
+**Verifica** (istanza di prova ricompilata, clone del repo, `CLAUDE_CONFIG_DIR` su una cartella finta):
+- **sessioni**: la finestra torna com'era (stessi nomi dei file);
+- **shell**: Git Bash trovato, "Command Prompt";
+- **Attività**: con la cartella finta mostra solo il transcript sintetico (1 unità, `C:/fake/repo`), non i
+  progetti veri;
+- **git**:
+  - "Stage all" su 3.008 file lanciati insieme: tutti in stage, nessuno perso. Intanto l'IPC rispondeva
+    in 2–3 ms; prima la finestra sarebbe rimasta ferma per minuti. Il test includeva per errore una
+    cartella da 3.000 file;
+  - 8 stage e 8 unstage in parallelo: 8 e 0, nessun errore;
+  - cambio di branch avanti e indietro;
+- **cancellazione** di 3.000 file: 0,5 s, con 36 risposte dell'IPC nel frattempo (la più lenta 29 ms);
+- `cargo test` 62 (+3), nessun avviso.
+- **Inciampo da ricordare**: modificare i Markdown di `docs/` ricarica la pagina di sviluppo (Vite) e
+  interrompe un test in corso. Il primo giro si è fermato così ed è stato ripetuto.
+
+---
+
 ## Versione 1.1.0
 
-Le milestone **M61–M67** in una release:
+Le milestone **M61–M68** in una release:
 - versione e *Check now* sempre in vista;
 - le prestazioni della M62;
 - gli stili del cursore;
 - le Impostazioni a categorie;
 - il cambio repo in un movimento solo;
 - il ripristino di terminali, chat e posizione nei file;
-- la documentazione per sviluppatori in `docs/`.
+- la documentazione per sviluppatori in `docs/`;
+- quattro correzioni trovate scrivendola (M68).
 
 Titolo "Pick up where you left off", note in `artifacts/notes-1.1.0.md`.
 

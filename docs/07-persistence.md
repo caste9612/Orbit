@@ -22,10 +22,16 @@ Orbit also **reads** Claude Code's own files, never writing them:
 - `~/.claude/projects/*/*.jsonl`: the transcripts, for Activity and to check that a chat can be resumed;
 - `~/.claude/sessions/<pid>.json`: the running chats, for restoring the terminals.
 
-`CLAUDE_CONFIG_DIR` replaces `~/.claude` for the second ([Claude](05-claude.md)).
+`CLAUDE_CONFIG_DIR` replaces `~/.claude` for both (for Activity since M68; see [Claude](05-claude.md)).
 
-The `sessions/` file name is a hash of the key (`save_state`/`load_state` in `lib.rs`). The key carries the
-window's **stable key** (`winKey`), so the same folder open in two windows keeps two sessions (M39).
+**File names**:
+- The `sessions/` file name is a hash of the key (`save_state`/`load_state` in `lib.rs`). The key carries
+  the window's **stable key** (`winKey`), so the same folder open in two windows keeps two sessions (M39).
+- The hash is pinned in `session_hash` (M68): SipHash-1-3 with zero keys over the key's bytes plus
+  `0xFF`. That's what Rust's `DefaultHasher` produced when the files were created, so names didn't
+  change. The standard library doesn't promise `DefaultHasher` stays the same across Rust versions, and
+  a change would have made every window lose its sessions after an update.
+- Two tests guard it: one compares with `DefaultHasher`, one checks fixed values.
 
 ## The session of a folder
 

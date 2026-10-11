@@ -79,7 +79,8 @@ Claude Code keeps a registry of its running chats: one file per process,
 ## The Activity view
 
 A timeline of what you and Claude did across **all** your projects, rebuilt from Claude Code's transcripts
-(`~/.claude/projects/*/*.jsonl`).
+(`<config>/projects/*/*.jsonl`; `<config>` is `CLAUDE_CONFIG_DIR` or `~/.claude`, the same lookup as the
+chat registry since M68 — before, Activity always read `~/.claude`).
 
 **Backend** (`activity.rs`):
 - `scan_activity(limit)` reconstructs **work units**, prompt first: a user prompt plus the files and

@@ -26,6 +26,7 @@
   import { gitGutter, setGitMarks, parseGitMarks } from "../editor/gitGutter";
   import { semanticHighlight } from "../editor/semanticHighlight";
   import { codeLens, setLenses } from "../editor/codeLens";
+  import { caretExtension } from "../editor/caret";
   import { setActiveEditor, clearActiveEditor } from "../editor/activeEditor";
   import { settings, isLightTheme } from "../state/settings.svelte";
   import { git, gitRel } from "../state/git.svelte";
@@ -74,6 +75,7 @@
   let lastRev = untrack(() => rev); // baseline iniziale (volutamente non reattivo)
   const langConf = new Compartment();
   const themeConf = new Compartment(); // EditorView.theme + HighlightStyle (chiaro/scuro)
+  const caretConf = new Compartment(); // stile del cursore (Impostazioni → Editor cursor, M63)
 
   onMount(() => {
     const state = EditorState.create({
@@ -115,6 +117,7 @@
         indentUnit.of("  "),
         langConf.of([]),
         themeConf.of(editorTheme(isLightTheme())),
+        caretConf.of(caretExtension({ ...settings.editorCaret })),
         EditorState.readOnly.of(readonly),
         EditorView.editable.of(!readonly),
         keymap.of([
@@ -179,6 +182,12 @@
   $effect(() => {
     const light = isLightTheme();
     view?.dispatch({ effects: themeConf.reconfigure(editorTheme(light)) });
+  });
+
+  // stile del cursore (Impostazioni): una copia nuova a ogni cambio, così l'estensione se ne accorge
+  $effect(() => {
+    const conf = { ...settings.editorCaret };
+    untrack(() => view?.dispatch({ effects: caretConf.reconfigure(caretExtension(conf)) }));
   });
 
   // ricarica i marcatori git quando lo stato git cambia (refresh / save / modifica esterna),

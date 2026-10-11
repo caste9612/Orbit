@@ -33,7 +33,7 @@
   import { loadSession, startAutosave, setWinKey, openLight, prepareQuit } from "./lib/state/persist.svelte";
   import { updates, startUpdateChecks, announceUpdated } from "./lib/state/updater.svelte";
   import { initLogs, logsUI } from "./lib/state/logs.svelte";
-  import { redockTerminal, terminals, anyNeedsAttention } from "./lib/state/terminals.svelte";
+  import { redockTerminal, terminals, anyNeedsAttention, tabIcon } from "./lib/state/terminals.svelte";
   import { initIndex, scheduleRescan, wsPalette, openWsPalette, navBack, navForward, goToDefinitionAtCursor } from "./lib/state/codeIndex.svelte";
   import { matchCommand, shortcutsUI } from "./lib/state/keybindings.svelte";
   import { addFolder, cycleRepo, selectRepoIndex } from "./lib/state/folders.svelte";
@@ -473,7 +473,7 @@
     </header>
     <div class="floatbody">
       <div class="floatpanel">
-        <Terminal id={floatId} shell={floatShell} attach active persistent enableLinks={false} />
+        <Terminal id={floatId} shell={floatShell} attach active persistent enableLinks={false} chat={tabIcon({ shell: floatShell, title: floatTitle }) === "sparkles"} />
       </div>
     </div>
   </div>

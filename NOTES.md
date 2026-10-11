@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -3221,6 +3221,89 @@ Altri dati:
   delle cartelle ignorate, corretto qui.
 - Il banco "cursore" va fatto su un file sotto il tetto dell'indice.
 - Le build lunghe vanno a priorità bassa (`BelowNormal`, 8 job) se l'utente usa il PC.
+
+---
+
+## Milestone 63 — stili del cursore per editor e terminale
+
+Richiesta dell'utente: «possiamo fare più figo il cursore di scrittura? … su internet ho visto dei cursori fighi
+con delle animazioni». Le scelte sono state fatte insieme:
+- **un laboratorio interattivo** (`artifacts/cursor-lab.html`, locale), con tutte le opzioni trovate nei
+  terminali e negli editor più curati:
+  - Kitty: la scia `cursor_trail`;
+  - Ghostty: gli shader della comunità per scia elastica, cometa, fiammata, onda e "boom";
+  - Neovide: gli effetti particellari;
+  - Alacritty: il lampeggio che si ferma dopo qualche secondo;
+  - WezTerm: il cursore a colori invertiti;
+  - VS Code: gli stili del lampeggio e la scivolata solo sui salti;
+- **tre giri di domande**, per decidere cosa resta fisso e cosa diventa un'impostazione.
+
+**Scelte dell'utente.**
+- Default sobrio, cioè "Morbido".
+- Nelle Impostazioni, stili pronti più "Customize".
+- Come effetti solo scia e alone: niente particelle, onde, scintille.
+- Scelte separate per editor e terminale.
+
+**Cosa c'è.**
+- **Stili** (uno per l'editor, uno per il terminale):
+  - Smooth (Morbido): scivola in 100 ms, lampeggio sfumato;
+  - Classic: nessuna scivolata, lampeggio a scatti;
+  - Comet: Morbido + la scia di Kitty;
+  - Elastic: Morbido + la scia di Neovide, con la testa già arrivata e la coda che insegue;
+  - Blaze: Morbido + la scia calda con alone degli shader di Ghostty.
+  - Nel terminale gli stili non lampeggiano: mentre Claude ridisegna lo schermo il lampeggio ripartirebbe di
+    continuo (è il problema segnalato con WezTerm). Default: Smooth ovunque.
+- **Customize:**
+  - forma: nell'editor linea sottile, normale o spessa, blocco, blocco vuoto, sottolineato; nel terminale
+    forme separate per shell e **chat di Claude**, con la **barra** di default nella chat;
+  - scivolata: no, solo nei salti, sempre;
+  - stile del lampeggio: no, a scatti, sfumato, fase, espansione;
+  - scia: nessuna, cometa, elastica, fiammata, con lunghezza corta, media o lunga;
+  - alone: no, fisso, che respira.
+  Ritoccare un'opzione rende lo stile "Custom", se non coincide più con uno pronto.
+- **Fisso per tutti:**
+  - colore d'accento;
+  - il lampeggio (e il respiro dell'alone) **smette dopo 15 s** di inattività, come Kitty: nessuna
+    animazione infinita;
+  - un terminale senza fuoco mostra un blocco vuoto;
+  - nel terminale, gli spostamenti a meno di 70 ms l'uno dall'altro e più lunghi di una cella saltano senza
+    scivolata né scia (output veloce, ridisegni).
+- La vecchia "Smooth caret" è sostituita. Chi l'aveva spenta ritrova la scivolata spenta (migrazione).
+
+**Come funziona.**
+- `caretStyles.ts`: stili, opzioni e validazione; logica pura, testata.
+- `editor/caret.ts`: un ViewPlugin e un tema di base. Il lampeggio a scatti di CodeMirror, che agisce su tutto
+  lo strato dei cursori, si spegne; lampeggia il `.cm-cursor`, con le classi messe attraverso gli attributi
+  `data-caret-*` dell'editor. "Solo nei salti" mette `data-caret-snap` per due fotogrammi dopo una modifica
+  del testo. La scia prende la posizione da `coordsAtPos` in una `requestMeasure`.
+- `terminalCaret.ts`: xterm non sa animare il proprio cursore, quindi Orbit ne disegna uno sopra
+  `.xterm-screen`, mentre quello di xterm resta una barra di 1 px trasparente, anche senza fuoco.
+  - Posizione: `buffer.cursorX/Y`, letta dopo ogni disegno; un fotogramma vede solo la posizione finale, quindi
+    i salti intermedi dei ridisegni non si vedono. Dimensione della cella dalla griglia (`ResizeObserver`).
+  - Cursore nascosto dal programma: lo stato interno di xterm, con un hook del parser (`?25l`/`?25h`) come
+    riserva.
+  - "Solo nei salti" nel terminale: un passo di una cella entro 150 ms da un tasto è scrittura.
+- `caretTrail.ts`: le scie. I quattro angoli del cursore inseguono la destinazione, quelli "davanti" più in
+  fretta; si disegna l'inviluppo convesso. Il canvas nasce alla prima scia e il ciclo di disegno gira solo
+  finché una scia è viva.
+- Le schede ✨ (la stessa regola di `tabIcon`) passano `chat` al terminale; la finestra flottante lo ricava
+  da titolo e shell.
+
+**Verifica** (istanza di prova isolata, su un clone del repo, solo shell, nessun Claude):
+- **terminale:**
+  - il cursore coincide al pixel con la cella di xterm, con e senza fuoco e dopo aver scritto;
+  - blocco pieno con il fuoco, blocco vuoto senza;
+  - scompare con `?25l` e torna con `?25h`;
+  - durante una raffica di 3.000 righe resta sulla cella giusta, senza inseguire l'output;
+  - una scheda col titolo "Claude" (simulata, senza avviare Claude) passa alla barra, e torna al blocco;
+- **editor:**
+  - linea di 2 px e lampeggio di CodeMirror spento;
+  - il lampeggio sfumato parte dopo 0,7 s e **smette dopo 15 s**;
+  - il blocco è largo un carattere;
+  - con la cometa, al primo salto nasce il canvas della scia;
+  - "solo nei salti": lo snap c'è dopo una scrittura e non dopo un salto;
+- **CPU a riposo** dopo lo stop del lampeggio: 0,6 % di un core, sulla build di debug con Vite;
+- **test:** `vitest` 44/44 (+4 sugli stili), `svelte-check` 0/0.
 
 ---
 

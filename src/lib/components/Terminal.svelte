@@ -8,12 +8,13 @@
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { openFile, openFileAt, workspace } from "../state/workspace.svelte";
   import { notify } from "../state/toast.svelte";
-  import { settings, monoStack, THEMES, ACCENTS } from "../state/settings.svelte";
+  import { settings, monoStack, THEMES } from "../state/settings.svelte";
   import { setTerminalFocus, clearTerminalFocus } from "../state/terminals.svelte";
   import { motionUntil } from "../state/layout.svelte";
   import { joinPath } from "../util";
   import { writeClipboard, readClipboard } from "../clipboard";
   import { log, logError } from "../state/logs.svelte";
+  import { TerminalCaret } from "../terminalCaret";
 
   interface Props {
     id: string;
@@ -37,6 +38,8 @@
     /** il programma ha impostato il titolo della finestra (OSC 0/2): Claude Code vi mette un riassunto
      *  della conversazione, le shell il comando in corso → nome automatico della scheda. */
     onTitle?: (title: string) => void;
+    /** chat di Claude (non una shell): il cursore prende la forma scelta per le chat (M63). */
+    chat?: boolean;
   }
   let {
     id,
@@ -50,6 +53,7 @@
     enableLinks = true,
     onBell,
     onTitle,
+    chat = false,
   }: Props = $props();
 
   // Tema xterm LEGATO al tema di Orbit: sfondo = colore dell'editor (surface-1), testo = ink, cursore
@@ -70,11 +74,11 @@
   function xtermTheme() {
     const th = THEMES[settings.theme] ?? THEMES.vs2026;
     const bg = th.vars["color-surface-1"];
-    const accent = settings.accent === "auto" ? th.vars["color-accent"] : (ACCENTS[settings.accent] ?? ACCENTS.blue).accent;
     return {
       background: bg,
       foreground: th.vars["color-ink"],
-      cursor: accent,
+      // il cursore di xterm è invisibile: lo disegna TerminalCaret sopra la griglia (M63)
+      cursor: "#00000000",
       cursorAccent: bg,
       selectionBackground: th.vars["cm-selection"],
       ...(th.light ? ANSI_LIGHT : ANSI_DARK),
@@ -221,6 +225,10 @@
       // niente blink: il timer di lampeggio ri-mostra il cursore durante i ridisegni rapidi
       // dei TUI (Claude), facendolo "saltare" sui caratteri aggiornati anche quando è nascosto.
       cursorBlink: false,
+      // cursore di xterm: una barra sottile e trasparente, anche senza fuoco (vedi TerminalCaret)
+      cursorStyle: "bar",
+      cursorWidth: 1,
+      cursorInactiveStyle: "none",
       scrollback: settings.terminalScrollback,
       allowProposedApi: true,
       theme: xtermTheme(),
@@ -233,6 +241,7 @@
     // dell'altezza restava una striscia sotto l'ultima riga o l'ultima riga veniva tagliata. Per questo
     // xterm si apre in un div interno senza padding.
     term.open(fitHost);
+    caret = new TerminalCaret(term, () => settings.termCaret, () => chat);
     // WebGL solo mentre il terminale si vede (vedi attachWebgl): lo segue un IntersectionObserver
     io = new IntersectionObserver((entries) => {
       visible = entries[entries.length - 1].isIntersecting;
@@ -401,6 +410,14 @@
   // regge ~16 per pagina: prima ogni terminale montato col WebGL ne teneva uno anche nascosto (altra repo,
   // altra scheda) e oltre il sedicesimo i più vecchi tornavano al DOM senza dirlo. Ora il contesto nasce
   // quando il terminale diventa visibile e si rilascia 3 s dopo che è sparito; xterm torna da solo al DOM.
+  let caret: TerminalCaret | undefined;
+  // stile del cursore (Impostazioni → Terminal cursor) o tipo della scheda cambiati: ridisegna
+  $effect(() => {
+    void { ...settings.termCaret };
+    void chat;
+    untrack(() => caret?.refresh());
+  });
+
   let io: IntersectionObserver | undefined;
   let visible = false;
   let releaseTimer: ReturnType<typeof setTimeout> | undefined;
@@ -469,6 +486,7 @@
     listenerAbort?.abort(); // rimuove TUTTI i listener su host (contextmenu/mouseup/focus) in blocco
     ro?.disconnect();
     io?.disconnect();
+    caret?.dispose();
     unlistenData?.();
     unlistenExit?.();
     if (!persistent) invoke("pty_kill", { id }).catch(() => {});
@@ -509,6 +527,115 @@
      resta solo il cursore gestito da xterm. */
   :global(.term .xterm-helper-textarea) {
     caret-color: transparent !important;
+  }
+  /* Cursore disegnato da Orbit sopra la griglia di xterm (M63, terminalCaret.ts): forma, alone e lampeggio
+     arrivano come attributi; la posizione è un transform (la scivolata è una sua transizione). */
+  :global(.tcaret-layer) {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    overflow: hidden;
+  }
+  :global(.tcaret) {
+    position: absolute;
+    left: 0;
+    top: 0;
+    will-change: transform;
+  }
+  :global(.tcaret-shape) {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 1px;
+  }
+  :global(.tcaret-shape[data-shape="block"]) {
+    background: rgba(var(--accent-rgb), 0.6); /* il carattere sotto resta leggibile */
+  }
+  :global(.tcaret-shape[data-shape="hollow"]) {
+    box-shadow: inset 0 0 0 1.5px var(--color-accent);
+  }
+  :global(.tcaret-shape[data-shape="bar"]),
+  :global(.tcaret-shape[data-shape="under"]) {
+    background: var(--color-accent);
+  }
+  :global(.tcaret[data-glow="on"] .tcaret-shape) {
+    box-shadow:
+      0 0 9px 1px rgba(var(--accent-rgb), 0.7),
+      0 0 2px rgba(var(--accent-rgb), 0.9);
+  }
+  :global(.tcaret[data-glow="on"] .tcaret-shape[data-shape="hollow"]) {
+    box-shadow:
+      inset 0 0 0 1.5px var(--color-accent),
+      0 0 9px 1px rgba(var(--accent-rgb), 0.7);
+  }
+  :global(.tcaret[data-glow="breathe"] .tcaret-shape::after) {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 3px;
+    box-shadow: 0 0 12px 3px rgba(var(--accent-rgb), 0.6);
+    opacity: 0.45;
+  }
+  :global(.tcaret[data-glow="breathe"][data-on] .tcaret-shape::after) {
+    animation: tcaret-breathe 2.4s ease-in-out infinite;
+  }
+  :global(.tcaret[data-on] .tcaret-shape[data-blink="hard"]) {
+    animation: tcaret-hard 1.06s steps(1) infinite;
+  }
+  :global(.tcaret[data-on] .tcaret-shape[data-blink="smooth"]) {
+    animation: tcaret-smooth 1.1s ease-in-out infinite;
+  }
+  :global(.tcaret[data-on] .tcaret-shape[data-blink="phase"]) {
+    animation: tcaret-phase 1.4s ease-in-out infinite;
+  }
+  :global(.tcaret[data-on] .tcaret-shape[data-blink="expand"]) {
+    animation: tcaret-expand 1.2s ease-in-out infinite;
+  }
+  @keyframes -global-tcaret-hard {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes -global-tcaret-smooth {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.08;
+    }
+  }
+  @keyframes -global-tcaret-phase {
+    0%,
+    35%,
+    100% {
+      opacity: 1;
+    }
+    65% {
+      opacity: 0.1;
+    }
+  }
+  @keyframes -global-tcaret-expand {
+    0%,
+    100% {
+      transform: scaleY(1);
+    }
+    50% {
+      transform: scaleY(0.15);
+    }
+  }
+  @keyframes -global-tcaret-breathe {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    50% {
+      opacity: 1;
+    }
   }
   :global(.term .xterm-viewport)::-webkit-scrollbar {
     width: 11px;

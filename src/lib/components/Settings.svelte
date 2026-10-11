@@ -8,6 +8,22 @@
   import { openLogs } from "../state/logs.svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { updates, checkForUpdates, openUpdateDialog } from "../state/updater.svelte";
+  import {
+    EDITOR_PRESETS,
+    TERM_PRESETS,
+    STYLE_NAMES,
+    styleOf,
+    type Blink,
+    type CaretStyle,
+    type EditorCaret,
+    type EditorShape,
+    type Glide,
+    type Glow,
+    type TermCaret,
+    type TermShape,
+    type Trail,
+    type TrailLen,
+  } from "../caretStyles";
 
   let version = $state("");
   void invoke<string>("app_version")
@@ -26,7 +42,47 @@
   const accentNames = Object.keys(ACCENTS) as AccentName[];
   // il predefinito (VS 2026) per primo, poi gli altri nell'ordine di definizione
   const themeNames = ["vs2026", ...Object.keys(THEMES).filter((k) => k !== "vs2026")] as ThemeName[];
+
+  // Cursore (M63): uno stile pronto riscrive il comportamento (la forma resta); un'opzione ritoccata fa
+  // diventare lo stile "Custom" se non coincide più con uno pronto.
+  let edOpen = $state(false);
+  let tmOpen = $state(false);
+  type Choices = [string, string][];
+  const EDITOR_SHAPES: Choices = [["thin", "Thin line"], ["line", "Line"], ["thick", "Thick line"], ["block", "Block"], ["hollow", "Hollow block"], ["under", "Underline"]];
+  const TERM_SHAPES: Choices = [["block", "Block"], ["hollow", "Hollow block"], ["bar", "Bar"], ["under", "Underline"]];
+  const GLIDES: Choices = [["off", "Off"], ["jumps", "On jumps only"], ["always", "Always"]];
+  const BLINKS: Choices = [["none", "Off"], ["hard", "Hard"], ["smooth", "Smooth"], ["phase", "Phase"], ["expand", "Expand"]];
+  const TRAILS: Choices = [["none", "None"], ["comet", "Comet"], ["smear", "Elastic"], ["blaze", "Blaze"]];
+  const TRAIL_LENS: Choices = [["short", "Short"], ["medium", "Medium"], ["long", "Long"]];
+  const GLOWS: Choices = [["off", "Off"], ["on", "Steady"], ["breathe", "Breathing"]];
+  function setEditorStyle(st: CaretStyle) {
+    if (st !== "custom") settings.editorCaret = { ...settings.editorCaret, ...EDITOR_PRESETS[st], style: st };
+  }
+  function setTermStyle(st: CaretStyle) {
+    if (st !== "custom") settings.termCaret = { ...settings.termCaret, ...TERM_PRESETS[st], style: st };
+  }
+  function setEditor<K extends keyof EditorCaret>(k: K, v: EditorCaret[K]) {
+    const next = { ...settings.editorCaret, [k]: v };
+    next.style = styleOf(next, EDITOR_PRESETS);
+    settings.editorCaret = next;
+  }
+  function setTerm<K extends keyof TermCaret>(k: K, v: TermCaret[K]) {
+    const next = { ...settings.termCaret, [k]: v };
+    next.style = styleOf(next, TERM_PRESETS);
+    settings.termCaret = next;
+  }
 </script>
+
+{#snippet opt(label: string, value: string, choices: [string, string][], pick: (v: string) => void)}
+  <div class="sub">
+    <span class="sname">{label}</span>
+    <select class="control" {value} onchange={(e) => pick(e.currentTarget.value)}>
+      {#each choices as [v, name] (v)}
+        <option value={v}>{name}</option>
+      {/each}
+    </select>
+  </div>
+{/snippet}
 
 <Backdrop onClose={closeSettings} dim z={110} />
 
@@ -153,17 +209,62 @@
       />
     </div>
 
-    <div class="row">
+    <div class="row" class:open={edOpen}>
       <div class="label">
-        <span class="name">Smooth caret</span>
-        <span class="hint">Animate the editor cursor while typing</span>
+        <span class="name">Editor cursor</span>
+        <span class="hint">The caret in code files — <em>Customize</em> for shape, glide, blink, trail and glow</span>
       </div>
-      <Switch
-        checked={settings.smoothCursor}
-        onToggle={() => (settings.smoothCursor = !settings.smoothCursor)}
-        label="Smooth caret"
-      />
+      <div class="pair">
+        <select class="control" value={settings.editorCaret.style} onchange={(e) => setEditorStyle(e.currentTarget.value as CaretStyle)}>
+          {#each STYLE_NAMES as [v, name] (v)}
+            <option value={v}>{name}</option>
+          {/each}
+          {#if settings.editorCaret.style === "custom"}<option value="custom">Custom</option>{/if}
+        </select>
+        <button class="control" aria-expanded={edOpen} onclick={() => (edOpen = !edOpen)}>Customize</button>
+      </div>
     </div>
+    {#if edOpen}
+      <div class="subs">
+        {@render opt("Shape", settings.editorCaret.shape, EDITOR_SHAPES, (v) => setEditor("shape", v as EditorShape))}
+        {@render opt("Glide", settings.editorCaret.glide, GLIDES, (v) => setEditor("glide", v as Glide))}
+        {@render opt("Blink", settings.editorCaret.blink, BLINKS, (v) => setEditor("blink", v as Blink))}
+        {@render opt("Trail", settings.editorCaret.trail, TRAILS, (v) => setEditor("trail", v as Trail))}
+        {#if settings.editorCaret.trail !== "none"}
+          {@render opt("Trail length", settings.editorCaret.trailLen, TRAIL_LENS, (v) => setEditor("trailLen", v as TrailLen))}
+        {/if}
+        {@render opt("Glow", settings.editorCaret.glow, GLOWS, (v) => setEditor("glow", v as Glow))}
+      </div>
+    {/if}
+
+    <div class="row" class:open={tmOpen}>
+      <div class="label">
+        <span class="name">Terminal cursor</span>
+        <span class="hint">Shells and Claude chats (a bar in chats by default); fast output never animates</span>
+      </div>
+      <div class="pair">
+        <select class="control" value={settings.termCaret.style} onchange={(e) => setTermStyle(e.currentTarget.value as CaretStyle)}>
+          {#each STYLE_NAMES as [v, name] (v)}
+            <option value={v}>{name}</option>
+          {/each}
+          {#if settings.termCaret.style === "custom"}<option value="custom">Custom</option>{/if}
+        </select>
+        <button class="control" aria-expanded={tmOpen} onclick={() => (tmOpen = !tmOpen)}>Customize</button>
+      </div>
+    </div>
+    {#if tmOpen}
+      <div class="subs">
+        {@render opt("Shape in shells", settings.termCaret.shell, TERM_SHAPES, (v) => setTerm("shell", v as TermShape))}
+        {@render opt("Shape in Claude chats", settings.termCaret.chat, TERM_SHAPES, (v) => setTerm("chat", v as TermShape))}
+        {@render opt("Glide", settings.termCaret.glide, GLIDES, (v) => setTerm("glide", v as Glide))}
+        {@render opt("Blink", settings.termCaret.blink, BLINKS, (v) => setTerm("blink", v as Blink))}
+        {@render opt("Trail", settings.termCaret.trail, TRAILS, (v) => setTerm("trail", v as Trail))}
+        {#if settings.termCaret.trail !== "none"}
+          {@render opt("Trail length", settings.termCaret.trailLen, TRAIL_LENS, (v) => setTerm("trailLen", v as TrailLen))}
+        {/if}
+        {@render opt("Glow", settings.termCaret.glow, GLOWS, (v) => setTerm("glow", v as Glow))}
+      </div>
+    {/if}
 
     <div class="row">
       <div class="label">
@@ -384,6 +485,35 @@
   }
   .control:focus {
     border-color: var(--color-accent);
+  }
+  /* cursore (M63): stile + "Customize", con le opzioni sotto, rientrate */
+  .pair {
+    display: flex;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+  .row.open {
+    border-bottom-color: transparent;
+  }
+  .subs {
+    margin: -8px 0 0;
+    padding: 2px 0 10px 12px;
+    border-left: 2px solid rgba(var(--accent-rgb), 0.35);
+    border-bottom: 1px solid var(--color-line);
+  }
+  .sub {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 4px 0;
+  }
+  .sname {
+    font-size: 12.5px;
+    color: var(--color-ink-muted);
+  }
+  .sub select {
+    min-width: 132px; /* stessa larghezza per tutti: le scelte si leggono in colonna */
   }
   .size {
     display: flex;

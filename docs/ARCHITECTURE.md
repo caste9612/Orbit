@@ -86,7 +86,7 @@ Three kinds of frontend module, kept separate:
 | `activity` | **Activity** view: work units from `scan_activity` across all `~/.claude/projects` (prompt‑first segmentation in Rust; `units` is `$state.raw` and unchanged units keep their object, M62); project on/off toggles `activityPrefs` (persisted, hides noise) + `openActivity`; live refresh via `watch_activity`→`activity-changed` |
 | `scratch` | one‑click persistent plain‑text scratchpad (`.orbit/scratch.txt`) for notes/prompts; renames a legacy `scratch.md` on first use |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
-| `settings` | **theme** (5 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/**motion** (smooth panel transitions → `--motion-ms`)/webgl (on by default since M62; one-time `webglM62` migration)/**terminalScrollback** (lines per terminal, default 3000)/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
+| `settings` | **theme** (5 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/**cursor styles** (`editorCaret`/`termCaret`, see `caretStyles.ts`)/**motion** (smooth panel transitions → `--motion-ms`)/webgl (on by default since M62; one-time `webglM62` migration)/**terminalScrollback** (lines per terminal, default 3000)/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
 | `layout` | panel sizes/visibility (`sidebarVisible`/`terminalVisible` false = **collapsed into a strip**, see *Collapsible panels*) + focused panel + `editorCollapsed` (runtime only: no tabs open → the editor shrinks to its minimum width, see *Editor auto‑collapse*) + `terminalMaximized` (chats side by side, saved in the session) + the **layout motion** API (`animating`, `beginMotion`/`animate`/`motionUntil`/`motionMs` — see *Smooth layout motion*) |
 | `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; **`prepareQuit`** (M59: autosave if on, then the unsaved question, then the session written at once — before the window closes, on a Close‑all request from another window, and before an update) and `settleUnsaved` (the same for a folder switch); `switchFolder` swaps the active folder cleanly (keeps the window's repo list and sidebar view, prefetches the destination session in parallel with saving the current one, decides `editorCollapsed` from the saved tabs up front and shows the new repo's terminals as soon as the root is open — one layout motion); `openLight` / `promoteLight` (light window and its "Open … as project"; a light window never reads or saves a session) |
 | `toast` | transient notifications, plus a **sticky, clickable `attention`** variant (`notifyAttention`/`dismissByKey`, coalesced by `key`, optional `icon`) used by the Claude‑waiting and update notices |
@@ -385,6 +385,18 @@ first paint loads only the Explorer + the active editor.
   after selecting). Terminal listeners live under one **`AbortController`** removed in `onDestroy`
   (hygiene); paste guards a disposed terminal + try/catch; auto copy‑on‑selection is silent on failure
   (explicit copy/paste surface it). Consumers: terminal, editor, explorer (copy path/name), wrapper composer.
+- **Cursor styles (M63)** — `caretStyles.ts` holds the five ready-made styles (Smooth, Classic, Comet, Elastic,
+  Blaze), the *Customize* options (shape, glide off/on jumps/always, blink style, trail comet/elastic/blaze +
+  length, glow) and their validation; fixed for everyone: accent colour, a 100 ms glide, blink that stops
+  after 15 s of rest, hollow block in an unfocused terminal. **Editor**: `editor/caret.ts` (a ViewPlugin +
+  base theme) turns CodeMirror's layer blink off and blinks the `.cm-cursor` itself through `data-caret-*`
+  attributes on the editor; *on jumps only* sets `data-caret-snap` for two frames after a document change.
+  **Terminal**: xterm can't animate its cursor, so `terminalCaret.ts` draws one over `.xterm-screen` (xterm's
+  own is a transparent 1 px bar) at `buffer.cursorX/Y` after every render — a frame only sees the final
+  position, so TUI redraws don't flicker it — hidden when the program hides the cursor (`?25l`, from xterm's
+  state or a parser hook); moves under 70 ms apart and longer than a cell snap without glide or trail.
+  Claude chats (the ✨ tabs) get their own shape (a bar by default). Trails: `caretTrail.ts`, a canvas that
+  exists after the first trail and animates only while one is alive.
 - **Terminal GPU rendering (M62)** — `Terminal.svelte` attaches xterm's WebGL addon only while the
   terminal is visible (an `IntersectionObserver` on the host) and disposes it 3 s after it disappears (another
   repo, another tab, a hidden panel); xterm falls back to its DOM renderer by itself. One WebGL context per

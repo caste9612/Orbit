@@ -1,5 +1,15 @@
-// User settings (app-global): editor/terminal font, font size, accent color, smooth
-// caret. Persisted in localStorage and applied as CSS variables on the document root.
+// User settings (app-global): editor/terminal font, font size, accent color, cursor
+// styles. Persisted in localStorage and applied as CSS variables on the document root.
+import {
+  DEFAULT_EDITOR_CARET,
+  DEFAULT_TERM_CARET,
+  GLIDE_EASE,
+  GLIDE_MS,
+  sanitizeEditorCaret,
+  sanitizeTermCaret,
+  type EditorCaret,
+  type TermCaret,
+} from "../caretStyles";
 export const MONO_FONTS = [
   { label: "JetBrains Mono", stack: '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace' },
   { label: "Cascadia Code", stack: '"Cascadia Code", "Cascadia Mono", ui-monospace, monospace' },
@@ -166,7 +176,10 @@ export const settings = $state({
   editorFontSize: 13, // dimensione font dell'editor (indipendente dal terminale)
   terminalFontSize: 13, // dimensione font del terminale (indipendente dall'editor)
   accent: "auto" as AccentName | "auto", // "auto" = accento del tema; altrimenti un preset sovrascrive
-  smoothCursor: true,
+  // cursore (M63): uno stile per l'editor e uno per il terminale, più le opzioni di "Customize…"
+  // (caretStyles.ts). Sostituisce l'interruttore "Smooth caret" (smoothCursor).
+  editorCaret: { ...DEFAULT_EDITOR_CARET } as EditorCaret,
+  termCaret: { ...DEFAULT_TERM_CARET } as TermCaret,
   // movimento fluido dei pannelli (M56): larghezze e riquadri animati nei cambi programmatici del
   // layout. Comanda `--motion-ms`; NON segue prefers-reduced-motion (su Windows con gli effetti di
   // animazione spenti sarebbe sempre 0, e l'utente ha chiesto proprio le transizioni).
@@ -244,7 +257,10 @@ function applySettings() {
     r.setProperty("--accent-rgb", a.rgb);
     r.setProperty("--color-accent-2", a.accent2);
   }
-  r.setProperty("--caret-transition", settings.smoothCursor ? "left 55ms ease-out, top 55ms ease-out" : "none");
+  r.setProperty(
+    "--caret-transition",
+    settings.editorCaret.glide === "off" ? "none" : `left ${GLIDE_MS}ms ${GLIDE_EASE}, top ${GLIDE_MS}ms ${GLIDE_EASE}`,
+  );
   r.setProperty("--motion-ms", settings.motion ? `${MOTION_BASE_MS}ms` : "0ms"); // vedi layout.svelte.ts motionMs()
 }
 
@@ -278,7 +294,10 @@ export function loadSettings() {
       if (typeof s.editorFontSize === "number") settings.editorFontSize = s.editorFontSize;
       if (typeof s.terminalFontSize === "number") settings.terminalFontSize = s.terminalFontSize;
       if (typeof s.accent === "string" && (s.accent === "auto" || s.accent in ACCENTS)) settings.accent = s.accent;
-      if (typeof s.smoothCursor === "boolean") settings.smoothCursor = s.smoothCursor;
+      if (s.editorCaret) settings.editorCaret = sanitizeEditorCaret(s.editorCaret);
+      // da "Smooth caret" (prima della M63): chi l'aveva spento ritrova il cursore senza scivolata
+      else if (s.smoothCursor === false) settings.editorCaret = sanitizeEditorCaret({ ...DEFAULT_EDITOR_CARET, glide: "off" });
+      if (s.termCaret) settings.termCaret = sanitizeTermCaret(s.termCaret);
       if (typeof s.motion === "boolean") settings.motion = s.motion;
       // WebGL: il vecchio default (spento) veniva salvato anche se mai scelto; come per `uiV09`, al primo
       // avvio con la M62 si passa UNA volta al nuovo default (acceso), poi comanda la scelta dell'utente.
@@ -315,7 +334,8 @@ export function startSettingsAutosave() {
         editorFontSize: settings.editorFontSize,
         terminalFontSize: settings.terminalFontSize,
         accent: settings.accent,
-        smoothCursor: settings.smoothCursor,
+        editorCaret: { ...settings.editorCaret },
+        termCaret: { ...settings.termCaret },
         motion: settings.motion,
         webgl: settings.webgl,
         terminalScrollback: settings.terminalScrollback,

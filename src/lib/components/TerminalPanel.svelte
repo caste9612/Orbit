@@ -560,6 +560,7 @@
             onStart={() => (t.started = true)}
             onBell={() => notifyTerminalBell(t.id)}
             onTitle={(x: string) => setAutoTitle(t.id, x)}
+            chat={tabIcon(t) === "sparkles"}
           />
         </div>
         {#if dropTarget?.id === t.id}

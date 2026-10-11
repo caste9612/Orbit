@@ -86,7 +86,8 @@ cross-platform desktop app that weighs almost nothing.
   code, without a language server. (Heuristic, by name; skips strings/comments.)
 - **Autosave** (optional, on by default): saves edited files when the window loses focus and when you
   switch tabs (IntelliJ-style); it never overwrites a file changed on disk underneath you.
-- Indentation guides, breadcrumb, find & replace (`Ctrl/Cmd+F`), smooth caret.
+- Indentation guides, breadcrumb, find & replace (`Ctrl/Cmd+F`), and a **cursor with style**: it glides, its
+  blink fades and stops after 15 s of rest, and it can leave a trail when it jumps (see Settings).
 - **Go to symbol** (`Ctrl/Cmd+Shift+O`): fuzzy‑jump to functions, classes, methods and more in the
   active file (extracted from the editor's syntax tree).
 - **Right‑click menu**: cut / copy / paste / select all / go to symbol.
@@ -282,7 +283,8 @@ cross-platform desktop app that weighs almost nothing.
   **IntelliJ**, or build a **Custom** keymap from any preset by rebinding individual commands (with
   conflict warnings) — full reference in Settings → Keyboard shortcuts.
 - **Settings**: theme, keymap preset (incl. Custom), editor/terminal font with **independent sizes**
-  (`Ctrl/Cmd+scroll` zooms whichever panel the pointer is over), accent color, smooth-caret toggle,
+  (`Ctrl/Cmd+scroll` zooms whichever panel the pointer is over), accent color, **cursor styles** for the editor and the terminal (Smooth, Classic, Comet, Elastic, Blaze;
+  *Customize* for shape, glide, blink, trail and glow — a bar in Claude chats, a block in shells),
   **code lens**, **smooth panel transitions**, **autosave**, **default Markdown view** (source / preview / READMEs only), terminal GPU rendering (on by default, only for the terminals in view), **terminal scrollback** (1,000–10,000 lines, default 3,000),
   "launch Claude in the default terminal", "notify when a terminal needs you", **diagnostic logging** (collect/export logs to investigate issues),
   and **automatic update checks** (the installed version and *Check now* are pinned at the foot of the panel).

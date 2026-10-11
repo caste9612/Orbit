@@ -300,7 +300,7 @@ Measured on Windows (size-optimized release build):
 | NSIS setup | ~3.1 MB |
 | Frontend `dist/` | ~2.9 MB (most of it grammars loaded lazily) |
 | Startup JS chunk | ~265 KB (≈90 KB gzipped; the editor and the terminal load on demand) |
-| RAM at rest (project open) | ~120 MB private working set with one terminal, ~155 MB with four terminals and three files open (Orbit + WebView2; the Rust core is ~6 MB, ~30 MB with the symbol index of a very large project — the rest is the shared system WebView, inherent to Tauri) |
+| RAM at rest (project open) | ~120 MB private working set with one terminal, ~160 MB with four terminals and three files open (Orbit + WebView2; the Rust core is ~6 MB, ~30 MB with the symbol index of a very large project — the rest is the shared system WebView, inherent to Tauri) |
 | Under load | Claude saving a file every second in a 5,400-file project: ~23% of one CPU core, the UI answering in ~2 ms (99th percentile) |
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own

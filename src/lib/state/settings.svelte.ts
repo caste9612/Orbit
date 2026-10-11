@@ -172,7 +172,7 @@ export const settings = $state({
   // animazione spenti sarebbe sempre 0, e l'utente ha chiesto proprio le transizioni).
   motion: true,
   // testo del terminale sulla GPU (WebGL): acceso di default dalla M62, quando a usarlo sono solo i
-  // terminali visibili — ~2,6× meno CPU con l'output fitto, RAM quasi uguale (prima: spento, ~85 MB in più)
+  // terminali visibili — ~2,6× meno CPU con lo spinner di Claude, RAM a riposo uguale (prima: spento, ~85 MB in più)
   webgl: true,
   terminalScrollback: 3000, // righe di storico per terminale (M62; prima 5000 fisse): ~1,4 MB ogni 1000 a 120 colonne
   claudeTerminal: true, // il terminale di default avvia Claude (companion di Claude Code)

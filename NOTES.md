@@ -3060,7 +3060,8 @@ Metodo:
 - **Avvio**: prima pittura 0,36 s dopo l'avvio del processo, finestra visibile a ~0,63 s.
 - **GPU**: WebView2 compone e rasterizza sulla GPU: `gpu_compositing`, `rasterization` e più thread di raster
   attivi, ANGLE/Direct3D 11 sulla scheda dedicata, WebGL e WebGPU disponibili. Il terminale usa la GPU solo
-  col WebGL di xterm: ~2,6× meno CPU (spinner e raffica), con RAM praticamente uguale e +10–20 MB di VRAM.
+  col WebGL di xterm: ~2,6× meno CPU con lo spinner, con RAM praticamente uguale e +10–20 MB di VRAM. (Il
+  confronto sulla raffica non regge: ripetuta nella M62, varia di ±30 % da una prova all'altra.)
 - **Uso reale** (l'Orbit 1.0.0 installato, 1 finestra, 5 terminali di cui 4 chat Claude, WebGL acceso):
   - Orbit: 243 MB, di cui renderer 138 e GPU 55; CPU 0,13 % della macchina; VRAM 127 MB.
   - I 4 processi `claude` pesano ~3 GB, fuori da Orbit.
@@ -3134,8 +3135,12 @@ dei test prima e dopo per verificare il guadagno e la correttezza degli interven
 | Prima pittura / finestra visibile | 318 / 555 ms | 328 / 541 ms (invariati) |
 
 Altri dati:
-- Lo spinner tipo Claude costa 14,7 % di un core col renderer DOM e 5,6 % col WebGL (misure della 1.0). Il
-  codice del disegno non cambia: cambia il default.
+- RAM a riposo con le impostazioni predefinite della M62 (WebGL acceso, solo sul terminale visibile), repo
+  Orbit aperto: 120 MB con un terminale, 159 MB con tre file e quattro terminali. Con la 1.0 erano 120/155 MB
+  col WebGL spento (il vecchio default) e 127/158 MB acceso.
+- Lo spinner tipo Claude costa 14,7 % di un core col renderer DOM e 5,1–5,6 % col WebGL (1.0 e M62): il
+  codice del disegno non cambia, cambia il default. La raffica da 30.000 righe costa 0,8–1,2 s di CPU in
+  entrambe le build (prove alternate): varia troppo per un confronto più fine.
 - Cursore su un file oltre il tetto dell'indice (nessuna barra dei correlati né lenti): −5 % soltanto, il
   costo lì è di CodeMirror. Il primo banco "cursore" era stato fatto per sbaglio su un file così.
 

@@ -396,8 +396,8 @@
   });
 
   // —— Testo sulla GPU (WebGL) solo per i terminali visibili (M62) ——
-  // Disegnare col WebGL costa ~2,6× meno CPU del renderer DOM quando l'output è fitto (lo spinner di
-  // Claude, i log di build). Ma ogni contesto tiene un atlante di glifi in VRAM (~7–8 MB) e Chromium ne
+  // Disegnare col WebGL costa ~2,6× meno CPU del renderer DOM quando l'output si ridisegna di continuo (lo
+  // spinner di Claude: 14,7 % → 5,6 % di un core). Ma ogni contesto tiene un atlante di glifi in VRAM (~7–8 MB) e Chromium ne
   // regge ~16 per pagina: prima ogni terminale montato col WebGL ne teneva uno anche nascosto (altra repo,
   // altra scheda) e oltre il sedicesimo i più vecchi tornavano al DOM senza dirlo. Ora il contesto nasce
   // quando il terminale diventa visibile e si rilascia 3 s dopo che è sparito; xterm torna da solo al DOM.

@@ -221,10 +221,12 @@
   // ridimensionamento inutile dei PTY e il ridisegno di Claude). L'espansione invece è immediata.
   $effect(() => {
     if (isFloatingTerminal) return;
-    // avvio o cambio repo in corso (rootPath null): il collasso lo decide loadSession dalla sessione
-    // salvata, insieme alle larghezze, così il cambio repo è un movimento solo (prima qui l'editor si
-    // espandeva subito e poi collassava 400 ms dopo: due scatti)
-    if (!workspace.ready || !workspace.rootPath) return;
+    // avvio o cambio repo in corso: il collasso lo decide loadSession dalla sessione salvata, insieme alle
+    // larghezze, così il cambio repo è un movimento solo (prima qui l'editor si espandeva subito e poi
+    // collassava 400 ms dopo: due scatti). Non basta guardare rootPath: openRoot lo imposta prima che le
+    // schede siano caricate, e se il caricamento passava i 400 ms (molte schede, file grandi, disco
+    // occupato) l'editor collassava e si riapriva all'arrivo delle schede — due movimenti (M65).
+    if (!workspace.ready || !workspace.rootPath || workspace.switching) return;
     const empty = layout.terminalVisible && workspace.groups.every((g) => g.tabs.length === 0);
     if (!empty) {
       if (layout.editorCollapsed) animate(() => (layout.editorCollapsed = false)); // espansione immediata

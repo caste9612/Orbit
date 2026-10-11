@@ -83,8 +83,9 @@ function serialize(): string {
  *  finestra; uno switch di cartella NON deve sostituire la lista repo della finestra corrente). */
 export async function loadSession(
   rootHint?: string,
-  opts: { repos?: boolean; keepSidebar?: boolean; raw?: string | null; onRootOpened?: () => void } = {},
+  opts: { repos?: boolean; keepSidebar?: boolean; raw?: string | null; onRootOpened?: () => void; extraTabs?: boolean } = {},
 ): Promise<boolean> {
+  // `opts.extraTabs`: il chiamante aprirà altre schede subito dopo (promoteLight) → l'editor non collassa
   // `opts.raw`: sessione già letta dal chiamante (switchFolder la prefetcha in parallelo al salvataggio
   // di quella corrente, così il layout di destinazione arriva prima)
   let raw: string | null = null;
@@ -99,7 +100,7 @@ export async function loadSession(
   if (!raw) {
     if (rootHint) {
       try {
-        setEditorCollapsedFor(false); // cartella senza sessione: nessuna tab → editor al minimo da subito
+        setEditorCollapsedFor(!!opts.extraTabs); // senza sessione nessuna tab → editor al minimo da subito
         await openRoot(rootHint);
         opts.onRootOpened?.();
         if (opts.repos) setFolders([rootHint]); // nessuna sessione → lista = solo questa cartella
@@ -142,7 +143,7 @@ export async function loadSession(
   const hasTabs =
     (Array.isArray(s.groups) && s.groups.some((g) => Array.isArray(g.tabs) && g.tabs.length > 0)) ||
     (Array.isArray(s.files) && s.files.length > 0);
-  setEditorCollapsedFor(hasTabs);
+  setEditorCollapsedFor(hasTabs || !!opts.extraTabs);
 
   const root = s.root ?? rootHint ?? null;
   if (!root) return false;
@@ -167,6 +168,13 @@ export async function loadSession(
  *  (stessa regola dell'effetto in App.svelte, applicata in anticipo dalla sessione). */
 function setEditorCollapsedFor(hasTabs: boolean) {
   layout.editorCollapsed = layout.terminalVisible && !hasTabs;
+}
+
+/** Fine di un cambio cartella: il collasso segue le schede davvero aperte. Di norma è già quello deciso
+ *  dalla sessione; se differisce si corregge dentro la stessa transizione, non 400 ms dopo (l'effetto in
+ *  App aspetta la fine di `switching`) con un secondo movimento. */
+function settleEditorCollapsed() {
+  if (workspace.rootPath) setEditorCollapsedFor(workspace.groups.some((g) => g.tabs.length > 0));
 }
 
 /** Salva subito (senza debounce) la sessione della cartella attualmente aperta. */
@@ -273,6 +281,7 @@ export async function switchFolder(path: string): Promise<SwitchResult> {
     layout.sidebarVisible = keepVisible;
     return "switched";
   } finally {
+    settleEditorCollapsed();
     workspace.switching = false;
     endMotion();
   }
@@ -312,12 +321,22 @@ export async function promoteLight(): Promise<SwitchResult> {
     workspace.lightProject = null;
     workspace.rootPath = null;
     resetDocs();
+    // la barra laterale si riapre sull'Explorer SUBITO, nello stesso movimento del resto del layout
+    // (prima arrivava dopo l'apertura dei file: un secondo movimento)
+    layout.sidebarView = "explorer";
+    layout.sidebarVisible = true;
     // le schede aperte nella finestra leggera passano al progetto (restano vive e visibili)
     const onRootOpened = () => {
       adoptTerminals(from, workspace.rootPath);
       syncActiveTerminalToRoot(workspace.rootPath);
     };
-    const ok = await loadSession(target, { repos: true, keepSidebar: true, raw: await rawP, onRootOpened });
+    const ok = await loadSession(target, {
+      repos: true,
+      keepSidebar: true,
+      raw: await rawP,
+      onRootOpened,
+      extraTabs: files.length > 0, // i file della finestra leggera restano aperti: l'editor non collassa
+    });
     if (!ok) {
       notify(`Can't open "${basename(target)}" as a project.`, "error");
       if (active ?? files[0]) await openLight(from, (active ?? files[0])!);
@@ -325,10 +344,9 @@ export async function promoteLight(): Promise<SwitchResult> {
     }
     for (const f of files) await openFile(f);
     if (active) await openFile(active); // torna attivo il file che stavi guardando
-    layout.sidebarView = "explorer";
-    layout.sidebarVisible = true;
     return "switched";
   } finally {
+    settleEditorCollapsed();
     workspace.switching = false;
     endMotion();
   }

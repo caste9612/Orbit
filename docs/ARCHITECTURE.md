@@ -149,7 +149,11 @@ first paint loads only the Explorer + the active editor.
   prefetches the destination session, applies widths and `editorCollapsed` (from the saved tabs —
   previously the App effect expanded the editor while `rootPath` was null and collapsed it 400 ms
   later: two jumps) and syncs the terminals as soon as the root opens; `workspace.switching` keeps the
-  sidebar views mounted so "Open folder…" never flashes.
+  sidebar views mounted so "Open folder…" never flashes. The App effect also waits for the end of
+  `switching` (M65): `openRoot` sets `rootPath` before the saved tabs are loaded, and a restore longer
+  than 400 ms (many tabs, big files, a busy disk) collapsed the editor and re‑expanded it when the tabs
+  arrived. At the end of a switch `settleEditorCollapsed` aligns the collapse with the tabs actually open,
+  inside the same motion; `promoteLight` decides the sidebar and the collapse (`extraTabs`) up front.
 - **Repo tabs drag‑to‑reorder** (M56) — same pointer‑based approach as editor tabs (HTML5 DnD is off,
   see *Drag‑and‑drop*): a 5 px threshold separates a click from a drag; the grabbed tab follows the
   pointer via `transform`, the tabs between source and destination shift by one slot with a 150 ms
@@ -364,9 +368,9 @@ first paint loads only the Explorer + the active editor.
   visible), an `$effect` in `App.svelte` sets `layout.editorCollapsed`: the editor area shrinks to its
   220px minimum (`.editor-area.collapsed`, the welcome reduced to the logo), the terminal panel fills the
   rest (`.terminal-panel.fill`) and the splitter between them is swapped for a fixed gap. The effect
-  stays out of it while `rootPath` is null (startup / repo switch): there `loadSession` decides the
-  collapse up front from the saved tabs, together with the panel widths, so a repo switch is one
-  motion. Closing the last tab by hand collapses after a 400 ms grace period (so close‑then‑open
+  stays out of it during startup and a repo switch (`rootPath` null or `workspace.switching`): there
+  `loadSession` decides the collapse up front from the saved tabs, together with the panel widths, so a
+  repo switch is one motion. Closing the last tab by hand collapses after a 400 ms grace period (so close‑then‑open
   doesn't pump the PTYs); expanding is immediate. Both animate (see *Smooth layout motion*).
   `terminalWidth` is never touched, so opening a file restores the previous layout.
 - **Terminal links** — clicked path tokens resolve through `resolve_existing` (Rust): absolute, then

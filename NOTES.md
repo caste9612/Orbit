@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -3394,6 +3394,55 @@ attuale mi sembra non più molto adeguato». Le scelte, con tre domande:
   - clic su un tasto → "Press keys…"; `Esc` annulla senza chiudere;
   - *Delete* → di nuovo Orbit;
 - nessun errore in console; `svelte-check` 0/0; `vitest` 50/50 (+6).
+
+## Milestone 65 — cambio repo: un movimento solo anche quando i file tardano
+
+Segnalazione dell'utente: «le animazioni sulle finestre a volte sono scattose perché partono con una misura
+target, poi viene caricato il documento o arriva un'altra informazione e quindi il target cambia e si
+ridimensionano 2 volte». Succedeva cambiando repo, non sempre.
+
+**Causa.**
+- Il cambio repo è una transizione sola (M56): `loadSession` decide subito larghezze ed editor collassato
+  dalle schede salvate.
+- Ma `openRoot` imposta `rootPath` appena letta la cartella, **prima** che le schede siano caricate:
+  `restoreGroups` legge un file dopo l'altro e assegna i gruppi solo alla fine.
+- In quell'intervallo l'effetto di `App.svelte` vedeva una cartella aperta senza schede e programmava il
+  collasso dell'editor dopo 400 ms.
+- Se il caricamento durava di più (molte schede, file grandi, disco occupato), l'editor si stringeva e poi
+  si riallargava all'arrivo delle schede: **due movimenti**. Sotto i 400 ms non succedeva nulla, da qui
+  l'intermittenza. Le letture più leggere della M62 lo rendevano più raro, non impossibile.
+
+**Riprodotto** nell'istanza di prova con le letture rallentate. `invoke` di Tauri non è riscrivibile, ma
+l'IPC passa da `window.fetch` (`http://ipc.localhost/<comando>`): `read_file` + 300 ms.
+- Cambio verso una cartella con 3 schede (936 ms):
+  - a 421 ms l'editor collassa (693 → 220 px);
+  - a 943 ms si riapre (220 → 693).
+- Con una scheda sola (328 ms) nessun movimento.
+
+**Correzione.**
+- L'effetto in `App.svelte` aspetta anche la fine di `workspace.switching`, non solo un `rootPath` non nullo.
+- A fine cambio `settleEditorCollapsed` allinea il collasso alle schede davvero aperte, dentro la stessa
+  transizione. Di norma non cambia nulla: è una rete di sicurezza.
+- `promoteLight` ("Open … as project" da una finestra leggera) aveva lo stesso difetto in due punti:
+  - l'editor collassava per una sessione di progetto senza schede e si riapriva coi file della finestra
+    leggera, ora passati come `extraTabs` a `loadSession`;
+  - la barra laterale arrivava dopo l'apertura dei file; ora si riapre all'inizio, insieme al resto.
+
+**Verifica** (istanza di prova, cartelle di prova nello scratchpad, nessun Claude):
+- con `read_file` + 300 ms per file:
+  - verso 3 schede (945 ms): 0 movimenti, l'editor resta a 693 px;
+  - verso 1 scheda con + 600 ms: 0 movimenti;
+  - verso una cartella senza schede: 1 movimento (collasso);
+  - da lì verso 3 schede: 1 movimento (espansione subito), nessun altro all'arrivo dei file;
+- cambi normali, senza ritardo: al massimo un movimento ciascuno;
+- comportamento di sempre conservato:
+  - aprire un file in una cartella vuota espande subito;
+  - chiudere l'ultima scheda collassa dopo ~409 ms;
+- `svelte-check` 0/0, `vitest` 50/50.
+
+Possibile, non visto: con due o più chat affiancate in disposizione automatica, la disposizione si
+ricalcola sulla larghezza che si sta animando. Se a metà transizione passa la soglia (righe ↔ colonne), i
+riquadri scattano. Da guardare se l'utente lo nota.
 
 ---
 

@@ -3139,8 +3139,9 @@ Altri dati:
   Orbit aperto: 120 MB con un terminale, 159 MB con tre file e quattro terminali. Con la 1.0 erano 120/155 MB
   col WebGL spento (il vecchio default) e 127/158 MB acceso.
 - Lo spinner tipo Claude costa 14,7 % di un core col renderer DOM e 5,1–5,6 % col WebGL (1.0 e M62): il
-  codice del disegno non cambia, cambia il default. La raffica da 30.000 righe costa 0,8–1,2 s di CPU in
-  entrambe le build (prove alternate): varia troppo per un confronto più fine.
+  codice del disegno non cambia, cambia il default. La raffica da 30.000 righe costa 0,7–0,95 s di CPU in
+  entrambe le build (prove alternate, una sola istanza di prova alla volta: due istanze sullo stesso profilo
+  condividono il browser di WebView2 e la porta CDP, e un primo giro così era da buttare).
 - Cursore su un file oltre il tetto dell'indice (nessuna barra dei correlati né lenti): −5 % soltanto, il
   costo lì è di CodeMirror. Il primo banco "cursore" era stato fatto per sbaglio su un file così.
 

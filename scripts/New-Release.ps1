@@ -39,8 +39,8 @@
     interattivo — e la prova prima di compilare.
 
 .EXAMPLE
-    .\scripts\New-Release.ps1 -Notes .\notes-1.0.0.md
-    .\scripts\New-Release.ps1 -Notes .\notes-1.0.0.md -Title "CodeLens and updates from GitHub" -Publish
+    .\scripts\New-Release.ps1 -Notes .\notes-1.1.0.md
+    .\scripts\New-Release.ps1 -Notes .\notes-1.1.0.md -Title "Pick up where you left off" -Publish
 #>
 param(
     [Parameter(Mandatory)] [string]$Notes,

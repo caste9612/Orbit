@@ -316,9 +316,9 @@ Measured on Windows (size-optimized release build):
 
 | Item | Size |
 |---|---|
-| Portable `Orbit` binary | ~6.5 MB (≈0.7 MB of it is the HTTPS client for in-app updates, M59) |
+| Portable `Orbit` binary | ~6.6 MB (≈0.7 MB of it is the HTTPS client for in-app updates, M59) |
 | MSI installer | ~3.9 MB |
-| NSIS setup | ~3.1 MB |
+| NSIS setup | ~3.2 MB |
 | Frontend `dist/` | ~2.9 MB (most of it grammars loaded lazily) |
 | Startup JS chunk | ~274 KB (≈93 KB gzipped; the editor and the terminal load on demand) |
 | RAM at rest (project open) | ~120 MB private working set with one terminal, ~160 MB with four terminals and three files open (Orbit + WebView2; the Rust core is ~6 MB, ~30 MB with the symbol index of a very large project — the rest is the shared system WebView, inherent to Tauri) |

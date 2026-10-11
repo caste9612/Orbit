@@ -708,7 +708,8 @@
     color: var(--color-ink);
   }
   /* pallino "attenzione" della repo: un suo terminale ha suonato la bell (Claude finito / in attesa).
-     Overlay nell'angolo (non sposta il contenuto) e pulsa finché non apri quel terminale. */
+     Overlay nell'angolo (non sposta il contenuto): pulsa 4 volte, poi resta acceso finché non apri quel
+     terminale (M62: prima pulsava all'infinito, anche per ore). */
   .rt-attn {
     position: absolute;
     top: 2px;
@@ -719,7 +720,7 @@
     background: var(--color-accent);
     box-shadow: 0 0 0 1.5px var(--color-surface-0);
     pointer-events: none;
-    animation: rt-attn-pulse 1.6s ease-in-out infinite;
+    animation: rt-attn-pulse 1.6s ease-in-out 4;
   }
   @keyframes rt-attn-pulse {
     0%, 100% {
@@ -858,7 +859,7 @@
   }
   .wp-dot {
     display: inline-flex;
-    animation: wp-pulse 1.8s ease-in-out infinite;
+    animation: wp-pulse 1.8s ease-in-out 4; /* 4 impulsi, poi fermo (M62) */
   }
   .wp-label {
     font-weight: 500;

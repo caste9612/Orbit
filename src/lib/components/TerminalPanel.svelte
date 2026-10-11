@@ -695,8 +695,12 @@
     overflow: visible;
   }
   /* pallino "attenzione": il terminale ha suonato la bell (Claude finito / in attesa) e non lo guardi.
-     Pulsa in accento; sparisce appena la scheda diventa attiva (notifyTerminalBell azzera il flag). */
+     Un anello in accento si allarga 4 volte (~6 s), poi il pallino resta acceso fermo; sparisce appena la
+     scheda diventa attiva (notifyTerminalBell azzera il flag). M62: l'anello era un box-shadow animato
+     all'infinito (ridisegno a ogni fotogramma, per ore): ora transform/opacity, che lavorano sul solo
+     compositore, e un numero finito di impulsi. */
   .tab-main .attn {
+    position: relative;
     flex: 0 0 auto;
     width: 7px;
     height: 7px;
@@ -704,17 +708,26 @@
     border-radius: 50%;
     overflow: visible;
     background: var(--color-accent);
-    animation: attn-pulse 1.6s ease-out infinite;
   }
-  @keyframes attn-pulse {
+  .attn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(var(--accent-rgb), 0.5);
+    opacity: 0;
+    animation: attn-ring 1.6s ease-out 4;
+  }
+  /* 7px → 17px di diametro: il box-shadow di prima si allargava di 5px per lato */
+  @keyframes attn-ring {
     0% {
-      box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.5);
+      transform: scale(1);
+      opacity: 1;
     }
-    70% {
-      box-shadow: 0 0 0 5px rgba(var(--accent-rgb), 0);
-    }
+    70%,
     100% {
-      box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0);
+      transform: scale(2.43);
+      opacity: 0;
     }
   }
   .tab-close {
@@ -921,12 +934,12 @@
     outline: 0;
   }
   .pane-head .attn {
+    position: relative;
     flex: 0 0 auto;
     width: 7px;
     height: 7px;
     border-radius: 50%;
     background: var(--color-accent);
-    animation: attn-pulse 1.6s ease-out infinite;
   }
   .pane-title {
     flex: 0 0 auto;

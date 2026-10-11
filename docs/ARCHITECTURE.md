@@ -81,18 +81,18 @@ Three kinds of frontend module, kept separate:
 | `search` | project text search (debounced) |
 | `quickopen` | Ctrl+P fuzzy file finder |
 | `symbols` | **Go to Symbol** palette (Ctrl+Shift+O): outline of the active editor + fuzzy filter |
-| `codeIndex` | **project symbol index** (the "address book") from `scan_symbols`, cached in `.orbit/index/`: **Go to definition** (F12/Ctrl+click), **Project symbols** palette (Ctrl+T), the related‑bar context (`contextAt`), the **semantic‑overlay name sets** (`semSets`/`semIndex` → type & function names for the editor overlay), the **code lens** data (`refs` counts from `index/refs.json`, `lensesFor`, `openReferences`/`openImplementations`), and the **back/forward nav history** (records jumps *and* file/tab switches; `nav` counts drive the top‑bar arrows) |
+| `codeIndex` | **project symbol index** (the "address book") from `scan_symbols`, cached in `.orbit/index/` (written by the backend); `symbols`/`refs` are `$state.raw` and the lookups go through maps rebuilt once per index change (`symbolMaps.ts`: by file, by name, constructor counts, implementers — M62): **Go to definition** (F12/Ctrl+click), **Project symbols** palette (Ctrl+T), the related‑bar context (`contextAt`), the **semantic‑overlay name sets** (`semSets`/`semIndex` → type & function names for the editor overlay), the **code lens** data (`refs` counts from `index/refs.json`, `lensesFor`, `openReferences`/`openImplementations`), and the **back/forward nav history** (records jumps *and* file/tab switches; `nav` counts drive the top‑bar arrows) |
 | `keybindings` | central **command registry** + keyboard matcher/dispatch, with per‑preset keys (Orbit/VS/IntelliJ) **plus a user‑built `custom` keymap** (`settings.customKeys`, rebind per command) and the shortcuts‑reference panel; `keyStringFromEvent` captures a rebind, `conflictKeys` flags duplicates |
-| `activity` | **Activity** view: work units from `scan_activity` across all `~/.claude/projects` (prompt‑first segmentation in Rust); project on/off toggles `activityPrefs` (persisted, hides noise) + `openActivity`; live refresh via `watch_activity`→`activity-changed` |
+| `activity` | **Activity** view: work units from `scan_activity` across all `~/.claude/projects` (prompt‑first segmentation in Rust; `units` is `$state.raw` and unchanged units keep their object, M62); project on/off toggles `activityPrefs` (persisted, hides noise) + `openActivity`; live refresh via `watch_activity`→`activity-changed` |
 | `scratch` | one‑click persistent plain‑text scratchpad (`.orbit/scratch.txt`) for notes/prompts; renames a legacy `scratch.md` on first use |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
-| `settings` | **theme** (5 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/**motion** (smooth panel transitions → `--motion-ms`)/webgl/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
+| `settings` | **theme** (5 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/smooth‑caret/**motion** (smooth panel transitions → `--motion-ms`)/webgl (on by default since M62; one-time `webglM62` migration)/**terminalScrollback** (lines per terminal, default 3000)/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
 | `layout` | panel sizes/visibility (`sidebarVisible`/`terminalVisible` false = **collapsed into a strip**, see *Collapsible panels*) + focused panel + `editorCollapsed` (runtime only: no tabs open → the editor shrinks to its minimum width, see *Editor auto‑collapse*) + `terminalMaximized` (chats side by side, saved in the session) + the **layout motion** API (`animating`, `beginMotion`/`animate`/`motionUntil`/`motionMs` — see *Smooth layout motion*) |
 | `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; **`prepareQuit`** (M59: autosave if on, then the unsaved question, then the session written at once — before the window closes, on a Close‑all request from another window, and before an update) and `settleUnsaved` (the same for a folder switch); `switchFolder` swaps the active folder cleanly (keeps the window's repo list and sidebar view, prefetches the destination session in parallel with saving the current one, decides `editorCollapsed` from the saved tabs up front and shows the new repo's terminals as soon as the root is open — one layout motion); `openLight` / `promoteLight` (light window and its "Open … as project"; a light window never reads or saves a session) |
 | `toast` | transient notifications, plus a **sticky, clickable `attention`** variant (`notifyAttention`/`dismissByKey`, coalesced by `key`, optional `icon`) used by the Claude‑waiting and update notices |
 | `unsaved` | the **one** "unsaved changes" question of the app (M59): `askUnsaved(files)` → `save`/`discard`/`cancel` (a promise; `UnsavedDialog.svelte`, mounted once in App), `resolveUnsaved` (asks and saves; false = cancelled or a save failed). Used by tab closing, window close, Close all, folder switch, "Open as project" and updates |
 | `updater` | in‑app updates (M59): `checkForUpdates` (automatic ~30 s after start and every 6 h unless `settings.checkUpdates` is off — never in dev builds; manual from the pinned foot of Settings), `updates` state (available version + notes, dialog phase `downloading`/`closing`/`installing`/`error`, progress), `installUpdate`, `announceUpdated` |
-| `logs` | **diagnostic logs** (`log`/`logWarn`/`logError`): in‑memory ring buffer + batched on‑disk persistence (Rust `append_log`) + global error capture, all gated by `settings.logging` (default on); `LogViewer` overlay + export (copy / reveal file). Instruments clipboard/paste/terminal to diagnose issues (e.g. the double‑paste) |
+| `logs` | **diagnostic logs** (`log`/`logWarn`/`logError`): in‑memory buffer (plain array + one reactive counter, M62) + batched on‑disk persistence (Rust `append_log`) + global error capture, all gated by `settings.logging` (default off since M62); `LogViewer` overlay + export (copy / reveal file). Instruments clipboard/paste/terminal to diagnose issues (e.g. the double‑paste) |
 
 State is plain **Svelte 5 runes**: `export const x = $state({...})`; components reading those
 fields re‑render automatically. Cross‑module reactive reads (e.g. `git.tick`) drive effects.
@@ -115,8 +115,9 @@ cursor). The editor uses soft **line wrapping** (gutter stays correct).
 
 `Editor.svelte` (CodeMirror) and `Terminal.svelte` (xterm) are loaded through
 `LazyEditor.svelte` / `LazyTerminal.svelte` (dynamic `import()`), so the startup chunk stays
-lean (~536 KB; the ~343 KB xterm and ~76 KB CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import, gated on
-`settings.webgl` (off by default). **marked + DOMPurify** are likewise lazy (`markdown.ts`
+lean (~264 KiB, ≈89 KiB gzipped since M62 — `outline.ts`, which pulled CodeMirror in, is imported on the first *Go to symbol*;
+the xterm and CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import,
+attached only while a terminal is visible (on by default since M62, see the terminal section). **marked + DOMPurify** are likewise lazy (`markdown.ts`
 imports them on first render), so the Markdown feature adds nothing to the startup payload.
 A small generic **`Lazy.svelte`** wrapper (`load={() => import("./X.svelte")}`, props forwarded) does
 the same for the **overlays** (Settings, QuickOpen, SymbolPalette, WorkspaceSymbols, ShortcutsDialog,
@@ -227,9 +228,14 @@ first paint loads only the Explorer + the active editor.
   extracts symbols with a hand‑rolled per‑language parser (C#/Java, **C/C++**, TS/JS/JSX/Svelte, Python,
   Rust, Go; types, methods, functions, properties + base types and an `abstract` flag) — **no LSP, no
   `regex` crate**. The C/C++ path is conservative (types from `class`/`struct`/`union`/`enum`; functions
-  only from body‑opening lines to avoid matching calls). `codeIndex.svelte.ts` caches the result in `.orbit/index/symbols.json` (loads instantly,
-  re‑scans in the background; `scheduleRescan` is debounced on `fs-changed`, and the watcher excludes
-  `.orbit/index` to avoid a rescan loop). **Go to definition** (`goToDefinitionAtCursor` via F12, or
+  only from body‑opening lines to avoid matching calls). The scan is **incremental** (M62): per root (the last two) the backend keeps what each file yielded — symbols
+  and per‑identifier line counts, with ids from a dictionary — keyed on mtime + size, so a save re‑reads one
+  file; the walk, its order and the 50,000‑symbol cap are unchanged, so the result equals a full scan.
+  Folders ignored by git are skipped (`git::ignored`, also used by `ref_list`, search and Quick Open).
+  The backend writes `.orbit/index/{symbols,refs}.json` when they change and returns symbols/refs only when
+  their version differs from the one the frontend already has (`knownSymbols`/`knownRefs`). The frontend
+  loads that cache instantly and re‑scans in the background (`scheduleRescan` is debounced on `fs-changed`,
+  skipped for `ignoredOnly` batches; the watcher excludes `.orbit/index` to avoid a rescan loop). **Go to definition** (`goToDefinitionAtCursor` via F12, or
   Ctrl+click in `Editor.svelte`) resolves the word under the cursor (a picker if names collide);
   **Project symbols** is the `Ctrl+T` palette (`WorkspaceSymbols.svelte`). A **back/forward history**
   (top‑bar arrows + `Alt+←/→`) records both jumps and file/tab switches: `workspace` calls a synchronous
@@ -279,7 +285,10 @@ first paint loads only the Explorer + the active editor.
   after `git commit` (`-m`, `-am`, `--message=`, `-F -` with a heredoc, PowerShell here‑strings) —; a unit
   with no prompt of its own (work that went on after a branch change or a commit) is labelled `↳ <the
   request it came from>`; a branch change is a hard boundary;
-  file +/− from `toolUseResult.structuredPatch`, the full prompt text is kept for the digest). `watch_activity`
+  file +/− from `toolUseResult.structuredPatch`, the full prompt text is kept for the digest). A transcript that only
+  **grew** is read from where the last scan stopped and its segmentation resumes (`Fold`: the open unit, the
+  unit counter, the closed units, the last ai-title, the first cwd — M62), so the live chat's transcript is not
+  re-parsed whole on every change; only the 500 returned units are cloned. `watch_activity`
   watches `~/.claude/projects` (notify) and emits **`activity-changed`** for live refresh. Frontend:
   `activity.svelte.ts` (state + `loadActivity` + project on/off `activityPrefs`, persisted; `sessionColor` =
   stable per‑session hash color, `sessionLabel` = aiTitle or short id), `ActivityPanel.svelte`
@@ -376,6 +385,11 @@ first paint loads only the Explorer + the active editor.
   after selecting). Terminal listeners live under one **`AbortController`** removed in `onDestroy`
   (hygiene); paste guards a disposed terminal + try/catch; auto copy‑on‑selection is silent on failure
   (explicit copy/paste surface it). Consumers: terminal, editor, explorer (copy path/name), wrapper composer.
+- **Terminal GPU rendering (M62)** — `Terminal.svelte` attaches xterm's WebGL addon only while the
+  terminal is visible (an `IntersectionObserver` on the host) and disposes it 3 s after it disappears (another
+  repo, another tab, a hidden panel); xterm falls back to its DOM renderer by itself. One WebGL context per
+  mounted terminal used to keep a glyph atlas in VRAM (~7–8 MB each) and past ~16 contexts Chromium silently
+  dropped the oldest. The setting applies live, like `terminalScrollback` (`term.options.scrollback`).
 - **Terminal geometry** — `Terminal.svelte` opens xterm in an inner `.term-fit` div with **no padding**
   (the padding lives on the outer `.term`): the FitAddon sizes rows/cols from the computed height of the
   `.xterm` *parent* (padding included under `border-box`) minus only `.xterm`'s own padding, so a padded
@@ -485,7 +499,7 @@ first paint loads only the Explorer + the active editor.
 Rust commands are defined with `#[tauri::command]` and registered in `lib.rs` `run()`. The
 frontend calls them with `invoke("name", {args})`. Areas:
 
-- **Filesystem** (`lib.rs`): `read_dir`, `read_file`, `write_file`, `create_file`,
+- **Filesystem** (`lib.rs`; `read_dir`/`read_file`/`write_file`/`list_files`/`search_in_project` run off the main thread, M62): `read_dir`, `read_file`, `write_file`, `create_file`,
   `create_dir`, `rename_path`, `delete_path`, `list_files`, `search_in_project`, `resolve_existing`, `startup`
   (folder/file/search from CLI or env + the `light` flag), `project_root` (nearest ancestor with `.git`).
 - **Session** (`lib.rs`): `load_state`/`save_state` (keyed per folder).
@@ -506,7 +520,8 @@ frontend calls them with `invoke("name", {args})`. Areas:
   keyed on mtime + size (M59: only changed transcripts are re‑read — 469 ms → 2.5 ms on 206 MiB of
   transcripts — and the main thread is never blocked); `watch_activity` — `notify` watcher on
   `~/.claude/projects` that emits a debounced **`activity-changed`** event for live refresh.
-- **Git** (`git.rs`): `git_status` (with `workdir`, the repo root), `git_diff`, `git_stage`, `git_unstage`, `git_commit`,
+- **Git** (`git.rs`; status, diff, log, graph, show, branches and upstream run off the main thread — M62: a big
+  repo's `git status` used to stall all IPC on every save; ahead/behind is memoised per commit pair): `git_status` (with `workdir`, the repo root), `git_diff`, `git_stage`, `git_unstage`, `git_commit`,
   `git_branches`, `git_checkout_branch`, `git_create_branch`, `git_discard`, `git_log`, `git_show`,
   `git_graph` (all branches, topological order, parents+refs — powers the Git Graph view; lane layout
   is computed in the frontend, `lib/gitgraph.ts`).
@@ -524,9 +539,10 @@ frontend calls them with `invoke("name", {args})`. Areas:
   parentheses, `new`/`return`/`await`…), so calls and `new X()` are no longer indexed as methods; leading
   attributes/annotations are skipped, generic methods (`Load<T>(…)`) and `Name => …` properties are found.
 - **Watcher** (`watcher.rs`): `watch_start(root, recursive?)` (non‑recursive for the light window); emits a
-  debounced **`fs-changed`** event that the
-  frontend listens to (refresh tree + git + reload open files + run config + Claude config + shelf
-  + Docs index when visible + symbol re‑scan). The watch ignores `.orbit/index` so caching the symbol
+  debounced **`fs-changed`** event `{ paths, ignoredOnly }` that the
+  frontend listens to (refresh only the tree folders holding the changed paths + git + reload open files + run
+  config + Claude config + shelf + Docs index when visible + symbol re‑scan; git and the re‑scan are skipped
+  when every path sits in a folder ignored by git, M62). The watch ignores `.orbit/index` so caching the symbol
   index never re‑triggers itself.
 
 **Adding a command:** write `#[tauri::command] fn foo(...) -> Result<T, String>` in the right

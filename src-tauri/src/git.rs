@@ -9,6 +9,19 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::path::Path;
 
+/// Il percorso è ignorato da git (.gitignore, .git/info/exclude, regole globali)? Per i giri sui file del
+/// progetto (indice, riferimenti, ricerca, Quick Open) e per il watcher (M62): output di build, cartelle
+/// di prova, ambienti virtuali… non si analizzano e non fanno ripartire git e indice. Fuori da un repo, o
+/// se il percorso non sta sotto la sua cartella di lavoro: false.
+pub fn ignored(repo: Option<&Repository>, path: &Path) -> bool {
+    let Some(repo) = repo else { return false };
+    let Some(wd) = repo.workdir() else { return false };
+    match path.strip_prefix(wd) {
+        Ok(rel) if !rel.as_os_str().is_empty() => repo.is_path_ignored(rel).unwrap_or(false),
+        _ => false,
+    }
+}
+
 fn open(root: &str) -> Result<Repository, String> {
     Repository::discover(root).map_err(|e| e.to_string())
 }
@@ -69,7 +82,7 @@ fn wt_code(s: Status) -> Option<String> {
     }
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_status(root: String) -> Result<GitStatus, String> {
     let repo = match Repository::discover(&root) {
         Ok(r) => r,
@@ -118,7 +131,7 @@ pub fn git_status(root: String) -> Result<GitStatus, String> {
     })
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_diff(root: String, path: String, staged: bool) -> Result<String, String> {
     let repo = open(&root)?;
     let mut opts = DiffOptions::new();
@@ -222,7 +235,7 @@ pub struct Branches {
     all: Vec<String>,
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_branches(root: String) -> Result<Branches, String> {
     let repo = open(&root)?;
     let current = current_branch(&repo);
@@ -285,7 +298,7 @@ pub struct CommitInfo {
 }
 
 /// Cronologia dei commit a partire da HEAD (i più recenti prima), fino a `limit`.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_log(root: String, limit: usize) -> Result<Vec<CommitInfo>, String> {
     let repo = open(&root)?;
     let mut rw = repo.revwalk().map_err(|e| e.to_string())?;
@@ -337,7 +350,7 @@ pub fn git_create_branch(root: String, name: String) -> Result<(), String> {
 }
 
 /// Patch (diff vs primo genitore) di un commit, per la vista di dettaglio.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_show(root: String, id: String) -> Result<String, String> {
     let repo = open(&root)?;
     let oid = Oid::from_str(&id).map_err(|e| e.to_string())?;
@@ -385,7 +398,7 @@ pub struct GraphCommit {
 
 /// Grafo dei commit per il "graph log" (stile IntelliJ/VS): tutti i branch (locali + remoti) e HEAD,
 /// ordine TOPOLOGICO+tempo, con parent e ref (branch/tag) per ciascun commit. Fino a `limit`.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_graph(root: String, limit: usize) -> Result<Vec<GraphCommit>, String> {
     let repo = open(&root)?;
 
@@ -467,8 +480,12 @@ pub struct Upstream {
     has_remote: bool,
 }
 
+// Ultimo ahead/behind calcolato, per coppia (commit locale, commit dell'upstream): il frontend lo chiede
+// dopo ogni `git status`, cioè a ogni salvataggio, ma cambia solo con un commit, un fetch o un pull (M62).
+static AHEAD_BEHIND: std::sync::Mutex<Option<((Oid, Oid), (usize, usize))>> = std::sync::Mutex::new(None);
+
 /// Ahead/behind del branch corrente rispetto al suo upstream (calcolo LOCALE, niente rete).
-#[tauri::command]
+#[tauri::command(async)]
 pub fn git_upstream(root: String) -> Result<Upstream, String> {
     let repo = open(&root)?;
     let mut out = Upstream {
@@ -497,9 +514,16 @@ pub fn git_upstream(root: String) -> Result<Upstream, String> {
         out.upstream = Some(name.to_string());
     }
     if let Some(up_oid) = upstream.get().target() {
-        if let Ok((ahead, behind)) = repo.graph_ahead_behind(local_oid, up_oid) {
+        let key = (local_oid, up_oid);
+        let memo = *AHEAD_BEHIND.lock().unwrap_or_else(|e| e.into_inner());
+        let counts = match memo {
+            Some((k, ab)) if k == key => Some(ab),
+            _ => repo.graph_ahead_behind(local_oid, up_oid).ok(),
+        };
+        if let Some((ahead, behind)) = counts {
             out.ahead = ahead;
             out.behind = behind;
+            *AHEAD_BEHIND.lock().unwrap_or_else(|e| e.into_inner()) = Some((key, (ahead, behind)));
         }
     }
     Ok(out)

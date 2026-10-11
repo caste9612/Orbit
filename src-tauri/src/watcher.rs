@@ -1,6 +1,7 @@
 // File watcher: osserva la cartella di progetto e notifica il frontend (debounced)
 // così albero e stato git restano aggiornati in tempo reale.
 use notify::{recommended_watcher, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use serde::Serialize;
 use std::path::Path;
 use std::sync::mpsc::channel;
 use std::sync::Mutex;
@@ -25,6 +26,17 @@ fn is_excluded(p: &Path) -> bool {
             Some("node_modules") | Some("target") | Some("dist") | Some(".git")
         )
     })
+}
+
+/// Payload di `fs-changed`. `ignored_only`: tutti i percorsi stanno in cartelle ignorate da git (output di
+/// build, cartelle di prova…): albero e file aperti si aggiornano comunque, ma stato git e indice dei
+/// simboli non possono essere cambiati e il frontend non li rifà (M62; prima una build che scriveva in
+/// `bin/` faceva ripartire git e l'indice ogni 250 ms).
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct FsChanged {
+    paths: Vec<String>,
+    ignored_only: bool,
 }
 
 /// `recursive: false` (modalità leggera, file aperto da solo): solo la cartella del file, non tutto
@@ -56,21 +68,30 @@ pub fn watch_start(app: AppHandle, state: State<WatchState>, root: String, recur
     let mode = if recursive.unwrap_or(true) { RecursiveMode::Recursive } else { RecursiveMode::NonRecursive };
     watcher.watch(Path::new(&root), mode).map_err(|e| e.to_string())?;
 
-    // Thread di debounce: coalizza i burst in un solo evento ogni ~250ms.
+    // Thread di debounce: coalizza i burst in un solo evento ogni ~250ms. Tiene il repo git della cartella
+    // (se c'è) per riconoscere i percorsi ignorati.
     let app2 = app.clone();
-    std::thread::spawn(move || loop {
-        // primo evento del burst (bloccante); poi coalizza ~250ms accumulando i path.
-        let mut paths = match rx.recv() {
-            Ok(p) => p,
-            Err(_) => break, // watcher sostituito/distrutto -> il sender è caduto
-        };
-        std::thread::sleep(std::time::Duration::from_millis(250));
-        while let Ok(more) = rx.try_recv() {
-            paths.extend(more);
+    let repo_root = root.clone();
+    std::thread::spawn(move || {
+        let repo = git2::Repository::discover(&repo_root).ok();
+        loop {
+            // primo evento del burst (bloccante); poi coalizza ~250ms accumulando i path.
+            let mut paths = match rx.recv() {
+                Ok(p) => p,
+                Err(_) => break, // watcher sostituito/distrutto -> il sender è caduto
+            };
+            std::thread::sleep(std::time::Duration::from_millis(250));
+            while let Ok(more) = rx.try_recv() {
+                paths.extend(more);
+            }
+            paths.sort();
+            paths.dedup();
+            // "ignorato" = dentro una cartella ignorata da git: la stessa regola dei giri su indice, ricerca e
+            // Quick Open, che saltano le cartelle ignorate (un file ignorato in una cartella normale conta)
+            let ignored_only = repo.is_some()
+                && paths.iter().all(|p| Path::new(p).parent().map_or(false, |d| crate::git::ignored(repo.as_ref(), d)));
+            let _ = app2.emit("fs-changed", FsChanged { paths, ignored_only });
         }
-        paths.sort();
-        paths.dedup();
-        let _ = app2.emit("fs-changed", paths);
     });
 
     // Sostituire il watcher precedente lo distrugge (e ferma il suo thread).

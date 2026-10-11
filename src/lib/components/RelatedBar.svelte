@@ -5,7 +5,7 @@
   import Icon from "./Icon.svelte";
   import KindBadge from "./KindBadge.svelte";
   import { workspace, editorStatus } from "../state/workspace.svelte";
-  import { codeIndex, contextAt, jumpTo, showImplementers } from "../state/codeIndex.svelte";
+  import { fileHasSymbols, contextAt, jumpTo, showImplementers } from "../state/codeIndex.svelte";
   import { relTo } from "../util";
 
   let { path }: { path: string } = $props();
@@ -13,7 +13,7 @@
   const rel = $derived(relTo(path, workspace.rootPath));
   // la barra esiste (riserva l'altezza) finché il file ha simboli → niente salto di layout;
   // il CONTENUTO appare/scompare col cursore (ctx).
-  const hasSymbols = $derived(codeIndex.symbols.some((s) => s.file === rel));
+  const hasSymbols = $derived(fileHasSymbols(rel));
   const ctx = $derived(contextAt(rel, editorStatus.line));
 </script>
 

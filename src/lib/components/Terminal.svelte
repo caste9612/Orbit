@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, untrack } from "svelte";
   import { Terminal, type ILinkProvider, type ILink } from "@xterm/xterm";
   import { FitAddon } from "@xterm/addon-fit";
   import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -221,7 +221,7 @@
       // niente blink: il timer di lampeggio ri-mostra il cursore durante i ridisegni rapidi
       // dei TUI (Claude), facendolo "saltare" sui caratteri aggiornati anche quando è nascosto.
       cursorBlink: false,
-      scrollback: 5000,
+      scrollback: settings.terminalScrollback,
       allowProposedApi: true,
       theme: xtermTheme(),
     });
@@ -233,17 +233,14 @@
     // dell'altezza restava una striscia sotto l'ultima riga o l'ultima riga veniva tagliata. Per questo
     // xterm si apre in un div interno senza padding.
     term.open(fitHost);
-    // GPU rendering (WebGL) opzionale, default OFF: import dinamico per non pesare sul bundle
-    if (settings.webgl) {
-      try {
-        const { WebglAddon } = await import("@xterm/addon-webgl");
-        const webgl = new WebglAddon();
-        webgl.onContextLoss(() => webgl.dispose());
-        term.loadAddon(webgl);
-      } catch {
-        /* WebGL non disponibile su questa GPU/webview */
-      }
-    }
+    // WebGL solo mentre il terminale si vede (vedi attachWebgl): lo segue un IntersectionObserver
+    io = new IntersectionObserver((entries) => {
+      visible = entries[entries.length - 1].isIntersecting;
+      if (releaseTimer) clearTimeout(releaseTimer);
+      if (visible) void attachWebgl();
+      else releaseTimer = setTimeout(detachWebgl, 3000); // un cambio di scheda veloce non lo ricrea
+    });
+    io.observe(host);
     // URL http(s) cliccabili (gestisce anche gli URL che vanno a capo su più righe): un clic li apre
     // nel browser di sistema via il comando Rust open_url. Attivo ovunque (anche finestra flottante).
     term.loadAddon(
@@ -376,10 +373,12 @@
     lastCols = term.cols;
     lastRows = term.rows;
     term.onData((d) => {
-      // DIAGNOSTICA: cosa esce dal terminale verso il PTY. len>2 = incolla o sequenza di escape (i
-      // singoli tasti sono len 1 → esclusi come rumore). Se UN incolla genera DUE onData con la stessa
-      // lunghezza → doppio input reale a monte del PTY. `bracketed` = modalità incolla delle shell.
-      if (d.length > 2) log("pty", "onData→pty_write", { id, len: d.length, bracketed: d.includes("\x1b[200~") });
+      // DIAGNOSTICA: cosa esce dal terminale verso il PTY, solo per gli incolla (testo di più caratteri o la
+      // modalità incolla delle shell, `bracketed`). Se UN incolla genera DUE onData con la stessa lunghezza →
+      // doppio input reale a monte del PTY. Tasti singoli, frecce e report del mouse (sequenze che iniziano
+      // con ESC) non si registrano: erano rumore continuo nei TUI come Claude (M62).
+      const bracketed = d.includes("\x1b[200~");
+      if (d.length > 2 && (bracketed || d[0] !== "\x1b")) log("pty", "onData→pty_write", { id, len: d.length, bracketed });
       invoke("pty_write", { id, data: d }).catch((e) => logError("pty", "pty_write failed", { id, err: String(e) }));
     });
 
@@ -394,6 +393,54 @@
       fitSafe(true);
       term.focus();
     }
+  });
+
+  // —— Testo sulla GPU (WebGL) solo per i terminali visibili (M62) ——
+  // Disegnare col WebGL costa ~2,6× meno CPU del renderer DOM quando l'output è fitto (lo spinner di
+  // Claude, i log di build). Ma ogni contesto tiene un atlante di glifi in VRAM (~7–8 MB) e Chromium ne
+  // regge ~16 per pagina: prima ogni terminale montato col WebGL ne teneva uno anche nascosto (altra repo,
+  // altra scheda) e oltre il sedicesimo i più vecchi tornavano al DOM senza dirlo. Ora il contesto nasce
+  // quando il terminale diventa visibile e si rilascia 3 s dopo che è sparito; xterm torna da solo al DOM.
+  let io: IntersectionObserver | undefined;
+  let visible = false;
+  let releaseTimer: ReturnType<typeof setTimeout> | undefined;
+  let webgl: { dispose(): void } | null = null;
+  let webglLoading = false;
+
+  async function attachWebgl() {
+    if (webgl || webglLoading || !term || disposed || !visible || !settings.webgl) return;
+    webglLoading = true;
+    try {
+      const { WebglAddon } = await import("@xterm/addon-webgl"); // import dinamico: fuori dal bundle iniziale
+      if (webgl || !term || disposed || !visible || !settings.webgl) return;
+      const addon = new WebglAddon();
+      addon.onContextLoss(() => {
+        if (webgl === addon) webgl = null;
+        addon.dispose(); // contesto perso (GPU resettata): si torna al DOM; si riprova alla prossima visibilità
+      });
+      term.loadAddon(addon);
+      webgl = addon;
+    } catch {
+      /* WebGL non disponibile su questa GPU/webview: resta il renderer DOM */
+    } finally {
+      webglLoading = false;
+    }
+  }
+  function detachWebgl() {
+    webgl?.dispose();
+    webgl = null;
+  }
+
+  // l'impostazione cambia dal vivo, senza riaprire i terminali
+  $effect(() => {
+    const on = settings.webgl;
+    untrack(() => (on ? void attachWebgl() : detachWebgl()));
+  });
+
+  // righe di storico (Impostazioni): ridurle accorcia subito lo storico già accumulato
+  $effect(() => {
+    const lines = settings.terminalScrollback;
+    if (term && !disposed) term.options.scrollback = lines;
   });
 
   // cambio tema/accento dalle Impostazioni → ricolora il terminale al volo
@@ -418,8 +465,10 @@
     log("terminal", "unmount", { id });
     clearTerminalFocus(id); // non lasciare focusedId puntato a un terminale smontato
     if (resizeTimer) clearTimeout(resizeTimer);
+    if (releaseTimer) clearTimeout(releaseTimer);
     listenerAbort?.abort(); // rimuove TUTTI i listener su host (contextmenu/mouseup/focus) in blocco
     ro?.disconnect();
+    io?.disconnect();
     unlistenData?.();
     unlistenExit?.();
     if (!persistent) invoke("pty_kill", { id }).catch(() => {});

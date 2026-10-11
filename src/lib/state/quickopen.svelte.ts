@@ -8,11 +8,15 @@ export type { FileRef };
 export const quickopen = $state({
   open: false,
   query: "",
-  files: [] as FileRef[], // tutti i file del progetto
   results: [] as FileRef[], // sottoinsieme filtrato/ordinato
   index: 0,
   loading: false,
 });
+
+// Tutti i file del progetto (fino a 20.000), FUORI dallo stato reattivo (M62): nello $state diventavano
+// proxy al primo filtro e restavano in memoria anche a palette chiusa. Chiusa la palette si rilasciano:
+// l'elenco resta comunque nella cache di projectFiles finché un file non cambia.
+let files: FileRef[] = [];
 
 const CAP = 200; // righe mostrate al massimo
 
@@ -24,10 +28,10 @@ export async function openPalette() {
   quickopen.index = 0;
   quickopen.loading = true;
   try {
-    quickopen.files = await listFiles(root);
+    files = await listFiles(root);
   } catch (e) {
     console.error("list_files", e);
-    quickopen.files = [];
+    files = [];
   }
   quickopen.loading = false;
   filter();
@@ -35,6 +39,7 @@ export async function openPalette() {
 
 export function closePalette() {
   quickopen.open = false;
+  files = [];
 }
 
 export function setQuery(q: string) {
@@ -51,7 +56,7 @@ export function move(delta: number) {
 
 export function choose() {
   const f = quickopen.results[quickopen.index];
-  quickopen.open = false;
+  closePalette();
   if (f) void openFile(f.path);
 }
 
@@ -83,11 +88,11 @@ function score(rel: string, base: string, q: string): number {
 function filter() {
   const q = quickopen.query.trim().toLowerCase();
   if (!q) {
-    quickopen.results = quickopen.files.slice(0, CAP);
+    quickopen.results = files.slice(0, CAP);
     return;
   }
   const scored: { f: FileRef; s: number }[] = [];
-  for (const f of quickopen.files) {
+  for (const f of files) {
     const rel = f.rel.toLowerCase();
     const s = score(rel, baseOf(rel), q);
     if (s >= 0) scored.push({ f, s });

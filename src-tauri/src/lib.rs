@@ -94,7 +94,7 @@ struct FsEntry {
 
 /// Legge UNA directory (lazy, non ricorsivo): dirs prima, poi file, ordine
 /// alfabetico case-insensitive. Lazy + virtualizzazione lato UI = regge cartelle grandi.
-#[tauri::command]
+#[tauri::command(async)]
 fn read_dir(path: String) -> Result<Vec<FsEntry>, String> {
     let rd = std::fs::read_dir(&path).map_err(|e| e.to_string())?;
     let mut entries: Vec<FsEntry> = Vec::new();
@@ -115,13 +115,13 @@ fn read_dir(path: String) -> Result<Vec<FsEntry>, String> {
 }
 
 /// Legge un file di testo (UTF-8). Sui file binari/non-UTF8 ritorna errore.
-#[tauri::command]
+#[tauri::command(async)]
 fn read_file(path: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| e.to_string())
 }
 
 /// Scrive (sovrascrive) un file di testo su disco.
-#[tauri::command]
+#[tauri::command(async)]
 fn write_file(path: String, content: String) -> Result<(), String> {
     std::fs::write(&path, content).map_err(|e| e.to_string())
 }
@@ -193,13 +193,14 @@ struct FileMatches {
 /// Ricerca testuale (substring, case-insensitive) in tutti i file del progetto.
 /// Walk manuale con esclusioni (no dep extra); salta cartelle rumorose, file grandi
 /// e binari; limita i risultati per restare leggero e reattivo.
-#[tauri::command]
+#[tauri::command(async)]
 fn search_in_project(root: String, query: String) -> Result<Vec<FileMatches>, String> {
     if query.trim().is_empty() {
         return Ok(vec![]);
     }
     let needle = query.to_lowercase();
     let root_path = std::path::Path::new(&root);
+    let repo = git2::Repository::discover(root_path).ok();
     let mut results: Vec<FileMatches> = Vec::new();
     let mut total = 0usize;
     let mut stack = vec![root_path.to_path_buf()];
@@ -218,7 +219,8 @@ fn search_in_project(root: String, query: String) -> Result<Vec<FileMatches>, St
             let name = entry.file_name().to_string_lossy().to_string();
             let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
             if is_dir {
-                if matches!(name.as_str(), "node_modules" | ".git" | "target" | "dist") {
+                // anche le cartelle ignorate da git (output di build, cartelle di prova…) restano fuori (M62)
+                if matches!(name.as_str(), "node_modules" | ".git" | "target" | "dist") || git::ignored(repo.as_ref(), &p) {
                     continue;
                 }
                 stack.push(p);
@@ -227,13 +229,20 @@ fn search_in_project(root: String, query: String) -> Result<Vec<FileMatches>, St
             if entry.metadata().map(|m| m.len()).unwrap_or(0) > 2_000_000 {
                 continue;
             }
-            let content = match std::fs::read_to_string(&p) {
-                Ok(c) => c,
-                Err(_) => continue, // binario o non-UTF8
-            };
+            let Ok(bytes) = std::fs::read(&p) else { continue };
+            // binario: un byte nullo nei primi 8 KB, come fa git (M62: prima si decodificava tutto il file)
+            if bytes[..bytes.len().min(8192)].contains(&0) {
+                continue;
+            }
+            let Ok(content) = String::from_utf8(bytes) else { continue }; // non-UTF8
+            // minuscole una volta per file, non per riga; e un file senza il testo cercato si salta subito
+            let lower = content.to_lowercase();
+            if !lower.contains(&needle) {
+                continue;
+            }
             let mut fm: Vec<SearchMatch> = Vec::new();
-            for (i, line) in content.lines().enumerate() {
-                if line.to_lowercase().contains(&needle) {
+            for (i, (line, low)) in content.lines().zip(lower.lines()).enumerate() {
+                if low.contains(&needle) {
                     let trimmed = line.trim_start();
                     let text: String = trimmed.chars().take(240).collect();
                     fm.push(SearchMatch {
@@ -273,9 +282,10 @@ struct FileRef {
 
 /// Elenca tutti i file del progetto (path assoluto + relativo) per il quick-open.
 /// Stesso walk/esclusioni della ricerca; cap alto per restare leggero su repo enormi.
-#[tauri::command]
+#[tauri::command(async)]
 fn list_files(root: String) -> Result<Vec<FileRef>, String> {
     let root_path = Path::new(&root);
+    let repo = git2::Repository::discover(root_path).ok();
     let mut out: Vec<FileRef> = Vec::new();
     let mut stack = vec![root_path.to_path_buf()];
     while let Some(dir) = stack.pop() {
@@ -292,7 +302,7 @@ fn list_files(root: String) -> Result<Vec<FileRef>, String> {
             let name = entry.file_name().to_string_lossy().to_string();
             let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
             if is_dir {
-                if matches!(name.as_str(), "node_modules" | ".git" | "target" | "dist") {
+                if matches!(name.as_str(), "node_modules" | ".git" | "target" | "dist") || git::ignored(repo.as_ref(), &p) {
                     continue;
                 }
                 stack.push(p);

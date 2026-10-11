@@ -156,7 +156,7 @@
     pointer-events: none;
   }
   .mark.attn {
-    animation: strip-attn 1.6s ease-in-out infinite;
+    animation: strip-attn 1.6s ease-in-out 4; /* 4 impulsi, poi fermo (M62) */
   }
   @keyframes strip-attn {
     0%,

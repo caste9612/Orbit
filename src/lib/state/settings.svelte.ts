@@ -171,15 +171,21 @@ export const settings = $state({
   // layout. Comanda `--motion-ms`; NON segue prefers-reduced-motion (su Windows con gli effetti di
   // animazione spenti sarebbe sempre 0, e l'utente ha chiesto proprio le transizioni).
   motion: true,
-  webgl: false, // GPU rendering del terminale: OFF di default (più leggero ~85 MB)
+  // testo del terminale sulla GPU (WebGL): acceso di default dalla M62, quando a usarlo sono solo i
+  // terminali visibili — ~2,6× meno CPU con l'output fitto, RAM quasi uguale (prima: spento, ~85 MB in più)
+  webgl: true,
+  terminalScrollback: 3000, // righe di storico per terminale (M62; prima 5000 fisse): ~1,4 MB ogni 1000 a 120 colonne
   claudeTerminal: true, // il terminale di default avvia Claude (companion di Claude Code)
   bellNotify: true, // avvisa quando un terminale suona la bell (Claude ha finito / aspetta) e non lo guardi
   autosave: true, // salva i file modificati su perdita di focus e cambio tab (stile IntelliJ)
   mdMode: "readme" as MarkdownMode, // apertura .md: anteprima solo per i README (default)
-  logging: true, // raccolta log diagnostici (ring buffer + file) per indagare i problemi — disattivabile
+  logging: false, // raccolta log diagnostici (ring buffer + file) per indagare i problemi — spenta di default (M62)
   checkUpdates: true, // controlla le release su GitHub all'avvio e ogni 6 ore (M59)
   codeLens: true, // "N references · M implementations" sopra le dichiarazioni (M60)
 });
+
+/** Righe di storico per terminale proposte nelle Impostazioni. */
+export const SCROLLBACK_OPTIONS = [1000, 3000, 5000, 10000];
 
 export const MIN_FONT = 10;
 export const MAX_FONT = 24;
@@ -274,7 +280,12 @@ export function loadSettings() {
       if (typeof s.accent === "string" && (s.accent === "auto" || s.accent in ACCENTS)) settings.accent = s.accent;
       if (typeof s.smoothCursor === "boolean") settings.smoothCursor = s.smoothCursor;
       if (typeof s.motion === "boolean") settings.motion = s.motion;
-      if (typeof s.webgl === "boolean") settings.webgl = s.webgl;
+      // WebGL: il vecchio default (spento) veniva salvato anche se mai scelto; come per `uiV09`, al primo
+      // avvio con la M62 si passa UNA volta al nuovo default (acceso), poi comanda la scelta dell'utente.
+      if (s.webglM62 === true && typeof s.webgl === "boolean") settings.webgl = s.webgl;
+      if (typeof s.terminalScrollback === "number" && SCROLLBACK_OPTIONS.includes(s.terminalScrollback)) {
+        settings.terminalScrollback = s.terminalScrollback;
+      }
       if (typeof s.claudeTerminal === "boolean") settings.claudeTerminal = s.claudeTerminal;
       if (typeof s.bellNotify === "boolean") settings.bellNotify = s.bellNotify;
       if (typeof s.autosave === "boolean") settings.autosave = s.autosave;
@@ -295,6 +306,7 @@ export function startSettingsAutosave() {
     $effect(() => {
       const data = JSON.stringify({
         uiV09: true, // marcatore della migrazione al tema predefinito VS 2026 (vedi loadSettings)
+        webglM62: true, // marcatore della migrazione al WebGL acceso di default (vedi loadSettings)
         theme: settings.theme,
         keymap: settings.keymap,
         customKeys: settings.customKeys,
@@ -306,6 +318,7 @@ export function startSettingsAutosave() {
         smoothCursor: settings.smoothCursor,
         motion: settings.motion,
         webgl: settings.webgl,
+        terminalScrollback: settings.terminalScrollback,
         claudeTerminal: settings.claudeTerminal,
         bellNotify: settings.bellNotify,
         autosave: settings.autosave,

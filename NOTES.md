@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -3091,6 +3091,130 @@ Lezioni di collaudo:
 Regole per le prove: clone del repo, `autosave:false`, `aria-label="New terminal"`, fuoco al terminale via
 `.xterm-helper-textarea` col controllo di `document.activeElement`, e prova interrotta se compare `claude.exe`.
 Niente sessioni Claude vere nei test: consumano i token dell'utente.
+
+---
+
+## Milestone 62 — prestazioni: tutti i punti caldi, misurati prima e dopo
+
+Richiesta dell'utente dopo le misure della 1.0: «procedi con tutti i punti di miglioramento individuati e fai
+dei test prima e dopo per verificare il guadagno e la correttezza degli interventi».
+
+**Metodo.**
+- Due build release isolate (profilo `com.visialab.lume.perftest`): `orbit-base.exe`, congelata prima di
+  toccare il codice, e `orbit-after.exe` alla fine. Stessi banchi, stessi parametri, macchina libera.
+- Corpus grande fatto con sorgenti già sul disco (librerie npm e crate Rust), sotto git e fuori dal repo:
+  5.392 file (4.778 Rust, 615 JS/TS), 69 MB di sorgenti, 50.109 simboli, cioè il tetto dell'indice.
+- Il carico "tipo Claude" è sintetico: uno script modifica un file al secondo (una funzione nuova in un `.rs`,
+  una costante in un `.js`, un file creato e uno cancellato ogni 5 s). Lo spinner è uno script che ridisegna
+  righe. Mai sessioni Claude vere.
+- Sonda di latenza: ogni 50 ms la pagina chiama un comando banale (`app_version`) e ne misura l'andata e
+  ritorno. Un comando sincrono pesante sul thread principale la blocca.
+- Gli strumenti sono in `artifacts/devtest/perf/` (locale, con README).
+
+| Banco | Prima (1.0) | Dopo (M62) |
+|---|---|---|
+| Modifiche a raffica, 30 s: CPU | 95 % di un core | 23 % |
+| — backend / renderer / IPC (browser) | 54 / 26 / 10 % | 17 / 3 / 1,7 % |
+| — latenza IPC p95 / p99 / massima | 136 / 163 / 215 ms | 1,5 / 1,9 / 81 ms |
+| — richieste oltre 100 ms | 79 su 455 | 0 su 653 |
+| — RAM al picco | 551 MB (renderer 463) | 193 MB (renderer 84) |
+| Corpus aperto, a riposo: RAM | 227 MB | 186 MB |
+| — heap JS (dopo la garbage collection) | 71 MB | 14,6 MB |
+| — backend Rust | 7 MB | 32 MB (cache dell'indice) |
+| A riposo dopo le modifiche | 226 MB | 151 MB |
+| Cursore, 400 righe in un file indicizzato: script | 22.945 ms | 684 ms |
+| — lavoro della pagina / CPU | 25.364 ms / 80 % | 2.077 ms / 32 % |
+| — tempo per inviare i 400 tasti | 33 s (pagina occupata) | 9,6 s (ritmo normale) |
+| Avviso di attenzione acceso: CPU | 20,1 % di un core | 2,5 % |
+| 18 terminali con WebGL: contesti vivi | 16 (2 tornati al DOM) | 1 |
+| — VRAM / RAM | 173 / 163 MB | 84 / 145 MB |
+| Indice (Rust): un file cambiato | ~310 ms (scansione completa) | 85 ms |
+| Attività (Rust): transcript live da 40 MB | 134 ms a scansione | 4,3 ms |
+| Chunk d'avvio | 553 KiB (184 gzip) | 265 KiB (90 gzip) |
+| Prima pittura / finestra visibile | 318 / 555 ms | 328 / 541 ms (invariati) |
+
+Altri dati:
+- Lo spinner tipo Claude costa 14,7 % di un core col renderer DOM e 5,6 % col WebGL (misure della 1.0). Il
+  codice del disegno non cambia: cambia il default.
+- Cursore su un file oltre il tetto dell'indice (nessuna barra dei correlati né lenti): −5 % soltanto, il
+  costo lì è di CodeMirror. Il primo banco "cursore" era stato fatto per sbaglio su un file così.
+
+**Interventi.**
+1. Terminali:
+   - testo sulla GPU (WebGL) acceso di default, con una migrazione una tantum (`webglM62`, come `uiV09`);
+   - il contesto WebGL esiste solo per i terminali visibili: un `IntersectionObserver` lo crea alla
+     comparsa e lo rilascia 3 s dopo, e l'impostazione si applica dal vivo;
+   - storico configurabile (1.000–10.000 righe, default 3.000; prima 5.000 fisse).
+2. Avvisi di attenzione: l'anello su `box-shadow` animato all'infinito diventa transform/opacity, cioè solo
+   il compositore. Tutti i pallini pulsano 4 volte e poi restano accesi fermi.
+3. Log diagnostico:
+   - array semplice più un contatore reattivo, al posto di uno stato profondo da 2.000 voci;
+   - non registra più tasti, frecce e report del mouse;
+   - spento per i profili nuovi (chi l'aveva acceso lo tiene).
+4. Avvio: `outline.ts` si importa alla prima apertura di *Vai al simbolo*; prima portava CodeMirror nel chunk
+   d'avvio.
+5. Indice, frontend:
+   - `symbols` e `refs` in `$state.raw`;
+   - mappe ricostruite una volta per indice (`symbolMaps.ts`: per file, per nome, costruttori,
+     implementatori) invece di scansioni complete a ogni riga del cursore e a ogni lente;
+   - prima `rebuildSemSets` copiava l'array degli implementatori a ogni base (quadratico).
+6. Indice, backend:
+   - incrementale per file (data e dimensione), con un dizionario degli identificatori;
+   - stesso giro, stesso ordine, stesso tetto, quindi stesso risultato;
+   - versioni dei simboli e dei conteggi: sull'IPC passa solo ciò che il frontend non ha;
+   - la cache `.orbit/index` la scrive il backend (prima il frontend rimandava 5 MB indietro a ogni scansione).
+7. Cartelle ignorate da git (`git::ignored`):
+   - indice, riferimenti, ricerca e Quick Open le saltano;
+   - il watcher manda `{ paths, ignoredOnly }`: un lotto tutto in cartelle ignorate non rifà git né indice.
+   Un caso vero: l'indice del repo Orbit entrava in `artifacts/` e, coi file di prova, arrivava al tetto.
+8. Thread principale: tolti da lì `git_status`/`diff`/`log`/`graph`/`show`/`branches`/`upstream`,
+   `read_dir`/`read_file`/`write_file`, la ricerca e `list_files` (`#[tauri::command(async)]`). Ahead/behind
+   memorizzato per coppia di commit.
+9. Frontend del watcher:
+   - `git status` accorpato: una lettura alla volta, chi arriva intanto aspetta la successiva;
+   - albero: si rileggono solo le cartelle che contengono i percorsi cambiati, conservando espansione e figli.
+10. Attività:
+    - transcript letti dal punto in cui ci si era fermati, con lo stato della segmentazione ripreso
+      (`Fold`);
+    - le 500 unità restituite si scelgono per riferimento e si clonano solo quelle;
+    - frontend: `$state.raw`, oggetti delle unità invariate riusati, righe della timeline con chiave stabile.
+11. Ricerca: minuscole una volta per file, binari saltati (un byte nullo nei primi 8 KB), file senza il testo
+    scartati subito.
+12. Quick Open: l'elenco dei file (fino a 20.000) sta fuori dallo stato reattivo e si libera alla chiusura.
+
+**Correttezza.**
+- Test: `cargo test` 55/55 (+7), `vitest` 40/40 (+4), `svelte-check` 0/0.
+  - Attività: equivalenza col vecchio algoritmo su transcript casuali letti a pezzi, anche a metà riga;
+    file riscritto o accorciato; ultima riga senza a capo; ordinamento e `live` della scansione.
+  - Indice: incrementale uguale alla scansione completa dopo modifiche, aggiunte, cancellazioni e rinomine;
+    cartelle ignorate. Le mappe dei simboli uguali alle vecchie scansioni su 60 indici casuali (lenti,
+    contesto, definizioni, insiemi semantici).
+- Confronto prima/dopo nell'app:
+  - indice del corpus identico (50.109 simboli e 29.802 conteggi, file `.orbit/index` uguali);
+  - unità della vista Attività identiche sui transcript veri (hash di 189 unità, in sola lettura);
+  - sul corpus intero l'incrementale coincide con la scansione completa anche col tetto.
+- Controlli funzionali:
+  - migrazione WebGL, e scelta dell'utente rispettata al riavvio;
+  - WebGL al cambio scheda (dopo 3 s resta 1 contesto vivo);
+  - albero su creazione e cancellazione;
+  - barra dei correlati, lenti, vista Attività.
+
+**Costi e cambi di comportamento.**
+- La cache dell'indice tiene ~25 MB nel backend su un progetto enorme, qualche MB su uno normale. Il totale
+  scende lo stesso, perché il renderer cala di molto di più.
+- File in cartelle ignorate da git non compaiono più in indice, riferimenti, ricerca e Quick Open (come in VS
+  Code). Nell'albero sì.
+- Storico del terminale: 3.000 righe di default, modificabile nelle Impostazioni.
+- I pallini di attenzione pulsano 4 volte e poi restano accesi.
+- L'avvio non cambia in modo misurabile su questo PC: il chunk dimezzato pesa di più su macchine lente.
+
+**Lezioni di collaudo.**
+- In PowerShell `measure` e `kill` sono alias, e una funzione con quel nome non viene chiamata; `$p` e `$P`
+  sono la stessa variabile.
+- Corpus e cartelle di build di prova vanno fuori dal repo: l'Orbit dell'utente li indicizzava. Era il bug
+  delle cartelle ignorate, corretto qui.
+- Il banco "cursore" va fatto su un file sotto il tetto dell'indice.
+- Le build lunghe vanno a priorità bassa (`BelowNormal`, 8 job) se l'utente usa il PC.
 
 ---
 

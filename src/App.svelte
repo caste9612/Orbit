@@ -18,7 +18,7 @@
   import { layout, resizeSidebar, resizeTerminal, toggleSidebar, toggleTerminal, animate, motionMs } from "./lib/state/layout.svelte";
   import { listen, emit } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { openFolderDialog, refreshTree, revealInTree } from "./lib/state/explorer.svelte";
+  import { openFolderDialog, refreshTreeFor, revealInTree } from "./lib/state/explorer.svelte";
   import { workspace, openFile, saveActive, savePath, autosaveAll, reloadOpenFiles, activeFile, activePath } from "./lib/state/workspace.svelte";
   import { setQuery } from "./lib/state/search.svelte";
   import { refreshStatus } from "./lib/state/git.svelte";
@@ -279,12 +279,16 @@
       /* fuori dal contesto Tauri */
     }
     // aggiornamento in tempo reale: il backend emette fs-changed (debounced) coi path cambiati.
-    offFsChanged = await listen<string[]>("fs-changed", (e) => {
+    offFsChanged = await listen<{ paths: string[]; ignoredOnly: boolean }>("fs-changed", (e) => {
       // path assoluti cambiati → ricarico in modo SELETTIVO. Fallback (payload assente/non-array):
       // tratta come "tutto cambiato" per non perdere aggiornamenti. Normalizzo a "/" per il match.
-      const changed = Array.isArray(e.payload) ? e.payload.map((p) => p.replace(/\\/g, "/")) : null;
-      refreshTree(); // struttura albero (add/del/rename): serve comunque
-      if (!workspace.light) refreshStatus(); // decorazioni git: quasi ogni cambio le tocca (non in modalità leggera)
+      const raw = Array.isArray(e.payload?.paths) ? e.payload.paths : null;
+      const changed = raw ? raw.map((p) => p.replace(/\\/g, "/")) : null;
+      // tutti dentro cartelle ignorate da git (output di build…): stato git e indice non cambiano (M62)
+      const ignoredOnly = !!raw && e.payload.ignoredOnly === true;
+      void refreshTreeFor(raw); // solo le cartelle che contengono i percorsi cambiati (M62)
+      // decorazioni git: quasi ogni cambio le tocca (non in modalità leggera)
+      if (!workspace.light && !ignoredOnly) refreshStatus();
       reloadOpenFiles(changed); // SOLO i file aperti effettivamente cambiati (prima: tutti, ogni evento)
       // menu .orbit/*: ricarica solo se il rispettivo file è tra i cambiati (Claude tocca un sorgente → skip)
       if (!changed || changed.some((p) => p.endsWith("/.orbit/run.json"))) loadRunConfig();
@@ -292,7 +296,7 @@
       if (!changed || changed.some((p) => p.endsWith("/.orbit/shelf.json"))) loadShelf();
       invalidateFiles(); // l'elenco file cachato (Docs/Quick Open) non è più aggiornato
       if (layout.sidebarView === "docs") loadDocs(); // aggiorna l'indice Docs se visibile
-      scheduleRescan(); // aggiorna la rubrica dei simboli del progetto (debounced)
+      if (!ignoredOnly) scheduleRescan(); // aggiorna la rubrica dei simboli del progetto (debounced)
     });
     // un terminale estratto torna nel pannello quando la sua finestra flottante si chiude
     offRedock = await listen("term-redock", (e) => {

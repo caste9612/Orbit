@@ -33,14 +33,52 @@ export interface WorkUnit {
   live: boolean; // ultima unità di una sessione il cui transcript è stato scritto da poco
 }
 
-export const activity = $state({
-  units: [] as WorkUnit[],
-  loading: false,
-  loaded: false,
-});
+// `units` non è reattivo in profondità (M62): 500 unità con prompt, file e comandi, sostituite a ogni
+// scansione — mentre Claude lavora, più volte al minuto — diventavano tutte proxy di Svelte. Si legge
+// l'array, non si modifica: ogni scansione lo rimpiazza.
+class ActivityState {
+  units = $state.raw<WorkUnit[]>([]);
+  loading = $state(false);
+  loaded = $state(false);
+}
+export const activity = new ActivityState();
 
 // token anti-stale: una loadActivity più recente invalida i risultati di quelle precedenti.
 let token = 0;
+
+/** Stessa unità di prima? (confronto leggero: un'unità cambia solo crescendo o chiudendosi) */
+function sameUnit(a: WorkUnit, b: WorkUnit): boolean {
+  return (
+    a.end === b.end &&
+    a.live === b.live &&
+    a.label === b.label &&
+    a.kind === b.kind &&
+    a.add === b.add &&
+    a.del === b.del &&
+    a.committed === b.committed &&
+    a.commit === b.commit &&
+    a.branch === b.branch &&
+    a.sessionTitle === b.sessionTitle &&
+    a.repo === b.repo &&
+    a.files.length === b.files.length &&
+    a.prompts.length === b.prompts.length &&
+    a.cmds.length === b.cmds.length
+  );
+}
+
+/** Le unità nuove, riusando gli oggetti di quelle rimaste uguali: Svelte aggiorna solo le righe cambiate.
+ *  null = nulla di diverso da prima. */
+function merge(prev: WorkUnit[], next: WorkUnit[]): WorkUnit[] | null {
+  const old = new Map(prev.map((u) => [u.id, u]));
+  let changed = prev.length !== next.length;
+  const out = next.map((u, i) => {
+    const o = old.get(u.id);
+    const keep = o && sameUnit(o, u) ? o : u;
+    if (keep !== prev[i]) changed = true;
+    return keep;
+  });
+  return changed ? out : null;
+}
 
 export async function loadActivity() {
   const my = ++token;
@@ -48,7 +86,8 @@ export async function loadActivity() {
   try {
     const units = await invoke<WorkUnit[]>("scan_activity", { limit: 500 });
     if (my !== token) return; // scartato: ne è partita una più recente
-    activity.units = units;
+    const next = merge(activity.units, units);
+    if (next) activity.units = next;
     activity.loaded = true;
   } catch (e) {
     console.error("scan_activity", e);

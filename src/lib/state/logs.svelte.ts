@@ -21,7 +21,18 @@ let seq = 0;
 let version = "?";
 let wroteHeader = false; // header scritto su disco una volta per sessione (lazy, al primo flush)
 
-export const logs = $state({ entries: [] as LogEntry[] });
+// Le voci stanno in un array semplice; è reattiva solo `rev`, che il visualizzatore legge tramite `entries`
+// (M62). Prima l'array era stato profondo: ogni voce diventava un proxy e, a buffer pieno, ogni voce nuova
+// spostava 2000 segnali.
+class LogStore {
+  rev = $state(0);
+  list: LogEntry[] = [];
+  get entries(): LogEntry[] {
+    void this.rev;
+    return this.list.length > CAP ? this.list.slice(-CAP) : this.list;
+  }
+}
+export const logs = new LogStore();
 
 let pending: string[] = []; // righe in attesa di scrittura su disco (batch)
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
@@ -52,8 +63,9 @@ export function log(cat: string, msg: string, data?: unknown, level: LogLevel = 
   if (!settings.logging) return;
   seq += 1;
   const e: LogEntry = { seq, clock: Math.round(performance.now()), time: nowTime(), level, cat, msg, data: ser(data) };
-  logs.entries.push(e);
-  if (logs.entries.length > CAP) logs.entries.splice(0, logs.entries.length - CAP);
+  logs.list.push(e);
+  if (logs.list.length > CAP + 200) logs.list.splice(0, logs.list.length - CAP); // a blocchi, non a ogni voce
+  logs.rev++;
   pending.push(fmtLine(e));
   if (!flushTimer) flushTimer = setTimeout(flush, 1500);
 }
@@ -99,7 +111,8 @@ export async function revealLogFile() {
   if (p) await invoke("reveal_path", { path: p }).catch(() => {});
 }
 export function clearLogs() {
-  logs.entries = [];
+  logs.list = [];
+  logs.rev++;
   pending = [];
 }
 

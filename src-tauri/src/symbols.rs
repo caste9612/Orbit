@@ -3,10 +3,13 @@
 // sola std — NIENTE crate `regex`, NIENTE LSP — riconoscendo la *forma* delle dichiarazioni per
 // linguaggio. Coerente coi gate (leggerezza, zero dipendenze). Name-based: per i nomi ambigui il
 // frontend mostra un selettore.
-use crate::refs;
+use crate::{git, refs};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
+use std::hash::{Hash, Hasher};
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+use std::time::SystemTime;
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -43,26 +46,93 @@ fn lang_for_ext(ext: &str) -> Option<Lang> {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScanResult {
-    symbols: Vec<Symbol>,
+    symbols_version: String,
+    refs_version: String,
+    // null se il frontend ha già questa versione (M62): niente megabyte inutili sull'IPC a ogni salvataggio
+    symbols: Option<Vec<Symbol>>,
     // M60 (CodeLens): quante volte compare il nome di ogni simbolo, commenti e stringhe esclusi
-    refs: HashMap<String, u32>,
+    refs: Option<HashMap<String, u32>>,
 }
 
 /// Scansiona il progetto: le definizioni dei simboli e, nello stesso giro di file, quante volte compare
 /// ogni loro nome (i "N references" di CodeLens). Fuori dal thread principale (M60): la scansione riparte
-/// a ogni modifica dei file e, su un progetto grande, prima fermava l'interfaccia.
+/// a ogni modifica dei file. `known_*`: le versioni che il frontend ha già (quelle restano fuori dalla
+/// risposta). La cache su disco (.orbit/index) la scrive il backend quando cambia (M62; prima il frontend
+/// rimandava indietro tutto via IPC).
 #[tauri::command]
-pub async fn scan_symbols(root: String) -> Result<ScanResult, String> {
-    tauri::async_runtime::spawn_blocking(move || scan(&root))
+pub async fn scan_symbols(root: String, known_symbols: Option<String>, known_refs: Option<String>) -> Result<ScanResult, String> {
+    tauri::async_runtime::spawn_blocking(move || scan(&root, known_symbols.as_deref(), known_refs.as_deref()))
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
 }
 
-fn scan(root: &str) -> Result<ScanResult, String> {
+// ---- indice incrementale (M62) ------------------------------------------------------------------
+// Prima ogni scansione rileggeva e rianalizzava TUTTI i file (≈310 ms su 5.400 file e 69 MB di sorgenti,
+// a ogni salvataggio di Claude). Ora si tiene, per file, cosa se ne era ricavato (simboli e righe di ogni
+// identificatore) con data di modifica e dimensione: si rilegge solo ciò che è cambiato. Il giro sulle
+// cartelle e il tetto dei 50.000 simboli restano quelli di prima, nello stesso ordine: stesso risultato
+// di una scansione completa. Gli identificatori sono interi di un dizionario per radice (~13 MB su quel
+// progetto enorme, poche centinaia di KB su uno normale); si tengono le ultime due radici aperte.
+struct FileIdx {
+    mtime: Option<SystemTime>,
+    len: u64,
+    symbols: Vec<Symbol>,
+    idents: Box<[(u32, u32)]>, // (identificatore nel dizionario, righe in cui compare)
+}
+
+#[derive(Default)]
+struct RootIdx {
+    files: HashMap<PathBuf, FileIdx>,
+    dict: HashMap<Box<str>, u32>, // identificatori visti (cresce soltanto)
+    included: Vec<PathBuf>,       // file compresi nell'ultima scansione, in ordine di visita
+    versions: Option<(u64, u64)>, // versioni (simboli, conteggi) dell'ultimo risultato
+    written: Option<(u64, u64)>,  // versioni scritte in .orbit/index
+}
+
+static INDEX: Mutex<Vec<(String, RootIdx)>> = Mutex::new(Vec::new());
+const MAX_ROOTS: usize = 2;
+
+fn scan(root: &str, known_symbols: Option<&str>, known_refs: Option<&str>) -> ScanResult {
+    let mut roots = INDEX.lock().unwrap_or_else(|e| e.into_inner());
+    let mut entry = match roots.iter().position(|(r, _)| r == root) {
+        Some(i) => roots.remove(i),
+        None => (root.to_string(), RootIdx::default()),
+    };
+    let idx = &mut entry.1;
+    let assembled = update(idx, root);
+    let versions = idx.versions.expect("update() fissa sempre le versioni");
+    let (sv, rv) = (format!("{:016x}", versions.0), format!("{:016x}", versions.1));
+    let need_symbols = known_symbols != Some(sv.as_str());
+    let need_refs = known_refs != Some(rv.as_str());
+    let write = idx.written != Some(versions);
+    // il risultato completo non resta in memoria: si ricompone dai file solo se qualcuno lo chiede (raro:
+    // apertura della cartella, un'altra finestra) — su un progetto enorme sono ~10 MB in meno
+    let data = (need_symbols || need_refs || write).then(|| assembled.unwrap_or_else(|| assemble(idx)));
+    if write {
+        if let Some((symbols, refs)) = &data {
+            write_cache(root, symbols, refs);
+        }
+        idx.written = Some(versions);
+    }
+    let (symbols, refs) = match data {
+        Some((s, r)) => (need_symbols.then_some(s), need_refs.then_some(r)),
+        None => (None, None),
+    };
+    roots.insert(0, entry);
+    roots.truncate(MAX_ROOTS);
+    ScanResult { symbols_version: sv, refs_version: rv, symbols, refs }
+}
+
+/// Porta in pari l'indice della radice: rilegge solo i file nuovi o cambiati. Se qualcosa è cambiato
+/// ricompone simboli e conteggi, ne fissa le versioni e li restituisce; altrimenti None.
+fn update(idx: &mut RootIdx, root: &str) -> Option<(Vec<Symbol>, HashMap<String, u32>)> {
     let root_path = Path::new(root);
-    let mut out: Vec<Symbol> = Vec::new();
-    let mut counts: HashMap<String, u32> = HashMap::new();
+    let repo = git2::Repository::discover(root_path).ok();
+    let mut included: Vec<PathBuf> = Vec::new();
+    let mut count = 0usize; // simboli finora, per il tetto (come `out.len()` della scansione completa)
+    let mut dirty = false;
     let mut stack = vec![root_path.to_path_buf()];
     'walk: while let Some(dir) = stack.pop() {
         let rd = match std::fs::read_dir(&dir) {
@@ -70,14 +140,14 @@ fn scan(root: &str) -> Result<ScanResult, String> {
             Err(_) => continue,
         };
         for entry in rd.flatten() {
-            if out.len() >= 50_000 {
+            if count >= 50_000 {
                 break 'walk; // cap di sicurezza su repo enormi
             }
             let p = entry.path();
             let fname = entry.file_name().to_string_lossy().to_string();
             let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
             if is_dir {
-                if matches!(fname.as_str(), "node_modules" | ".git" | "target" | "dist") {
+                if matches!(fname.as_str(), "node_modules" | ".git" | "target" | "dist") || git::ignored(repo.as_ref(), &p) {
                     continue;
                 }
                 stack.push(p);
@@ -93,30 +163,121 @@ fn scan(root: &str) -> Result<ScanResult, String> {
             if lang.is_none() && lex.is_none() {
                 continue;
             }
-            if entry.metadata().map(|m| m.len()).unwrap_or(0) > 2_000_000 {
+            let meta = entry.metadata().ok();
+            let len = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+            if len > 2_000_000 {
                 continue;
             }
-            let content = match std::fs::read_to_string(&p) {
-                Ok(c) => c,
-                Err(_) => continue,
-            };
-            if let Some(lang) = lang {
-                let rel = p
-                    .strip_prefix(root_path)
-                    .unwrap_or(&p)
-                    .to_string_lossy()
-                    .replace('\\', "/");
-                extract(lang, &content, &rel, &mut out);
+            let mtime = meta.and_then(|m| m.modified().ok());
+            let fresh = matches!(idx.files.get(&p), Some(f) if f.mtime == mtime && f.len == len);
+            if !fresh {
+                dirty = true;
+                let content = match std::fs::read_to_string(&p) {
+                    Ok(c) => c,
+                    Err(_) => {
+                        idx.files.remove(&p);
+                        continue;
+                    }
+                };
+                let mut symbols = Vec::new();
+                if let Some(lang) = lang {
+                    let rel = p.strip_prefix(root_path).unwrap_or(&p).to_string_lossy().replace('\\', "/");
+                    extract(lang, &content, &rel, &mut symbols);
+                }
+                let idents = match lex {
+                    Some(lex) => intern(&mut idx.dict, refs::line_counts(&content, lex)),
+                    None => Box::default(),
+                };
+                idx.files.insert(p.clone(), FileIdx { mtime, len, symbols, idents });
             }
-            if let Some(lex) = lex {
-                refs::count_into(&content, lex, &mut counts);
-            }
+            count += idx.files[&p].symbols.len();
+            included.push(p);
+        }
+    }
+    // i file che non ci sono più (o restano oltre il tetto) escono dalla cache
+    let before = idx.files.len();
+    let keep: HashSet<&PathBuf> = included.iter().collect();
+    idx.files.retain(|k, _| keep.contains(k));
+    dirty |= idx.files.len() != before;
+    if !dirty && idx.versions.is_some() && idx.included == included {
+        return None; // niente di nuovo: il risultato di prima vale ancora
+    }
+    idx.included = included;
+    let (symbols, refs) = assemble(idx);
+    idx.versions = Some((symbols_version(&symbols), refs_version(&refs)));
+    Some((symbols, refs))
+}
+
+/// Simboli e conteggi dei file compresi nell'ultima scansione (come li dava la scansione completa).
+fn assemble(idx: &RootIdx) -> (Vec<Symbol>, HashMap<String, u32>) {
+    let count = idx.included.iter().map(|p| idx.files[p].symbols.len()).sum();
+    let mut symbols: Vec<Symbol> = Vec::with_capacity(count);
+    let mut totals = vec![0u32; idx.dict.len()];
+    for p in &idx.included {
+        let f = &idx.files[p];
+        symbols.extend(f.symbols.iter().cloned());
+        for &(id, n) in f.idents.iter() {
+            totals[id as usize] += n;
         }
     }
     // dei conteggi servono solo i nomi dei simboli (non ogni identificatore del progetto)
-    let names: HashSet<&str> = out.iter().map(|s| s.name.as_str()).collect();
-    counts.retain(|k, _| names.contains(k.as_str()));
-    Ok(ScanResult { symbols: out, refs: counts })
+    let mut refs: HashMap<String, u32> = HashMap::new();
+    for s in &symbols {
+        if refs.contains_key(&s.name) {
+            continue;
+        }
+        if let Some(&id) = idx.dict.get(s.name.as_str()) {
+            if totals[id as usize] > 0 {
+                refs.insert(s.name.clone(), totals[id as usize]);
+            }
+        }
+    }
+    (symbols, refs)
+}
+
+/// Identificatori di un file → coppie (id nel dizionario, righe).
+fn intern(dict: &mut HashMap<Box<str>, u32>, counts: HashMap<&str, u32>) -> Box<[(u32, u32)]> {
+    counts
+        .into_iter()
+        .map(|(name, n)| {
+            let next = dict.len() as u32;
+            (*dict.entry(name.into()).or_insert(next), n)
+        })
+        .collect()
+}
+
+fn symbols_version(symbols: &[Symbol]) -> u64 {
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    for s in symbols {
+        (&s.name, &s.kind, &s.file, s.line, &s.container, &s.bases, s.is_abstract).hash(&mut h);
+    }
+    symbols.len().hash(&mut h);
+    h.finish()
+}
+
+/// Versione dei conteggi indipendente dall'ordine della mappa.
+fn refs_version(refs: &HashMap<String, u32>) -> u64 {
+    let mut acc = refs.len() as u64;
+    for (k, v) in refs {
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        (k, v).hash(&mut h);
+        acc = acc.wrapping_add(h.finish());
+    }
+    acc
+}
+
+/// .orbit/index/{symbols,refs}.json: il frontend li legge all'apertura della cartella, prima della scansione.
+fn write_cache(root: &str, symbols: &[Symbol], refs: &HashMap<String, u32>) {
+    let dir = Path::new(root).join(".orbit").join("index");
+    if std::fs::create_dir_all(&dir).is_err() {
+        return;
+    }
+    if let Ok(s) = serde_json::to_string(symbols) {
+        let _ = std::fs::write(dir.join("symbols.json"), s);
+    }
+    if let Ok(s) = serde_json::to_string(refs) {
+        let _ = std::fs::write(dir.join("refs.json"), s);
+    }
 }
 
 // ---- helper di parsing (solo std) -------------------------------------------
@@ -880,7 +1041,109 @@ mod tests {
         assert!(a.bases.contains(&"B".to_string()) && a.bases.contains(&"C".to_string()));
     }
 
-    /// Misura (in sola lettura) la scansione con i riferimenti di CodeLens su progetti veri. A mano, in release:
+    // ---- riferimento: la scansione completa com'era prima della M62 ------------------------------------
+    fn scan_reference(root: &str) -> (Vec<Symbol>, HashMap<String, u32>) {
+        let root_path = Path::new(root);
+        let mut out: Vec<Symbol> = Vec::new();
+        let mut counts: HashMap<String, u32> = HashMap::new();
+        let mut stack = vec![root_path.to_path_buf()];
+        'walk: while let Some(dir) = stack.pop() {
+            let Ok(rd) = std::fs::read_dir(&dir) else { continue };
+            for entry in rd.flatten() {
+                if out.len() >= 50_000 {
+                    break 'walk;
+                }
+                let p = entry.path();
+                let fname = entry.file_name().to_string_lossy().to_string();
+                if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+                    if !matches!(fname.as_str(), "node_modules" | ".git" | "target" | "dist") {
+                        stack.push(p);
+                    }
+                    continue;
+                }
+                let Some(ext) = p.extension().and_then(|e| e.to_str()).map(|e| e.to_lowercase()) else { continue };
+                let (lang, lex) = (lang_for_ext(&ext), refs::lex_for_ext(&ext));
+                if (lang.is_none() && lex.is_none()) || entry.metadata().map(|m| m.len()).unwrap_or(0) > 2_000_000 {
+                    continue;
+                }
+                let Ok(content) = std::fs::read_to_string(&p) else { continue };
+                if let Some(lang) = lang {
+                    let rel = p.strip_prefix(root_path).unwrap_or(&p).to_string_lossy().replace('\\', "/");
+                    extract(lang, &content, &rel, &mut out);
+                }
+                if let Some(lex) = lex {
+                    refs::count_into(&content, lex, &mut counts);
+                }
+            }
+        }
+        let names: HashSet<&str> = out.iter().map(|s| s.name.as_str()).collect();
+        counts.retain(|k, _| names.contains(k.as_str()));
+        (out, counts)
+    }
+    fn same(idx: &RootIdx, want: &(Vec<Symbol>, HashMap<String, u32>)) -> bool {
+        let (s, r) = &assemble(idx);
+        let sorted = |m: &HashMap<String, u32>| m.iter().map(|(k, v)| (k.clone(), *v)).collect::<std::collections::BTreeMap<_, _>>();
+        serde_json::to_string(s).unwrap() == serde_json::to_string(&want.0).unwrap() && sorted(r) == sorted(&want.1)
+    }
+    fn tmp_project(name: &str) -> PathBuf {
+        let d = std::env::temp_dir().join("orbit-symbols-tests").join(name);
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(d.join("src/sub")).unwrap();
+        std::fs::write(d.join("src/a.ts"), "export class Foo extends Base {\n  load() { return helper(Foo); }\n}\nexport function helper(x) { return x; }\n").unwrap();
+        std::fs::write(d.join("src/sub/b.rs"), "pub struct Repo { n: u32 }\nimpl Repo {\n    pub fn load(&self) -> u32 { self.n }\n}\nfn helper() {}\n").unwrap();
+        std::fs::write(d.join("src/c.cs"), "public class Bar : Foo, IRepo {\n  public void Save() { Load(); }\n}\n").unwrap();
+        std::fs::write(d.join("src/v.xaml"), "<Button Click=\"Save\" Content=\"{Binding Load}\"/>\n").unwrap();
+        std::fs::write(d.join("README.md"), "# not code\n").unwrap();
+        d
+    }
+
+    #[test]
+    fn incremental_index_matches_a_full_scan() {
+        let d = tmp_project("incremental");
+        let root = d.to_string_lossy().to_string();
+        let mut idx = RootIdx::default();
+        update(&mut idx, &root);
+        assert!(same(&idx, &scan_reference(&root)), "prima scansione");
+        // un file cambia (anche di lunghezza), uno nuovo, uno sparisce, uno rinominato
+        std::fs::write(d.join("src/a.ts"), "export class Foo extends Base {\n  load() { return helper(Foo, Repo); }\n  save() {}\n}\n").unwrap();
+        std::fs::write(d.join("src/sub/new.go"), "package x\n\ntype Svc struct{}\n\nfunc (s *Svc) Load() {}\n").unwrap();
+        std::fs::remove_file(d.join("src/c.cs")).unwrap();
+        std::fs::rename(d.join("src/sub/b.rs"), d.join("src/b2.rs")).unwrap();
+        update(&mut idx, &root);
+        assert!(same(&idx, &scan_reference(&root)), "dopo le modifiche");
+        assert_eq!(idx.files.len(), 4, "in cache solo i file che esistono: {:?}", idx.files.keys().collect::<Vec<_>>());
+        // nulla di nuovo: stesso risultato senza ricomporlo
+        let before = idx.versions;
+        assert!(update(&mut idx, &root).is_none(), "nessun file cambiato: niente da ricomporre");
+        assert_eq!(idx.versions, before);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn folders_ignored_by_git_are_not_indexed() {
+        let d = tmp_project("ignored");
+        git2::Repository::init(&d).unwrap();
+        std::fs::write(d.join(".gitignore"), "gen/\n/build-out\n").unwrap();
+        std::fs::create_dir_all(d.join("gen")).unwrap();
+        std::fs::create_dir_all(d.join("build-out/deep")).unwrap();
+        std::fs::write(d.join("gen/g.ts"), "export class Generated {}\n").unwrap();
+        std::fs::write(d.join("build-out/deep/o.rs"), "pub struct Output;\n").unwrap();
+        let repo = git2::Repository::discover(&d).ok();
+        assert!(git::ignored(repo.as_ref(), &d.join("gen")));
+        assert!(git::ignored(repo.as_ref(), &d.join("build-out")));
+        assert!(!git::ignored(repo.as_ref(), &d.join("src")));
+        let mut idx = RootIdx::default();
+        update(&mut idx, &d.to_string_lossy());
+        let (symbols, _) = assemble(&idx);
+        let names: Vec<&str> = symbols.iter().map(|s| s.name.as_str()).collect();
+        assert!(names.contains(&"Foo") && names.contains(&"Repo"), "{names:?}");
+        assert!(!names.contains(&"Generated") && !names.contains(&"Output"), "{names:?}");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    /// Misura sui progetti indicati (ad es. il corpus grande): scansione completa, poi una modifica a un file
+    /// e la scansione incrementale; controlla che il risultato coincida con la scansione completa di prima.
+    /// A mano, in release:
     /// `ORBIT_SCAN_ROOTS="D:/a;D:/b" cargo test --release --lib symbols::tests::scan_timing -- --ignored --nocapture`
     #[test]
     #[ignore]
@@ -888,8 +1151,32 @@ mod tests {
         let roots = std::env::var("ORBIT_SCAN_ROOTS").unwrap_or_else(|_| env!("CARGO_MANIFEST_DIR").to_string());
         for root in roots.split(';').filter(|r| !r.is_empty()) {
             let t = std::time::Instant::now();
-            let r = scan(root).unwrap();
-            println!("{root}: {} simboli, {} nomi contati, {:?}", r.symbols.len(), r.refs.len(), t.elapsed());
+            let reference = scan_reference(root);
+            let full_old = t.elapsed();
+            let mut idx = RootIdx::default();
+            let t = std::time::Instant::now();
+            update(&mut idx, root);
+            let first = t.elapsed();
+            assert!(same(&idx, &reference), "{root}: diverso dalla scansione completa");
+            let t = std::time::Instant::now();
+            update(&mut idx, root);
+            let idle = t.elapsed();
+            // una modifica tipo Claude: una funzione in più in un file sorgente
+            let victim = idx.files.keys().find(|p| p.extension().map_or(false, |e| e == "rs" || e == "ts")).cloned().unwrap();
+            let orig = std::fs::read(&victim).unwrap();
+            std::fs::write(&victim, [orig.as_slice(), b"\npub fn bench_changed_fn() {}\n"].concat()).unwrap();
+            let t = std::time::Instant::now();
+            update(&mut idx, root);
+            let one = t.elapsed();
+            let same_after = same(&idx, &scan_reference(root));
+            std::fs::write(&victim, &orig).unwrap();
+            assert!(same_after, "{root}: dopo la modifica diverso dalla scansione completa");
+            let (s, r) = assemble(&idx);
+            println!(
+                "{root}: {} simboli, {} nomi · completa (prima) {full_old:?} · prima incrementale {first:?} · senza modifiche {idle:?} · un file cambiato {one:?}",
+                s.len(),
+                r.len()
+            );
         }
     }
 

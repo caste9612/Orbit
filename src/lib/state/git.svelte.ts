@@ -68,14 +68,40 @@ export function gitRel(path: string): string {
   return rel && rel !== normSlash(path) ? rel : "";
 }
 
-export async function refreshStatus() {
-  if (!workspace.rootPath) return;
+// Una lettura dello stato alla volta (M62): `git status` ora gira fuori dal thread principale e su un repo
+// grande dura più dei 250 ms fra due eventi del watcher; le richieste si accavallavano. Chi chiama mentre
+// una lettura è in corso aspetta la successiva, che parte dopo e vede quindi anche le sue modifiche (es.
+// lo stage appena fatto); le richieste arrivate nel frattempo si accorpano in una sola lettura.
+let statusRun: Promise<void> | null = null;
+let statusWaiters: (() => void)[] = [];
+
+export function refreshStatus(): Promise<void> {
+  return new Promise((resolve) => {
+    statusWaiters.push(resolve);
+    statusRun ??= runStatus();
+  });
+}
+
+async function runStatus() {
+  while (statusWaiters.length) {
+    const batch = statusWaiters;
+    statusWaiters = [];
+    await readStatus();
+    for (const done of batch) done();
+  }
+  statusRun = null;
+}
+
+async function readStatus() {
+  const root = workspace.rootPath;
+  if (!root) return;
   git.loading = true;
   try {
     const s = await invoke<{ isRepo: boolean; branch: string | null; entries: StatusEntry[]; workdir: string | null }>(
       "git_status",
-      { root: workspace.rootPath },
+      { root },
     );
+    if (workspace.rootPath !== root) return; // cartella cambiata durante la lettura: vale la prossima
     git.isRepo = s.isRepo;
     git.workdir = s.workdir;
     git.branch = s.branch;

@@ -33,8 +33,8 @@ cross-platform desktop app that weighs almost nothing.
   review); files Claude edits **reload by themselves**, changed files are **highlighted in the
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
-- **It is genuinely small.** A ~5 MB binary, ~220 MB RAM at rest (mostly the shared system
-  WebView — Orbit's own Rust core is ~30 MB), and a ~546 KB startup chunk (≈182 KB gzipped).
+- **It is genuinely small.** A ~6.5 MB binary, ~120 MB of RAM at rest with a project open (mostly the
+  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~265 KB startup chunk (≈90 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -62,7 +62,8 @@ cross-platform desktop app that weighs almost nothing.
 - **Follow active file**: an optional toggle (⌖ in the explorer toolbar) that auto‑expands the tree
   to the active file and reveals it as you switch tabs, Quick‑Open a file, or jump to a definition
   (VS Code's *reveal*).
-- **Quick Open** (`Ctrl/Cmd+P`) with fuzzy ranking, and full‑text **project search**.
+- **Quick Open** (`Ctrl/Cmd+P`) with fuzzy ranking, and full‑text **project search**. Like the symbol index,
+  both skip folders ignored by git (build output, virtual environments…); the file tree still shows them.
 - **Drag in files**: drop files from your OS file manager onto the editor to open them.
 - On Windows, the setup (`Orbit_…_x64-setup.exe`) registers Orbit for common **text, code, image and
   PDF** files, so it shows up in their **"Open with"** menu — without making itself their **default**
@@ -139,7 +140,7 @@ cross-platform desktop app that weighs almost nothing.
 
 ![The Docs view with a Markdown file in reading-mode preview and its outline, next to Claude Code running in the integrated terminal](docs/screenshot-docs.png)
 
-**Terminal** (xterm.js + a real PTY, optional WebGL)
+**Terminal** (xterm.js + a real PTY, drawn on the GPU with WebGL)
 - Docked on the right, with **multiple tabs** and shell selection (PowerShell, cmd, Git Bash,
   WSL, bash/zsh…).
 - **Chats side by side**: up to four Claude chats or terminals in the panel at once, per repository.
@@ -282,7 +283,7 @@ cross-platform desktop app that weighs almost nothing.
   conflict warnings) — full reference in Settings → Keyboard shortcuts.
 - **Settings**: theme, keymap preset (incl. Custom), editor/terminal font with **independent sizes**
   (`Ctrl/Cmd+scroll` zooms whichever panel the pointer is over), accent color, smooth-caret toggle,
-  **code lens**, **smooth panel transitions**, **autosave**, **default Markdown view** (source / preview / READMEs only), terminal GPU rendering,
+  **code lens**, **smooth panel transitions**, **autosave**, **default Markdown view** (source / preview / READMEs only), terminal GPU rendering (on by default, only for the terminals in view), **terminal scrollback** (1,000–10,000 lines, default 3,000),
   "launch Claude in the default terminal", "notify when a terminal needs you", **diagnostic logging** (collect/export logs to investigate issues),
   and **automatic update checks** (the installed version and *Check now* are pinned at the foot of the panel).
 
@@ -298,8 +299,9 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~3.9 MB |
 | NSIS setup | ~3.1 MB |
 | Frontend `dist/` | ~2.9 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~553 KB (≈185 KB gzipped) |
-| RAM at rest (project open) | ~220 MB private working set (Orbit + WebView2; the Rust core is only ~30 MB — the rest is the shared system WebView, inherent to Tauri) |
+| Startup JS chunk | ~265 KB (≈90 KB gzipped; the editor and the terminal load on demand) |
+| RAM at rest (project open) | ~120 MB private working set with one terminal, ~155 MB with four terminals and three files open (Orbit + WebView2; the Rust core is ~6 MB, ~30 MB with the symbol index of a very large project — the rest is the shared system WebView, inherent to Tauri) |
+| Under load | Claude saving a file every second in a 5,400-file project: ~23% of one CPU core, the UI answering in ~2 ms (99th percentile) |
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own
 memory on top, just as in any terminal. For comparison, an equivalent Electron app ships an

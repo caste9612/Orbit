@@ -335,6 +335,8 @@ pub fn for_each_ident<'a>(content: &'a str, lex: Lex, f: impl FnMut(&'a str, u32
     lx.code(0, false);
 }
 
+/// (Solo test dalla M62: l'indice conta file per file con `line_counts`.)
+#[cfg(test)]
 /// Somma in `counts`, per ogni identificatore del file, le RIGHE in cui compare (allocazione solo per i nomi
 /// nuovi). Righe e non occorrenze: `Section s = Section.General` è un posto solo, come nell'elenco che si
 /// apre dalla lente — così il numero della lente e le righe dell'elenco coincidono sempre.
@@ -350,6 +352,19 @@ pub fn count_into(content: &str, lex: Lex, counts: &mut HashMap<String, u32>) {
             counts.insert(id.to_string(), 1);
         }
     });
+}
+
+/// Per UN file: in quante righe compare ogni identificatore (come `count_into`, ma senza allocare: i nomi
+/// sono fette del contenuto). Per l'indice incrementale (M62), che tiene i conteggi file per file.
+pub fn line_counts(content: &str, lex: Lex) -> HashMap<&str, u32> {
+    let mut last_line: HashMap<&str, u32> = HashMap::new();
+    let mut counts: HashMap<&str, u32> = HashMap::new();
+    for_each_ident(content, lex, |id, line| {
+        if last_line.insert(id, line) != Some(line) {
+            *counts.entry(id).or_insert(0) += 1;
+        }
+    });
+    counts
 }
 
 #[derive(Serialize)]
@@ -372,6 +387,7 @@ pub async fn ref_list(root: String, name: String) -> Result<Vec<RefHit>, String>
 
 fn list(root: &str, name: &str) -> Vec<RefHit> {
     let root_path = Path::new(root);
+    let repo = git2::Repository::discover(root_path).ok();
     let mut out = Vec::new();
     let mut stack = vec![root_path.to_path_buf()];
     while let Some(dir) = stack.pop() {
@@ -381,7 +397,10 @@ fn list(root: &str, name: &str) -> Vec<RefHit> {
             let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
             if is_dir {
                 let fname = entry.file_name();
-                if !matches!(fname.to_string_lossy().as_ref(), "node_modules" | ".git" | "target" | "dist") {
+                // stesse cartelle dell'indice (M62: anche quelle ignorate da git restano fuori)
+                if !matches!(fname.to_string_lossy().as_ref(), "node_modules" | ".git" | "target" | "dist")
+                    && !crate::git::ignored(repo.as_ref(), &p)
+                {
                     stack.push(p);
                 }
                 continue;

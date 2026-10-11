@@ -1,7 +1,7 @@
 // "Vai al simbolo" (Ctrl+Shift+O): elenco fuzzy dei simboli del file attivo, con salto.
 // I simboli vengono estratti su richiesta dall'albero sintattico dell'editor a fuoco.
 import { getActiveEditor } from "../editor/activeEditor";
-import { extractSymbols, type OutlineSymbol } from "../editor/outline";
+import type { OutlineSymbol } from "../editor/outline";
 
 export const symbols = $state({
   open: false,
@@ -14,8 +14,12 @@ export const symbols = $state({
 
 const CAP = 500;
 
-export function openSymbols() {
+// outline.ts si carica alla prima apertura (M62): importato qui staticamente portava @codemirror/language
+// nel codice caricato all'avvio, anche senza nessun file aperto. Con un editor a fuoco CodeMirror è già
+// caricato e il modulo è minuscolo: l'attesa non si vede.
+export async function openSymbols() {
   const view = getActiveEditor();
+  const { extractSymbols } = await import("../editor/outline");
   symbols.query = "";
   symbols.index = 0;
   symbols.items = view ? extractSymbols(view.state) : [];

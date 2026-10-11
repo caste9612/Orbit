@@ -1,7 +1,7 @@
 // Albero file: lazy per directory; la UI virtualizza il rendering.
 import { invoke } from "@tauri-apps/api/core";
 import { open, confirm } from "@tauri-apps/plugin-dialog";
-import { basename, dirname, joinPath, relTo } from "../util";
+import { basename, dirname, isUnder, joinPath, relTo, samePath } from "../util";
 import { workspace, renameOpenPaths, closeUnder } from "./workspace.svelte";
 import { refreshStatus } from "./git.svelte";
 import { loadRunConfig } from "./run.svelte";
@@ -124,6 +124,80 @@ export function flatten(nodes: TreeNode[], out: TreeNode[] = []): TreeNode[] {
     if (n.entry.isDir && n.expanded && n.children.length) flatten(n.children, out);
   }
   return out;
+}
+
+// Aggiornamenti dal file watcher in coda: un giro alla volta, i percorsi arrivati nel frattempo si
+// accorpano nel giro successivo (null = rileggere tutto).
+let treeBusy = false;
+let treeNext: Set<string> | null | undefined;
+
+/** Aggiorna l'albero dopo un `fs-changed` rileggendo SOLO le cartelle che contengono i percorsi cambiati,
+ *  se sono caricate (M62). Prima si rileggeva ogni cartella espansa, una dopo l'altra, a ogni salvataggio;
+ *  i nodi che restano conservano espansione e figli. `changed` null → si ricostruisce tutto. */
+export async function refreshTreeFor(changed: string[] | null) {
+  if (treeBusy) {
+    treeNext = changed && treeNext !== null ? new Set([...(treeNext ?? []), ...changed]) : null;
+    return;
+  }
+  treeBusy = true;
+  try {
+    let batch: string[] | null = changed;
+    while (true) {
+      if (batch) await refreshParents(batch);
+      else await refreshTree();
+      if (treeNext === undefined) break;
+      batch = treeNext ? [...treeNext] : null;
+      treeNext = undefined;
+    }
+  } finally {
+    treeBusy = false;
+  }
+}
+
+async function refreshParents(changed: string[]) {
+  const root = workspace.rootPath;
+  if (!root) return;
+  const dirs: string[] = [];
+  for (const p of changed) {
+    const d = dirname(p);
+    if (!dirs.some((x) => samePath(x, d))) dirs.push(d);
+  }
+  for (const d of dirs) {
+    if (samePath(d, root)) {
+      tree.roots = await mergeLevel(root, 0, tree.roots);
+      continue;
+    }
+    const n = findDir(tree.roots, d);
+    if (n && n.loaded) n.children = await mergeLevel(n.entry.path, n.depth + 1, n.children);
+  }
+}
+
+/** Rilegge una cartella tenendo i nodi che ci sono ancora (con espansione e figli); i nuovi entrano chiusi. */
+async function mergeLevel(path: string, depth: number, old: TreeNode[]): Promise<TreeNode[]> {
+  let entries: FsEntry[];
+  try {
+    entries = await invoke<FsEntry[]>("read_dir", { path });
+  } catch {
+    return old;
+  }
+  const byPath = new Map(old.map((n) => [n.entry.path, n]));
+  return entries.map((e) => {
+    const n = byPath.get(e.path);
+    if (n && n.entry.isDir === e.isDir) return n;
+    return makeNode(e, depth);
+  });
+}
+
+function findDir(nodes: TreeNode[], path: string): TreeNode | undefined {
+  for (const n of nodes) {
+    if (!n.entry.isDir) continue;
+    if (samePath(n.entry.path, path)) return n;
+    if (n.children.length && isUnder(path, n.entry.path)) {
+      const f = findDir(n.children, path);
+      if (f) return f;
+    }
+  }
+  return undefined;
 }
 
 /** Ricostruisce l'albero preservando le cartelle espanse (usato dal file watcher). */

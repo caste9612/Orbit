@@ -11,7 +11,7 @@
 use notify::{recommended_watcher, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 use std::sync::Mutex;
@@ -102,33 +102,53 @@ impl Acc {
     }
 }
 
-/// Segmenta le righe (già parsate) di UN transcript nelle sue unità di lavoro.
+/// Segmenta le righe (già parsate) di UN transcript nelle sue unità di lavoro. La scansione usa `Fold` a
+/// pezzi (M62); questa forma "tutto il file" resta per i test.
+#[cfg(test)]
 fn segment(lines: &[Value], session_id: &str) -> Vec<WorkUnit> {
-    // aiTitle: una sola per sessione (l'ultima vince); il cwd dalla prima riga che ce l'ha.
-    let title = lines
-        .iter()
-        .rev()
-        .find(|v| v["type"] == "ai-title")
-        .and_then(|v| v["aiTitle"].as_str())
-        .unwrap_or("")
-        .to_string();
-    let repo = lines
-        .iter()
-        .find_map(|v| v["cwd"].as_str().filter(|s| !s.is_empty()))
-        .unwrap_or("")
-        .to_string();
-
-    let mut units: Vec<WorkUnit> = Vec::new();
-    let mut acc = Acc::default();
-    let mut idx: u32 = 0;
-
+    let mut f = Fold::default();
     for v in lines {
+        f.feed(v, session_id);
+    }
+    let open = f.open_unit(session_id);
+    let mut units = f.units;
+    units.extend(open);
+    for u in &mut units {
+        u.session_title = f.title.clone();
+        u.repo = f.repo.clone();
+    }
+    units
+}
+
+/// Stato della segmentazione di UN transcript, riga per riga (M62): quando il file cresce si riprende da
+/// qui con le sole righe nuove, invece di rileggere tutto. `segment()` lo usa sull'intero file: stesse unità.
+/// Titolo e repo sono della sessione e si applicano in uscita, come faceva la lettura per intero.
+#[derive(Default)]
+struct Fold {
+    acc: Acc,
+    idx: u32,
+    units: Vec<WorkUnit>, // unità chiuse (titolo e repo vuoti)
+    title: String,        // aiTitle dell'ultima riga "ai-title" (l'ultima vince)
+    repo: String,         // il cwd della prima riga che ce l'ha
+}
+
+impl Fold {
+    fn feed(&mut self, v: &Value, session_id: &str) {
+        if v["type"] == "ai-title" {
+            self.title = v["aiTitle"].as_str().unwrap_or("").to_string();
+        }
+        if self.repo.is_empty() {
+            if let Some(cwd) = v["cwd"].as_str().filter(|s| !s.is_empty()) {
+                self.repo = cwd.to_string();
+            }
+        }
+        let acc = &mut self.acc;
         let ts = v["timestamp"].as_str().unwrap_or("");
 
         // cambio branch = confine forte (chiude l'unità in corso, indipendentemente dal commit).
         if let Some(br) = v["gitBranch"].as_str().filter(|s| !s.is_empty()) {
             if acc.has_work() && !acc.branch.is_empty() && acc.branch != br {
-                flush(&mut acc, &mut units, &mut idx, session_id, &title, &repo);
+                flush(acc, &mut self.units, &mut self.idx, session_id);
             }
             acc.branch = br.to_string();
         }
@@ -149,20 +169,20 @@ fn segment(lines: &[Value], session_id: &str) -> Vec<WorkUnit> {
                         acc.commit_hash = Some(h);
                     }
                 }
-                continue;
+                return;
             }
             // prompt umano "vero"?
             if v.get("isMeta").and_then(|b| b.as_bool()) == Some(true) {
-                continue;
+                return;
             }
             if let Some(text) = user_prompt_text(v) {
                 // prompt-first: ogni nuovo prompt chiude l'unità precedente e ne apre una nuova
-                flush(&mut acc, &mut units, &mut idx, session_id, &title, &repo);
+                flush(acc, &mut self.units, &mut self.idx, session_id);
                 acc.touch(ts);
                 acc.last_prompt = Some(text.clone());
                 acc.prompts.push(text);
             }
-            continue;
+            return;
         }
 
         if typ == "assistant" {
@@ -194,47 +214,49 @@ fn segment(lines: &[Value], session_id: &str) -> Vec<WorkUnit> {
                     // Write/Edit/MultiEdit: i file li contiamo dal toolUseResult (sopra), non qui.
                 }
             }
-            continue;
         }
     }
 
-    flush(&mut acc, &mut units, &mut idx, session_id, &title, &repo);
-    units
+    /// L'unità ancora in corso (quella che la lettura per intero chiude alla fine del file), se ha lavoro.
+    fn open_unit(&self, sid: &str) -> Option<WorkUnit> {
+        self.acc.has_work().then(|| unit_of(&self.acc, self.idx, sid))
+    }
 }
 
 // (rimossa close_if_committed: segmentazione prompt-first — il flush avviene a ogni nuovo prompt)
 
 // Materializza l'unità accumulata (se ha lavoro vero: almeno un file o un comando) e azzera l'acc,
 // conservando il branch corrente per l'unità successiva.
-fn flush(acc: &mut Acc, units: &mut Vec<WorkUnit>, idx: &mut u32, sid: &str, title: &str, repo: &str) {
-    if !acc.has_work() {
-        acc.reset();
-        return;
+fn flush(acc: &mut Acc, units: &mut Vec<WorkUnit>, idx: &mut u32, sid: &str) {
+    if acc.has_work() {
+        units.push(unit_of(acc, *idx, sid));
+        *idx += 1;
     }
+    acc.reset();
+}
+
+/// L'unità di lavoro dell'accumulatore (titolo e repo della sessione si aggiungono in uscita).
+fn unit_of(acc: &Acc, idx: u32, sid: &str) -> WorkUnit {
     let (add, del) = acc.files.iter().fold((0u32, 0u32), |(a, d), f| (a + f.add, d + f.del));
-    let kind = infer_kind(acc);
-    let label = make_label(acc);
-    units.push(WorkUnit {
-        id: format!("{sid}#{}", *idx),
+    WorkUnit {
+        id: format!("{sid}#{idx}"),
         session_id: sid.to_string(),
-        session_title: title.to_string(),
-        repo: repo.to_string(),
+        session_title: String::new(),
+        repo: String::new(),
         branch: acc.branch.clone(),
-        kind,
-        label,
-        prompts: std::mem::take(&mut acc.prompts),
-        files: std::mem::take(&mut acc.files),
-        cmds: std::mem::take(&mut acc.cmds),
+        kind: infer_kind(acc),
+        label: make_label(acc),
+        prompts: acc.prompts.clone(),
+        files: acc.files.clone(),
+        cmds: acc.cmds.clone(),
         committed: acc.committed,
-        commit: acc.commit_hash.take(),
-        start: std::mem::take(&mut acc.start),
-        end: std::mem::take(&mut acc.end),
+        commit: acc.commit_hash.clone(),
+        start: acc.start.clone(),
+        end: acc.end.clone(),
         add,
         del,
         live: false,
-    });
-    *idx += 1;
-    acc.reset();
+    }
 }
 
 fn infer_kind(acc: &Acc) -> String {
@@ -506,12 +528,19 @@ fn clip(s: &str, n: usize) -> String {
 // dimensione diverse). Prima ogni scansione rileggeva e ri-analizzava TUTTI i transcript — 206 MiB sul PC
 // dell'utente — sul thread principale (comando sincrono), e ripartiva a ogni modifica di un transcript:
 // con la vista Attività aperta, mentre Claude lavorava, l'interfaccia si bloccava di continuo.
+// M62: un transcript che è solo CRESCIUTO (il caso di quello della chat in corso) si legge dal punto in cui
+// ci si era fermati, riprendendo la segmentazione (`Fold`): prima se ne rileggevano ogni volta tutti i MB.
 struct Cached {
     mtime: Option<SystemTime>,
     len: u64,
-    units: Vec<WorkUnit>, // `live` sempre false qui: si calcola a ogni scansione
+    offset: u64,            // byte dopo l'ultima riga letta
+    sig: Vec<u8>,           // gli ultimi byte prima di `offset`: se cambiano, il file è stato riscritto
+    pending_nl: bool,       // l'ultima riga letta non aveva ancora l'a capo (era già un JSON completo)
+    fold: Fold,             // stato della segmentazione
+    open: Option<WorkUnit>, // l'unità ancora in corso, materializzata all'ultima lettura
 }
 static CACHE: Mutex<Option<HashMap<PathBuf, Cached>>> = Mutex::new(None);
+const SIG_LEN: u64 = 64;
 
 /// Scansiona TUTTI i progetti in ~/.claude/projects e ricostruisce le unità di lavoro, dalla più
 /// recente. `limit` cappa il numero di unità restituite (default 500). Marca `live` l'ultima unità
@@ -524,22 +553,80 @@ pub async fn scan_activity(limit: Option<usize>) -> Result<Vec<WorkUnit>, String
         .map_err(|e| e.to_string())?
 }
 
-/// Unità di un transcript: dalla cache se il file non è cambiato, altrimenti lette e analizzate.
-fn units_of(p: &Path, sid: &str, mtime: Option<SystemTime>, len: u64) -> Option<Vec<WorkUnit>> {
-    if let Some(c) = CACHE.lock().unwrap_or_else(|e| e.into_inner()).as_ref().and_then(|m| m.get(p)) {
+/// Porta in pari la cache di un transcript: niente se non è cambiato; se è solo cresciuto si leggono le
+/// righe nuove; altrimenti (accorciato, riscritto, mai letto) da capo. false = file illeggibile.
+fn refresh(map: &mut HashMap<PathBuf, Cached>, p: &Path, sid: &str, mtime: Option<SystemTime>, len: u64) -> bool {
+    if let Some(c) = map.get_mut(p) {
         if c.mtime == mtime && c.len == len {
-            return Some(c.units.clone());
+            return true;
+        }
+        if len > c.len && same_bytes(p, c.offset, &c.sig) && read_more(c, p, sid, len).is_some() {
+            c.mtime = mtime;
+            c.len = len;
+            return true;
         }
     }
-    let content = std::fs::read_to_string(p).ok()?;
-    let lines: Vec<Value> = content.lines().filter_map(|l| serde_json::from_str(l).ok()).collect();
-    let units = segment(&lines, sid);
-    CACHE
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .get_or_insert_with(HashMap::new)
-        .insert(p.to_path_buf(), Cached { mtime, len, units: units.clone() });
-    Some(units)
+    let mut c = Cached { mtime, len, offset: 0, sig: Vec::new(), pending_nl: false, fold: Fold::default(), open: None };
+    if read_more(&mut c, p, sid, len).is_none() {
+        map.remove(p);
+        return false;
+    }
+    map.insert(p.to_path_buf(), c);
+    true
+}
+
+/// I byte che precedono `offset` sono ancora quelli letti l'ultima volta? (il file è solo cresciuto)
+fn same_bytes(p: &Path, offset: u64, sig: &[u8]) -> bool {
+    use std::io::{Read, Seek, SeekFrom};
+    let Ok(mut f) = std::fs::File::open(p) else { return false };
+    let mut buf = vec![0u8; sig.len()];
+    f.seek(SeekFrom::Start(offset - sig.len() as u64)).is_ok() && f.read_exact(&mut buf).is_ok() && buf == sig
+}
+
+/// Legge il transcript da `c.offset` fino a `len` e passa le righe nuove alla segmentazione. Come la lettura
+/// per intero, conta anche l'ultima riga senza a capo se è già un JSON completo; il suo a capo arriverà dopo.
+/// None = file illeggibile, o cresciuto in un modo che non è un'aggiunta di righe (si rilegge da capo).
+fn read_more(c: &mut Cached, p: &Path, sid: &str, len: u64) -> Option<()> {
+    use std::io::{Read, Seek, SeekFrom};
+    let mut f = std::fs::File::open(p).ok()?;
+    f.seek(SeekFrom::Start(c.offset)).ok()?;
+    let mut buf = Vec::with_capacity(len.saturating_sub(c.offset) as usize);
+    f.by_ref().take(len.saturating_sub(c.offset)).read_to_end(&mut buf).ok()?;
+    let mut at = 0;
+    if c.pending_nl {
+        if buf.first() != Some(&b'\n') {
+            return None; // la riga che sembrava completa è continuata: non è più quella letta
+        }
+        at = 1;
+        c.pending_nl = false;
+    }
+    while let Some(rel) = buf[at..].iter().position(|&b| b == b'\n') {
+        if let Ok(v) = serde_json::from_slice::<Value>(&buf[at..at + rel]) {
+            c.fold.feed(&v, sid);
+        }
+        at += rel + 1;
+    }
+    if at < buf.len() {
+        if let Ok(v) = serde_json::from_slice::<Value>(&buf[at..]) {
+            c.fold.feed(&v, sid);
+            at = buf.len();
+            c.pending_nl = true;
+        }
+    }
+    let end = c.offset + at as u64;
+    // firma: gli ultimi byte fino a `end` (dal buffer, o dal file se il buffer è più corto)
+    let from = end.saturating_sub(SIG_LEN);
+    c.sig = if from >= c.offset {
+        buf[(from - c.offset) as usize..at].to_vec()
+    } else {
+        let mut sig = vec![0u8; (end - from) as usize];
+        f.seek(SeekFrom::Start(from)).ok()?;
+        f.read_exact(&mut sig).ok()?;
+        sig
+    };
+    c.offset = end;
+    c.open = c.fold.open_unit(sid);
+    Some(())
 }
 
 fn scan(limit: Option<usize>) -> Result<Vec<WorkUnit>, String> {
@@ -547,14 +634,20 @@ fn scan(limit: Option<usize>) -> Result<Vec<WorkUnit>, String> {
         .ok()
         .or_else(|| std::env::var("HOME").ok())
         .ok_or_else(|| "home dir not found".to_string())?;
-    let dir = Path::new(&home).join(".claude").join("projects");
-    let now = std::time::SystemTime::now();
-    let mut out: Vec<WorkUnit> = Vec::new();
-    let mut seen: Vec<PathBuf> = Vec::new();
+    Ok(scan_in(&Path::new(&home).join(".claude").join("projects"), limit))
+}
 
-    let projects = match std::fs::read_dir(&dir) {
+/// Unità di lavoro di tutti i transcript sotto `dir` (una sottocartella per progetto).
+fn scan_in(dir: &Path, limit: Option<usize>) -> Vec<WorkUnit> {
+    let now = std::time::SystemTime::now();
+    let mut guard = CACHE.lock().unwrap_or_else(|e| e.into_inner());
+    let map = guard.get_or_insert_with(HashMap::new);
+    // transcript leggibili in ordine di visita, col flag "scritto negli ultimi 2 minuti"
+    let mut order: Vec<(PathBuf, bool)> = Vec::new();
+
+    let projects = match std::fs::read_dir(dir) {
         Ok(r) => r,
-        Err(_) => return Ok(out), // nessuna cartella → nessuna attività
+        Err(_) => return Vec::new(), // nessuna cartella → nessuna attività
     };
     for proj in projects.flatten() {
         let pdir = proj.path();
@@ -581,24 +674,29 @@ fn scan(limit: Option<usize>) -> Result<Vec<WorkUnit>, String> {
                 .and_then(|t| now.duration_since(t).ok())
                 .map(|d| d.as_secs() < 120)
                 .unwrap_or(false);
-            let Some(mut units) = units_of(&p, &sid, mtime, len) else { continue };
-            seen.push(p);
-            if fresh {
-                if let Some(last) = units.last_mut() {
-                    last.live = true;
-                }
+            if refresh(map, &p, &sid, mtime, len) {
+                order.push((p, fresh));
             }
-            out.extend(units);
         }
     }
     // la cache tiene solo i transcript che esistono ancora
-    if let Some(m) = CACHE.lock().unwrap_or_else(|e| e.into_inner()).as_mut() {
-        m.retain(|k, _| seen.contains(k));
+    let seen: HashSet<&PathBuf> = order.iter().map(|(p, _)| p).collect();
+    map.retain(|k, _| seen.contains(k));
+    // più recenti in cima (il timestamp ISO ordina lessicograficamente; a pari data resta l'ordine di
+    // visita). Si scelgono per riferimento e si clonano solo quelle restituite (prima: tutte, ogni volta).
+    let mut all: Vec<(&WorkUnit, &Fold, bool)> = Vec::new();
+    for (p, fresh) in &order {
+        let c = &map[p];
+        let n = c.fold.units.len() + usize::from(c.open.is_some());
+        for (i, u) in c.fold.units.iter().chain(c.open.iter()).enumerate() {
+            all.push((u, &c.fold, *fresh && i + 1 == n)); // `live`: l'ultima unità di un transcript fresco
+        }
     }
-    // più recenti in cima (il timestamp ISO ordina lessicograficamente).
-    out.sort_by(|a, b| b.end.cmp(&a.end));
-    out.truncate(limit.unwrap_or(500));
-    Ok(out)
+    all.sort_by(|a, b| b.0.end.cmp(&a.0.end));
+    all.truncate(limit.unwrap_or(500));
+    all.into_iter()
+        .map(|(u, f, live)| WorkUnit { session_title: f.title.clone(), repo: f.repo.clone(), live, ..u.clone() })
+        .collect()
 }
 
 // ---- watcher live su ~/.claude/projects -----------------------------------
@@ -823,6 +921,375 @@ mod tests {
         assert_eq!(u[0].label, "unisci e pubblica");
         assert_eq!(u[1].label, "↳ unisci e pubblica");
         assert!(u[1].prompts.is_empty());
+    }
+
+    // ---- riferimento: la segmentazione com'era prima della M62 (tutto il file in una volta) ----------
+    fn segment_old(lines: &[Value], session_id: &str) -> Vec<WorkUnit> {
+        let title = lines.iter().rev().find(|v| v["type"] == "ai-title").and_then(|v| v["aiTitle"].as_str()).unwrap_or("").to_string();
+        let repo = lines.iter().find_map(|v| v["cwd"].as_str().filter(|s| !s.is_empty())).unwrap_or("").to_string();
+        let mut units: Vec<WorkUnit> = Vec::new();
+        let mut acc = Acc::default();
+        let mut idx: u32 = 0;
+        for v in lines {
+            let ts = v["timestamp"].as_str().unwrap_or("");
+            if let Some(br) = v["gitBranch"].as_str().filter(|s| !s.is_empty()) {
+                if acc.has_work() && !acc.branch.is_empty() && acc.branch != br {
+                    flush_old(&mut acc, &mut units, &mut idx, session_id, &title, &repo);
+                }
+                acc.branch = br.to_string();
+            }
+            let typ = v["type"].as_str().unwrap_or("");
+            if typ == "user" {
+                if let Some(tr) = v.get("toolUseResult").filter(|t| !t.is_null()) {
+                    if let Some(fp) = tr.get("filePath").and_then(|x| x.as_str()) {
+                        acc.touch(ts);
+                        let is_create = tr.get("type").and_then(|t| t.as_str()) == Some("create");
+                        let um = tr.get("userModified").and_then(|b| b.as_bool()).unwrap_or(false);
+                        let (a, d) = patch_counts(tr);
+                        acc.add_file(if is_create { "A" } else { "M" }, fp, a, d, um);
+                    } else if acc.committed && acc.commit_hash.is_none() {
+                        if let Some(h) = extract_commit_hash(tr) {
+                            acc.commit_hash = Some(h);
+                        }
+                    }
+                    continue;
+                }
+                if v.get("isMeta").and_then(|b| b.as_bool()) == Some(true) {
+                    continue;
+                }
+                if let Some(text) = user_prompt_text(v) {
+                    flush_old(&mut acc, &mut units, &mut idx, session_id, &title, &repo);
+                    acc.touch(ts);
+                    acc.last_prompt = Some(text.clone());
+                    acc.prompts.push(text);
+                }
+                continue;
+            }
+            if typ == "assistant" {
+                if let Some(content) = v["message"]["content"].as_array() {
+                    for b in content {
+                        if b["type"] != "tool_use" {
+                            continue;
+                        }
+                        let name = b["name"].as_str().unwrap_or("");
+                        if name == "Bash" || name == "PowerShell" {
+                            let cmd = b["input"]["command"].as_str().unwrap_or("").to_string();
+                            if cmd.is_empty() {
+                                continue;
+                            }
+                            acc.touch(ts);
+                            if is_git_commit(&cmd) {
+                                acc.cmds.push(cmd.clone());
+                                acc.committed = true;
+                                if acc.commit_msg.is_none() {
+                                    acc.commit_msg = commit_message(&cmd);
+                                }
+                            } else {
+                                acc.cmds.push(cmd);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        flush_old(&mut acc, &mut units, &mut idx, session_id, &title, &repo);
+        units
+    }
+    fn flush_old(acc: &mut Acc, units: &mut Vec<WorkUnit>, idx: &mut u32, sid: &str, title: &str, repo: &str) {
+        if !acc.has_work() {
+            acc.reset();
+            return;
+        }
+        let (add, del) = acc.files.iter().fold((0u32, 0u32), |(a, d), f| (a + f.add, d + f.del));
+        let kind = infer_kind(acc);
+        let label = make_label(acc);
+        units.push(WorkUnit {
+            id: format!("{sid}#{}", *idx),
+            session_id: sid.to_string(),
+            session_title: title.to_string(),
+            repo: repo.to_string(),
+            branch: acc.branch.clone(),
+            kind,
+            label,
+            prompts: std::mem::take(&mut acc.prompts),
+            files: std::mem::take(&mut acc.files),
+            cmds: std::mem::take(&mut acc.cmds),
+            committed: acc.committed,
+            commit: acc.commit_hash.take(),
+            start: std::mem::take(&mut acc.start),
+            end: std::mem::take(&mut acc.end),
+            add,
+            del,
+            live: false,
+        });
+        *idx += 1;
+        acc.reset();
+    }
+    fn parse_all(content: &str) -> Vec<Value> {
+        content.lines().filter_map(|l| serde_json::from_str(l).ok()).collect()
+    }
+    fn json(units: &[WorkUnit]) -> String {
+        serde_json::to_string(units).unwrap()
+    }
+    /// Le unità che la cache di un transcript restituirebbe (come in scan_in, senza `live`).
+    fn cached_units(c: &Cached) -> Vec<WorkUnit> {
+        c.fold.units.iter().chain(c.open.iter()).map(|u| WorkUnit { session_title: c.fold.title.clone(), repo: c.fold.repo.clone(), ..u.clone() }).collect()
+    }
+    fn transcript(seed: u64, turns: usize) -> String {
+        let mut g = Gen::new(seed);
+        let mut s = String::new();
+        for _ in 0..turns {
+            for l in g.turn() {
+                s.push_str(&l);
+                s.push('\n');
+            }
+        }
+        s
+    }
+    fn tmp_file(name: &str) -> PathBuf {
+        let d = std::env::temp_dir().join("orbit-activity-tests");
+        std::fs::create_dir_all(&d).unwrap();
+        d.join(name)
+    }
+    fn refresh_now(map: &mut HashMap<PathBuf, Cached>, p: &Path) {
+        let m = std::fs::metadata(p).unwrap();
+        assert!(refresh(map, p, "S", m.modified().ok(), m.len()));
+    }
+
+    #[test]
+    fn fold_matches_the_old_full_parse() {
+        for seed in 1..40u64 {
+            let lines = parse_all(&transcript(seed, 60));
+            assert_eq!(json(&segment(&lines, "S")), json(&segment_old(&lines, "S")), "seed {seed}");
+        }
+    }
+
+    #[test]
+    fn incremental_reads_in_random_chunks_match_the_full_parse() {
+        for seed in 1..9u64 {
+            let content = transcript(seed, 50);
+            let want = json(&segment_old(&parse_all(&content), "S"));
+            let p = tmp_file(&format!("chunks-{seed}.jsonl"));
+            std::fs::write(&p, "").unwrap();
+            let mut map = HashMap::new();
+            let mut g = Gen::new(seed * 31);
+            let bytes = content.as_bytes();
+            let mut at = 0;
+            while at < bytes.len() {
+                // pezzi casuali: spesso a metà riga (e a metà di un carattere UTF-8, se capita)
+                let n = (1 + g.next(16_000) as usize).min(bytes.len() - at);
+                let mut f = std::fs::OpenOptions::new().append(true).open(&p).unwrap();
+                std::io::Write::write_all(&mut f, &bytes[at..at + n]).unwrap();
+                drop(f);
+                at += n;
+                refresh_now(&mut map, &p);
+            }
+            assert_eq!(json(&cached_units(&map[&p])), want, "seed {seed}");
+            let _ = std::fs::remove_file(&p);
+        }
+    }
+
+    #[test]
+    fn rewritten_or_shrunk_file_is_read_again() {
+        let p = tmp_file("rewrite.jsonl");
+        let mut map = HashMap::new();
+        std::fs::write(&p, transcript(3, 40)).unwrap();
+        refresh_now(&mut map, &p);
+        // riscritto con altro contenuto, più lungo: i byte prima del vecchio offset non tornano più
+        let other = transcript(4, 60);
+        std::fs::write(&p, &other).unwrap();
+        refresh_now(&mut map, &p);
+        assert_eq!(json(&cached_units(&map[&p])), json(&segment_old(&parse_all(&other), "S")));
+        // accorciato
+        let short = transcript(5, 10);
+        std::fs::write(&p, &short).unwrap();
+        refresh_now(&mut map, &p);
+        assert_eq!(json(&cached_units(&map[&p])), json(&segment_old(&parse_all(&short), "S")));
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn last_line_without_newline_counts_like_the_full_read() {
+        let p = tmp_file("tail.jsonl");
+        let mut map = HashMap::new();
+        let content = transcript(9, 30);
+        let trimmed = content.trim_end_matches('\n');
+        // l'ultima riga è un JSON completo ma senza a capo: la lettura per intero la conta già
+        std::fs::write(&p, trimmed).unwrap();
+        refresh_now(&mut map, &p);
+        assert_eq!(json(&cached_units(&map[&p])), json(&segment_old(&parse_all(trimmed), "S")));
+        // poi arrivano l'a capo e altre righe
+        let more = format!("{content}{}", transcript(10, 5));
+        std::fs::write(&p, &more).unwrap();
+        refresh_now(&mut map, &p);
+        assert_eq!(json(&cached_units(&map[&p])), json(&segment_old(&parse_all(&more), "S")));
+        let _ = std::fs::remove_file(&p);
+    }
+
+    #[test]
+    fn scan_orders_and_marks_live_like_before() {
+        let dir = std::env::temp_dir().join("orbit-activity-scan-test").join("projects");
+        let _ = std::fs::remove_dir_all(&dir);
+        let mut want: Vec<WorkUnit> = Vec::new();
+        for i in 0..6u64 {
+            let p = dir.join(format!("D--p{}", i % 2)).join(format!("s{i}.jsonl"));
+            std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+            let content = transcript(20 + i, 25);
+            std::fs::write(&p, &content).unwrap();
+        }
+        // riferimento: com'era scan() — ogni transcript per intero, in ordine di visita, ordinamento stabile
+        for proj in std::fs::read_dir(&dir).unwrap().flatten() {
+            for e in std::fs::read_dir(proj.path()).unwrap().flatten() {
+                let sid = e.path().file_stem().unwrap().to_string_lossy().to_string();
+                let mut units = segment_old(&parse_all(&std::fs::read_to_string(e.path()).unwrap()), &sid);
+                if let Some(last) = units.last_mut() {
+                    last.live = true; // appena scritti: tutti "freschi"
+                }
+                want.extend(units);
+            }
+        }
+        want.sort_by(|a, b| b.end.cmp(&a.end));
+        want.truncate(40);
+        assert_eq!(json(&scan_in(&dir, Some(40))), json(&want));
+        let _ = std::fs::remove_dir_all(dir.parent().unwrap());
+    }
+
+    // ---- transcript sintetici (benchmark e test di equivalenza) ----------------------------------
+    // Righe con la forma di quelle di Claude Code: prompt, testo + tool_use (Bash/Edit), risultati con
+    // output lunghi e `structuredPatch`, commit, cambi di branch, ai-title. Deterministici (LCG).
+    pub(super) struct Gen {
+        seed: u64,
+        sec: u64,
+        turn: u32,
+        branch: String,
+    }
+    impl Gen {
+        pub(super) fn new(seed: u64) -> Self {
+            Gen { seed: seed.wrapping_mul(6364136223846793005).wrapping_add(1), sec: seed * 7919, turn: 0, branch: "main".into() }
+        }
+        fn next(&mut self, n: u64) -> u64 {
+            self.seed = self.seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            (self.seed >> 33) % n.max(1)
+        }
+        fn ts(&mut self) -> String {
+            self.sec += 1 + self.next(40);
+            let s = self.sec;
+            format!("2026-10-{:02}T{:02}:{:02}:{:02}.000Z", 1 + (s / 86400) % 28, (s / 3600) % 24, (s / 60) % 60, s % 60)
+        }
+        fn words(&mut self, n: usize) -> String {
+            const W: &[&str] = &["index", "render", "the", "panel", "fix", "scan", "update", "terminal", "file", "cache", "state", "of", "and", "with", "symbol", "repo"];
+            (0..n).map(|_| W[self.next(W.len() as u64) as usize]).collect::<Vec<_>>().join(" ")
+        }
+        fn base(&mut self, typ: &str) -> Value {
+            let ts = self.ts();
+            json!({"type": typ, "timestamp": ts, "gitBranch": self.branch, "cwd": "D:/bench/repo", "version": "2.1.0", "sessionId": "S"})
+        }
+        /// Un "turno": a volte un prompt, poi comandi e modifiche con i loro risultati; ogni tanto un commit,
+        /// un cambio di branch o un ai-title. Restituisce le righe JSON.
+        pub(super) fn turn(&mut self) -> Vec<String> {
+            self.turn += 1;
+            let mut out = Vec::new();
+            if self.next(9) == 0 {
+                self.branch = if self.branch == "main" { format!("feature/b{}", self.turn) } else { "main".into() };
+            }
+            if self.next(3) == 0 {
+                let mut v = self.base("user");
+                v["message"] = json!({"role": "user", "content": format!("Please {} {}", self.words(30), self.turn)});
+                out.push(v.to_string());
+            }
+            for _ in 0..1 + self.next(5) {
+                let file = format!("D:/bench/repo/src/file{}.ts", self.next(80));
+                if self.next(2) == 0 {
+                    let cmd = if self.next(8) == 0 { format!("git add -A && git commit -m \"feat: step {}\"", self.turn) } else { format!("npm run build -- --filter {}", self.next(9)) };
+                    let mut a = self.base("assistant");
+                    a["message"] = json!({"role": "assistant", "content": [{"type": "text", "text": self.words(40)}, {"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": cmd}}]});
+                    out.push(a.to_string());
+                    let (n, hash) = (500 + self.next(1200) as usize, self.next(0xfffffff));
+                    let stdout = if cmd.contains("git commit") { format!("[{} {hash:07x}] feat: step {}\n 2 files changed", self.branch, self.turn) } else { self.words(n) };
+                    let mut r = self.base("user");
+                    r["toolUseResult"] = json!({"stdout": stdout, "stderr": "", "interrupted": false});
+                    r["message"] = json!({"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_1", "content": "ok"}]});
+                    out.push(r.to_string());
+                } else {
+                    let (old, new) = (self.words(30), self.words(45));
+                    let mut a = self.base("assistant");
+                    a["message"] = json!({"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_2", "name": "Edit", "input": {"file_path": file, "old_string": old, "new_string": new}}]});
+                    out.push(a.to_string());
+                    let lines: Vec<String> = (0..2 + self.next(12)).map(|i| format!("{}{}", ["+", "-", " "][(i % 3) as usize], self.words(8))).collect();
+                    let mut r = self.base("user");
+                    r["toolUseResult"] = json!({"filePath": file, "oldString": old, "newString": new, "userModified": false,
+                        "structuredPatch": [{"oldStart": 10, "oldLines": 3, "newStart": 10, "newLines": 5, "lines": lines}]});
+                    r["message"] = json!({"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_2", "content": "ok"}]});
+                    out.push(r.to_string());
+                }
+            }
+            if self.next(25) == 0 {
+                out.push(json!({"type": "ai-title", "aiTitle": format!("Bench {}", self.turn), "sessionId": "S"}).to_string());
+            }
+            out
+        }
+    }
+
+    /// Scrive un transcript di circa `bytes` byte.
+    pub(super) fn write_transcript(path: &Path, bytes: usize, seed: u64) -> Gen {
+        let mut g = Gen::new(seed);
+        let mut s = String::new();
+        while s.len() < bytes {
+            for l in g.turn() {
+                s.push_str(&l);
+                s.push('\n');
+            }
+        }
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, s).unwrap();
+        g
+    }
+
+    /// Benchmark (transcript sintetici in una cartella temporanea; niente ~/.claude): scansione completa,
+    /// scansione dalla cache e scansione "live" dopo ogni aggiunta di un turno al transcript grande, come
+    /// mentre Claude lavora con la vista Attività aperta. In release:
+    /// `cargo test --release --lib activity::tests::scan_live_bench -- --ignored --nocapture`
+    #[test]
+    #[ignore]
+    fn scan_live_bench() {
+        use std::io::Write;
+        let root = std::env::temp_dir().join("orbit-activity-bench");
+        let _ = std::fs::remove_dir_all(&root);
+        let projects = root.join("projects");
+        for i in 0..60u64 {
+            write_transcript(&projects.join(format!("D--p{}", i % 6)).join(format!("small-{i}.jsonl")), 200_000 + (i as usize % 9) * 200_000, 100 + i);
+        }
+        let big = projects.join("D--bench-repo").join("big.jsonl");
+        let mut g = write_transcript(&big, 40_000_000, 7);
+        *CACHE.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        let t = std::time::Instant::now();
+        let a = scan_in(&projects, Some(500));
+        let full = t.elapsed();
+        let t = std::time::Instant::now();
+        let b = scan_in(&projects, Some(500));
+        let cached = t.elapsed();
+        assert_eq!(a.len(), b.len());
+        let mut live = Vec::new();
+        for _ in 0..30 {
+            let mut f = std::fs::OpenOptions::new().append(true).open(&big).unwrap();
+            for l in g.turn() {
+                writeln!(f, "{l}").unwrap();
+            }
+            drop(f);
+            let t = std::time::Instant::now();
+            let r = scan_in(&projects, Some(500));
+            live.push(t.elapsed().as_secs_f64() * 1000.0);
+            assert!(!r.is_empty());
+        }
+        let mean = live.iter().sum::<f64>() / live.len() as f64;
+        let max = live.iter().cloned().fold(0.0, f64::max);
+        let size: u64 = std::fs::metadata(&big).unwrap().len();
+        println!(
+            "unità {} · grande {:.1} MB · completa {full:?} · cache {cached:?} · live: media {mean:.1} ms, max {max:.1} ms",
+            a.len(),
+            size as f64 / 1e6
+        );
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     /// Misura (sui transcript VERI di questo PC, in sola lettura): la prima scansione legge tutto, come

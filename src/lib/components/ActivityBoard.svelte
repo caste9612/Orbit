@@ -94,17 +94,19 @@
 
   // sequenza VERTICALE per tempo (asse condiviso, più recente in alto): UNA RIGA PER UNITÀ, messa nella
   // colonna del suo repo → scendendo si legge l'ordine temporale reale tra i repo. Divisori per giorno.
-  type Row = { t: "day"; label: string; live: boolean } | { t: "u"; u: WorkUnit };
+  // `key` stabile (M62): con le righe indicizzate per posizione, un'unità nuova in cima spostava tutte le
+  // altre e Svelte le ridisegnava tutte a ogni scansione.
+  type Row = { t: "day"; key: string; label: string; live: boolean } | { t: "u"; key: string; u: WorkUnit };
   const timeline = $derived.by<Row[]>(() => {
     const out: Row[] = [];
     let lastDay = "";
     for (const u of filtered) {
       const dl = u.live ? "Active now" : dayLabel(u.end);
       if (dl !== lastDay) {
-        out.push({ t: "day", label: dl, live: u.live });
+        out.push({ t: "day", key: `d:${dl}:${u.id}`, label: dl, live: u.live });
         lastDay = dl;
       }
-      out.push({ t: "u", u });
+      out.push({ t: "u", key: u.id, u });
     }
     return out;
   });
@@ -273,7 +275,7 @@
           {#each cols as repo (repo)}
             <div class="colhead" title={repo}><span class="cd"></span>{repoName(repo)}</div>
           {/each}
-          {#each timeline as e, i (i)}
+          {#each timeline as e (e.key)}
             {#if e.t === "day"}
               <div class="dayband" class:now={e.live}>{e.label}</div>
             {:else}

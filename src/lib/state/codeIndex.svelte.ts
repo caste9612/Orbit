@@ -9,25 +9,23 @@ import { orbitPath } from "./dotorbit";
 import { joinPath, samePath } from "../util";
 import { notify } from "./toast.svelte";
 import { getActiveEditor } from "../editor/activeEditor";
+import { buildMaps, contextIn, defsIn, lensesIn, type CodeContext as Ctx, type Sym, type SymbolMaps } from "./symbolMaps";
 
-export interface ProjectSymbol {
-  name: string;
-  kind: string;
-  file: string; // relativo alla radice (separatori "/")
-  line: number;
-  container: string;
-  bases: string[];
-  isAbstract?: boolean; // tipo astratto (badge distinto nella barra dei correlati)
-}
+export type ProjectSymbol = Sym; // isAbstract: tipo astratto (badge distinto nella barra dei correlati)
+export type { LensItem, LensData } from "./symbolMaps";
 
-export const codeIndex = $state({
-  symbols: [] as ProjectSymbol[],
+// `symbols` e `refs` non sono reattivi in profondità (M62): fino a 50.000 simboli e decine di migliaia di
+// conteggi, sostituiti a ogni scansione, diventavano tutti proxy di Svelte (decine di MB di heap e
+// centinaia di MB di picco durante le modifiche a raffica). Si leggono e si rimpiazzano, mai modificati.
+class CodeIndexState {
+  symbols = $state.raw<ProjectSymbol[]>([]);
   // M60 (CodeLens): quante volte compare il nome di ogni simbolo nel progetto (da scan_symbols)
-  refs: {} as Record<string, number>,
-  refsLoaded: false,
-  scanning: false,
-  loaded: false,
-});
+  refs = $state.raw<Record<string, number>>({});
+  refsLoaded = $state(false);
+  scanning = $state(false);
+  loaded = $state(false);
+}
+export const codeIndex = new CodeIndexState();
 
 // Palette "Simboli del progetto" (Ctrl+T). `pickLabel` != "" → modalità "lista fissa" (definizioni omonime,
 // implementazioni, riferimenti), con `pickTitle` come segnaposto del campo.
@@ -51,41 +49,26 @@ let scanPending = false; // una ri-scansione richiesta mentre un'altra è in cor
 // colorati). Usiamo l'indice del progetto per colorare gli identificatori che corrispondono a un
 // tipo (teal) o a una funzione/metodo (oro) noti. I Set sono ricostruiti a ogni cambio indice;
 // `semIndex.version` segnala all'editor di ridisegnare le decorazioni.
-const SEM_TYPE_KINDS = new Set(["class", "interface", "struct", "enum", "record", "trait", "type"]);
-const SEM_FUNC_KINDS = new Set(["method", "function", "fn"]);
-let typeSet = new Set<string>();
-let funcSet = new Set<string>();
+// Le mappe (per file, per nome, conteggi, implementatori, insiemi semantici: symbolMaps.ts) si
+// ricostruiscono a ogni cambio dell'indice; `semIndex.version` segnala a editor, lenti e barra dei
+// correlati di rileggerle (le mappe non sono reattive: la versione sì).
+let maps: SymbolMaps<ProjectSymbol> = buildMaps([]);
 export const semIndex = $state({ version: 0 });
 export function semSets(): { typeSet: Set<string>; funcSet: Set<string> } {
-  return { typeSet, funcSet };
+  return { typeSet: maps.typeSet, funcSet: maps.funcSet };
 }
-// CodeLens (M60): per nome, quante dichiarazioni (i costruttori non contano: hanno il nome del tipo) e
-// quali tipi lo hanno come base. Ricostruite con i Set qui sopra a ogni cambio dell'indice.
-let declCount = new Map<string, number>();
-let implementersOf = new Map<string, ProjectSymbol[]>();
-const isCtor = (s: ProjectSymbol) => s.kind === "method" && s.name === s.container;
 
 function rebuildSemSets() {
-  const types = new Set<string>();
-  const funcs = new Set<string>();
-  const decls = new Map<string, number>();
-  const impls = new Map<string, ProjectSymbol[]>();
   // untrack: rebuildSemSets può essere chiamato da initIndex DENTRO un $effect; senza untrack la
   // lettura di codeIndex.symbols diventerebbe dipendenza dell'effetto che la scrive → loop.
-  untrack(() => {
-    for (const s of codeIndex.symbols) {
-      if (!isCtor(s)) decls.set(s.name, (decls.get(s.name) ?? 0) + 1);
-      for (const b of s.bases) impls.set(b, [...(impls.get(b) ?? []), s]);
-      if (s.name.length < 2) continue; // niente identificatori di 1 carattere (rumore)
-      if (SEM_TYPE_KINDS.has(s.kind)) types.add(s.name);
-      else if (SEM_FUNC_KINDS.has(s.kind)) funcs.add(s.name);
-    }
-  });
-  typeSet = types;
-  funcSet = funcs;
-  declCount = decls;
-  implementersOf = impls;
+  maps = buildMaps(untrack(() => codeIndex.symbols));
   semIndex.version++;
+}
+
+/** Il file ha simboli nell'indice? (reattivo ai cambi dell'indice) */
+export function fileHasSymbols(relFile: string): boolean {
+  void semIndex.version;
+  return (maps.byFile.get(relFile)?.length ?? 0) > 0;
 }
 
 // ---- scan + cache ----------------------------------------------------------
@@ -102,6 +85,9 @@ export async function initIndex() {
     return;
   }
   await loadCache();
+  // quello che c'è ora viene dal disco (magari scritto da un'altra finestra): la prossima scansione deve
+  // rimandare tutto, non solo ciò che è cambiato rispetto alla scansione precedente
+  known = { root: "", symbols: null, refs: null };
   void rescan();
 }
 
@@ -130,6 +116,10 @@ async function loadCache() {
   }
 }
 
+// Versioni di simboli e conteggi che il frontend ha già (M62): il backend le confronta e manda solo ciò
+// che è cambiato. Valgono per la cartella in cui sono state ricevute; altrove si riparte da zero.
+let known = { root: "", symbols: null as string | null, refs: null as string | null };
+
 export async function rescan() {
   const root = workspace.rootPath;
   if (!root || workspace.light) return;
@@ -140,24 +130,34 @@ export async function rescan() {
   const token = ++scanToken;
   codeIndex.scanning = true;
   try {
-    const res = await invoke<{ symbols: ProjectSymbol[]; refs: Record<string, number> }>("scan_symbols", { root });
+    if (known.root !== root) known = { root, symbols: null, refs: null };
+    const res = await invoke<{
+      symbolsVersion: string;
+      refsVersion: string;
+      symbols: ProjectSymbol[] | null;
+      refs: Record<string, number> | null;
+    }>("scan_symbols", { root, knownSymbols: known.symbols, knownRefs: known.refs });
     if (token !== scanToken || workspace.rootPath !== root) return; // scan superato / cartella cambiata
-    const syms = res.symbols;
-    codeIndex.refs = res.refs;
-    codeIndex.refsLoaded = true;
-    codeIndex.symbols = syms;
-    codeIndex.loaded = true;
-    rebuildSemSets();
-    // se la palette "Simboli progetto" è aperta sulla rubrica live, rinfresca i risultati coi simboli
-    // appena scansionati (prima restavano congelati all'apertura) e clampa la selezione: è l'unico
-    // punto in cui i risultati cambiano sotto un indice fisso → evita una selezione fuori range.
-    if (wsPalette.open && !wsPalette.source) {
-      filterWs();
-      if (wsPalette.index >= wsPalette.results.length) {
-        wsPalette.index = Math.max(0, wsPalette.results.length - 1);
+    if (res.refs) {
+      codeIndex.refs = res.refs;
+      codeIndex.refsLoaded = true;
+    }
+    if (res.symbols) {
+      codeIndex.symbols = res.symbols;
+      codeIndex.loaded = true;
+      rebuildSemSets();
+      // se la palette "Simboli progetto" è aperta sulla rubrica live, rinfresca i risultati coi simboli
+      // appena scansionati (prima restavano congelati all'apertura) e clampa la selezione: è l'unico
+      // punto in cui i risultati cambiano sotto un indice fisso → evita una selezione fuori range.
+      if (wsPalette.open && !wsPalette.source) {
+        filterWs();
+        if (wsPalette.index >= wsPalette.results.length) {
+          wsPalette.index = Math.max(0, wsPalette.results.length - 1);
+        }
       }
     }
-    void saveCache(root, syms, res.refs);
+    known = { root, symbols: res.symbolsVersion, refs: res.refsVersion };
+    // la cache su disco (.orbit/index) la aggiorna il backend (M62)
   } catch (e) {
     console.error("scan_symbols", e);
   } finally {
@@ -169,79 +169,14 @@ export async function rescan() {
   }
 }
 
-async function saveCache(root: string, syms: ProjectSymbol[], refs: Record<string, number>) {
-  const dir = joinPath(joinPath(root, ".orbit"), "index");
-  try {
-    await invoke("create_dir", { path: dir });
-    await invoke("write_file", { path: joinPath(dir, "symbols.json"), content: JSON.stringify(syms) });
-    await invoke("write_file", { path: joinPath(dir, "refs.json"), content: JSON.stringify(refs) });
-  } catch (e) {
-    console.error("cache simboli", e);
-  }
-}
-
 // ---- CodeLens (M60): "N references · M implementations" sopra le dichiarazioni ----------------
 // Riferimenti contati PER NOME in tutto il progetto, commenti e stringhe esclusi (niente LSP): con più
 // dichiarazioni dello stesso nome (overload, override, proprietà omonime) il numero le somma tutte e lo
-// si segna come approssimato. Implementazioni = tipi che lo dichiarano come base.
-const LENS_KINDS = new Set(["class", "interface", "struct", "enum", "record", "trait", "type", "method", "function", "property"]);
-
-export interface LensItem {
-  kind: "refs" | "impl";
-  label: string;
-  title: string;
-  name: string;
-}
-export interface LensData {
-  line: number;
-  items: LensItem[];
-}
+// si segna come approssimato. Implementazioni = tipi che lo dichiarano come base. Logica in symbolMaps.ts.
 
 /** Lenti delle dichiarazioni del file `relFile` (relativo alla radice, separatori "/"). */
-export function lensesFor(relFile: string): LensData[] {
-  const out: LensData[] = [];
-  const seen = new Set<number>();
-  for (const s of codeIndex.symbols) {
-    if (s.file !== relFile || !LENS_KINDS.has(s.kind) || seen.has(s.line)) continue;
-    // niente lenti sui costruttori (stesso conteggio del tipo) né sui metodi "magici" di Python
-    if (isCtor(s) || /^__\w+__$/.test(s.name)) continue;
-    seen.add(s.line);
-    const items: LensItem[] = [];
-    const decls = declCount.get(s.name) ?? 1;
-    if (codeIndex.refsLoaded) {
-      // ogni dichiarazione (costruttori compresi) contiene il nome una volta: non è un riferimento
-      const all = (codeIndex.refs[s.name] ?? 0) - decls - countCtors(s.name);
-      const n = Math.max(0, all);
-      const approx = decls > 1;
-      items.push({
-        kind: "refs",
-        name: s.name,
-        label: `${approx ? "≈ " : ""}${n} reference${n === 1 ? "" : "s"}`,
-        title: approx
-          ? `${decls} symbols in the project are called ${s.name}: the count includes all of them — click for the list`
-          : `Lines that use the name across the project, without comments and strings — click for the list`,
-      });
-    } else {
-      items.push({ kind: "refs", name: s.name, label: "… references", title: "Counting references…" });
-    }
-    const impl = SEM_TYPE_KINDS.has(s.kind) ? (implementersOf.get(s.name)?.length ?? 0) : 0;
-    if (impl) {
-      items.push({
-        kind: "impl",
-        name: s.name,
-        label: `${impl} implementation${impl === 1 ? "" : "s"}`,
-        title: `Types that extend or implement ${s.name} — click for the list`,
-      });
-    }
-    out.push({ line: s.line, items });
-  }
-  return out;
-}
-
-function countCtors(name: string): number {
-  let n = 0;
-  for (const s of codeIndex.symbols) if (isCtor(s) && s.name === name) n++;
-  return n;
+export function lensesFor(relFile: string) {
+  return lensesIn(maps, codeIndex.refs, codeIndex.refsLoaded, relFile);
 }
 
 /** "N references": le occorrenze nella palette (Invio salta; Alt+← torna). Le dichiarazioni non contano. */
@@ -250,7 +185,7 @@ export async function openReferences(name: string) {
   if (!root) return;
   try {
     const hits = await invoke<{ file: string; line: number; text: string }[]>("ref_list", { root, name });
-    const decl = new Set(codeIndex.symbols.filter((s) => s.name === name).map((s) => `${s.file}:${s.line}`));
+    const decl = new Set((maps.byName.get(name) ?? []).map((s) => `${s.file}:${s.line}`));
     const items: ProjectSymbol[] = hits
       .filter((h) => !decl.has(`${h.file}:${h.line}`))
       .map((h) => ({ name: h.text, kind: "ref", file: h.file, line: h.line, container: "", bases: [] }));
@@ -266,7 +201,7 @@ export async function openReferences(name: string) {
 
 /** "M implementations": i tipi che hanno `name` come base. */
 export function openImplementations(name: string) {
-  const syms = implementersOf.get(name) ?? [];
+  const syms = maps.implementersOf.get(name) ?? [];
   if (syms.length) showImplementers(name, syms);
 }
 
@@ -296,10 +231,12 @@ function filterWs() {
     wsPalette.results = source.slice(0, CAP);
     return;
   }
+  // sulla rubrica intera i nomi in minuscolo sono già pronti (maps.lower, allineato all'indice)
+  const lower = source === codeIndex.symbols && maps.lower.length === source.length ? maps.lower : null;
   const scored: { s: ProjectSymbol; n: number }[] = [];
-  for (const s of source) {
-    const n = score(s.name.toLowerCase(), q);
-    if (n >= 0) scored.push({ s, n });
+  for (let i = 0; i < source.length; i++) {
+    const n = score(lower ? lower[i] : source[i].name.toLowerCase(), q);
+    if (n >= 0) scored.push({ s: source[i], n });
   }
   scored.sort((a, b) => b.n - a.n);
   wsPalette.total = scored.length;
@@ -308,38 +245,17 @@ function filterWs() {
 
 /** Definizioni con nome ESATTO (per Vai alla definizione). */
 export function defsFor(name: string): ProjectSymbol[] {
-  const n = name.toLowerCase();
-  return codeIndex.symbols.filter((s) => s.name.toLowerCase() === n);
+  return defsIn(maps, name);
 }
 
 // ---- contesto al cursore (barra dei "correlati", Fase 2) --------------------
-const TYPE_KINDS = ["class", "interface", "struct", "enum", "record", "trait"];
-const isTypeKind = (k: string) => TYPE_KINDS.includes(k);
+export type CodeContext = Ctx<ProjectSymbol>;
 
-export interface CodeContext {
-  path: { name: string; sym: ProjectSymbol }[]; // [tipo, (metodo)] — il simbolo che contiene il cursore
-  bases: { name: string; def: ProjectSymbol | null }[]; // implementa/estende
-  implementers: ProjectSymbol[]; // tipi che hanno questo come base
-}
-
-/** Simbolo che contiene il cursore (nearest-preceding nel file) + correlati. null se vuoto. */
+/** Simbolo che contiene il cursore (nearest-preceding nel file) + correlati. null se vuoto. Reattivo ai
+ *  cambi dell'indice (legge `semIndex.version`). */
 export function contextAt(relFile: string, line: number): CodeContext | null {
-  if (!relFile) return null;
-  const inFile = codeIndex.symbols.filter((s) => s.file === relFile);
-  if (!inFile.length) return null;
-  let enclosing: ProjectSymbol | null = null;
-  for (const s of inFile) if (s.line <= line && (!enclosing || s.line > enclosing.line)) enclosing = s;
-  if (!enclosing) return null;
-  const enc = enclosing;
-  const onType = isTypeKind(enc.kind);
-  const type = onType ? enc : (inFile.find((s) => s.name === enc.container && isTypeKind(s.kind)) ?? null);
-  const path: { name: string; sym: ProjectSymbol }[] = [];
-  if (type) path.push({ name: type.name, sym: type });
-  if (!onType) path.push({ name: enc.name, sym: enc });
-  if (!path.length) return null;
-  const bases = (type?.bases ?? []).map((b) => ({ name: b, def: defsFor(b)[0] ?? null }));
-  const implementers = type ? codeIndex.symbols.filter((s) => s.bases.includes(type.name)) : [];
-  return { path, bases, implementers };
+  void semIndex.version;
+  return contextIn(maps, relFile, line);
 }
 
 // ---- palette Ctrl+T --------------------------------------------------------

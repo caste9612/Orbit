@@ -3,7 +3,7 @@
   import Icon from "./Icon.svelte";
   import Switch from "./Switch.svelte";
   import Backdrop from "./Backdrop.svelte";
-  import { settings, closeSettings, MONO_FONTS, ACCENTS, THEMES, type AccentName, type ThemeName } from "../state/settings.svelte";
+  import { settings, closeSettings, MONO_FONTS, ACCENTS, THEMES, SCROLLBACK_OPTIONS, type AccentName, type ThemeName } from "../state/settings.svelte";
   import { openShortcuts } from "../state/keybindings.svelte";
   import { openLogs } from "../state/logs.svelte";
   import { invoke } from "@tauri-apps/api/core";
@@ -204,13 +204,25 @@
     <div class="row">
       <div class="label">
         <span class="name">Terminal GPU rendering (WebGL)</span>
-        <span class="hint">Sharper text — uses noticeably more memory</span>
+        <span class="hint">Draws terminal text on the GPU — much less CPU with busy output; only visible terminals use it</span>
       </div>
       <Switch
         checked={settings.webgl}
         onToggle={() => (settings.webgl = !settings.webgl)}
         label="Terminal GPU rendering"
       />
+    </div>
+
+    <div class="row">
+      <div class="label">
+        <span class="name">Terminal scrollback</span>
+        <span class="hint">Lines of history kept per terminal — more lines use more memory</span>
+      </div>
+      <select class="control" bind:value={settings.terminalScrollback}>
+        {#each SCROLLBACK_OPTIONS as n (n)}
+          <option value={n}>{n.toLocaleString("en-US")} lines</option>
+        {/each}
+      </select>
     </div>
 
     <div class="row">

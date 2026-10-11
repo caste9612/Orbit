@@ -3676,6 +3676,19 @@ scheda → `claude` → `~/.claude/sessions/<pid>.json` → transcript.
 - Da provare con un claude vero, dopo l'installazione: riprendere una chat usata, e il comportamento dopo un
   `/clear`.
 
+**Rilasciato in v1.1.0** il 2026-10-11: "Orbit v1.1.0 — Pick up where you left off", tag `v1.1.0` sul commit
+`0990838` (la rilettura del README), pubblicata dall'utente con `New-Release.ps1 -Publish` (setup, MSI, le due
+firme e `latest.json`). È il primo aggiornamento che gli Orbit 1.0 ricevono da soli.
+- Build firmata: eseguibile **6,60 MiB**, setup NSIS **3,17 MiB**, MSI **3,93 MiB**, chunk iniziale **274,3 KiB**.
+- Controlli dopo la pubblicazione:
+  - firme valide per la chiave di `tauri.conf.json` (Ed25519 sul BLAKE2b-512, verificate con `node:crypto`);
+  - i file caricati hanno gli stessi SHA-256 di quelli locali;
+  - il `latest.json` servito dall'indirizzo degli aggiornamenti è quello firmato, con le note finali.
+- Lezioni:
+  - lo script va lanciato in PowerShell 7 (`pwsh`): Windows PowerShell 5.1 lo blocca per la execution policy;
+  - senza `-Publish` produce solo gli artefatti in `artifacts/release`; la pubblicazione è un secondo giro, che
+    ricompila e chiede di nuovo la password.
+
 ---
 
 ## Ambiente di sviluppo verificato

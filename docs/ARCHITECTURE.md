@@ -82,11 +82,11 @@ Three kinds of frontend module, kept separate:
 | `quickopen` | Ctrl+P fuzzy file finder |
 | `symbols` | **Go to Symbol** palette (Ctrl+Shift+O): outline of the active editor + fuzzy filter |
 | `codeIndex` | **project symbol index** (the "address book") from `scan_symbols`, cached in `.orbit/index/` (written by the backend); `symbols`/`refs` are `$state.raw` and the lookups go through maps rebuilt once per index change (`symbolMaps.ts`: by file, by name, constructor counts, implementers — M62): **Go to definition** (F12/Ctrl+click), **Project symbols** palette (Ctrl+T), the related‑bar context (`contextAt`), the **semantic‑overlay name sets** (`semSets`/`semIndex` → type & function names for the editor overlay), the **code lens** data (`refs` counts from `index/refs.json`, `lensesFor`, `openReferences`/`openImplementations`), and the **back/forward nav history** (records jumps *and* file/tab switches; `nav` counts drive the top‑bar arrows) |
-| `keybindings` | central **command registry** + keyboard matcher/dispatch, with per‑preset keys (Orbit/VS/IntelliJ) **plus a user‑built `custom` keymap** (`settings.customKeys`, rebind per command) and the shortcuts‑reference panel; `keyStringFromEvent` captures a rebind, `conflictKeys` flags duplicates |
+| `keybindings` | central **command registry** + keyboard matcher/dispatch, with per‑preset keys (Orbit/VS/IntelliJ) **plus a user‑built `custom` keymap** (`settings.customKeys`, rebind per command) and the grouped reference shown in Settings → Keyboard (`mergedGroups`); `keyStringFromEvent` captures a rebind, `conflictKeys` flags duplicates |
 | `activity` | **Activity** view: work units from `scan_activity` across all `~/.claude/projects` (prompt‑first segmentation in Rust; `units` is `$state.raw` and unchanged units keep their object, M62); project on/off toggles `activityPrefs` (persisted, hides noise) + `openActivity`; live refresh via `watch_activity`→`activity-changed` |
 | `scratch` | one‑click persistent plain‑text scratchpad (`.orbit/scratch.txt`) for notes/prompts; renames a legacy `scratch.md` on first use |
 | `docs` | documentation tree (README + `docs/**`) for the Docs view |
-| `settings` | **theme** (5 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/**cursor styles** (`editorCaret`/`termCaret`, see `caretStyles.ts`)/**motion** (smooth panel transitions → `--motion-ms`)/webgl (on by default since M62; one-time `webglM62` migration)/**terminalScrollback** (lines per terminal, default 3000)/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme |
+| `settings` | **theme** (5 full presets incl. light)/**keymap** (Orbit/VS/IntelliJ/**custom** + `customKeys`)/font/size/accent (incl. **Auto**)/**cursor styles** (`editorCaret`/`termCaret`, see `caretStyles.ts`)/**motion** (smooth panel transitions → `--motion-ms`)/webgl (on by default since M62; one-time `webglM62` migration)/**terminalScrollback** (lines per terminal, default 3000)/claude‑terminal/**bell‑notify**/**reveal‑active**/**autosave**/**mdMode** (markdown default: readme‑only/preview/source) (localStorage) + applies CSS vars per theme; `settingsUI` (open + last category, `openSettings(section?)`) |
 | `layout` | panel sizes/visibility (`sidebarVisible`/`terminalVisible` false = **collapsed into a strip**, see *Collapsible panels*) + focused panel + `editorCollapsed` (runtime only: no tabs open → the editor shrinks to its minimum width, see *Editor auto‑collapse*) + `terminalMaximized` (chats side by side, saved in the session) + the **layout motion** API (`animating`, `beginMotion`/`animate`/`motionUntil`/`motionMs` — see *Smooth layout motion*) |
 | `persist` | session save/restore (autosave via `$effect.root`); sessions keyed **`<winKey>\|<folder>`** (per‑window: the same folder in two windows doesn't clobber), `setWinKey` from `startup()`; **`prepareQuit`** (M59: autosave if on, then the unsaved question, then the session written at once — before the window closes, on a Close‑all request from another window, and before an update) and `settleUnsaved` (the same for a folder switch); `switchFolder` swaps the active folder cleanly (keeps the window's repo list and sidebar view, prefetches the destination session in parallel with saving the current one, decides `editorCollapsed` from the saved tabs up front and shows the new repo's terminals as soon as the root is open — one layout motion); `openLight` / `promoteLight` (light window and its "Open … as project"; a light window never reads or saves a session) |
 | `toast` | transient notifications, plus a **sticky, clickable `attention`** variant (`notifyAttention`/`dismissByKey`, coalesced by `key`, optional `icon`) used by the Claude‑waiting and update notices |
@@ -115,13 +115,13 @@ cursor). The editor uses soft **line wrapping** (gutter stays correct).
 
 `Editor.svelte` (CodeMirror) and `Terminal.svelte` (xterm) are loaded through
 `LazyEditor.svelte` / `LazyTerminal.svelte` (dynamic `import()`), so the startup chunk stays
-lean (~264 KiB, ≈89 KiB gzipped since M62 — `outline.ts`, which pulled CodeMirror in, is imported on the first *Go to symbol*;
+lean (~268 KiB, ≈91 KiB gzipped as of M64 — since M62 `outline.ts`, which pulled CodeMirror in, is imported on the first *Go to symbol*;
 the xterm and CodeMirror chunks load on demand). The terminal WebGL renderer is a *further* dynamic import,
 attached only while a terminal is visible (on by default since M62, see the terminal section). **marked + DOMPurify** are likewise lazy (`markdown.ts`
 imports them on first render), so the Markdown feature adds nothing to the startup payload.
 A small generic **`Lazy.svelte`** wrapper (`load={() => import("./X.svelte")}`, props forwarded) does
-the same for the **overlays** (Settings, QuickOpen, SymbolPalette, WorkspaceSymbols, ShortcutsDialog,
-WrapperComposer), the **viewers**
+the same for the **overlays** (Settings — whose cursor previews are a further lazy import —, QuickOpen,
+SymbolPalette, WorkspaceSymbols, WrapperComposer), the **viewers**
 (DiffView, AssetView, MarkdownView, HtmlView, **ActivityBoard**, **UnitDigest**) and the **non‑default sidebar views** (Git/Search/Docs/Activity), so
 first paint loads only the Explorer + the active editor.
 
@@ -270,11 +270,12 @@ first paint loads only the Explorer + the active editor.
   preset (Orbit / Visual Studio / IntelliJ, `settings.keymap`); `App.svelte`'s window `keydown` runs
   `matchCommand(e)` → action, so the active preset applies everywhere (Go‑to‑definition moved from the
   CodeMirror keymap to this window‑level dispatch). A **Custom** keymap is built from any base preset
-  (`createCustom`) and stored as `settings.customKeys`; in `ShortcutsDialog.svelte` each configurable
+  (`createCustom`) and stored as `settings.customKeys`; in `SettingsKeyboard.svelte` each configurable
   command is then click‑to‑rebind — the capture listener runs in the **capture phase** (so rebinding e.g.
   `Ctrl+P` doesn't trigger the command), `keyStringFromEvent` rejects bare non‑function keys, and
-  `conflictKeys` highlights duplicates. `ShortcutsDialog.svelte` (opened from Settings) shows the preset
-  picker (incl. Custom) + a grouped reference (configurable commands + the fixed editor/mouse ones).
+  `conflictKeys` highlights duplicates. The **Keyboard** category of Settings holds the preset picker
+  (incl. Custom) and, below it, `SettingsKeyboard.svelte`: a grouped reference (configurable commands + the
+  fixed editor/mouse ones) that the Settings search filters too. (It was a separate dialog until M64.)
 - **Run a script file** — `run.svelte.ts`'s `runFile` opens a terminal in the file's folder and runs an
   executable script (`.ps1`/`.cmd`/`.bat`/`.sh`); `isRunnable` + `runCommand` (`util.ts`) map the
   extension to its interpreter. Surfaced from the tree context menu (`Explorer.svelte`) and the editor
@@ -395,8 +396,23 @@ first paint loads only the Explorer + the active editor.
   own is a transparent 1 px bar) at `buffer.cursorX/Y` after every render — a frame only sees the final
   position, so TUI redraws don't flicker it — hidden when the program hides the cursor (`?25l`, from xterm's
   state or a parser hook); moves under 70 ms apart and longer than a cell snap without glide or trail.
-  Claude chats (the ✨ tabs) get their own shape (a bar by default). Trails: `caretTrail.ts`, a canvas that
-  exists after the first trail and animates only while one is alive.
+  Claude chats (the ✨ tabs) get their own shape (a bar by default). Its CSS (shapes, glow, blink keyframes)
+  is `terminalCaret.css`, imported by the module, so every user of `TerminalCaret` gets it. Trails:
+  `caretTrail.ts`, a canvas that exists after the first trail and animates only while one is alive.
+- **Settings window (M64)** — `Settings.svelte` is a large modal: categories on the left (Appearance, Editor,
+  Terminal, Claude, Keyboard, Updates & logs; `settingsUI.section` remembers the last one, `openSettings(s)`
+  opens a given one), the rows of the active category on the right, version + *Check now* in the foot.
+  Every row is described in `ROWS` (category, name, hint with `code` in backticks, search keywords) and drawn
+  by the `control` snippet, so the **search** is data, not markup: `searchText.ts` (`queryTerms`,
+  `matchesAll` — every word, any order —, `segments`) filters rows and shortcuts across all categories,
+  `MatchText.svelte` highlights the hits, the left column dims the categories without hits and counts the
+  others; `Esc` in the search clears it first (stopping the event before `Backdrop` closes the window).
+  The cursor rows carry a **live preview**, lazily imported: `EditorCaretPreview.svelte` is a real
+  CodeMirror view with the editor theme and `caretExtension`, `TerminalCaretPreview.svelte` an xterm with
+  no process behind it (the component echoes keys: text, arrows, Home/End, Enter) driven by the same
+  `TerminalCaret`, with *Shell* / *Claude chat* tabs; both follow the settings live. xterm's theme is shared
+  through `terminalTheme.ts`. The window is centred on whole pixels with CSS `round()` (a transform or
+  `margin: auto` lands on half a pixel with an odd window width, and the text blurs).
 - **Terminal GPU rendering (M62)** — `Terminal.svelte` attaches xterm's WebGL addon only while the
   terminal is visible (an `IntersectionObserver` on the host) and disposes it 3 s after it disappears (another
   repo, another tab, a hidden panel); xterm falls back to its DOM renderer by itself. One WebGL context per
@@ -606,9 +622,10 @@ Without a `look` the `app.css` defaults apply (the historical Orbit shape). The 
 (follows the theme) or a preset (overrides). The editor picks a light/dark **HighlightStyle** via a
 `Compartment` (`editorTheme(light)` in `lib/editor/theme.ts`), reconfigured when the theme changes; its
 selection / active‑line / bracket read the `--cm-*` variables so they adapt. The **terminal** follows
-the theme too: `Terminal.svelte` builds xterm's theme from the active theme's vars (background =
-editor surface, foreground = ink, cursor = accent, selection = `--cm-selection`) with a dark or light
-ANSI set, re‑applied live on theme/accent change. A one‑time migration (`uiV09` in the saved settings)
+the theme too: `xtermTheme()` (`terminalTheme.ts`, shared with the cursor preview in Settings) builds
+xterm's theme from the active theme's vars (background = editor surface, foreground = ink, selection =
+`--cm-selection`; xterm's own cursor is transparent, `TerminalCaret` draws it) with a dark or light ANSI
+set, re‑applied live on theme/accent change. A one‑time migration (`uiV09` in the saved settings)
 moves existing installs to the new default once; later choices are kept.
 
 **File glyphs.** `FileGlyph.svelte` renders a file's icon from `fileIcon()` (`util.ts`): a dedicated SVG

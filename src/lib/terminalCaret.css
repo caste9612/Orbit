@@ -1,0 +1,109 @@
+/* Cursore disegnato da Orbit sopra la griglia di xterm (M63, terminalCaret.ts): forma, alone e lampeggio
+   arrivano come attributi; la posizione è un transform (la scivolata è una sua transizione). */
+.tcaret-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  overflow: hidden;
+}
+.tcaret {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+.tcaret-shape {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 1px;
+}
+.tcaret-shape[data-shape="block"] {
+  background: rgba(var(--accent-rgb), 0.6); /* il carattere sotto resta leggibile */
+}
+.tcaret-shape[data-shape="hollow"] {
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
+}
+.tcaret-shape[data-shape="bar"],
+.tcaret-shape[data-shape="under"] {
+  background: var(--color-accent);
+}
+.tcaret[data-glow="on"] .tcaret-shape {
+  box-shadow:
+    0 0 9px 1px rgba(var(--accent-rgb), 0.7),
+    0 0 2px rgba(var(--accent-rgb), 0.9);
+}
+.tcaret[data-glow="on"] .tcaret-shape[data-shape="hollow"] {
+  box-shadow:
+    inset 0 0 0 1.5px var(--color-accent),
+    0 0 9px 1px rgba(var(--accent-rgb), 0.7);
+}
+.tcaret[data-glow="breathe"] .tcaret-shape::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 3px;
+  box-shadow: 0 0 12px 3px rgba(var(--accent-rgb), 0.6);
+  opacity: 0.45;
+}
+.tcaret[data-glow="breathe"][data-on] .tcaret-shape::after {
+  animation: tcaret-breathe 2.4s ease-in-out infinite;
+}
+.tcaret[data-on] .tcaret-shape[data-blink="hard"] {
+  animation: tcaret-hard 1.06s steps(1) infinite;
+}
+.tcaret[data-on] .tcaret-shape[data-blink="smooth"] {
+  animation: tcaret-smooth 1.1s ease-in-out infinite;
+}
+.tcaret[data-on] .tcaret-shape[data-blink="phase"] {
+  animation: tcaret-phase 1.4s ease-in-out infinite;
+}
+.tcaret[data-on] .tcaret-shape[data-blink="expand"] {
+  animation: tcaret-expand 1.2s ease-in-out infinite;
+}
+@keyframes tcaret-hard {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes tcaret-smooth {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.08;
+  }
+}
+@keyframes tcaret-phase {
+  0%,
+  35%,
+  100% {
+    opacity: 1;
+  }
+  65% {
+    opacity: 0.1;
+  }
+}
+@keyframes tcaret-expand {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.15);
+  }
+}
+@keyframes tcaret-breathe {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}

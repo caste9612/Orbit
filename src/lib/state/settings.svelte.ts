@@ -209,8 +209,12 @@ export function nudgeFontSize(target: "editor" | "terminal", delta: number) {
   settings[key] = Math.max(MIN_FONT, Math.min(MAX_FONT, settings[key] + delta));
 }
 
-export const settingsUI = $state({ open: false });
-export function openSettings() {
+// Finestra delle Impostazioni (M64): categorie a sinistra; si riapre sull'ultima vista.
+export type SettingsSection = "appearance" | "editor" | "terminal" | "claude" | "keyboard" | "updates";
+export const settingsUI = $state({ open: false, section: "appearance" as SettingsSection });
+/** Apre le Impostazioni sulla categoria data (senza: sull'ultima vista). */
+export function openSettings(section?: SettingsSection) {
+  if (section) settingsUI.section = section;
   settingsUI.open = true;
 }
 export function closeSettings() {

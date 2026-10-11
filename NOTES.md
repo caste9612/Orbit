@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -3304,6 +3304,96 @@ con delle animazioni». Le scelte sono state fatte insieme:
   - "solo nei salti": lo snap c'è dopo una scrittura e non dopo un salto;
 - **CPU a riposo** dopo lo stop del lampeggio: 0,6 % di un core, sulla build di debug con Vite;
 - **test:** `vitest` 44/44 (+4 sugli stili), `svelte-check` 0/0.
+
+## Milestone 64 — Impostazioni in una finestra grande a categorie
+
+Richiesta dell'utente: «forse dovremmo rivedere la pagina di settings, col tempo si sta ampliando e il modal
+attuale mi sembra non più molto adeguato». Le scelte, con tre domande:
+- una **finestra grande a categorie**, come in JetBrains: ricerca in alto, categorie a sinistra, versione in
+  fondo;
+- **sei categorie**;
+- la finestra delle scorciatoie diventa la **categoria Keyboard**.
+
+**Cosa c'è.**
+- Una finestra di 900 × 660 px (si stringe con la finestra di Orbit) con sei categorie:
+  - **Appearance**: tema, con una miniatura dipinta coi colori di ciascuno; accento; transizioni;
+  - **Editor**: font, dimensione, cursore con anteprima, code lens, autosave, apertura dei Markdown;
+  - **Terminal**: font, dimensione, cursore con anteprima, GPU, scrollback;
+  - **Claude**: avvio di Claude nel terminale, notifiche, e la strada per il menu Claude del progetto
+    (*Add / remove prompts…*, *Edit JSON*);
+  - **Keyboard**: preset ed elenco completo delle scorciatoie, ribindabili in Custom;
+  - **Updates & logs**: controllo automatico degli aggiornamenti, log diagnostici, visualizzatore.
+  - La famiglia del font è una sola: compare in Editor e in Terminal, con la nota "shared with …".
+- **Ricerca** su voci e scorciatoie di tutte le categorie, mentre si scrive:
+  - tutte le parole, in qualsiasi ordine, su nome, descrizione, parole chiave e categoria ("zoom" trova le
+    dimensioni dei font);
+  - i pezzi trovati sono evidenziati; a sinistra le categorie senza risultati si spengono, le altre dicono
+    quanti;
+  - all'apertura il fuoco è già nella ricerca, come in JetBrains e VS Code; `Ctrl+F` ce lo riporta;
+  - `Esc` svuota la ricerca, un secondo `Esc` chiude.
+- **Anteprime del cursore.** La finestra copre l'app, quindi lo stile si prova lì dentro:
+  - Editor: un vero CodeMirror, col tema e il cursore dell'editor (clic, frecce, testo);
+  - Terminal: un xterm **senza processo dietro**, con lo stesso `TerminalCaret` dei terminali veri. L'eco la
+    fa il componente: testo, frecce, Home/End, Invio, Backspace, Ctrl+C. Le schede *Shell* / *Claude chat*
+    mostrano le due forme; non parte né una shell né Claude;
+  - seguono le impostazioni dal vivo; arrivano a richiesta (CodeMirror e xterm solo quando si apre la
+    categoria), con l'altezza già riservata, così le voci sotto non saltano.
+- Si riapre sull'ultima categoria vista.
+
+**Come funziona.**
+- `Settings.svelte`:
+  - ogni voce è un dato in `ROWS`: categoria, nome, descrizione (con il `codice` fra backtick) e parole
+    chiave;
+  - lo snippet `control` disegna il controllo di ogni voce, così la ricerca lavora sui dati e non sul markup;
+  - `settingsUI.section` ricorda la categoria; `openSettings(section?)` apre quella data. La TopBar passa
+    `() => openSettings()`: con `onclick={openSettings}` l'evento diventerebbe la categoria.
+- `searchText.ts` (`queryTerms`, `matchesAll`, `segments`: puro, 6 test) e `MatchText.svelte` per l'evidenza.
+- `SettingsKeyboard.svelte` (era `ShortcutsDialog.svelte`, spostato con `git mv`): ora solo l'elenco, già
+  filtrato.
+  - Nei risultati della ricerca il gruppo va in testa alla voce ("Editor › Zoom font"): un titolo "EDITOR"
+    sotto "KEYBOARD" si confondeva con la categoria Editor.
+  - I tasti ribindabili prendono finalmente lo stile dei `<kbd>`: `<button class="kbd">` non lo riceveva.
+- `EditorCaretPreview.svelte` e `TerminalCaretPreview.svelte`. Per condividerli:
+  - il tema di xterm è passato in `terminalTheme.ts`;
+  - il CSS del cursore del terminale è passato in `terminalCaret.css`, importato dal modulo: ce l'ha chiunque
+    usi `TerminalCaret`, anche senza un `Terminal.svelte` montato.
+- `Esc`: la ricerca ferma l'evento prima del `Backdrop`. La cattura di un tasto (Custom) ascolta in fase di
+  cattura, quindi `Esc` annulla la cattura senza chiudere la finestra.
+- Centratura con `left`/`top: round(down, …, 1px)`. Con `margin: auto` o con un transform, in una finestra
+  larga un numero dispari di pixel il pannello cadeva a x = 254,5 e il testo si sfocava.
+- Rimossi `shortcutsUI`, `openShortcuts`, `closeShortcuts` e il caricamento della vecchia finestra in
+  `App.svelte`.
+
+**Dimensioni.**
+- Chunk d'avvio: 268,5 KiB (90,6 gzip), contro 267,7 della M63: +0,8 KiB (l'icona della tastiera, la
+  categoria ricordata).
+- Le anteprime sono chunk a parte (1,3 e 3,1 KiB, più CodeMirror e xterm, che erano già a richiesta).
+- Rollup ora chiama `terminalCaret-*.js` il chunk condiviso da `Terminal.svelte` e dall'anteprima (xterm più
+  il cursore): resta a richiesta.
+- README e ARCHITECTURE dicevano ~264–265 KiB, il valore della M62: la M63 l'aveva già portato a 267,7
+  (gli stili del cursore servono all'avvio). Ora dicono ~268.
+
+**Verifica** (istanza di prova isolata, clone del repo, nessun Claude):
+- **finestra:**
+  - tutte e sei le categorie, nei temi VS 2026 e Orbit Light;
+  - posizione intera: 254, 70, 900 × 660 in una finestra di 1409 × 800;
+- **ricerca:**
+  - "font" → Editor 2, Terminal 2, Keyboard 1 ("Zoom font"), le altre spente, 5 evidenze;
+  - "zoom" → le due dimensioni dei font (parola chiave) e due scorciatoie;
+  - "zzz" → "No settings match";
+  - `Ctrl+F` dalla colonna delle categorie → fuoco nella ricerca;
+  - `Esc` → la svuota, poi `Esc` → chiude;
+- **anteprima editor:** fuoco, linea di 2 px, attributi `data-caret-*` giusti, scia (Comet) al salto con Home;
+- **anteprima terminale:**
+  - eco; cursore sulla cella giusta (colonna 20 → 156 px, 7,8 px a cella);
+  - Home → colonna 10; Invio → riga nuova;
+  - scheda *Claude chat* → barra di 2 px, col fuoco rimasto nel terminale;
+  - la forma cambiata da *Customize* si aggiorna dal vivo nello stesso xterm;
+- **Keyboard:**
+  - *Customize…* → Custom, con la nota per ribindare;
+  - clic su un tasto → "Press keys…"; `Esc` annulla senza chiudere;
+  - *Delete* → di nuovo Orbit;
+- nessun errore in console; `svelte-check` 0/0; `vitest` 50/50 (+6).
 
 ---
 

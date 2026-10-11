@@ -35,7 +35,7 @@
   import { initLogs, logsUI } from "./lib/state/logs.svelte";
   import { redockTerminal, terminals, anyNeedsAttention, tabIcon } from "./lib/state/terminals.svelte";
   import { initIndex, scheduleRescan, wsPalette, openWsPalette, navBack, navForward, goToDefinitionAtCursor } from "./lib/state/codeIndex.svelte";
-  import { matchCommand, shortcutsUI } from "./lib/state/keybindings.svelte";
+  import { matchCommand } from "./lib/state/keybindings.svelte";
   import { addFolder, cycleRepo, selectRepoIndex } from "./lib/state/folders.svelte";
   import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
@@ -529,9 +529,6 @@
   {/if}
   {#if logsUI.open}
     <Lazy load={() => import("./lib/components/LogViewer.svelte")} />
-  {/if}
-  {#if shortcutsUI.open}
-    <Lazy load={() => import("./lib/components/ShortcutsDialog.svelte")} />
   {/if}
   {#if wrapperUI.open}
     <Lazy load={() => import("./lib/components/WrapperComposer.svelte")} />

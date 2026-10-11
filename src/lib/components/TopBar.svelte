@@ -421,7 +421,7 @@
     <button class="view only" title="Close all Orbit windows (reopen on next launch)" aria-label="Close all windows" onclick={closeAll}>
       <Icon name="windows-close" size={14} strokeWidth={1.7} />
     </button>
-    <button class="view only" title="Settings" aria-label="Settings" onclick={openSettings}>
+    <button class="view only" title="Settings" aria-label="Settings" onclick={() => openSettings()}>
       <Icon name="settings" size={14} strokeWidth={1.7} />
     </button>
   </div>

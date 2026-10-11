@@ -8,7 +8,8 @@
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { openFile, openFileAt, workspace } from "../state/workspace.svelte";
   import { notify } from "../state/toast.svelte";
-  import { settings, monoStack, THEMES } from "../state/settings.svelte";
+  import { settings, monoStack } from "../state/settings.svelte";
+  import { xtermTheme } from "../terminalTheme";
   import { setTerminalFocus, clearTerminalFocus } from "../state/terminals.svelte";
   import { motionUntil } from "../state/layout.svelte";
   import { joinPath } from "../util";
@@ -55,35 +56,6 @@
     onTitle,
     chat = false,
   }: Props = $props();
-
-  // Tema xterm LEGATO al tema di Orbit: sfondo = colore dell'editor (surface-1), testo = ink, cursore
-  // = accento, selezione = quella dell'editor. Prima era fisso #1e1e1e: coincideva col tema VS 2026 e
-  // stonava con gli altri (e con Orbit Light). I 16 colori ANSI hanno un set scuro e uno chiaro.
-  const ANSI_DARK = {
-    black: "#1e1e1e", red: "#f14c4c", green: "#5bc88a", yellow: "#e3b341", blue: "#569cd6",
-    magenta: "#c586c0", cyan: "#4ec9b0", white: "#d4d4d4",
-    brightBlack: "#6b7480", brightRed: "#ff7b86", brightGreen: "#7ee0a6", brightYellow: "#f0c662",
-    brightBlue: "#8fbcff", brightMagenta: "#d7a3e0", brightCyan: "#6fd9c4", brightWhite: "#ffffff",
-  };
-  const ANSI_LIGHT = {
-    black: "#000000", red: "#cd3131", green: "#00a300", yellow: "#949800", blue: "#0451a5",
-    magenta: "#bc05bc", cyan: "#0598bc", white: "#555555",
-    brightBlack: "#666666", brightRed: "#cd3131", brightGreen: "#14ce14", brightYellow: "#b5ba00",
-    brightBlue: "#0451a5", brightMagenta: "#bc05bc", brightCyan: "#0598bc", brightWhite: "#a5a5a5",
-  };
-  function xtermTheme() {
-    const th = THEMES[settings.theme] ?? THEMES.vs2026;
-    const bg = th.vars["color-surface-1"];
-    return {
-      background: bg,
-      foreground: th.vars["color-ink"],
-      // il cursore di xterm è invisibile: lo disegna TerminalCaret sopra la griglia (M63)
-      cursor: "#00000000",
-      cursorAccent: bg,
-      selectionBackground: th.vars["cm-selection"],
-      ...(th.light ? ANSI_LIGHT : ANSI_DARK),
-    };
-  }
 
   let host: HTMLDivElement; // contenitore col padding: listener, ResizeObserver, test "tab nascosta"
   let fitHost: HTMLDivElement; // genitore DIRETTO di .xterm, senza padding (vedi CSS e fitSafe)
@@ -527,115 +499,6 @@
      resta solo il cursore gestito da xterm. */
   :global(.term .xterm-helper-textarea) {
     caret-color: transparent !important;
-  }
-  /* Cursore disegnato da Orbit sopra la griglia di xterm (M63, terminalCaret.ts): forma, alone e lampeggio
-     arrivano come attributi; la posizione è un transform (la scivolata è una sua transizione). */
-  :global(.tcaret-layer) {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 5;
-    overflow: hidden;
-  }
-  :global(.tcaret) {
-    position: absolute;
-    left: 0;
-    top: 0;
-    will-change: transform;
-  }
-  :global(.tcaret-shape) {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    border-radius: 1px;
-  }
-  :global(.tcaret-shape[data-shape="block"]) {
-    background: rgba(var(--accent-rgb), 0.6); /* il carattere sotto resta leggibile */
-  }
-  :global(.tcaret-shape[data-shape="hollow"]) {
-    box-shadow: inset 0 0 0 1.5px var(--color-accent);
-  }
-  :global(.tcaret-shape[data-shape="bar"]),
-  :global(.tcaret-shape[data-shape="under"]) {
-    background: var(--color-accent);
-  }
-  :global(.tcaret[data-glow="on"] .tcaret-shape) {
-    box-shadow:
-      0 0 9px 1px rgba(var(--accent-rgb), 0.7),
-      0 0 2px rgba(var(--accent-rgb), 0.9);
-  }
-  :global(.tcaret[data-glow="on"] .tcaret-shape[data-shape="hollow"]) {
-    box-shadow:
-      inset 0 0 0 1.5px var(--color-accent),
-      0 0 9px 1px rgba(var(--accent-rgb), 0.7);
-  }
-  :global(.tcaret[data-glow="breathe"] .tcaret-shape::after) {
-    content: "";
-    position: absolute;
-    inset: -3px;
-    border-radius: 3px;
-    box-shadow: 0 0 12px 3px rgba(var(--accent-rgb), 0.6);
-    opacity: 0.45;
-  }
-  :global(.tcaret[data-glow="breathe"][data-on] .tcaret-shape::after) {
-    animation: tcaret-breathe 2.4s ease-in-out infinite;
-  }
-  :global(.tcaret[data-on] .tcaret-shape[data-blink="hard"]) {
-    animation: tcaret-hard 1.06s steps(1) infinite;
-  }
-  :global(.tcaret[data-on] .tcaret-shape[data-blink="smooth"]) {
-    animation: tcaret-smooth 1.1s ease-in-out infinite;
-  }
-  :global(.tcaret[data-on] .tcaret-shape[data-blink="phase"]) {
-    animation: tcaret-phase 1.4s ease-in-out infinite;
-  }
-  :global(.tcaret[data-on] .tcaret-shape[data-blink="expand"]) {
-    animation: tcaret-expand 1.2s ease-in-out infinite;
-  }
-  @keyframes -global-tcaret-hard {
-    0% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0;
-    }
-  }
-  @keyframes -global-tcaret-smooth {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.08;
-    }
-  }
-  @keyframes -global-tcaret-phase {
-    0%,
-    35%,
-    100% {
-      opacity: 1;
-    }
-    65% {
-      opacity: 0.1;
-    }
-  }
-  @keyframes -global-tcaret-expand {
-    0%,
-    100% {
-      transform: scaleY(1);
-    }
-    50% {
-      transform: scaleY(0.15);
-    }
-  }
-  @keyframes -global-tcaret-breathe {
-    0%,
-    100% {
-      opacity: 0.25;
-    }
-    50% {
-      opacity: 1;
-    }
   }
   :global(.term .xterm-viewport)::-webkit-scrollbar {
     width: 11px;

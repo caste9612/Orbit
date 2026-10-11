@@ -100,15 +100,6 @@ export function formatKey(key: string): string {
     .replace("ArrowDown", "↓");
 }
 
-// Pannello "Keyboard shortcuts" (aperto da Impostazioni con un click, così non sporca i Settings).
-export const shortcutsUI = $state({ open: false });
-export function openShortcuts() {
-  shortcutsUI.open = true;
-}
-export function closeShortcuts() {
-  shortcutsUI.open = false;
-}
-
 // ---- riepilogo + preset "Custom" --------------------------------------------------------------
 
 export interface ShortcutRow {
@@ -117,7 +108,7 @@ export interface ShortcutRow {
   key: string; // tasto grezzo ("Ctrl+Shift+O") — il pannello applica formatKey per la resa
 }
 
-/** Comandi (configurabili) + fissi, raggruppati per categoria, col tasto attivo — per il pannello. */
+/** Comandi (configurabili) + fissi, raggruppati per categoria, col tasto attivo — per Impostazioni → Keyboard. */
 export function mergedGroups(): { category: string; items: ShortcutRow[] }[] {
   const groups = new Map<string, ShortcutRow[]>();
   const add = (category: string, row: ShortcutRow) => {

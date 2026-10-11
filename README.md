@@ -34,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~6.5 MB binary, ~120 MB of RAM at rest with a project open (mostly the
-  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~265 KB startup chunk (≈90 KB gzipped).
+  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~268 KB startup chunk (≈91 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -281,13 +281,23 @@ cross-platform desktop app that weighs almost nothing.
   purple, green, teal or amber.
 - **Keyboard shortcut presets**: switch the keymap between **Orbit**, **Visual Studio** and
   **IntelliJ**, or build a **Custom** keymap from any preset by rebinding individual commands (with
-  conflict warnings) — full reference in Settings → Keyboard shortcuts.
-- **Settings**: theme, keymap preset (incl. Custom), editor/terminal font with **independent sizes**
-  (`Ctrl/Cmd+scroll` zooms whichever panel the pointer is over), accent color, **cursor styles** for the editor and the terminal (Smooth, Classic, Comet, Elastic, Blaze;
-  *Customize* for shape, glide, blink, trail and glow — a bar in Claude chats, a block in shells),
-  **code lens**, **smooth panel transitions**, **autosave**, **default Markdown view** (source / preview / READMEs only), terminal GPU rendering (on by default, only for the terminals in view), **terminal scrollback** (1,000–10,000 lines, default 3,000),
-  "launch Claude in the default terminal", "notify when a terminal needs you", **diagnostic logging** (collect/export logs to investigate issues),
-  and **automatic update checks** (the installed version and *Check now* are pinned at the foot of the panel).
+  conflict warnings) — full reference in Settings → **Keyboard**.
+- **Settings** in one large window with **categories** — Appearance, Editor, Terminal, Claude, Keyboard,
+  Updates & logs — and a **search box** that filters every option and every shortcut as you type
+  (`Ctrl/Cmd+F` jumps to it; `Esc` clears it, then closes the window):
+  - **Appearance**: theme (each with a thumbnail in its own colors), accent color, smooth panel transitions;
+  - **Editor** and **Terminal**: font with **independent sizes** (`Ctrl/Cmd+scroll` zooms whichever panel the
+    pointer is over; the family is shared), **cursor styles** (Smooth, Classic, Comet, Elastic, Blaze;
+    *Customize* for shape, glide, blink, trail and glow — a bar in Claude chats, a block in shells) with a
+    **live preview** to try them — a small editor, and a small terminal with a *Shell* and a *Claude chat* tab;
+    **code lens**, **autosave** and the **default Markdown view** (source / preview / READMEs only); terminal
+    GPU rendering (on by default, only for the terminals in view) and **scrollback** (1,000–10,000 lines,
+    default 3,000);
+  - **Claude**: "launch Claude in the default terminal", "notify when a terminal needs you", and the way to
+    the project's Claude menu (prompts, wrappers, `.orbit/claude.json`);
+  - **Keyboard**: the keymap preset (incl. Custom) and the full shortcut reference, click-to-rebind in Custom;
+  - **Updates & logs**: automatic update checks and **diagnostic logging** (collect/export logs to investigate
+    issues). The installed version and *Check now* are pinned at the foot of the window.
 
 ---
 
@@ -301,7 +311,7 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~3.9 MB |
 | NSIS setup | ~3.1 MB |
 | Frontend `dist/` | ~2.9 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~265 KB (≈90 KB gzipped; the editor and the terminal load on demand) |
+| Startup JS chunk | ~268 KB (≈91 KB gzipped; the editor and the terminal load on demand) |
 | RAM at rest (project open) | ~120 MB private working set with one terminal, ~160 MB with four terminals and three files open (Orbit + WebView2; the Rust core is ~6 MB, ~30 MB with the symbol index of a very large project — the rest is the shared system WebView, inherent to Tauri) |
 | Under load | Claude saving a file every second in a 5,400-file project: ~23% of one CPU core, the UI answering in ~2 ms (99th percentile) |
 
@@ -354,7 +364,7 @@ lives in [NOTES.md](./NOTES.md).
 | Double-click an image | Switch between fit and 100% |
 
 > These are the **Orbit** preset; switch to **Visual Studio** / **IntelliJ**, or make a **Custom**
-> keymap by rebinding individual commands, in Settings → Keyboard shortcuts.
+> keymap by rebinding individual commands, in Settings → Keyboard.
 
 ---
 

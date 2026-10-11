@@ -6,6 +6,7 @@
 import type { IDisposable, Terminal } from "@xterm/xterm";
 import { BLINK_DELAY_MS, BLINK_STOP_MS, GLIDE_EASE, GLIDE_MS, type TermCaret, type TermShape } from "./caretStyles";
 import { TrailCanvas, type CaretRect } from "./caretTrail";
+import "./terminalCaret.css"; // forme, alone e lampeggio: con il modulo, per ogni terminale che lo usa
 
 const has25 = (params: (number | number[])[]) => params.some((p) => p === 25 || (Array.isArray(p) && p.includes(25)));
 

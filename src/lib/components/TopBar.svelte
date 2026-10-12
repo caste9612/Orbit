@@ -5,13 +5,12 @@
   import Icon from "./Icon.svelte";
   import Logo from "./Logo.svelte";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
+  import RepoStrip from "./RepoStrip.svelte";
   import { layout, selectView, toggleTerminal } from "../state/layout.svelte";
   import { workspace, activeFile } from "../state/workspace.svelte";
   import { openActivity } from "../state/activity.svelte";
-  import { openFolderDialog } from "../state/explorer.svelte";
-  import { folders, openFromList, removeFolder, moveFolder } from "../state/folders.svelte";
   import { changedCount } from "../state/git.svelte";
-  import { repoNeedsAttention, anyNeedsAttention, waitingTerminals, goToTerminal, displayTitle } from "../state/terminals.svelte";
+  import { anyNeedsAttention, waitingTerminals, goToTerminal, displayTitle } from "../state/terminals.svelte";
   import { nav, navBack, navForward } from "../state/codeIndex.svelte";
   import { keyForId } from "../state/keybindings.svelte";
   import { run, runConfig, openConfig, teachClaude } from "../state/run.svelte";
@@ -63,129 +62,6 @@
   let changed = $derived(changedCount()); // file modificati → badge sul pulsante Git
   let backKey = $derived(keyForId("navBack")); // scorciatoia attiva (dipende dal preset) → tooltip
   let fwdKey = $derived(keyForId("navForward"));
-
-  // top bar stretta / molte repo: la fila di tab scorre; tieni la tab ATTIVA sempre in vista
-  let repobarEl = $state<HTMLElement>();
-  $effect(() => {
-    workspace.rootPath; // dipendenza: rieffettua al cambio repo
-    repobarEl?.querySelector(".repotab.active")?.scrollIntoView({ inline: "nearest", block: "nearest" });
-  });
-
-  // se le tab non entrano nella barra: un "…" apre il menu con TUTTE le repo (oltre allo scroll)
-  let overflowing = $state(false);
-  function repobarOverflow(node: HTMLElement) {
-    const measure = () => {
-      overflowing = node.scrollWidth > node.clientWidth + 1;
-      // stringendo la finestra il repo SELEZIONATO (che può non essere il primo) deve restare in
-      // vista: lo riporto in vista a ogni resize. rAF: fuori dal callback del ResizeObserver.
-      requestAnimationFrame(() =>
-        node.querySelector(".repotab.active")?.scrollIntoView({ inline: "nearest", block: "nearest" }),
-      );
-    };
-    const ro = new ResizeObserver(measure); // cambi di larghezza (finestra / altri elementi)
-    ro.observe(node);
-    const mo = new MutationObserver(measure); // aggiunta/rimozione di tab → cambia scrollWidth
-    mo.observe(node, { childList: true, subtree: true });
-    measure();
-    return {
-      destroy() {
-        ro.disconnect();
-        mo.disconnect();
-      },
-    };
-  }
-  // Riordino dei repo per trascinamento: la tab presa segue il puntatore (transform), le altre scivolano
-  // di una posizione (transform con transition) e la LISTA cambia solo al rilascio, così il DOM non si
-  // riordina durante il drag. Soglia di 5 px: sotto, è un click (cambio repo).
-  const TAB_GAP = 4;
-  let drag = $state<{ from: number; to: number; dx: number; width: number } | null>(null);
-  let settling = $state(false); // al rilascio: un frame senza transition (il DOM riordinato coincide col visivo)
-  let dragPending: { index: number; x0: number; pointerId: number; el: HTMLElement } | null = null;
-  let tabRects: { left: number; width: number }[] = [];
-  let suppressClick = false;
-  function repoDown(e: PointerEvent, index: number) {
-    if (e.button !== 0 || (e.target as HTMLElement).closest(".rt-close")) return;
-    dragPending = { index, x0: e.clientX, pointerId: e.pointerId, el: e.currentTarget as HTMLElement };
-  }
-  function repoMove(e: PointerEvent) {
-    if (!dragPending) return;
-    if (!drag) {
-      if (Math.abs(e.clientX - dragPending.x0) < 5) return;
-      const tabs = [...(repobarEl?.querySelectorAll(".repotab") ?? [])] as HTMLElement[];
-      tabRects = tabs.map((t) => {
-        const r = t.getBoundingClientRect();
-        return { left: r.left, width: r.width };
-      });
-      try {
-        dragPending.el.setPointerCapture(dragPending.pointerId);
-      } catch {
-        /* no-op */
-      }
-      drag = { from: dragPending.index, to: dragPending.index, dx: 0, width: tabRects[dragPending.index]?.width ?? 0 };
-    }
-    drag.dx = e.clientX - dragPending.x0;
-    // destinazione: dove cade il CENTRO della tab trascinata rispetto ai centri delle altre
-    const center = tabRects[drag.from].left + drag.width / 2 + drag.dx;
-    let to = drag.from;
-    for (let i = drag.from - 1; i >= 0; i--) {
-      if (center < tabRects[i].left + tabRects[i].width / 2) to = i;
-      else break;
-    }
-    if (to === drag.from) {
-      for (let i = drag.from + 1; i < tabRects.length; i++) {
-        if (center > tabRects[i].left + tabRects[i].width / 2) to = i;
-        else break;
-      }
-    }
-    drag.to = to;
-  }
-  function repoUp(e: PointerEvent) {
-    if (drag) {
-      const { from, to } = drag;
-      settling = true; // niente transition mentre il DOM si riordina e i transform si azzerano
-      drag = null;
-      if (from !== to) moveFolder(from, to);
-      requestAnimationFrame(() => requestAnimationFrame(() => (settling = false)));
-      suppressClick = true; // il click che segue il rilascio NON deve cambiare repo
-      setTimeout(() => (suppressClick = false), 0);
-      try {
-        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-      } catch {
-        /* no-op */
-      }
-    }
-    dragPending = null;
-  }
-  /** Transform della tab `i` durante il drag: quella presa segue il puntatore, le altre fra origine e
-   *  destinazione scivolano di una posizione. */
-  function repoShift(i: number): string {
-    if (!drag) return "";
-    if (i === drag.from) return `translateX(${drag.dx}px)`;
-    const step = drag.width + TAB_GAP;
-    if (drag.from < drag.to && i > drag.from && i <= drag.to) return `translateX(${-step}px)`;
-    if (drag.to < drag.from && i >= drag.to && i < drag.from) return `translateX(${step}px)`;
-    return "";
-  }
-  function repoClick(path: string) {
-    if (suppressClick) {
-      suppressClick = false;
-      return;
-    }
-    void openFromList(path);
-  }
-  let folderMenu = $state<{ x: number; y: number } | null>(null);
-  function openFolderMenu(e: MouseEvent) {
-    folderMenu = menuPos(e);
-  }
-  function folderMenuItems(): MenuItem[] {
-    const items: MenuItem[] = folders.list.map((f) => ({
-      label: f.name,
-      icon: f.path === workspace.rootPath ? "folder-open" : "folder",
-      onClick: () => void openFromList(f.path),
-    }));
-    items.push({ label: "Add folder…", icon: "folder-plus", separatorBefore: items.length > 0, onClick: openFolderDialog });
-    return items;
-  }
 
   // posizione di un menu a tendina, appena sotto il pulsante che l'ha aperto
   function menuPos(e: MouseEvent) {
@@ -278,7 +154,8 @@
 </script>
 
 <header class="topbar" data-tauri-drag-region>
-  <div class="brand" data-tauri-drag-region>
+  <!-- "deep": si trascina anche dal logo (un clic sull'SVG non contava, M69) -->
+  <div class="brand" data-tauri-drag-region="deep">
     <Logo size={18} />
   </div>
 
@@ -319,7 +196,9 @@
     </button>
   </nav>
 
-  <div class="spacer" data-tauri-drag-region>
+  <!-- "deep": si trascina da ogni punto libero dello spazio centrale, anche fra le schede delle repo (che
+       si escludono con data-tauri-drag-region="false"); bottoni e schede restano cliccabili (M69) -->
+  <div class="spacer" data-tauri-drag-region="deep">
     {#if workspace.light}
       <!-- finestra leggera (M57): un file aperto da solo; al posto delle schede repo l'invito a farne
            un progetto (il repo git che lo contiene, o la sua cartella) -->
@@ -332,51 +211,7 @@
         <span class="lp-label">Open <strong>{basename(workspace.lightProject ?? workspace.rootPath ?? "")}</strong> as project</span>
       </button>
     {:else if workspace.rootName}
-      <div class="repozone">
-        <div class="repobar" bind:this={repobarEl} use:repobarOverflow>
-          {#each folders.list as f, i (f.path)}
-            {@const active = f.path === workspace.rootPath}
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div
-              class="repotab"
-              class:active
-              class:dragging={drag?.from === i}
-              class:settling
-              style:transform={repoShift(i)}
-              onpointerdown={(e) => repoDown(e, i)}
-              onpointermove={repoMove}
-              onpointerup={repoUp}
-              onpointercancel={repoUp}
-            >
-              <button class="rt-main" title={f.path} onclick={() => repoClick(f.path)}>
-                <Icon name={active ? "folder-open" : "folder"} size={12} strokeWidth={1.8} />
-                <span class="rt-name">{f.name}</span>
-                {#if active && workspace.branch}
-                  <span class="rt-branch" title={workspace.branch}><Icon name="git-branch" size={10} strokeWidth={1.8} /><span class="rt-bname">{workspace.branch}</span></span>
-                {/if}
-              </button>
-              <button class="rt-close" title={active ? "Remove (switch to a neighbor)" : "Remove from list"} aria-label="Remove from list" onclick={() => removeFolder(f.path)}>
-                <Icon name="x" size={10} strokeWidth={2} />
-              </button>
-              {#if repoNeedsAttention(f.path)}<span class="rt-attn" title="A terminal in this repo is waiting (Claude finished / needs you)"></span>{/if}
-            </div>
-          {/each}
-        </div>
-        <!-- "+"/"…" stanno FUORI dalla striscia che scorre: sempre raggiungibili anche da stretto.
-             Se le tab non entrano (overflowing) il "…" apre TUTTE le repo (e include "Add folder…"),
-             quindi il "+" diventa ridondante e lo nascondo per recuperare spazio. -->
-        {#if overflowing}
-          <button class="repoadd" title="All repositories" aria-label="All repositories" onclick={openFolderMenu}>
-            <Icon name="more" size={14} strokeWidth={2} />
-          </button>
-        {:else}
-          <!-- 14 px in un bottone 26×22 con bordo da 1: 5 px ai lati e 3 sopra e sotto (con 13 il "+"
-               cadeva a mezzo pixel e si vedeva spostato di 1 px, M57) -->
-          <button class="repoadd" title="Add folder…" aria-label="Add folder" onclick={openFolderDialog}>
-            <Icon name="plus" size={14} strokeWidth={2} />
-          </button>
-        {/if}
-      </div>
+      <RepoStrip />
     {/if}
   </div>
 
@@ -446,9 +281,6 @@
 {/if}
 {#if claudeMenu}
   <ContextMenu x={claudeMenu.x} y={claudeMenu.y} items={claudeMenuItems()} onClose={() => (claudeMenu = null)} />
-{/if}
-{#if folderMenu}
-  <ContextMenu x={folderMenu.x} y={folderMenu.y} items={folderMenuItems()} onClose={() => (folderMenu = null)} />
 {/if}
 {#if waitMenu}
   <ContextMenu x={waitMenu.x} y={waitMenu.y} items={waitMenuItems()} onClose={() => (waitMenu = null)} />
@@ -574,178 +406,8 @@
     height: 100%;
     display: flex;
     align-items: center;
-    justify-content: center; /* la striscia repo si popola DAL CENTRO (richiesta utente, M56); lo spazio libero
-                                resta ai lati e NON comprime la repobar → la tab attiva si vede intera
-                                quando c'è spazio; da stretto la repozone riempie lo spacer e scrolla */
-    min-width: 0; /* assorbe la compressione: la repobar si stringe/scrolla qui, non spinge fuori i wctrls */
-  }
-  /* tab repo (striscia che scorre) + "+"/"…" pinnati; tutto entro lo spazio dello spacer */
-  .repozone {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    min-width: 0;
-    max-width: 100%;
-  }
-  .repobar {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex: 0 1 auto;
-    width: max-content; /* larghezza = contenuto PIENO (tab attiva intera) quando c'è spazio… */
-    max-width: 100%; /* …ma mai oltre lo spazio disponibile → oltre, scrolla */
-    min-width: 0; /* scroll container in x → min-content non la blocca */
-    height: 22px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .repobar::-webkit-scrollbar {
-    display: none;
-  }
-  .repotab {
-    position: relative; /* ancora il pallino "attenzione" (un terminale di QUESTA repo è in attesa) */
-    display: inline-flex;
-    align-items: center;
-    flex: 0 0 auto;
-    max-width: 220px;
-    height: 22px;
-    border: 1px solid var(--color-line);
-    border-radius: var(--r-lg);
-    background: var(--color-surface-1);
-    color: var(--color-ink-muted);
-    overflow: hidden;
-    touch-action: none; /* riordino per trascinamento con pointer capture */
-    transition:
-      background 90ms ease,
-      border-color 90ms ease,
-      color 90ms ease,
-      transform 150ms var(--motion-ease);
-  }
-  /* riordino: la tab presa segue il puntatore senza transition e sopra le altre; al rilascio nessuna
-     transition per un frame (il DOM riordinato coincide già con la posizione visiva) */
-  .repotab.dragging,
-  .repotab.settling {
-    transition: background 90ms ease, border-color 90ms ease, color 90ms ease;
-  }
-  .repotab.dragging {
-    z-index: 2;
-    cursor: grabbing;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-  }
-  .repotab:not(.active):hover {
-    background: var(--color-surface-3);
-    color: var(--color-ink);
-  }
-  .repotab.active {
-    color: var(--color-ink);
-    background: rgba(var(--accent-rgb), 0.16);
-    border-color: rgba(var(--accent-rgb), 0.5);
-    /* la tab ATTIVA mostra nome + branch PER INTERO quando c'è spazio (la repobar usa `width:max-content`
-       → niente tetto qui); ma resta COMPRIMIBILE (flex-shrink) così da finestra stretta si accorcia con
-       ellissi invece di spingere fuori i controlli. Le inattive restano a 220px. */
-    flex: 0 1 auto;
-    max-width: none;
-    min-width: 0;
-  }
-  .rt-main {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 100%;
-    padding: 0 5px 0 9px;
-    border: 0;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    font-size: 12px;
-    cursor: pointer;
-    min-width: 0;
-  }
-  .rt-name {
-    flex: 0 1 auto; /* sotto pressione si accorcia con ellissi (l'item più lungo cede di più) */
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .rt-branch {
-    flex: 0 1 auto; /* intero quando c'è spazio (repobar a max-content); si accorcia con ellissi se serve */
-    min-width: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding-left: 2px;
-    color: var(--color-ink-muted);
-    font-size: 11px;
-  }
-  .rt-branch :global(svg) {
-    flex: 0 0 auto; /* l'icona del branch non si comprime */
-  }
-  .rt-bname {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .rt-close {
-    display: grid;
-    place-items: center;
-    width: 16px;
-    height: 16px;
-    margin-right: 4px;
-    border: 0;
-    border-radius: var(--r-sm);
-    background: transparent;
-    color: var(--color-ink-subtle);
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 90ms ease, background 90ms ease;
-  }
-  .repotab:hover .rt-close {
-    opacity: 1;
-  }
-  .rt-close:hover {
-    background: var(--color-surface-4);
-    color: var(--color-ink);
-  }
-  /* pallino "attenzione" della repo: un suo terminale ha suonato la bell (Claude finito / in attesa).
-     Overlay nell'angolo (non sposta il contenuto): pulsa 4 volte, poi resta acceso finché non apri quel
-     terminale (M62: prima pulsava all'infinito, anche per ore). */
-  .rt-attn {
-    position: absolute;
-    top: 2px;
-    right: 3px;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--color-accent);
-    box-shadow: 0 0 0 1.5px var(--color-surface-0);
-    pointer-events: none;
-    animation: rt-attn-pulse 1.6s ease-in-out 4;
-  }
-  @keyframes rt-attn-pulse {
-    0%, 100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.35;
-    }
-  }
-  .repoadd {
-    flex: 0 0 auto;
-    display: grid;
-    place-items: center;
-    width: 26px;
-    height: 22px;
-    border: 1px solid var(--color-line);
-    border-radius: var(--r-lg);
-    background: var(--color-surface-1);
-    color: var(--color-ink-muted);
-    cursor: pointer;
-    transition: background 90ms ease, color 90ms ease;
-  }
-  .repoadd:hover {
-    background: var(--color-surface-3);
-    color: var(--color-ink);
+    justify-content: center; /* la striscia repo (RepoStrip) si popola DAL CENTRO (M56) */
+    min-width: 0; /* assorbe la compressione: le repo si comprimono qui (M69), non spingono fuori i wctrls */
   }
   /* finestra leggera (M57): stessa forma di una scheda repo, l'accento compare al passaggio */
   .lightproj {

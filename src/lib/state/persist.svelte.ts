@@ -50,6 +50,17 @@ interface Session {
   };
 }
 
+function layoutSnapshot(): Session["layout"] {
+  return {
+    sidebarView: layout.sidebarView,
+    sidebarVisible: layout.sidebarVisible,
+    sidebarWidth: layout.sidebarWidth,
+    terminalVisible: layout.terminalVisible,
+    terminalWidth: layout.terminalWidth,
+    terminalMaximized: layout.terminalMaximized,
+  };
+}
+
 function serialize(): string {
   const groups: SavedGroup[] = [];
   let activeGroup = 0;
@@ -72,16 +83,29 @@ function serialize(): string {
     groups,
     activeGroup,
     expanded: workspace.rootPath ? expandedRel(workspace.rootPath) : [],
-    layout: {
-      sidebarView: layout.sidebarView,
-      sidebarVisible: layout.sidebarVisible,
-      sidebarWidth: layout.sidebarWidth,
-      terminalVisible: layout.terminalVisible,
-      terminalWidth: layout.terminalWidth,
-      terminalMaximized: layout.terminalMaximized,
-    },
+    layout: layoutSnapshot(),
   };
   return JSON.stringify(data);
+}
+
+/** Consegna la sessione di `folder` alla finestra nuova con chiave `toKey` (repo spostata in una finestra
+ *  nuova, M69): schede, posizione nei file, albero e pannelli; la sua lista repo è solo questa. Se `folder` è
+ *  la cartella aperta si prende lo stato di adesso, altrimenti quello salvato (o, senza, i pannelli di qui). */
+export async function exportSession(folder: string, toKey: string) {
+  let s: Session | null = null;
+  if (folder === workspace.rootPath && !workspace.light) s = JSON.parse(serialize()) as Session;
+  else {
+    const raw = await invoke<string | null>("load_state", { key: sessionKey(folder) }).catch(() => null);
+    try {
+      s = raw ? (JSON.parse(raw) as Session) : null;
+    } catch {
+      s = null;
+    }
+  }
+  const data: Session = s && typeof s === "object" ? s : { v: 2, root: folder, groups: [], activeGroup: 0, layout: layoutSnapshot() };
+  data.root = folder;
+  data.repos = [folder];
+  await invoke("save_state", { key: `${toKey}|${folder}`, data: JSON.stringify(data), pointer: false });
 }
 
 /** Ripristina una sessione. Con `rootHint` carica quella della cartella indicata (e la

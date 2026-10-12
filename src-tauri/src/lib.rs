@@ -413,13 +413,37 @@ fn save_state(app: AppHandle, key: String, data: String, pointer: Option<bool>) 
 }
 
 /// Apre una nuova istanza dell'app (nuovo processo), opzionalmente su una cartella.
-/// Le istanze sono indipendenti: niente blocco single-instance.
+/// Le istanze sono indipendenti: niente blocco single-instance. Per una repo spostata in una finestra
+/// nuova (M69) `key` è la chiave di sessione del figlio, sotto cui il chiamante ha già scritto sessione e
+/// terminali della repo, e `place` dice dove aprirla ("cursor": sotto il puntatore; "beside": accanto).
 #[tauri::command]
-fn open_new_window(dir: Option<String>) -> Result<(), String> {
+fn open_new_window(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    dir: Option<String>,
+    key: Option<String>,
+    place: Option<String>,
+) -> Result<(), String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let mut cmd = std::process::Command::new(exe);
     if let Some(d) = dir.filter(|d| Path::new(d).is_dir()) {
         cmd.arg(d);
+    }
+    // una finestra riaperta dal "riapri tutte" ha nell'ambiente la propria chiave e geometria: un figlio che
+    // le ereditasse avrebbe la sua stessa chiave di sessione (si sovrascriverebbero schede e terminali) e si
+    // aprirebbe proprio sopra di lei (M69)
+    for v in winsession::ENV_VARS {
+        cmd.env_remove(v);
+    }
+    if let Some(k) = key.filter(|k| !k.is_empty()) {
+        cmd.env("ORBIT_WIN_KEY", k);
+    }
+    if let Some(g) = place.as_deref().and_then(|p| winsession::new_window_geom(&app, &window, p)) {
+        cmd.env("ORBIT_WIN_X", g.x.to_string())
+            .env("ORBIT_WIN_Y", g.y.to_string())
+            .env("ORBIT_WIN_W", g.width.to_string())
+            .env("ORBIT_WIN_H", g.height.to_string())
+            .env("ORBIT_WIN_MAX", "0");
     }
     cmd.spawn().map_err(|e| e.to_string())?;
     Ok(())

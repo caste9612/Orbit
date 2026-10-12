@@ -236,6 +236,11 @@ pub fn pty_spawn(
     if let Some(d) = dir {
         cmd.cwd(d);
     }
+    // chiave e geometria della finestra (se riaperta dal "riapri tutte") non passano alle shell: un Orbit
+    // lanciato da un terminale riceverebbe la stessa chiave di sessione di questa finestra (M69)
+    for v in crate::winsession::ENV_VARS {
+        cmd.env_remove(v);
+    }
 
     let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
     drop(pair.slave); // chiudi il lato slave: serve per rilevare l'EOF all'uscita della shell

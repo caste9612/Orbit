@@ -72,11 +72,13 @@ function toSaved(t: TermSession): SavedTerm {
   };
 }
 
-/** Stato da salvare (legge i campi reattivi: l'effetto di salvataggio ne dipende). */
-function serialize(): string {
+/** Stato da salvare (legge i campi reattivi: l'effetto di salvataggio ne dipende). Con `only`, le sole
+ *  schede di quella repo (consegna a una finestra nuova, M69). */
+function serialize(only?: string): string {
   const byRoot = new Map<string, TermSession[]>();
   for (const t of [...terminals.list, ...terminals.floating]) {
     if (t.kind === "run" || !t.root) continue; // lavori, e schede senza cartella
+    if (only !== undefined && t.root !== only) continue;
     const k = rootKey(t.root);
     if (!byRoot.has(k)) byRoot.set(k, []);
     byRoot.get(k)!.push(t);
@@ -194,6 +196,14 @@ async function refreshChats() {
     if (!c) continue; // nessuna chat in corso: si tiene l'ultima vista (claude chiuso con /exit, o in avvio)
     if (t.chat?.id !== c.sessionId || t.chat?.cwd !== (c.cwd ?? null)) t.chat = { id: c.sessionId, cwd: c.cwd ?? null };
   }
+}
+
+/** Consegna le schede della repo `root` alla finestra nuova con chiave `toKey` (repo spostata in una finestra
+ *  nuova, M69): chat aggiornate dal registro di Claude, poi lo stesso formato del salvataggio, con la sola
+ *  repo. La finestra nuova le riapre come dopo un riavvio. */
+export async function exportRepoTerminals(root: string, toKey: string) {
+  await refreshChats();
+  await invoke("save_state", { key: `${toKey}|#terminals`, data: serialize(root), pointer: false });
 }
 
 /** Prima di chiudere: chat aggiornate e stato scritto subito (senza attendere il salvataggio differito). */

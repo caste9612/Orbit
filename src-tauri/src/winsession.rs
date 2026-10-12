@@ -351,6 +351,37 @@ fn geom_from_env() -> Option<WinGeom> {
     })
 }
 
+/// Variabili con cui un processo figlio riceve chiave e geometria della sua finestra (respawn del "riapri
+/// tutte", repo spostata in una finestra nuova). Un figlio lanciato per altro, una nuova finestra o una
+/// shell dei terminali, non deve ereditarle: avrebbe la stessa chiave di sessione di questa finestra.
+pub const ENV_VARS: [&str; 6] = ["ORBIT_WIN_X", "ORBIT_WIN_Y", "ORBIT_WIN_W", "ORBIT_WIN_H", "ORBIT_WIN_MAX", "ORBIT_WIN_KEY"];
+
+/// Geometria (fisica) della finestra nuova di una repo spostata (M69): grande quanto questa nella sua forma
+/// normale. `place` = "cursor": con la barra sotto il puntatore, dove l'utente ha lasciato la scheda
+/// trascinata fuori dalla barra; altrimenti accanto a questa, spostata in basso a destra.
+pub fn new_window_geom(app: &AppHandle, win: &WebviewWindow, place: &str) -> Option<WinGeom> {
+    let scale = win.scale_factor().unwrap_or(1.0);
+    let px = |v: f64| (v * scale).round() as i32;
+    let (width, height) = if win.is_maximized().unwrap_or(false) {
+        // ingrandita: la dimensione "normale" a cui tornerebbe (quella dello schermo sarebbe troppo grande)
+        match *app.state::<LastNormal>().0.lock().unwrap_or_else(|e| e.into_inner()) {
+            Some((_, _, w, h)) => (w, h),
+            None => (px(1280.0) as u32, px(800.0) as u32),
+        }
+    } else {
+        let s = win.inner_size().ok()?;
+        (s.width, s.height)
+    };
+    let (x, y) = if place == "cursor" {
+        let c = win.cursor_position().ok()?;
+        (c.x.round() as i32 - px(160.0), c.y.round() as i32 - px(14.0))
+    } else {
+        let p = win.outer_position().ok()?;
+        (p.x + px(40.0), p.y + px(40.0))
+    };
+    Some(WinGeom { x, y, width, height, maximized: false })
+}
+
 /// Lancia un'altra istanza di Orbit su `folder`, passandole la geometria da applicare via env.
 fn spawn_instance(exe: &Path, e: &WinEntry) {
     let mut cmd = std::process::Command::new(exe);

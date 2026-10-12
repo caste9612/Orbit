@@ -10,6 +10,7 @@ The name is historical, and a test build with another identifier gets its own fo
 |---|---|---|---|
 | Settings | `localStorage["orbit.settings"]` | app (per WebView origin: dev and installed app differ) | `settings.svelte.ts` |
 | Activity choices | `localStorage["orbit.activity.hidden"]`, `["orbit.activity.dismissed"]` | app | `activity.svelte.ts` |
+| Repo colors picked by hand | `localStorage["orbit.repoColors"]`, keyed by `pathKey` (M69) | app | `repoColors.svelte.ts` |
 | Session of a folder | `sessions/<hash>.json`, key `<winKey>\|<folder>` | window + folder | `persist.svelte.ts` |
 | Terminals of a window | `sessions/<hash>.json`, key `<winKey>\|#terminals` | window | `terminalPersist.svelte.ts` (M66) |
 | Last folder (fallback) | `last_session.txt` | app | `save_state` (not for the terminals) |
@@ -85,7 +86,30 @@ Each Orbit window is a process. `winsession.rs` lets them cooperate through file
   blocks "reopen all".
 - **After an update**: `update-restart.json` (valid 10 minutes) makes the relaunched process reopen every
   window ([Release](11-release.md#the-in-app-update)).
+- **The `ORBIT_WIN_*` variables** (geometry and `ORBIT_WIN_KEY`) are for the child they're meant for.
+  Since M69 `open_new_window` and the terminals' shells drop them from what they inherit. Before, a
+  window reopened by "reopen all" passed its own key to a plain *New window*: the two windows shared
+  their sessions and terminal stores, and the new one opened right on top of the old one.
 - Light windows aren't registered. Floating terminals aren't windows of the registry.
+
+## A repo moved to a new window
+
+Dragging a repo tab down out of the top bar, or *Move to new window* in its menu, moves the repo to a new
+window (M69, `repoWindow.ts`). Each window is a process and a PTY can't change process, so the terminals
+close here and the new window brings them back as after a restart:
+1. If the repo has live Claude chats, a confirmation says that a reply in progress would stop.
+2. If it's the active repo, unsaved files are settled first (Save all / Don't save / Cancel).
+3. A new window key is generated, and under it:
+   - `exportSession` writes the repo's session: the current state if it's the active repo, otherwise the
+     saved one, with `repos` set to just this repo;
+   - `exportRepoTerminals` writes its terminals, after reading the chats from Claude Code's registry.
+4. The repo leaves this window's list (switching to a neighbor first if it was active), and its PTYs are
+   killed, floating windows included, before anything resumes the same chats.
+5. `open_new_window(dir, key, place)` starts the new process with `ORBIT_WIN_KEY` and a geometry:
+   `"cursor"` puts its title bar under the pointer (the drop point), `"beside"` offsets it from this
+   window. The size is this window's normal size.
+6. The new window starts like a respawned one: it finds the session and the terminals under its key and
+   restores them dormant; the visible chat resumes with `claude --resume`.
 
 ## Startup
 

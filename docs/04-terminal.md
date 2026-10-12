@@ -155,3 +155,6 @@ Since M66 every window saves its terminal tabs and brings them back:
   - shells restart fresh, without their old output.
 - The default chat at startup (*Launch Claude in the default terminal*) starts only when the repo has no
   restored tabs.
+- The same path brings the terminals of a repo **moved to a new window** (M69) back in that window: they
+  are written under its key before it starts, and closed here
+  ([Persistence](07-persistence.md#a-repo-moved-to-a-new-window)).

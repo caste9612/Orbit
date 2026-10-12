@@ -23,7 +23,7 @@ read the object and call the actions, and re-render on their own when what they 
   (`workspace.rememberView`) and image zoom per path (`AssetView`) change continuously and must not
   re-run effects; the session reads them when it saves.
 - **Pure logic in a plain `.ts`** next to the module, unit-tested with vitest:
-  - `editorTabs.ts`, `terminalLayout.ts`, `symbolMaps.ts`, `shelfRules.ts`;
+  - `editorTabs.ts`, `terminalLayout.ts`, `symbolMaps.ts`, `shelfRules.ts`, `repoStrip.ts`;
   - in `lib/`: `searchText.ts`, `caretStyles.ts`, `util.ts`.
 
 ## Workspace and window
@@ -52,6 +52,17 @@ read the object and call the actions, and re-render on their own when what they 
 - `setFolders`, `addFolder`, `removeFolder`, `moveFolder` (drag to reorder), `openFromList`, `cycleRepo`,
   `selectRepoIndex` (Ctrl+1…9).
 - Switching goes through `persist.switchFolder`.
+- The strip in the top bar is `RepoStrip.svelte` (M69). Its plan (which repos stay full tabs, which
+  become chips, how many go into **+N**) is pure logic in `repoStrip.ts`.
+
+### `repoColors` and `repoWindow` — repo colors, a repo in a new window
+- `repoColors`: `repoColor(path)` is the color picked by hand (`localStorage`, shared by all windows and
+  kept in sync with the `storage` event) or an automatic one from the terminal tab palette, by a hash of
+  the path. `setRepoColor(path, null)` goes back to automatic.
+- `repoWindow.ts`: `moveRepoToNewWindow(path, place)` and `canMoveRepo` (M69). It writes the repo's
+  session and terminals under a new window key (`persist.exportSession`,
+  `terminalPersist.exportRepoTerminals`), closes them here and starts the new process. See
+  [Persistence](07-persistence.md#a-repo-moved-to-a-new-window).
 
 ### `explorer` — the file tree
 - **Owns** `tree` (lazy per folder) and the `reveal` signal for "follow the active file".

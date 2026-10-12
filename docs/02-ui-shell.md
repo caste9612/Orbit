@@ -34,19 +34,45 @@ panels and their strips, the layout motion, and the map of all components.
 
 - **Views** (Explorer, Git, Search, Docs, Activity) select the sidebar view; clicking the active one
   collapses the sidebar (`layout.selectView`).
-- **Repo tabs** (`folders`):
+- **Repo tabs** (`RepoStrip.svelte`, over `folders`):
   - centered in the bar;
   - `Ctrl+Tab`/`Ctrl+Shift+Tab` cycle, `Ctrl+1…9` jump;
-  - a `…` menu when they don't fit;
+  - each repo has a color (`repoColors.svelte.ts`), shown on its folder icon. It's automatic, from the
+    terminal tab palette by a hash of the path, or picked from the tab's context menu;
   - a dot on the tab of a repo whose terminal is waiting for you.
+- **When they don't fit** (M69), `repoStrip.ts` (pure, tested) plans the strip:
+  - repos collapse from the **right** into 30 px chips with their initials on their color. The ones on
+    the left stay full tabs, so the order decides which stay readable;
+  - the first **three** stay full tabs while they fit (`KEEP_FULL`): before one of them collapses, the
+    last chips go into a **+N** chip, with the waiting dot if one of them waits. Its menu lists them,
+    then *Add folder…*. With room for more than three, every repo stays visible, full or as a chip;
+  - the active repo is always a full tab, in its place, and counts among the three: if it sits among the
+    chips, the last full tab on its left gives way;
+  - hovering a chip shows a card with branch, waiting chats and changed files (`git_status` on hover,
+    cached 10 s).
+  - Natural widths come from an invisible copy of the strip with every repo as a full tab. The tabs get
+    explicit widths, so they change size with the layout motion when repos are switched, added or
+    reordered, and at once while the window resizes.
+- **Moving the window** (M69): the strip keeps 56 px free on each side (`gripFor`). In a narrow window
+  the free sides shrink first, down to 12 px, so the active tab stays whole.
+  - The spacer and the logo are `data-tauri-drag-region="deep"`: any point that isn't a button drags the
+    window, the gaps between tabs and the 4 px above them included. The tabs opt out with `"false"`, so
+    reordering keeps working.
+  - Before M69 only direct clicks on the empty spacer counted, and the logo didn't (the click lands on
+    the SVG): with many repos only 3–4 px strips were left.
 - **Drag to reorder** is pointer-based, like the editor tabs. HTML5 drag and drop is off, because the
   OS file drop needs `dragDropEnabled`:
   - a 5 px threshold separates a click from a drag;
   - the dragged tab follows the pointer and the others shift by one slot;
-  - `moveFolder` reorders only on drop.
-- **Narrow widths**: the fixed clusters never shrink. Only the repo strip, a scroll container, absorbs
-  the squeeze, and below 980 logical px the views lose their labels. Everything, window close button
-  included, stays reachable down to the 720 px minimum width.
+  - `moveFolder` reorders only on drop; a chip dropped among the full tabs becomes one then.
+  - Dragged more than 28 px **below the bar**, the tab stays dimmed in place and a label follows the
+    pointer: on release the repo opens in a new window there (`repoWindow.ts`, see
+    [Persistence](07-persistence.md#a-repo-moved-to-a-new-window)).
+- **Tab context menu**: color (or *Automatic*), *Move to new window*, *Remove from list*. Chips have no
+  ✕, so removing one goes through here.
+- **Narrow widths**: the fixed clusters never shrink. Only the repo strip absorbs the squeeze (free
+  sides, then chips, then **+N**), and below 980 logical px the views lose their labels. Everything,
+  window close button included, stays reachable down to the 720 px minimum width.
 - **Tools**: scratchpad, Claude menu, Run menu, new window, close all, settings. A **Waiting (N)** pill
   appears when chats wait, and an **Update** pill when a new version is out.
 
@@ -123,7 +149,7 @@ the file. It keeps the open files and adopts the terminals.
 
 | Area | Components |
 |---|---|
-| Frame | `TopBar`, `Sidebar`, `PanelStrip`, `Splitter`, `StatusBar`, `Toaster`, `Logo`, `Icon`, `Backdrop`, `Switch`, `ContextMenu`, `Lazy`, `MatchText` |
+| Frame | `TopBar` (+ `RepoStrip`), `Sidebar`, `PanelStrip`, `Splitter`, `StatusBar`, `Toaster`, `Logo`, `Icon`, `Backdrop`, `Switch`, `ContextMenu`, `Lazy`, `MatchText` |
 | Editor area | `EditorArea` (groups, tabs, viewers, drop of OS files), `LazyEditor` → `Editor`, `RelatedBar`, `KindBadge`, `DiffView`, `MarkdownView`, `HtmlView`, `AssetView` (images, PDF), `GitGraph`, `ActivityBoard`, `UnitDigest`, `ChatDigest` |
 | Sidebar views | `Explorer` (+ `MiniTree`, `ShelfPicker`), `GitPanel`, `SearchView`, `DocsView`, `ActivityPanel` |
 | Terminal | `TerminalPanel` (tabs, panes, split menu, floating windows), `LazyTerminal` → `Terminal` |

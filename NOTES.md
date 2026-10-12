@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -3688,6 +3688,106 @@ firme e `latest.json`). È il primo aggiornamento che gli Orbit 1.0 ricevono da 
   - lo script va lanciato in PowerShell 7 (`pwsh`): Windows PowerShell 5.1 lo blocca per la execution policy;
   - senza `-Publish` produce solo gli artefatti in `artifacts/release`; la pubblicazione è un secondo giro, che
     ricompila e chiede di nuovo la password.
+
+---
+
+## Milestone 69 — tante repo nella barra: compressione da destra, presa sempre libera, repo in una finestra nuova
+
+Segnalazione dell'utente (2026-10-12): «quando un utente apre tante repo, la barra in alto si riempie e risulta
+difficile spostare la finestra». Prima le alternative, con una pagina di mockup su come lo risolvono altri
+programmi (Chrome, Windows Terminal, Firefox, VS Code, IntelliJ, Edge, Arc, Slack…); poi l'idea dell'utente: «se non
+c'è più spazio i repo più a destra vengono collassati mentre quelli più a sinistra rimangono come ora; in questo modo
+con il riordinamento uno può sempre scegliere quali vedere per intero». Le scelte, con due giri di domande:
+- la repo attiva fra le compresse si apre intera **al suo posto**, e cede l'ultima intera alla sua sinistra;
+- le compresse sono **iniziali colorate**; il colore della repo compare anche sulle schede intere (l'icona della
+  cartella), automatico e cambiabile col tasto destro;
+- **56 px** liberi per lato;
+- quando non bastano nemmeno le chip, una chip **«+N»**;
+- passando su una chip, una **schedina** con branch, chat in attesa e file modificati;
+- un extra: **strappare una repo** in una finestra nuova, trascinandola in basso o dal menu, con le chat che
+  ripartono là. Non scelti: Alt + trascina, viste a sole icone, selettore unico al centro, colonna laterale.
+- dopo il primo collaudo, alla notizia che a 1536 px con 12 repo restava intera solo la prima: «se c'è abbastanza
+  spazio non possiamo fare in modo che fino a 3 repo siano espansi?». Le prime **tre** restano intere finché ci
+  stanno, e prima di comprimerne una le ultime chip vanno nel «+N»; l'attiva conta fra le tre.
+
+**Perché non si afferrava.** Il `drag.js` di Tauri 2.11 avvia il trascinamento solo se il clic cade *direttamente*
+su un elemento con `data-tauri-drag-region` senza valore; con `"deep"` vale tutto il sottoalbero, tranne gli
+elementi cliccabili. Lo spazio centrale (`.spacer`) aveva l'attributo senza valore e la striscia delle repo poteva
+prenderselo tutto: con 5–6 repo a schermo intero restavano strisce di 3–4 px sopra e sotto i bottoni. Neanche il
+logo trascinava: il clic finisce sull'SVG, che non è un `HTMLElement` e viene saltato.
+
+**Cosa c'è.**
+- `RepoStrip.svelte`, la striscia uscita da `TopBar.svelte`, e `repoStrip.ts`, logica pura con il piano:
+  1. tutte intere, se ci stanno;
+  2. altrimenti le prime *k* intere e le altre chip, con *k* che scende da destra; l'attiva resta sempre intera;
+  3. arrivati a tre intere (`KEEP_FULL`, l'attiva compresa) o meno, prima di comprimerne un'altra le ultime chip,
+     da destra e mai l'attiva, vanno nel «+N»;
+  4. al limite resta l'attiva, accorciata con l'ellissi.
+- Le larghezze naturali si misurano su una copia invisibile della striscia con ogni repo intera (MutationObserver
+  per lista, attiva e branch; ResizeObserver per font e tema). Le schede ricevono larghezze esplicite, così cambiano
+  forma con il movimento fluido quando si cambia, aggiunge o riordina una repo, e subito quando si ridimensiona la
+  finestra.
+- Presa: `gripFor` lascia 56 px per lato e in una finestra stretta cede fino a 12 px, prima di accorciare l'attiva.
+  Logo e spazio centrale sono `"deep"`; le schede hanno `"false"`, perché un clic sul loro bordo avvierebbe il
+  trascinamento della finestra al posto del riordino.
+- Colori (`repoColors.svelte.ts`): la tavolozza delle schede terminale, con l'indice da un hash FNV-1a del
+  `pathKey`. Le scelte stanno in `localStorage`, preferenza dell'app condivisa: le altre finestre si allineano con
+  l'evento `storage`.
+- Schedina: per una repo non attiva, `git_status` al passaggio, in cache per 10 s.
+- Menu della scheda: colore (o *Automatic*), *Move to new window*, *Remove from list* (le chip non hanno la ✕).
+- **Repo in una finestra nuova** (`repoWindow.ts`). Un processo non può prendere i PTY di un altro: i terminali si
+  chiudono qui e la finestra nuova li riapre come dopo un riavvio (M66).
+  - Conferma se la repo ha chat vive; se è l'attiva, prima si sistemano le modifiche non salvate.
+  - Sessione (`persist.exportSession`) e terminali (`terminalPersist.exportRepoTerminals`, con le chat rilette dal
+    registro di Claude Code) si scrivono sotto una chiave di finestra nuova.
+  - La repo esce dalla lista (se è l'attiva, prima si passa a una vicina) e i suoi PTY si chiudono, anche quelli
+    nelle finestre flottanti, PRIMA che la finestra nuova riprenda le stesse chat.
+  - `open_new_window(dir, key, place)`: il figlio riceve `ORBIT_WIN_KEY` e la geometria, come nel respawn del
+    "riapri tutte". `"cursor"` mette la sua barra sotto il puntatore, `"beside"` la sposta di 40 px da questa; la
+    dimensione è quella normale di questa finestra (`LastNormal` se è ingrandita).
+
+**Trovato e corretto: la chiave di sessione ereditata.** Una finestra riaperta dal "riapri tutte" ha nell'ambiente
+`ORBIT_WIN_KEY` e `ORBIT_WIN_X/Y/W/H/MAX`, e `open_new_window` non li toglieva. Una *New window* aperta da lì nasceva
+con la STESSA chiave, quindi sessioni e terminali delle due finestre si sovrascrivevano, e si apriva esattamente sopra
+la madre. Ora `open_new_window` e le shell dei terminali li tolgono (`winsession::ENV_VARS`): un figlio li riceve solo
+se glieli si passa apposta.
+
+**Verifica.**
+- Test: `vitest` 66/66 (+16: piano, tre intere, presa, iniziali, colori), `cargo test` 62, `svelte-check` 0/0
+  (289 file).
+- Istanza di prova isolata (identificativo `devtest`, sul monitor secondario), 12 repo finte con
+  `"command": "Write-Host"` e una cartella di Claude finta; larghezze emulate via CDP:
+  - 1920 px: 6 intere e 6 chip; 1536: 3 intere, 4 chip e «+5» (prima delle tre intere: l'attiva e 11 chip); 1366:
+    2 intere, 2 chip e «+8»; 1250: l'attiva, 2 chip e «+9»; 1100: l'attiva intera e «+11», con la presa a 24 px;
+    720: presa a 12 px e attiva accorciata;
+  - clic su una chip a 1536 px: si apre intera al suo posto, la terza intera si comprime e le chip in più vanno nel
+    «+N»; riordino trascinando l'ultima chip in seconda posizione; schedina («playground | main | No chat waiting |
+    3 changed files»); colore scelto e salvato, poi *Automatic*; «+N» con l'elenco delle nascoste e il pallino
+    d'attesa;
+  - presa (tasto premuto, chiamate IPC registrate): trascinano i lati liberi, il logo, lo spazio fra due schede e la
+    fascia di 4 px sopra; la scheda no;
+  - *Move to new window* da una repo non attiva: finestra nuova accanto, con la sola repo e una chiave nuova;
+  - repo attiva con una chat (un processo figlio della shell, registrato nel registro finto) trascinata fuori:
+    etichetta che segue il puntatore, conferma, processo della chat chiuso qui; nella finestra nuova la scheda
+    riparte con `Write-Host --resume 11111111-…`;
+  - *New window* da una finestra avviata con `ORBIT_WIN_KEY` nell'ambiente: la figlia ha una chiave sua e la
+    posizione predefinita;
+  - movimento fluido cambiando repo, nessuno ridimensionando.
+- Corretto durante il collaudo: a 1100 px la presa piena accorciava l'attiva a 103 px, senza il branch.
+  `MIN_STRIP` è passato da 140 a 200, così cede prima la presa.
+
+**Dimensioni.** Chunk d'avvio 284,9 KiB (97,1 gzip) contro i 274,3 della 1.1.0: +10,6 KiB, perché la striscia è nel
+primo disegno. `dist/` 2,90 MiB.
+
+**Lezioni di collaudo.**
+- In UI Automation i dialoghi nativi posseduti da una finestra (il `confirm` del plugin) sono figli di quella
+  finestra, non della radice: cercandoli fra i figli della radice non si trovano. Con Win32 sì (`EnumWindows`,
+  classe `#32770`, `BM_CLICK` sul bottone).
+- In PowerShell gli alias vincono sulle funzioni: una funzione `Cls` chiamava `Clear-Host`.
+- Un `start_dragging` provocato via CDP fa partire il ciclo di spostamento di Windows con il cursore VERO, e la
+  finestra di prova si sposta: per le zone di trascinamento bastano le chiamate IPC registrate.
+- Una finestra aperta con `"cursor"` compare sotto il puntatore dell'utente, anche sul monitor principale: in
+  collaudo va spostata subito.
 
 ---
 

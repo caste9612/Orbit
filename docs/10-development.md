@@ -37,8 +37,8 @@ cargo test --manifest-path src-tauri/Cargo.toml  # Rust unit tests
 ```
 
 - **Frontend tests** live in `*.test.ts` next to the module: `util`, `caretStyles`, `searchText`,
-  `editorTabs`, `shelfRules`, `symbolMaps`, `terminalLayout`. Only pure logic is tested (no runes, no
-  DOM): keep the logic of a new feature in a plain `.ts` so it can be.
+  `editorTabs`, `shelfRules`, `symbolMaps`, `terminalLayout`, `repoStrip`. Only pure logic is tested (no
+  runes, no DOM): keep the logic of a new feature in a plain `.ts` so it can be.
 - **Rust tests** sit in each module (`#[cfg(test)] mod tests`). They cover:
   - the window plan and key resolution (`winsession`);
   - the symbol parsers, the incremental index against a full scan, and folders ignored by git

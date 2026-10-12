@@ -62,7 +62,7 @@ list on top of that: switching swaps the folder, its documents, tree and termina
 **Heavy code loads on demand.** CodeMirror arrives with the first file you open (`LazyEditor.svelte`),
 xterm with the first terminal (`LazyTerminal.svelte`), the WebGL renderer only for a visible terminal,
 `marked` and DOMPurify on the first Markdown render, and `Lazy.svelte` does the same for overlays, viewers
-and the non-default sidebar views. The startup chunk is ~274 KiB (≈93 KiB gzipped) as of M66.
+and the non-default sidebar views. The startup chunk is ~285 KiB (≈97 KiB gzipped) as of M69.
 
 ## Repo layout
 

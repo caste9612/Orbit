@@ -54,7 +54,7 @@ clipboard), `tauri-plugin-updater` (used from Rust only: no JS package, no permi
 | `resolve_existing(paths)` | First existing path among candidates (terminal links) |
 | `project_root(path)` | Nearest ancestor with `.git` (light window → "Open as project") |
 | `load_state` · `save_state(key, data, pointer?)` | Sessions and terminal stores; `pointer: false` doesn't update the last-folder pointer |
-| `open_new_window(dir?)` | A new Orbit process |
+| `open_new_window(dir?, key?, place?)` | A new Orbit process. It never inherits this window's `ORBIT_WIN_*` variables; with `key` and `place` (a repo moved to a new window, M69) it gets that session key and a position, `"cursor"` or `"beside"` ([Persistence](07-persistence.md#a-repo-moved-to-a-new-window)) |
 | `reveal_path` · `open_url` | Show a file in the OS file manager; open an http(s) link |
 | `app_version` · `append_log` · `log_file_path` | Version; diagnostic log file |
 

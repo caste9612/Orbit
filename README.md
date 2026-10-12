@@ -34,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~6.6 MB binary, ~120 MB of RAM at rest with a project open (mostly the
-  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~274 KB startup chunk (≈93 KB gzipped).
+  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~285 KB startup chunk (≈97 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -248,8 +248,13 @@ cross-platform desktop app that weighs almost nothing.
   Run/Claude menus, and the **terminal tabs** (each repo keeps its own live PTYs) — while **keeping your
   current sidebar view** and restoring each repo's **expanded Explorer tree** and open editor tabs, so
   switching feels like flipping between tabs. The row sits **centered** in the top bar; **drag a tab to
-  reorder** the repos (the order is remembered). Cycle with `Ctrl+Tab` / `Ctrl+Shift+Tab`, jump with `Ctrl+1…9`, and when the tabs
-  don't all fit a **`…`** menu lists them; the top bar stays usable down to its minimum width. The
+  reorder** the repos (the order is remembered). Cycle with `Ctrl+Tab` / `Ctrl+Shift+Tab`, jump with `Ctrl+1…9`. When the tabs
+  don't all fit, the repos on the **right collapse into chips** with their initials on the repo's color (hover one
+  for its branch, waiting chats and changed files), the first three and the active repo stay whole while they
+  fit, and what still doesn't fit goes into a **+N** menu: dragging a repo to the left keeps it readable. Both sides of the row always stay free to
+  **grab and move the window**. Each repo has a **color** (right-click its tab to change it), and **dragging a tab
+  down out of the bar**, or *Move to new window* in its menu, moves the repo to a new window, where its terminals
+  and Claude chats resume. The
   repository list **and sessions are per‑window**: open windows don't share or overwrite each other's
   repo tabs, and the same folder can be open in two windows without their tabs/layout clobbering.
 - **Smooth layout**: switching repos, collapsing the editor, maximizing the terminal panel, collapsing or
@@ -321,7 +326,7 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~3.9 MB |
 | NSIS setup | ~3.2 MB |
 | Frontend `dist/` | ~2.9 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~274 KB (≈93 KB gzipped; the editor and the terminal load on demand) |
+| Startup JS chunk | ~285 KB (≈97 KB gzipped; the editor and the terminal load on demand) |
 | RAM at rest (project open) | ~120 MB private working set with one terminal, ~160 MB with four terminals and three files open (Orbit + WebView2; the Rust core is ~6 MB, ~30 MB with the symbol index of a very large project — the rest is the shared system WebView, inherent to Tauri) |
 | Under load | Claude saving a file every second in a 5,400-file project: ~23% of one CPU core, the UI answering in ~2 ms (99th percentile) |
 

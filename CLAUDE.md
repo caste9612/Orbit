@@ -60,7 +60,9 @@ a `.orbit/claude.json`: Orbit ricarica il menu automaticamente.
   chat **affiancate** per repo: bottone *Split* o trascina una scheda sul bordo di un riquadro,
   separatori trascinabili; doppio clic per rinominare, tasto destro per colore e altre azioni.
   I percorsi nell'output sono cliccabili (anche relativi).
-- **Più repo per finestra**: schede in alto (riordinabili trascinando), Ctrl+Tab / Ctrl+1…9.
+- **Più repo per finestra**: schede in alto (riordinabili trascinando; quelle che non stanno si comprimono
+  in chip colorate e nel menu «+N»), Ctrl+Tab / Ctrl+1…9; tasto destro su una scheda per il colore o per
+  spostare la repo in una finestra nuova (anche trascinandola in basso, fuori dalla barra).
 - **Git** locale: stato, diff, stage/unstage, commit, branch, cronologia, indicatore *ahead/behind*;
   fetch/pull/push/merge girano nel terminale (riusano la tua autenticazione git).
 - **Esegui ▶**: comandi da `.orbit/run.json` (vedi la sezione dedicata).

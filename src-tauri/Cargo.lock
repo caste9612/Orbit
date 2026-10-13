@@ -2529,6 +2529,7 @@ dependencies = [
  "libc",
  "notify",
  "portable-pty",
+ "quick-xml",
  "serde",
  "serde_json",
  "tauri",

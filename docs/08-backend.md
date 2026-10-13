@@ -17,6 +17,7 @@ processes, scans, windows, updates — and talks to the WebView through **comman
 | `refs.rs` | The identifier lexer behind the code lens counts and `ref_list` |
 | `activity.rs` | Work units from Claude transcripts, incremental, plus a watcher ([Claude](05-claude.md#the-activity-view)) |
 | `watcher.rs` | The project file watcher → `fs-changed` |
+| `solution.rs` | Visual Studio solutions and projects for the Explorer's Solution view, read without MSBuild ([UI shell](02-ui-shell.md#explorer-folders-or-a-solution)) |
 | `updater.rs` | In-app updates through `tauri-plugin-updater`, driven by Orbit's own commands ([Release](11-release.md)) |
 
 Plugins: `tauri-plugin-dialog` (folder picker, confirm), `tauri-plugin-clipboard-manager` (reliable
@@ -86,6 +87,33 @@ name)`.
 **Activity** (`activity.rs`): `scan_activity(limit?)`, `watch_activity`.
 
 **Watcher** (`watcher.rs`): `watch_start(root, recursive?)`, non-recursive for the light window.
+
+**Solutions** (`solution.rs`, M70), all async:
+
+| Command | What it does |
+|---|---|
+| `sln_find(root)` | The `.sln` and `.slnx` files of the repository, down to three levels, the shallowest first; skips hidden folders, `bin`, `obj`, `node_modules`, `packages` |
+| `sln_load(path, root?)` | Solution folders (with their solution items) and projects, with parents; with `root`, also the folders that *Other files* doesn't repeat: the project folders and the ones holding nothing but project folders |
+| `proj_load(path, showAll, sln?)` | What the Solution Explorer shows for a project: items with their path in the view (`Link`, C++ filter or path on disk), linked/missing/excluded flags and `DependentUpon`; plus frameworks, packages, project references and assemblies, the output type and target frameworks |
+| `msbuild_path()` | Visual Studio's `MSBuild.exe` (through `vswhere`), or none; cached |
+
+- **A small MSBuild evaluation**, not MSBuild itself. Properties come from `Directory.Build.props`,
+  `Directory.Packages.props`, NuGet's `obj/<project>.nuget.g.props|targets`, the project, its local
+  `Import`s, `<project>.user` and `Directory.Build.targets`, as Visual Studio reads them, with
+  `Configuration=Debug` and `BuildingInsideVisualStudio=true`. On top of that:
+  - simple conditions (comparisons, `Exists`, `and`/`or`/`!`) and the common property functions
+    (`[MSBuild]::NormalizeDirectory`, `GetDirectoryNameOfFileAbove`, `Path.Combine`, string methods…);
+    what it can't evaluate counts as true;
+  - SDK default items (the project folder minus `DefaultItemExcludes`, bin, obj and hidden folders),
+    then `Include`/`Exclude`/`Remove`/`Update` in document order, wildcards and `%(RecursiveDir)`;
+  - only the item types the Solution Explorer shows (Compile, None, Content, Page…, the C++ ones), plus
+    those declared with `AvailableItemName` or present in the `.vcxproj.filters`;
+  - several target frameworks: evaluated for the first, as Visual Studio does.
+- **Checked against MSBuild** on a 45-project solution (M70): the same files for every project, the
+  same view path for every linked file, and the same references except one added by a NuGet package's
+  own build files, which aren't read.
+- Files are UTF-8 or UTF-16 with a BOM; XML through `quick-xml`'s event reader (the version `plist`
+  already brings into the dependency tree).
 
 **Updates** (`updater.rs`): `update_check` (from the latest GitHub release's `latest.json`),
 `update_download` (progress events), `update_install` (verifies the signature, starts the installer).

@@ -29,6 +29,9 @@ portable-pty = "0.8"
 base64 = "0.22"
 # file watcher (albero + git in tempo reale)
 notify = "6"
+# vista Solution (M70): .slnx e progetti MSBuild. Versione già nell'albero delle dipendenze (la usa plist):
+# niente di nuovo da scaricare; lettore a eventi, senza serde
+quick-xml = "0.39"
 
 # Liveness dei pid: recupero post-crash della sessione multi-finestra (scarta le voci di processi
 # morti, che altrimenti bloccherebbero il "riapri tutte"). Versioni GIÀ presenti nell'albero come

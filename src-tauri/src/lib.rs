@@ -4,6 +4,7 @@ mod claudeproc;
 mod git;
 mod pty;
 mod refs;
+mod solution;
 mod symbols;
 mod updater;
 mod watcher;
@@ -672,6 +673,10 @@ pub fn run() {
             watcher::watch_start,
             symbols::scan_symbols,
             refs::ref_list,
+            solution::sln_find,
+            solution::sln_load,
+            solution::proj_load,
+            solution::msbuild_path,
             activity::scan_activity,
             activity::watch_activity
         ])

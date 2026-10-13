@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova) · [v1.2.0](#versione-120)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova) · [v1.2.0](#versione-120) · [70](#milestone-70--vista-solution-nellexplorer-come-il-solution-explorer-di-visual-studio)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -3841,6 +3841,123 @@ Note della release:
   session. Before, the two windows overwrote each other's tabs and terminals, and the new one opened right on
   top of the other.
 ```
+
+**Rilasciato in v1.2.0** il 2026-10-12 sera (20:12 UTC): "Orbit v1.2.0 — Room for all your repos", tag `v1.2.0` sul
+commit `652a2bb`, pubblicata dall'utente dall'altro PC con `New-Release.ps1 -Publish`.
+- Asset: setup NSIS **3,18 MiB**, MSI **3,93 MiB**, le due firme e `latest.json`.
+- Controllato il giorno dopo (da qui, in sola lettura): l'indirizzo degli aggiornamenti serve il `latest.json` della
+  1.2.0, con le firme del setup e dell'MSI. Le misure dell'eseguibile firmato restano sull'altro PC.
+
+---
+
+## Milestone 70 — vista Solution nell'Explorer, come il Solution Explorer di Visual Studio
+
+Domanda dell'utente (2026-10-13), su una sua repo .NET: perché l'Explorer di Orbit mostra una struttura
+completamente diversa da quella di Visual Studio? Perché Visual Studio mostra la **soluzione**: le cartelle di
+soluzione esistono solo nel `.sln` (su disco i progetti stavano tutti nella radice) e quello che non è nella
+soluzione non compare. Poi: «sarebbe possibile in Orbit aggiungere una modalità per l'Explorer per visualizzare la
+soluzione come su Visual Studio 2026?». Le scelte, con un giro di domande:
+- **passaggio**: un bottone nella testata dell'Explorer con il menu delle viste, come lo «Switch Views» di Visual
+  Studio (*Folders* più le soluzioni della repo); compare solo se la repo ha un `.sln` o `.slnx`;
+- **quello che non è nella soluzione**: un gruppo **«Other files»**, chiuso, in fondo all'albero;
+- nell'albero anche il nodo **Dependencies** e l'interruttore **Show All Files**;
+- comandi: **Build, Rebuild, Clean** e **Run**.
+- Non scelti: Test, «Apri in Visual Studio», le linguette Folders | Solution, una vista a parte nella barra in
+  alto, i file esterni nascosti come in Visual Studio.
+- Deciso da me, e detto all'utente: la prima volta l'Explorer parte dalle cartelle, poi la vista si ricorda per
+  repo.
+
+**Cosa c'è.**
+- `solution.rs`, nuovo modulo del backend: `sln_find`, `sln_load`, `proj_load`, `msbuild_path`. Legge i file come
+  li legge Visual Studio, senza chiamare MSBuild, con una **valutazione MSBuild ridotta**:
+  - le proprietà da `Directory.Build.props`, `Directory.Packages.props`, `obj/<progetto>.nuget.g.props|targets`,
+    il progetto e i suoi `Import` locali, `<progetto>.user` e `Directory.Build.targets`, con `Configuration=Debug`
+    e `BuildingInsideVisualStudio=true`;
+  - condizioni semplici e le funzioni di proprietà più comuni: ciò che non sa valutare conta come vero;
+  - per i progetti SDK gli item predefiniti, cioè la cartella del progetto meno `DefaultItemExcludes`, `bin`,
+    `obj` e le cartelle nascoste; poi `Include`/`Exclude`/`Remove`/`Update` in ordine di documento, con i glob e
+    `%(RecursiveDir)`;
+  - solo i tipi di item che il Solution Explorer mostra, più quelli dichiarati con `AvailableItemName` o presenti
+    nel `.vcxproj.filters`;
+  - con più framework, la valutazione per il primo.
+
+  XML con il lettore a eventi di `quick-xml`: la versione era già nell'albero delle dipendenze, la usa `plist`.
+- Frontend:
+  - `explorerView.svelte.ts`, nel chunk d'avvio perché serve alla testata: le soluzioni trovate, la scelta per
+    repo e Show All Files;
+  - `solution.svelte.ts` e `SolutionView.svelte`, caricati solo con la vista;
+  - `solutionTree.ts`, logica pura testata: ordinamento, annidamento come Visual Studio, nodo Dependencies,
+    comandi.
+  - L'albero è un oggetto non reattivo: un contatore fa ricalcolare le righe, e così i 2.700 nodi di una soluzione
+    grande non diventano proxy di Svelte.
+- La vista: soluzione, cartelle di soluzione, progetti (C#, VB, F#, C++) e il loro contenuto.
+  - File annidati: `DependentUpon`, poi le regole di Visual Studio per `.xaml.cs`, `.Designer.cs`, `.resx`,
+    Razor e `appsettings.*.json`.
+  - Collegati con la freccetta, mancanti in ambra, filtri del C++ come cartelle virtuali.
+  - Dependencies con Frameworks, Packages, Projects e Assemblies; *Go to project* da un riferimento.
+  - Decorazioni git anche su progetti e cartelle di soluzione; «segui il file attivo».
+- Show All Files: in grigio i file non nel progetto, e `bin`, `obj` e le cartelle nascoste, letti quando li si
+  apre. Il C++ passa alla struttura su disco.
+- Comandi: Build, Rebuild e Clean usano l'MSBuild di Visual Studio, trovato con `vswhere`, in PowerShell; così
+  compila anche il C++, cosa che `dotnet build` non sa fare. Senza Visual Studio usano `dotnet`. Run usa
+  `dotnet run`. Tutto in una scheda del terminale, come Esegui ▶.
+- Crea, rinomina ed elimina solo dove il disco è il progetto: progetti SDK, file esclusi e «Other files».
+- Aggiornamenti dal watcher: la soluzione, un file di progetto, `.filters`, `.user`, `Directory.*` o un file
+  dentro un progetto (o da lui collegato) ricaricano solo quel che serve. Durante una build i cambi ai soli file
+  ignorati non contano, salvo con Show All Files.
+
+**Trovato e corretto: il nome delle schede con una shell scelta.** `shortKind` trattava ogni scheda con una `shell`
+esplicita come aperta dal selettore delle shell, e la chiamava «build 1» invece di «Build Demo.App». Ora vale
+solo senza un comando iniziale.
+
+**Verifica.**
+- Test: `cargo test` 74 (+12: `.sln` e `.slnx`, progetti SDK, vecchio stile e C++ con filtri, condizioni,
+  funzioni di proprietà, import, versioni centrali dei pacchetti, più framework, Show All Files); `vitest` 78/78
+  (+12); `svelte-check` 0/0 (294 file).
+- **Confronto con MSBuild** su una soluzione reale da 45 progetti, in sola lettura: per ogni progetto gli item da
+  `MSBuild.exe -getItem` di Visual Studio 2026, contro la lettura di Orbit.
+  - File uguali in 45 progetti su 45.
+  - File collegati nello stesso punto della vista: 41 su 41.
+  - Riferimenti uguali in 134 liste su 135; manca un riferimento aggiunto dai file di build di un pacchetto
+    NuGet, che non si leggono.
+  - Il confronto ha trovato tre cose, tutte corrette: un tipo di item personalizzato usato da un target, che non
+    va mostrato; un *contentFile* di un pacchetto, da `nuget.g.props`; una proprietà messa dallo sviluppatore nel
+    `.csproj.user`, che sceglieva fra un `ProjectReference` e due DLL.
+- **Istanza di prova isolata** (identificativo `devtest`) su una repo finta: `Demo.sln` con cartelle di soluzione
+  annidate e file della soluzione, un'app console vera, una libreria WPF con file annidati, collegati e `Remove`,
+  una libreria vecchio stile, un progetto C++ con filtri, più una `Tools.slnx`.
+  - Il menu delle viste elenca le soluzioni; l'albero è quello atteso; *Go to project* evidenzia il progetto.
+  - Show All Files: `bin`, `obj` e `x64` letti all'apertura.
+  - Run stampa l'uscita dell'app, compilata insieme al file collegato; Build del progetto e della `.slnx` con
+    l'MSBuild di Visual Studio.
+  - «New file…» in linea; rinominare un file annidato lo lascia annidato; una `Remove` aggiunta da fuori al
+    `.csproj` aggiorna il progetto.
+  - «Segui il file attivo» apre un file annidato in un progetto chiuso, e uno in «Other files».
+  - Cambiando repo il bottone sparisce nelle repo senza soluzioni e la vista torna; al riavvio vista e Show All
+    Files si ritrovano.
+- **Prestazioni** (build di debug, uno scheletro della soluzione reale: 2.405 file vuoti, progetti veri): soluzione
+  in 51 ms, tutti i 45 progetti insieme in 186 ms (2.717 nodi), 41 righe nel DOM.
+
+**Dimensioni.**
+- Chunk d'avvio 288,7 KiB (98,4 gzip) contro 285,0: +3,7 KiB per lo stato della vista, la testata e le icone.
+- La vista è un chunk a parte da 25,4 KiB (+3,2 di CSS), caricato quando la si apre. `dist/` 2,94 MiB.
+- Eseguibile (`tauri build --no-bundle`, senza firma) **6,77 MiB** contro 6,56 della build di controllo della 1.2.0:
+  +0,21 MiB per `solution.rs` e il lettore XML.
+
+**Limiti noti.**
+- Le condizioni complicate e i riferimenti aggiunti dai file di build dei pacchetti restano fuori: la vista può
+  mostrare un file in più, mai uno in meno.
+- La configurazione è sempre Debug.
+- Nei progetti vecchio stile e C++ i file non si creano né si rinominano dalla vista, perché servirebbe
+  modificare il file di progetto: si fa da *Other files* o da Visual Studio.
+
+**Lezioni di collaudo.**
+- Correggere un test Rust con uno script Python: nelle stringhe non *raw* `\a` e `\1` diventano caratteri di
+  controllo e rompono i percorsi; servono le stringhe `r'''…'''`.
+- Modificare `terminals.svelte.ts` con la dev aperta ricrea il modulo (HMR) e le schede impazziscono: va
+  riavviata l'istanza di prova, come già annotato.
+- Le chip della barra delle repo hanno una copia invisibile (la riga di misura): per cliccarle bisogna cercare
+  nella striscia visibile.
 
 ---
 

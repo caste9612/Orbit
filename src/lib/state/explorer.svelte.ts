@@ -13,6 +13,7 @@ import { layout } from "./layout.svelte";
 import { resetSearch } from "./search.svelte";
 import { loadDocs } from "./docs.svelte";
 import { invalidateFiles } from "./projectFiles";
+import { detectSolutions } from "./explorerView.svelte";
 
 export interface FsEntry {
   name: string;
@@ -84,6 +85,7 @@ export async function openRoot(path: string, opts: { light?: boolean } = {}) {
   tree.roots = saved && saved.size ? await buildLevel(path, 0, saved) : entries.map((e) => makeNode(e, 0));
   await invoke("watch_start", { root: path, recursive: !opts.light }).catch(() => {});
   if (!opts.light) void refreshStatus(); // popola le decorazioni git dell'albero senza aprire il pannello
+  void detectSolutions(opts.light ? null : path); // soluzioni di Visual Studio per la vista Solution (M70)
   void loadRunConfig(); // popola il menu Esegui da .orbit/run.json
   void loadClaudeConfig(); // popola il menu Claude da .orbit/claude.json
   void loadShelf(); // carica le cartelle messe nello scaffale (.orbit/shelf.json)

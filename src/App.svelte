@@ -27,6 +27,7 @@
   import { loadRunConfig } from "./lib/state/run.svelte";
   import { loadClaudeConfig, launchClaude, wrapperUI, promptsUI } from "./lib/state/claude.svelte";
   import { loadShelf } from "./lib/state/shelf.svelte";
+  import { detectSolutions } from "./lib/state/explorerView.svelte";
   import { loadDocs } from "./lib/state/docs.svelte";
   import { invalidateFiles } from "./lib/state/projectFiles";
   import { loadSettings, startSettingsAutosave, settingsUI, nudgeFontSize, settings } from "./lib/state/settings.svelte";
@@ -297,6 +298,8 @@
       if (!changed || changed.some((p) => p.endsWith("/.orbit/run.json"))) loadRunConfig();
       if (!changed || changed.some((p) => p.endsWith("/.orbit/claude.json"))) loadClaudeConfig();
       if (!changed || changed.some((p) => p.endsWith("/.orbit/shelf.json"))) loadShelf();
+      // una soluzione creata, spostata o cancellata: il menu delle viste dell'Explorer si aggiorna (M70)
+      if (!changed || changed.some((p) => /\.slnx?$/i.test(p))) void detectSolutions();
       invalidateFiles(); // l'elenco file cachato (Docs/Quick Open) non è più aggiornato
       if (layout.sidebarView === "docs") loadDocs(); // aggiorna l'indice Docs se visibile
       if (!ignoredOnly) scheduleRescan(); // aggiorna la rubrica dei simboli del progetto (debounced)

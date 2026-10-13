@@ -7,6 +7,26 @@
   import { workspace } from "../state/workspace.svelte";
   import { openFolderDialog, startCreate, collapseAll } from "../state/explorer.svelte";
   import { settings } from "../state/settings.svelte";
+  import { explorerView, setExplorerView, setShowAll } from "../state/explorerView.svelte";
+  import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
+  import { relTo, samePath } from "../util";
+
+  // vista Solution (M70): il menu delle viste, come lo «Switch Views» di Visual Studio
+  let viewsMenu = $state<{ x: number; y: number } | null>(null);
+  function openViews(e: MouseEvent) {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    viewsMenu = { x: r.left, y: r.bottom + 2 };
+  }
+  let viewItems = $derived<MenuItem[]>([
+    { label: "Folders", icon: explorerView.current ? "folder" : "check", onClick: () => setExplorerView(null) },
+    ...explorerView.solutions.map((p, i) => ({
+      label: relTo(p, workspace.rootPath),
+      icon: explorerView.current && samePath(explorerView.current, p) ? "check" : "solution",
+      separatorBefore: i === 0,
+      onClick: () => setExplorerView(p),
+    })),
+  ]);
+  const inSolution = $derived(layout.sidebarView === "explorer" && !!explorerView.current);
 
   const titles: Record<string, string> = {
     explorer: "Explorer",
@@ -49,15 +69,45 @@
         >
           <Icon name="crosshair" size={14} strokeWidth={1.7} />
         </button>
-        <button class="act" title="Collapse all folders" aria-label="Collapse all folders" onclick={collapseAll}>
+        <button
+          class="act"
+          title="Collapse all folders"
+          aria-label="Collapse all folders"
+          onclick={() => (inSolution ? explorerView.collapseSeq++ : collapseAll())}
+        >
           <Icon name="collapse-all" size={14} strokeWidth={1.7} />
         </button>
-        <button class="act" title="New File" aria-label="New File" onclick={() => startCreate(workspace.rootPath!, "file")}>
-          <Icon name="file-plus" size={14} strokeWidth={1.7} />
-        </button>
-        <button class="act" title="New Folder" aria-label="New Folder" onclick={() => startCreate(workspace.rootPath!, "dir")}>
-          <Icon name="folder-plus" size={14} strokeWidth={1.7} />
-        </button>
+        {#if inSolution}
+          <button
+            class="act"
+            class:on={explorerView.showAll}
+            title={explorerView.showAll ? "Showing all files — click to show only the projects' files" : "Show All Files"}
+            aria-label="Show All Files"
+            aria-pressed={explorerView.showAll}
+            onclick={() => setShowAll(!explorerView.showAll)}
+          >
+            <Icon name="eye" size={14} strokeWidth={1.7} />
+          </button>
+        {:else}
+          <button class="act" title="New File" aria-label="New File" onclick={() => startCreate(workspace.rootPath!, "file")}>
+            <Icon name="file-plus" size={14} strokeWidth={1.7} />
+          </button>
+          <button class="act" title="New Folder" aria-label="New Folder" onclick={() => startCreate(workspace.rootPath!, "dir")}>
+            <Icon name="folder-plus" size={14} strokeWidth={1.7} />
+          </button>
+        {/if}
+        {#if explorerView.solutions.length}
+          <button
+            class="act"
+            class:on={inSolution}
+            title="Switch between folders and solutions"
+            aria-label="Switch between folders and solutions"
+            aria-haspopup="menu"
+            onclick={openViews}
+          >
+            <Icon name="switch-views" size={14} strokeWidth={1.7} />
+          </button>
+        {/if}
         <button class="act" title="Open another folder" aria-label="Open another folder" onclick={openFolderDialog}>
           <Icon name="folder-open" size={14} strokeWidth={1.7} />
         </button>
@@ -74,7 +124,9 @@
     <!-- durante il cambio cartella (workspace.switching) rootPath è null per un attimo: le viste
          restano montate con i dati vecchi invece di lampeggiare lo stato "nessuna cartella" -->
     {#if layout.sidebarView === "explorer"}
-      {#if workspace.rootPath || workspace.switching}
+      {#if inSolution && (workspace.rootPath || workspace.switching)}
+        <Lazy load={() => import("./SolutionView.svelte")} />
+      {:else if workspace.rootPath || workspace.switching}
         <Explorer />
       {:else}
         <div class="empty">
@@ -115,6 +167,10 @@
     {/if}
   </div>
 </aside>
+
+{#if viewsMenu}
+  <ContextMenu x={viewsMenu.x} y={viewsMenu.y} items={viewItems} onClose={() => (viewsMenu = null)} />
+{/if}
 
 <style>
   .sidebar {

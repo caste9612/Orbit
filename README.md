@@ -34,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~6.6 MB binary, ~120 MB of RAM at rest with a project open (mostly the
-  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~285 KB startup chunk (≈97 KB gzipped).
+  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~289 KB startup chunk (≈98 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -62,6 +62,18 @@ cross-platform desktop app that weighs almost nothing.
 - **Follow active file**: an optional toggle (⌖ in the explorer toolbar) that auto‑expands the tree
   to the active file and reveals it as you switch tabs, Quick‑Open a file, or jump to a definition
   (VS Code's *reveal*).
+- **Solution view** for .NET repositories: when a repo has Visual Studio solutions (`.sln`, `.slnx`), the
+  ⇄ button in the Explorer header switches between the folders and a solution, shown like Visual Studio's
+  Solution Explorer.
+  - Solution folders, projects (C#, VB, F#, C++) and a **Dependencies** node (frameworks, packages,
+    project references).
+  - Nested files (`App.xaml.cs` under `App.xaml`), linked files, C++ filters and **Show All Files**.
+  - Whatever isn't in the solution stays one click away under **Other files**.
+  - Right-click the solution or a project to **Build**, **Rebuild**, **Clean** or **Run** it in a
+    terminal tab. Builds use Visual Studio's MSBuild when it's installed, so C++ builds too; otherwise
+    `dotnet`.
+  - Orbit reads the project files itself, without running MSBuild, and remembers the view for each
+    repository.
 - **Quick Open** (`Ctrl/Cmd+P`) with fuzzy ranking, and full‑text **project search**. Like the symbol index,
   both skip folders ignored by git (build output, virtual environments…); the file tree still shows them.
 - **Drag in files**: drop files from your OS file manager onto the editor to open them.
@@ -326,7 +338,7 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~3.9 MB |
 | NSIS setup | ~3.2 MB |
 | Frontend `dist/` | ~2.9 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~285 KB (≈97 KB gzipped; the editor and the terminal load on demand) |
+| Startup JS chunk | ~289 KB (≈98 KB gzipped; the editor and the terminal load on demand) |
 | RAM at rest (project open) | ~120 MB private working set with one terminal, ~160 MB with four terminals and three files open (Orbit + WebView2; the Rust core is ~6 MB, ~30 MB with the symbol index of a very large project — the rest is the shared system WebView, inherent to Tauri) |
 | Under load | Claude saving a file every second in a 5,400-file project: ~23% of one CPU core, the UI answering in ~2 ms (99th percentile) |
 

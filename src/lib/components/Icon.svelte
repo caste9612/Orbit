@@ -123,6 +123,14 @@
     minimize: `<path d="M9 4v5H4"/><path d="M15 4v5h5"/><path d="M9 20v-5H4"/><path d="M15 20v-5h5"/>`,
     // pin "sempre in primo piano" (toggle nella finestra flottante del terminale)
     pin: `<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>`,
+    // vista Solution dell'Explorer (M70): la soluzione (il nastro di Visual Studio), il cambio di vista,
+    // Show All Files, i framework, Build e Clean
+    solution: `<path d="M16.5 3 21 5v14l-4.5 2-8.5-7.6L4.5 16 3 15.2V8.8L4.5 8 8 10.6z"/><path d="M16.5 8.4v7.2L12 12z"/>`,
+    "switch-views": `<path d="M4 8h13"/><path d="m14 5 3 3-3 3"/><path d="M20 16H7"/><path d="m10 13-3 3 3 3"/>`,
+    eye: `<path d="M2.1 12.3a1 1 0 0 1 0-.6C3.5 8.1 7.4 5 12 5s8.5 3.1 9.9 6.7a1 1 0 0 1 0 .6C20.5 15.9 16.6 19 12 19s-8.5-3.1-9.9-6.7"/><circle cx="12" cy="12" r="3"/>`,
+    layers: `<path d="m12 3 9 4.5-9 4.5-9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/>`,
+    hammer: `<path d="m15 12-8.4 8.4a2.1 2.1 0 0 1-3-3L12 9"/><path d="M17.6 15 22 10.6"/><path d="m20.9 11.7-1.9-1.9a2 2 0 0 1-.6-1.4V7.2l-2.3-2.3A6 6 0 0 0 12 3.2H9l.9.8A6.2 6.2 0 0 1 12 8.6V10l2 2h1.2a2 2 0 0 1 1.4.6l1.9 1.9"/>`,
+    eraser: `<path d="m7 21-4.3-4.3a2.4 2.4 0 0 1 0-3.4l9.6-9.6a2.4 2.4 0 0 1 3.4 0l5.6 5.6a2.4 2.4 0 0 1 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/>`,
   };
 
   // glifo da disegnare: set del tema (se lo definisce) con fallback al set base

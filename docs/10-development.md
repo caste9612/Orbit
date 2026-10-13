@@ -37,15 +37,18 @@ cargo test --manifest-path src-tauri/Cargo.toml  # Rust unit tests
 ```
 
 - **Frontend tests** live in `*.test.ts` next to the module: `util`, `caretStyles`, `searchText`,
-  `editorTabs`, `shelfRules`, `symbolMaps`, `terminalLayout`, `repoStrip`. Only pure logic is tested (no
-  runes, no DOM): keep the logic of a new feature in a plain `.ts` so it can be.
+  `editorTabs`, `shelfRules`, `symbolMaps`, `terminalLayout`, `repoStrip`, `solutionTree`. Only pure
+  logic is tested (no runes, no DOM): keep the logic of a new feature in a plain `.ts` so it can be.
 - **Rust tests** sit in each module (`#[cfg(test)] mod tests`). They cover:
   - the window plan and key resolution (`winsession`);
   - the symbol parsers, the incremental index against a full scan, and folders ignored by git
     (`symbols`);
   - the reference lexer (`refs`);
   - Activity's segmentation, including incremental reads against a from-scratch parse (`activity`);
-  - the process walk for Claude chats (`claudeproc`).
+  - the process walk for Claude chats (`claudeproc`);
+  - solutions and projects (`solution`): `.sln` and `.slnx`, SDK, old-style and C++ projects with
+    filters, conditions, property functions, imports, central package versions, several target
+    frameworks, Show All Files. Fixtures use made-up names, in a temporary folder.
 - **Benchmarks** are tests marked `#[ignore]`: `symbols::scan_timing` (set `ORBIT_SCAN_ROOTS` to the
   projects to scan), `activity::scan_timing`, `activity::scan_live_bench`. Run them with
   `cargo test --release -- --ignored --nocapture <name>`.

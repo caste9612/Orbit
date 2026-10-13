@@ -88,6 +88,52 @@ panels and their strips, the layout motion, and the map of all components.
 - **Splitters** (`Splitter.svelte`, pointer events) resize sidebar and terminal panel. Dragging is
   immediate, never animated.
 
+## Explorer: folders or a solution
+
+The Explorer shows the folders as they are on disk or, in a repository with Visual Studio solutions, a
+solution the way Visual Studio's Solution Explorer shows it (M70).
+- **Switching**: the ⇄ button in the header appears when the repository has a `.sln` or `.slnx`
+  (`sln_find`, at every `openRoot`, and again when one appears or disappears). Its menu lists *Folders*
+  and the solutions, by path, as Visual Studio's *Switch Views*. The choice is remembered per
+  repository (`localStorage`); the first time it's *Folders*.
+- **The view** is `SolutionView.svelte`, loaded on demand (`Lazy`): it isn't in the startup chunk.
+  - The solution, then its solution folders and projects (folders first, then projects, then
+    solution items), as written in the `.sln`/`.slnx`.
+  - A project opens on demand (`proj_load`). Inside it:
+    - **Dependencies** (SDK projects: Frameworks, Packages, Projects, Assemblies) or **References**
+      (old-style and C++);
+    - *Properties* first, then folders and files;
+    - files nested like Visual Studio does it: `DependentUpon`, then `X.xaml.cs` under `X.xaml`,
+      `X.Designer.cs` under `X.cs`/`X.resx`/`X.settings`, `X.resx` under `X.cs`, Razor and
+      `appsettings.*.json` files.
+  - Linked files carry a small arrow, missing ones are amber. C++ filters are virtual folders.
+  - A project reference opens the project it points to (*Go to project*).
+- **Show All Files** (the eye in the header) adds, in gray, what the projects leave out: files on disk
+  that aren't in the project, and `bin`, `obj` and hidden folders, read when opened. A C++ project then
+  shows its folders on disk instead of the filters, as in Visual Studio.
+- **Other files**, at the bottom and closed, is the rest of the repository as on disk: the folder tree
+  without the project folders and the folders holding nothing but project folders. It uses the same
+  nodes as the folder view (expansion, refresh, shelf).
+- **Context menu**:
+  - the solution and the projects have *Build*, *Rebuild*, *Clean*;
+  - executable SDK projects also have *Run*;
+  - every project has *Edit project file*.
+
+  They run in a terminal tab, like the Run menu: Visual Studio's MSBuild when `vswhere` finds it
+  (in PowerShell, so C++ projects build too), otherwise `dotnet build`/`clean`, and `dotnet run`.
+  - New, rename and delete work where the disk is the project: SDK projects and their folders, files
+    excluded from the project, *Other files*. Old-style and C++ projects, linked files and solution
+    items stay read-only, because changing them would mean editing the project file.
+- **Live**: the view listens to `fs-changed`.
+  - A change to the solution file reloads it.
+  - A change to a project file, its `.filters` or `.user`, a `Directory.*` file, a file inside a
+    project or a file it links reloads that project.
+  - With Show All Files off, changes to ignored files only (a build writing `bin`/`obj`) are skipped.
+- **Follow the active file** works here too: the file is found in the project that contains it (read
+  if needed), else in *Other files*.
+- Git decorations as in the folder view: files by path, a dot on folders, projects and solution folders
+  that hold changes.
+
 ## Layout motion
 
 Programmatic layout changes animate as **one** motion (M56):
@@ -151,7 +197,7 @@ the file. It keeps the open files and adopts the terminals.
 |---|---|
 | Frame | `TopBar` (+ `RepoStrip`), `Sidebar`, `PanelStrip`, `Splitter`, `StatusBar`, `Toaster`, `Logo`, `Icon`, `Backdrop`, `Switch`, `ContextMenu`, `Lazy`, `MatchText` |
 | Editor area | `EditorArea` (groups, tabs, viewers, drop of OS files), `LazyEditor` → `Editor`, `RelatedBar`, `KindBadge`, `DiffView`, `MarkdownView`, `HtmlView`, `AssetView` (images, PDF), `GitGraph`, `ActivityBoard`, `UnitDigest`, `ChatDigest` |
-| Sidebar views | `Explorer` (+ `MiniTree`, `ShelfPicker`), `GitPanel`, `SearchView`, `DocsView`, `ActivityPanel` |
+| Sidebar views | `Explorer` (+ `MiniTree`, `ShelfPicker`), `SolutionView`, `GitPanel`, `SearchView`, `DocsView`, `ActivityPanel` |
 | Terminal | `TerminalPanel` (tabs, panes, split menu, floating windows), `LazyTerminal` → `Terminal` |
 | Palettes | `QuickOpen`, `SymbolPalette`, `WorkspaceSymbols` |
 | Dialogs | `Settings` (+ `SettingsKeyboard`, `EditorCaretPreview`, `TerminalCaretPreview`), `UnsavedDialog`, `UpdateDialog`, `LogViewer`, `WrapperComposer`, `ClaudePrompts` |

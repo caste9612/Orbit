@@ -75,6 +75,26 @@ read the object and call the actions, and re-render on their own when what they 
 - Expanded folders: `snapshotExpanded` (in memory, across repo switches); `expandedRel`/`seedExpanded`
   (saved in the session, M66). Keys are `pathKey`.
 
+### `explorerView`, `solution` and `solutionTree` — the Solution view (M70)
+- `explorerView.svelte.ts`, in the startup chunk because the sidebar header needs it:
+  - **owns** the repository's `solutions`, the one shown (`current`, null = folders), `showAll` and the
+    `collapseSeq` counter behind the header's *Collapse all*;
+  - `detectSolutions(root)` runs `sln_find` and restores the choice saved for the repository (`localStorage`
+    `orbit.explorerView`, path relative to the root);
+  - `setExplorerView`, `setShowAll`.
+- `solution.svelte.ts` is loaded with `SolutionView` only.
+  - The tree (`data.root`) and the projects read (`data.models`) are plain objects, outside the reactive
+    system: they can be thousands of nodes. Every change bumps `sol.version`, and the view recomputes its
+    rows.
+  - Reactive: `sol.expanded` (open node ids, saved per solution in `localStorage`
+    `orbit.solutionExpanded`), `sol.busy` (projects being read, or their error), `sol.hidden` (the folders
+    *Other files* skips).
+  - `openSolution`, `loadProject`, `reloadProjects`, `toggleNode`, `collapseAll`, `revealPath` (follow the
+    active file), `watchSolution` (the `fs-changed` listener), `buildTarget`, `runProject`.
+- `solutionTree.ts` is pure logic, tested: `buildSolution` and `buildProject` (sorting, nesting rules, the
+  Dependencies node), `lazyChildren`, `expandable`, and the commands (`buildCommand`, `canRun`,
+  `runCommandFor`).
+
 ### `persist` — sessions
 - `loadSession`, `saveSessionNow`, `startAutosave`.
 - `switchFolder`, `openLight`, `promoteLight`.

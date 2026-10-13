@@ -11,6 +11,8 @@ The name is historical, and a test build with another identifier gets its own fo
 | Settings | `localStorage["orbit.settings"]` | app (per WebView origin: dev and installed app differ) | `settings.svelte.ts` |
 | Activity choices | `localStorage["orbit.activity.hidden"]`, `["orbit.activity.dismissed"]` | app | `activity.svelte.ts` |
 | Repo colors picked by hand | `localStorage["orbit.repoColors"]`, keyed by `pathKey` (M69) | app | `repoColors.svelte.ts` |
+| Explorer view (folders or which solution, Show All Files) | `localStorage["orbit.explorerView"]`, keyed by the repo's `pathKey`, the solution relative to the root (M70) | app | `explorerView.svelte.ts` |
+| Open nodes of the Solution view | `localStorage["orbit.solutionExpanded"]`, keyed by the solution's `pathKey`; up to 400 ids, the last 30 solutions (M70) | app | `solution.svelte.ts` |
 | Session of a folder | `sessions/<hash>.json`, key `<winKey>\|<folder>` | window + folder | `persist.svelte.ts` |
 | Terminals of a window | `sessions/<hash>.json`, key `<winKey>\|#terminals` | window | `terminalPersist.svelte.ts` (M66) |
 | Last folder (fallback) | `last_session.txt` | app | `save_state` (not for the terminals) |

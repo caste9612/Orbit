@@ -86,3 +86,8 @@ poi `docs/ARCHITECTURE.md` e una pagina per area: stato, shell, editor, terminal
 persistenza, backend, impostazioni, sviluppo, rilascio); le decisioni e le misure, milestone per
 milestone, in `NOTES.md`. Quando una modifica cambia come funziona qualcosa, aggiorna nello stesso commit
 la pagina di quell'area (in inglese, come il README).
+
+Le release si pubblicano da qualunque PC con il workflow **Release** di GitHub Actions
+(`gh workflow run release.yml -f title="…" -f publish=true`, senza `publish` è una prova a secco). Ogni
+esecuzione aspetta l'approvazione del maintainer, che Claude non può dare. Le note della release stanno nel
+blocco ```` ```markdown ```` della sezione «## Versione X.Y.Z» di `NOTES.md`; tutto il percorso è in `docs/11-release.md`.

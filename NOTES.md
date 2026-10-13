@@ -4031,6 +4031,85 @@ Note della release:
 
 ---
 
+## Milestone 71 — rilasci da GitHub Actions: si pubblica da qualunque PC
+
+Richiesta dell'utente (2026-10-13), con un prompt preparato sul PC di lavoro. Si poteva pubblicare solo dal PC
+di casa, l'unico con la chiave di firma. Le prossime release passano da GitHub Actions, con la chiave nei secret
+di GitHub: così si pubblica da qualunque PC, o dal browser, e la chiave non va copiata sui PC di lavoro. Lo script
+locale resta come alternativa.
+
+Le scelte:
+- i secret in un **environment `release`**, valido solo per `main`, che aspetta l'approvazione del maintainer
+  prima di ogni esecuzione. Proposto fra tre strade: environment con approvazione, environment senza
+  approvazione, secret del repository;
+- il workflow riusa `New-Release.ps1` com'è: stessi controlli, stessi artefatti, stesso `latest.json`;
+- si lancia solo a mano (`workflow_dispatch`), dal sito o con `gh workflow run`, mai da una pull request: il repo
+  è pubblico;
+- le note vengono dal blocco markdown della sezione «## Versione X.Y.Z» di NOTES.md, con la versione di
+  `tauri.conf.json`;
+- prima di tutto il **backup** di chiave e password fuori dal PC, perché i secret di GitHub non si rileggono.
+
+**Cosa c'è.**
+- `.github/workflows/release.yml`:
+  - input `title` e `publish`; con `publish` spento è una prova a secco;
+  - gira su `windows-latest`, con il permesso `contents: write` solo nel job;
+  - checkout con tutta la storia, perché lo script controlla che il commit sia su GitHub. Le credenziali non
+    restano salvate: sul repo pubblico il `git fetch` dello script funziona senza token;
+  - Node 24 con `npm ci`;
+  - Rust stable installato con `rustup`, senza azioni di terzi;
+  - cache di cargo: i download e `src-tauri/target`, senza i bundle;
+  - solo azioni di GitHub, fissate per commit e uscite da almeno due settimane, perché il job vede la chiave:
+    `checkout` 7.0.1, `setup-node` 7.0.0, `cache` 6.1.0, `upload-artifact` 7.0.1. La 7.1.0 di `setup-node` aveva
+    5 giorni, la 7.0.2 di `upload-artifact` 6;
+  - le note si estraggono prima di usare i secret: se mancano, l'esecuzione si ferma lì;
+  - la chiave passa dal secret a un file temporaneo, dato a `-KeyPath`. Il `Trim` serve perché PowerShell, quando
+    passa il file a `gh secret set`, aggiunge un a capo;
+  - la password va in `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, il token del workflow in `GH_TOKEN`;
+  - gli input arrivano dall'ambiente, mai scritti dentro lo script: un titolo non può diventare codice;
+  - alla fine: il file della chiave si cancella anche dopo un errore, le misure di eseguibile, setup e MSI vanno
+    nel riepilogo, e `artifacts/release` resta come artefatto per 14 giorni.
+- `scripts/Get-ReleaseNotes.ps1`:
+  - estrae le note della versione e le scrive in UTF-8 con righe LF;
+  - si ferma con un errore se la sezione o il blocco mancano o sono vuoti;
+  - serve anche in locale: `-Notes (.\scripts\Get-ReleaseNotes.ps1)`.
+- L'environment `release`, creato con `gh api`:
+  - revisore il maintainer, che può approvare anche le esecuzioni lanciate da lui;
+  - rami ammessi: solo `main`;
+  - secret `TAURI_SIGNING_PRIVATE_KEY` e `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, caricati dall'utente in una
+    finestra di PowerShell: la chiave va dal file a `gh` senza essere mostrata, la password la scrive lui al
+    prompt di `gh`.
+- Documentazione: `docs/11-release.md` riscritta, con le due strade, le note, il workflow (come si lancia, come si
+  approva, cosa fa, dove sta la chiave), backup e cambio della chiave, e la checklist. README, ARCHITECTURE,
+  10-development e indice allineati.
+
+**Verifica.**
+- `Get-ReleaseNotes.ps1`:
+  - sulla 1.3.0 produce un file identico byte per byte alle note pubblicate, e uguale al testo della release;
+  - su un repo finto il CRLF diventa LF;
+  - sezione mancante, blocco mancante, non chiuso, vuoto o di soli spazi danno ciascuno il suo errore.
+- Ogni blocco `run` del workflow passa il parser di PowerShell, e nessuno contiene espressioni `${{ }}`.
+- **Prova a secco** sul commit `6466b1e`, esecuzione 38458380440: rispetto alla 1.3.0 pubblicata cambiano solo
+  docs, NOTES, workflow e script, non il codice dell'app.
+  - Approvata dall'utente; tutti i passi riusciti in 10 min 44 s. La compilazione ha preso 7 min 38 s a cache
+    vuota, poi la cache è stata salvata.
+  - Confronto con la 1.3.0 pubblicata: stessi nomi di file, stesse chiavi di `latest.json`, stessa versione,
+    stesse note, stesse piattaforme e URL. Le firme sono nuove, come deve essere.
+  - Firme valide per la chiave pubblica di `tauri.conf.json` (`55F5361AFA695029`): nei secret ci sono la chiave
+    giusta e la sua password.
+  - Sul runner Rust 1.99.0 (qui 1.92.0): eseguibile **6,70 MiB**, setup **3,23 MiB**, MSI **3,99 MiB**, contro i
+    6,82, 3,26 e 4,04 MiB della build locale.
+
+**Da sapere.**
+- Claude non può approvare un'esecuzione: il controllo dei permessi di Claude Code blocca l'approvazione di un
+  environment protetto. La dà il maintainer, dal sito, da GitHub Mobile o con `gh api`.
+- Le release pubblicate dal workflow hanno come autore `github-actions[bot]`.
+- Il runner usa l'ultima Rust stabile. Se una versione nuova rompesse la build, si fissa il toolchain nel passo
+  «Rust stable».
+- La tabella del README ha le misure della build locale della 1.3.0: si aggiornano con la prima release dal
+  workflow.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

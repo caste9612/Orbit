@@ -3847,6 +3847,11 @@ commit `652a2bb`, pubblicata dall'utente dall'altro PC con `New-Release.ps1 -Pub
 - Asset: setup NSIS **3,18 MiB**, MSI **3,93 MiB**, le due firme e `latest.json`.
 - Controllato il giorno dopo (da qui, in sola lettura): l'indirizzo degli aggiornamenti serve il `latest.json` della
   1.2.0, con le firme del setup e dell'MSI. Le misure dell'eseguibile firmato restano sull'altro PC.
+- Dal PC della chiave, subito dopo la pubblicazione: eseguibile firmato **6,61 MiB**, chunk iniziale **285,0 KiB**; i
+  cinque file su GitHub con gli stessi SHA-256 di quelli locali, firme valide per la chiave di `tauri.conf.json`.
+- Verificato nell'uso (2026-10-13): riaperto Orbit 1.2.0, la chat di Claude in corso in una scheda è ripartita da
+  sola con `claude --resume <id>`. Era il punto lasciato aperto dalla 1.1.0: riprendere una chat usata dopo
+  l'aggiornamento. Resta da provare il comportamento dopo un `/clear`.
 
 ---
 
@@ -4009,6 +4014,20 @@ Note della release:
 - Orbit uses Visual Studio's MSBuild when it's installed, so C++ projects build too; otherwise it uses
   `dotnet`.
 ```
+
+**Rilasciato in v1.3.0** il 2026-10-13 sera (19:42 UTC): "Orbit v1.3.0 — Solutions, like in Visual Studio", tag
+`v1.3.0` sul commit `9a45400`, pubblicata dall'utente dal PC della chiave con `New-Release.ps1 -Publish`.
+- Prima una build firmata di prova, controllata: firme valide, `latest.json` con le note qui sopra.
+  - Poi l'utente ha scelto di pubblicare subito e di provare la vista Solution dopo l'aggiornamento dall'app, come
+    per la 1.2.0, senza installare a mano il setup.
+- Build firmata pubblicata:
+  - eseguibile **6,82 MiB** (6,61 nella 1.2.0);
+  - setup NSIS **3,26 MiB** (3,18), MSI **4,04 MiB** (3,93);
+  - chunk iniziale **289,0 KiB**, `dist/` 2,94 MiB.
+- Controlli dopo la pubblicazione:
+  - i cinque file su GitHub hanno gli stessi SHA-256 di quelli locali;
+  - l'indirizzo degli aggiornamenti serve il `latest.json` firmato: 1.3.0, con setup e MSI e le loro firme;
+  - firme valide per la chiave di `tauri.conf.json`.
 
 ---
 

@@ -26,7 +26,7 @@ npm run tauri build     # release binary + installers in src-tauri/target/releas
   - The new page starts its own tabs, so the old PTYs are left without a tab. Kill them with
     `invoke('pty_kill', { id })` or restart the app.
 - `npm run tauri build` needs no signing key: the signed updater artifacts are produced only by the
-  release script ([Release](11-release.md)).
+  release script, run by the Release workflow or locally ([Release](11-release.md)).
 
 ## Tests
 

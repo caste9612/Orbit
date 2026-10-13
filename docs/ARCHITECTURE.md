@@ -102,7 +102,9 @@ src-tauri/
   tauri.windows.conf.json   Windows overrides (no fileAssociations: "Open with" is in hooks.nsh)
   windows/hooks.nsh     NSIS hooks: "Open with" without becoming the default app
   capabilities/         permissions of the main and floating windows
-scripts/                New-Release.ps1 (signed release), measure-orbit*.ps1 (footprint)
+scripts/                New-Release.ps1 (signed release), Get-ReleaseNotes.ps1 (notes from NOTES.md),
+                        measure-orbit*.ps1 (footprint)
+.github/workflows/      release.yml: the signed release on GitHub Actions, started by hand
 docs/                   these pages + README screenshots
 NOTES.md                decision log, Italian
 CLAUDE.md               tells Claude Code about Orbit and the .orbit/ files

@@ -22,7 +22,7 @@ Start from the overview, then open the page of the area you're touching.
 | [08 · Backend](08-backend.md) | The Rust core: modules, every Tauri command, the events, threading, the file watcher, git, plugins and permissions |
 | [09 · Settings](09-settings.md) | The settings model and window, keyboard presets, themes and their *look*, cursor styles, icons and file glyphs |
 | [10 · Development](10-development.md) | Setup, running, tests, debugging (logs, DevTools over CDP, an isolated instance), recipes for common changes |
-| [11 · Release](11-release.md) | Versions, the signed release script, `latest.json`, installers, the in-app update flow |
+| [11 · Release](11-release.md) | Versions, release notes, publishing from GitHub Actions or locally, the signing key and its backup, `latest.json`, installers, the in-app update flow |
 
 ## Keeping these pages current
 

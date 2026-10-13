@@ -1,0 +1,132 @@
+# Release di Orbit da GitHub Actions: lo stesso scripts/New-Release.ps1 delle release fatte in locale (stessi
+# controlli, stessi installer firmati, stesso latest.json), con la chiave di firma nei secret dell'environment
+# "release" invece che su un PC. Così si pubblica da qualunque PC, o dal sito.
+#
+# Si lancia solo a mano, mai da una pull request (il repo è pubblico):
+#   - dal sito: Actions → Release → Run workflow;
+#   - da un terminale: gh workflow run release.yml -f title="…" -f publish=true
+# L'environment "release" vale solo per main e aspetta l'approvazione del maintainer prima di dare i secret al
+# job. Con publish spento (il default) è una prova a secco: installer, firme e latest.json restano solo come
+# artefatto dell'esecuzione. Il percorso completo è in docs/11-release.md.
+name: Release
+run-name: Release ${{ inputs.publish && '(publish)' || '(dry run)' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: 'Release title after "Orbit vX.Y.Z — " (empty: just "Orbit vX.Y.Z")'
+        type: string
+        required: false
+      publish:
+        description: "Publish the release on GitHub (off: dry run, the files stay as this run's artifact)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    environment: release
+    timeout-minutes: 60
+    permissions:
+      contents: write # tag e release, con gh
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      # azioni solo di GitHub, fissate per commit (la versione nel commento): il job vede la chiave di firma
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # lo script controlla che il commit sia già su GitHub (origin/*)
+          persist-credentials: false # repo pubblico: il git fetch dello script non ha bisogno del token
+
+      - name: Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Rust stable
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+          rustc --version
+
+      - name: Cargo cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            src-tauri/target
+            !src-tauri/target/release/bundle
+          key: release-cargo-${{ runner.os }}-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: release-cargo-${{ runner.os }}-
+
+      - name: npm ci
+        run: npm ci
+
+      # prima dei secret: se mancano le note della versione, l'esecuzione si ferma qui
+      - name: Release notes from NOTES.md
+        id: notes
+        run: |
+          $version = (Get-Content -LiteralPath src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $path = ./scripts/Get-ReleaseNotes.ps1 -OutFile (Join-Path $env:RUNNER_TEMP 'release-notes.md')
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "path=$path" >> $env:GITHUB_OUTPUT
+          Write-Host "Orbit $version - note della release:"
+          Get-Content -LiteralPath $path
+
+      - name: Signing key to a temporary file
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if (-not $env:SIGNING_KEY) { throw 'Manca il secret TAURI_SIGNING_PRIVATE_KEY nell''environment "release".' }
+          # Trim: un a capo finale, aggiunto passando il file a gh secret set, non fa parte della chiave
+          $path = Join-Path $env:RUNNER_TEMP 'orbit-updater.key'
+          [IO.File]::WriteAllText($path, $env:SIGNING_KEY.Trim())
+          "KEY_PATH=$path" >> $env:GITHUB_ENV
+
+      - name: New-Release.ps1
+        env:
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          GH_TOKEN: ${{ github.token }}
+          NOTES_PATH: ${{ steps.notes.outputs.path }}
+          TITLE: ${{ inputs.title }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { throw 'Manca il secret TAURI_SIGNING_PRIVATE_KEY_PASSWORD nell''environment "release".' }
+          # gli input passano dall'ambiente, mai scritti dentro lo script: un titolo non può diventare codice
+          $params = @{ Notes = $env:NOTES_PATH; KeyPath = $env:KEY_PATH }
+          if ($env:TITLE) { $params.Title = $env:TITLE }
+          if ($env:PUBLISH -eq 'true') { $params.Publish = $true }
+          ./scripts/New-Release.ps1 @params
+
+      - name: Remove the signing key
+        if: always()
+        run: Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'orbit-updater.key') -Force -ErrorAction SilentlyContinue
+
+      # le misure della build firmata, per la sezione della versione in NOTES.md (anche nel riepilogo dell'esecuzione)
+      - name: Sizes
+        run: |
+          $rows = Get-Item src-tauri/target/release/orbit.exe, artifacts/release/*.exe, artifacts/release/*.msi |
+            ForEach-Object { '| `{0}` | {1:N2} MiB |' -f $_.Name, ($_.Length / 1MB) }
+          $rows | ForEach-Object { Write-Host $_ }
+          @('| File | Size |', '|---|---|') + $rows | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload artifacts/release
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: orbit-${{ steps.notes.outputs.version }}-${{ inputs.publish && 'published' || 'dry-run' }}
+          path: artifacts/release
+          if-no-files-found: error
+          retention-days: 14

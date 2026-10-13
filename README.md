@@ -426,17 +426,26 @@ Debugging, an isolated test instance, tests and recipes: [docs/10-development.md
 npm run tauri build    # binary + installers in src-tauri/target/release
 ```
 
-Releases are built with `scripts/New-Release.ps1` (PowerShell 7): it checks that the version matches in
-all six places, builds the installers **signed** with the update key (`~/.tauri/orbit-updater.key`, kept
-out of the repo and password-protected — the script asks for the password, or reads
-`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, and checks it before building; back the key up: without it,
-installed copies can't verify new versions), writes
-`latest.json` for the in-app updater and, with `-Publish`, creates the GitHub release from the pushed
-commit:
+Releases are built by `scripts/New-Release.ps1` (PowerShell 7). It checks that the version matches in
+all six places, builds the installers **signed** with the update key, writes `latest.json` for the in-app
+updater and, when publishing, creates the GitHub release from the pushed commit. The release notes come
+from the version's section in `NOTES.md` (`scripts/Get-ReleaseNotes.ps1`).
+
+The usual way is the **Release** workflow on GitHub Actions (`.github/workflows/release.yml`), started by
+hand from any PC or from the browser. It runs the same script on a GitHub runner, with the key kept in
+the secrets of a protected `release` environment: `main` only, approval required.
 
 ```powershell
-.\scripts\New-Release.ps1 -Notes .\notes.md                                 # build only, in artifacts\release
-.\scripts\New-Release.ps1 -Notes .\notes.md -Title "Updates from GitHub" -Publish
+gh workflow run release.yml -f title="Updates from GitHub"                  # dry run: files in the run's artifact
+gh workflow run release.yml -f title="Updates from GitHub" -f publish=true  # GitHub release
+```
+
+The script also runs locally, on a PC that has the key (`~/.tauri/orbit-updater.key`, password-protected).
+Back up the key together with its password: without them, installed copies can't verify new versions.
+
+```powershell
+.\scripts\New-Release.ps1 -Notes (.\scripts\Get-ReleaseNotes.ps1)                                # build only, in artifacts\release
+.\scripts\New-Release.ps1 -Notes (.\scripts\Get-ReleaseNotes.ps1) -Title "Updates from GitHub" -Publish
 ```
 
 A release published without `latest.json` (or marked as pre-release) is not offered to installed copies.

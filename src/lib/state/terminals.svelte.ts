@@ -95,7 +95,8 @@ function shortKind(opts: NewTerminal): string | null {
   const t = (opts.title ?? "").trim();
   if (/^claude/i.test(t)) return "Claude";
   if (!t) return navigator.platform.startsWith("Win") ? "pwsh" : "shell"; // shell di default della piattaforma
-  if (opts.shell) return SHELL_SHORT[t.toLowerCase()] ?? t.toLowerCase().split(/\s+/)[0]; // scheda dal selettore shell
+  // scheda dal selettore shell (con un comando, come Build nella vista Solution, il nome resta quello dato)
+  if (opts.shell && !opts.initCommand) return SHELL_SHORT[t.toLowerCase()] ?? t.toLowerCase().split(/\s+/)[0];
   return null;
 }
 function nextShortName(opts: NewTerminal): string {

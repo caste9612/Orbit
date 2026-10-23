@@ -71,13 +71,15 @@ a `.orbit/claude.json`: Orbit ricarica il menu automaticamente.
   fetch/pull/push/merge girano nel terminale (riusano la tua autenticazione git).
 - **Esegui ▶**: comandi da `.orbit/run.json` (vedi la sezione dedicata).
 - **Scratchpad** (📝): `.orbit/scratch.txt`, appunti/prompt persistenti.
-- **Scaffale**: cartelle messe da parte per categoria in `.orbit/shelf.json`.
+- **Scaffale**: cartelle e file messi da parte per categoria, per percorso o con regole per nome (`bin`,
+  `*.user`, `.*`) in `.orbit/shelf.json`; le regole valide in ogni repo stanno nelle Impostazioni → Shelf.
 - Menu contestuali (editor e albero), decorazioni git nell'albero, vista **Docs** dei Markdown.
 
 ### File `.orbit/` (committati e modificabili)
 - `run.json` — comandi del menu Esegui.
 - `claude.json` — comando, scorciatoie e wrapper Claude (sopra).
-- `shelf.json` — cartelle nello scaffale (preferenza personale, git-ignored).
+- `shelf.json` — scaffale (preferenza personale, git-ignored): `shelved` (percorso → categorie), `byName` (regole
+  per le cartelle) e `files` (regole per i file), con nomi o pattern `*` e `?`.
 <!-- /orbit:claude-config -->
 
 ## Documentazione del codice di Orbit

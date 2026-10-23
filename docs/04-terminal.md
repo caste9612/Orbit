@@ -12,7 +12,7 @@ and the tabs and chats come back when you reopen Orbit.
 | `components/Terminal.svelte` (via `LazyTerminal`) | One xterm: PTY attach, fit, WebGL, links, clipboard, theme, the drawn cursor |
 | `components/TerminalPanel.svelte` | The panel: tabs of the active repo, side-by-side panes, split menu, floating windows, waking restored tabs |
 | `state/terminals.svelte.ts` | The tab model, panes per repo, attention |
-| `state/terminalLayout.ts` | Pane layout (pure, tested) |
+| `state/paneLayout.ts` | Pane layout, sizes and geometry (pure, tested), shared with the editor groups since M72 |
 | `state/terminalPersist.svelte.ts` | Saving and restoring the tabs (M66) |
 | `lib/terminalCaret.ts` + `.css` | The cursor Orbit draws over xterm (M63) |
 | `lib/terminalTheme.ts` | xterm colors from the active theme |
@@ -58,13 +58,19 @@ xterm's WebGL addon (on by default since M62) is attached only while the termina
   - `autoTitle` is the chat summary Claude Code writes in the terminal title (OSC 0/2). It's shown as a
     subtitle for chats only; shells put paths there, which is noise;
   - `color` rotates through the Activity session palette.
-- **Panes** (M54–M55): up to four terminals of the repo side by side, absolutely positioned on one
-  surface. Moving a chat in or out of a pane never remounts xterm.
-- **The layout model** (`terminalLayout.ts`) is *columns of rows*, `Layout = string[][]`:
+- **Panes** (M54–M55): up to six terminals of the repo side by side (`MAX_PANES`; four until M72),
+  absolutely positioned on one surface. Moving a chat in or out of a pane never remounts xterm.
+- **The layout model** (`paneLayout.ts`, called `terminalLayout.ts` until M72) is *columns of rows*,
+  `Layout = string[][]`:
   - `insertPane`: a left/right drop makes a column, a top/bottom drop makes a row;
   - `replacePane` and `removePane`;
-  - `arrangeAuto` chooses side by side, grid or stacked by how close the smallest pane stays to 480×260;
+  - `arrangeAuto` chooses side by side, grid or stacked by how close the smallest pane stays to 480×260.
+    With five or six chats the three-column grid wins ties (M72): on a 4K screen six 510 px columns would
+    fit, but 3×2 gives each chat twice the width;
   - `placeBeside` is the direction-less "to the side".
+- **Geometry** is pure too since M72, shared with the editor groups: `sizesFor` (saved sizes if the shape
+  matches, else even), `paneGeometry` (the rectangles and the splitters, with a 4 px gap here) and
+  `resizePanes` (dragging a splitter, never below 140 px).
 - **Per-repo layout state**: `layouts` holds the structure. `autoLayout` says whether it still reflows
   with the space; a directional drop, a separator drag or a menu choice make it manual.
 - Pane sizes are fractions, valid while the shape is unchanged.

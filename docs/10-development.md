@@ -37,7 +37,7 @@ cargo test --manifest-path src-tauri/Cargo.toml  # Rust unit tests
 ```
 
 - **Frontend tests** live in `*.test.ts` next to the module: `util`, `caretStyles`, `searchText`,
-  `editorTabs`, `shelfRules`, `symbolMaps`, `terminalLayout`, `repoStrip`, `solutionTree`. Only pure
+  `editorTabs`, `shelfRules`, `symbolMaps`, `paneLayout`, `repoStrip`, `solutionTree`. Only pure
   logic is tested (no runes, no DOM): keep the logic of a new feature in a plain `.ts` so it can be.
 - **Rust tests** sit in each module (`#[cfg(test)] mod tests`). They cover:
   - the window plan and key resolution (`winsession`);
@@ -86,6 +86,10 @@ cargo test --manifest-path src-tauri/Cargo.toml  # Rust unit tests
     - point `CLAUDE_CONFIG_DIR` to a scratch folder, to fake Claude Code's registry of running chats.
   - **Turn off what fires on its own**: on a fresh profile, set *Launch Claude in the default terminal*
     and autosave off before opening a folder.
+  - **Close it with its ✕, don't kill it** before a test that needs the next launch: a killed window
+    leaves nothing to restore, so the next bare launch gets a new window key. The editor still comes
+    back, through the last-folder pointer, but the terminals are stored under the old key and don't
+    (M72).
 - **Reproducing races**: `__TAURI_INTERNALS__.invoke` can't be replaced, but Tauri 2's IPC goes through
   `window.fetch` to `http://ipc.localhost/<command>`. Wrapping `fetch` to delay one command (e.g.
   `read_file`) makes a timing bug deterministic (M65).

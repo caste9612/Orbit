@@ -43,6 +43,8 @@ Orbit also **reads** Claude Code's own files, never writing them:
   "groups": [{ "tabs": [...], "active": "...", "previews": [...],
                "views": { "<path>": [anchor, head, firstLine] } }],   // M66
   "activeGroup": 0,
+  "groupLayout": [[0], [1, 2]],                                      // M72, group indexes per column
+  "groupSizes": { "shape": "1,2", "cols": [...], "rows": [[...], [...]] },   // M72
   "expanded": ["src", "src/lib"],                                    // M66, relative paths
   "layout": { "sidebarView", "sidebarVisible", "sidebarWidth",
               "terminalVisible", "terminalWidth", "terminalMaximized" } }
@@ -57,6 +59,10 @@ Orbit also **reads** Claude Code's own files, never writing them:
 - **Restoring** (`loadSession`) applies the layout first, decides the editor collapse from the saved
   tabs, seeds the expanded folders, opens the folder, then the tabs.
 - Old single-group sessions (v1) still load. Paths saved in two forms (`src/x` and `src\x`) are merged.
+- `groupLayout` and `groupSizes` (M72) place the editor groups in rows and columns. They refer to the
+  saved groups only, so a group holding nothing but a diff leaves the layout too. A session without them
+  (before M72), or with a layout that doesn't match, gets one column per group; sizes that don't match
+  the shape are dropped (`reconcile`, `validSizes`).
 
 ## The terminals of a window
 

@@ -58,7 +58,8 @@ cross-platform desktop app that weighs almost nothing.
 - **Shelf**: set aside uninteresting folders by category to declutter the tree without losing
   them — they sit at the bottom and stay browsable inline (`.orbit/shelf.json`). A folder can be
   shelved on its own, or via a **by‑name rule** that hides *every* folder with that name — including
-  nested ones and ones recreated later (e.g. all the `bin`/`obj` folders of a C# solution).
+  nested ones and ones recreated later (e.g. all the `bin`/`obj` folders of a C# solution). The Shelf
+  works in the Solution view too, for the folders under *Other files*.
 - **Follow active file**: an optional toggle (⌖ in the explorer toolbar) that auto‑expands the tree
   to the active file and reveals it as you switch tabs, Quick‑Open a file, or jump to a definition
   (VS Code's *reveal*).
@@ -110,8 +111,11 @@ cross-platform desktop app that weighs almost nothing.
 - **HTML preview**: a source ⇄ preview toggle renders `.html` files in a sandboxed frame
   (scripts disabled) — anchors, relative assets and data URIs work as in a browser. Also available
   side-by-side ("open preview to the side"), auto-refreshing on save.
-- **Split view**: drag a tab to the edge to open files side by side (N panes); drag tabs between
-  panes, or within a bar to reorder. A per-pane **"all tabs" menu** lists and closes tabs when many.
+- **Split view in rows and columns**: drag a tab onto the **left/right edge** of an editor group for a
+  new column on that side, onto the **top/bottom edge** for a new row, onto the center to move it there
+  (the drop mark shows the result before you release). Up to six groups, with **draggable splitters**;
+  the layout and the sizes come back with the session. Drag tabs between groups, or within a bar to
+  reorder. A per-group **"all tabs" menu** lists and closes tabs when many.
 - **Right-click a tab** for **Close**, **Close others**, **Close to the right**, **Close saved** and
   **Close all** (with the editor split, also *Close all in this group*), plus copy path, copy relative
   path and reveal in Explorer; *Close all* is also at the bottom of the "all tabs" menu. Unsaved files
@@ -156,7 +160,8 @@ cross-platform desktop app that weighs almost nothing.
 **Terminal** (xterm.js + a real PTY, drawn on the GPU with WebGL)
 - Docked on the right, with **multiple tabs** and shell selection (PowerShell, cmd, Git Bash,
   WSL, bash/zsh…).
-- **Chats side by side**: up to four Claude chats or terminals in the panel at once, per repository.
+- **Chats side by side**: up to six Claude chats or terminals in the panel at once, per repository (on a
+  wide screen, six chats sit in a 3×2 grid).
   Open them from the **Split** button (new Claude, new terminal, or another tab to the side), from the
   Claude menu (*Open Claude to the side*), from the Activity *Chats* lens (*To the side*), or **drag a tab
   or a pane header**: drop it on the **right/left edge** of a pane for a new column, on the **top/bottom

@@ -57,12 +57,12 @@ list on top of that: switching swaps the folder, its documents, tree and termina
 | Components | `lib/components/*.svelte` | Presentation and local UI state; they read state modules and call their actions |
 | State modules | `lib/state/*.svelte.ts` | The source of truth: a `$state` object, the actions that change it, the `invoke` calls ([Frontend state](01-frontend-state.md)) |
 | Editor extensions | `lib/editor/*.ts` | CodeMirror building blocks ([Editor](03-editor.md)) |
-| Pure helpers | `lib/*.ts`, `lib/state/*.ts` without runes | Logic with no DOM and no runes, unit-tested with vitest (`util.ts`, `terminalLayout.ts`, `symbolMaps.ts`, `searchText.ts`…) |
+| Pure helpers | `lib/*.ts`, `lib/state/*.ts` without runes | Logic with no DOM and no runes, unit-tested with vitest (`util.ts`, `paneLayout.ts`, `symbolMaps.ts`, `searchText.ts`…) |
 
 **Heavy code loads on demand.** CodeMirror arrives with the first file you open (`LazyEditor.svelte`),
 xterm with the first terminal (`LazyTerminal.svelte`), the WebGL renderer only for a visible terminal,
 `marked` and DOMPurify on the first Markdown render, and `Lazy.svelte` does the same for overlays, viewers
-and the non-default sidebar views. The startup chunk is ~289 KiB (≈98 KiB gzipped) as of M70.
+and the non-default sidebar views. The startup chunk is ~293 KiB (≈99 KiB gzipped) as of M72.
 
 ## Repo layout
 

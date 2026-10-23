@@ -14,15 +14,30 @@ isn't text.
 - Each entry of `workspace.groups` is a pane of the split view: an ordered list of tab paths, its active
   path and its own previews. The same file can be open in two groups and share one buffer.
 - A document leaves the pool only when no group references it any more (`pruneDocs`).
+- **Rows and columns** (M72): where each group sits is `workspace.groupLayout`, the same *columns of rows*
+  model as the terminal panes (`paneLayout.ts`, see [Terminal](04-terminal.md#the-panel-and-side-by-side-chats)).
+  - `groupLayout()` reads it reconciled with the groups that exist (`reconcile`): a group without a place
+    goes at the end as a column, so a code path that forgets the layout can't hide a group.
+  - `EditorArea` positions the groups absolutely from `paneGeometry`, with a 1 px gap that shows the line
+    between them, and draws the splitters. Dragging one stores `workspace.groupSizes` (`resizePanes`, never
+    below 160 px); a change of shape drops the sizes.
+  - *Open to the side* (`openInNewGroup`) adds a column right of the active group. At `MAX_GROUPS` (6) the
+    file opens in the next group, with a notice.
+  - Closing the last tab of a group removes it, and the group next to it in the layout becomes active.
+  - The layout and the sizes are saved with the session ([Persistence](07-persistence.md#the-session-of-a-folder)).
+  - Before M72 the groups were equal columns in list order, and a new one always went to the far right.
 - **Canonical paths** (M59): paths enter the workspace through `util.canonPath` (`\` on Windows) and are
   compared with `samePath`/`pathKey`. Go to definition, terminal links and the tree therefore reach the
   same document; before, one file could open as two documents and saving one overwrote the other.
 - **Tabs move with the pointer**, not HTML5 drag and drop. `dragDropEnabled: true` (needed so OS file
   drops carry real paths) disables in-page HTML5 DnD on Windows, so `EditorArea` hit-tests with
   `elementFromPoint` to:
-  - reorder tabs;
-  - move them to another group;
-  - split by dropping on an edge.
+  - reorder tabs, or move them to another group, by dropping on a tab bar;
+  - drop on the content of a group (`.group-body`, `dropZone`): on an edge, a new group on that side
+    (`splitWithTab`); in the center, the tab moves into that group. The mark appears only where the drop
+    does something (`dropFor`).
+  - The only tab of a group dropped on another group's edge moves the whole group there. With the editor
+    already split in six, an edge drop moves the tab into the target group instead.
 - **Tab menu** (M58): close, close others, close to the right, close saved, close all; then copy path,
   copy relative path, reveal in Explorer. Every close goes through `requestClose(targets)`: the dirty
   documents that would disappear entirely get one Save all / Don't save / Cancel question, and a failed

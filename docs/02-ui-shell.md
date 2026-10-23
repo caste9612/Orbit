@@ -114,6 +114,9 @@ solution the way Visual Studio's Solution Explorer shows it (M70).
 - **Other files**, at the bottom and closed, is the rest of the repository as on disk: the folder tree
   without the project folders and the folders holding nothing but project folders. It uses the same
   nodes as the folder view (expansion, refresh, shelf).
+- **The Shelf** works here too since M72: the same section at the bottom (`ShelfSection.svelte`), and
+  *Add to shelf…* and *Shelve noise folders* in the menus of *Other files*. Before, shelved folders were
+  hidden from *Other files* with nowhere to find them.
 - **Context menu**:
   - the solution and the projects have *Build*, *Rebuild*, *Clean*;
   - executable SDK projects also have *Run*;
@@ -197,7 +200,7 @@ the file. It keeps the open files and adopts the terminals.
 |---|---|
 | Frame | `TopBar` (+ `RepoStrip`), `Sidebar`, `PanelStrip`, `Splitter`, `StatusBar`, `Toaster`, `Logo`, `Icon`, `Backdrop`, `Switch`, `ContextMenu`, `Lazy`, `MatchText` |
 | Editor area | `EditorArea` (groups, tabs, viewers, drop of OS files), `LazyEditor` → `Editor`, `RelatedBar`, `KindBadge`, `DiffView`, `MarkdownView`, `HtmlView`, `AssetView` (images, PDF), `GitGraph`, `ActivityBoard`, `UnitDigest`, `ChatDigest` |
-| Sidebar views | `Explorer` (+ `MiniTree`, `ShelfPicker`), `SolutionView`, `GitPanel`, `SearchView`, `DocsView`, `ActivityPanel` |
+| Sidebar views | `Explorer` and `SolutionView` (+ `ShelfSection`, `ShelfPicker`, `MiniTree`), `GitPanel`, `SearchView`, `DocsView`, `ActivityPanel` |
 | Terminal | `TerminalPanel` (tabs, panes, split menu, floating windows), `LazyTerminal` → `Terminal` |
 | Palettes | `QuickOpen`, `SymbolPalette`, `WorkspaceSymbols` |
 | Dialogs | `Settings` (+ `SettingsKeyboard`, `EditorCaretPreview`, `TerminalCaretPreview`), `UnsavedDialog`, `UpdateDialog`, `LogViewer`, `WrapperComposer`, `ClaudePrompts` |

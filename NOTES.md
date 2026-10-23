@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova) · [v1.2.0](#versione-120) · [70](#milestone-70--vista-solution-nellexplorer-come-il-solution-explorer-di-visual-studio) · [v1.3.0](#versione-130) · [71](#milestone-71--rilasci-da-github-actions-si-pubblica-da-qualunque-pc)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova) · [v1.2.0](#versione-120) · [70](#milestone-70--vista-solution-nellexplorer-come-il-solution-explorer-di-visual-studio) · [v1.3.0](#versione-130) · [71](#milestone-71--rilasci-da-github-actions-si-pubblica-da-qualunque-pc) · [72](#milestone-72--scaffale-nella-vista-solution-sei-chat-affiancate-editor-diviso-in-righe-e-colonne)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -4107,6 +4107,124 @@ Le scelte:
   «Rust stable».
 - La tabella del README ha le misure della build locale della 1.3.0: si aggiornano con la prima release dal
   workflow.
+
+---
+
+## Milestone 72 — scaffale nella vista Solution, sei chat affiancate, editor diviso in righe e colonne
+
+Domande dell'utente (2026-10-23): lo scaffale «non funziona più con le ultime versioni»? Si può migliorare,
+anche nell'aspetto e nell'uso? E quanti documenti e quante chat si possono affiancare: si possono superare i
+limiti di oggi?
+
+**Lo scaffale.** Nella vista a cartelle funzionava: il suo codice non era cambiato dalla M60 e i test passavano.
+Il buco è arrivato con la vista Solution (M70):
+- le cartelle nello scaffale sparivano da *Other files*, ma lì la sezione Shelf in fondo non c'era: non si
+  ritrovavano più;
+- il menu di *Other files* non aveva *Add to shelf…*;
+- la vista si ricorda per repo, quindi una repo passata alla soluzione riapriva sempre lì. Due delle tre repo in
+  cui l'utente usa lo scaffale hanno una soluzione: quasi certamente è quello che ha visto.
+
+Leggendo il codice sono saltati fuori quattro difetti minori:
+1. il contatore della testata contava solo le cartelle, non le regole per nome: con le sole regole di *Shelve
+   noise folders* diceva «SHELF 0»;
+2. nel picker era rimasta una scritta in italiano («Rimuovi regola»);
+3. categorie aperte e sezione chiusa erano stato del componente: tornando all'Explorer da un'altra vista si
+   richiudeva tutto;
+4. una regola per nome nascondeva anche un FILE con quel nome (una regola «logs» toglieva `scripts/logs`).
+
+**I limiti.**
+- Editor: nessun limite di numero, ma solo colonne di uguale larghezza, senza separatori; un gruppo nuovo andava
+  sempre in fondo a destra, e l'unica zona di rilascio era una striscia sul bordo destro.
+- Chat: al massimo 4 per repo (`MAX_PANES`), per la TUI di Claude che vuole ~480×260 px a riquadro.
+
+Le scelte dell'utente (domande a scelta multipla, tutte sulla mia raccomandazione):
+- scaffale: subito le correzioni; le idee per migliorarlo (11, in elenco nella conversazione) le sceglie con
+  calma, per un secondo giro;
+- chat: fino a 6, con una griglia 3×2;
+- editor: lo stesso modello dei riquadri del terminale (righe e colonne, rilascio sui quattro bordi, separatori,
+  dimensioni salvate), con un tetto di 6 gruppi.
+
+**Cosa c'è.**
+- Scaffale:
+  - la sezione in fondo diventa `ShelfSection.svelte`, condivisa da `Explorer` e `SolutionView`, con il suo
+    picker per il tasto destro sulle cartelle;
+  - *Other files* ha *Add to shelf…* sulle cartelle e *Shelve noise folders* sulla sua riga;
+  - `shelfCountIn` conta cartelle e regole; `isHiddenIn(rel, map, byName, isDir)` applica le regole per nome
+    alle sole cartelle (per un file si saltano il suo nome, non le cartelle che lo contengono);
+  - `shelfUi` (cosa è aperto) vive nel modulo: sopravvive al rimontaggio della vista;
+  - `NOISE` e `shelveNoise` passano nel modulo, per le due viste;
+  - la scritta del picker in inglese.
+- `terminalLayout.ts` diventa `paneLayout.ts`, perché ora serve anche all'editor. Ci passano, puri e testati:
+  - `PaneSizes`, `shapeOf` e `sizesFor` (prima in `terminals.svelte.ts`);
+  - `paneGeometry`: i rettangoli dei riquadri e dei separatori, prima calcolati dentro `TerminalPanel`;
+  - `resizePanes`: il trascinamento di un separatore, con un minimo in px;
+  - `reconcile`: una disposizione allineata ai riquadri che esistono (via i mancanti e i doppioni, in coda come
+    colonne quelli senza posto);
+  - `validSizes`: dimensioni lette da un file, accettate solo se hanno la forma giusta;
+  - `insertPane` prende il massimo come argomento (l'editor ha il suo).
+- Chat: `MAX_PANES` passa a 6. `arrangeAuto` per 5–6 chat prova anche la griglia a tre colonne, che a parità di
+  punteggio viene prima di tutto: su uno schermo 4K al 125% (pannello massimizzato ~3060×1600 px) sei colonne
+  da 510 px «ci stanno», ma 3×2 dà a ogni chat 1020×800. In un pannello stretto vince la griglia a due colonne
+  di tre righe.
+- Editor:
+  - `workspace.groupLayout` (id dei gruppi per colonna) e `workspace.groupSizes`; `groupLayout()` li legge
+    allineati ai gruppi con `reconcile`, così un percorso del codice che dimentica la disposizione non può
+    nascondere un gruppo;
+  - `EditorArea` posiziona i gruppi in assoluto da `paneGeometry`, con 1 px fra l'uno e l'altro che lascia
+    vedere la linea (la geometria si calcola su una superficie più grande di 2 px, così lo spazio del bordo
+    esterno resta fuori vista);
+  - separatori da 7 px di presa, accento all'hover; quello verticale sta sopra all'incrocio con uno orizzontale;
+    mai sotto 160 px;
+  - rilascio di una scheda sul contenuto di un gruppo (`dropZone`, entro un terzo dal bordo): sul bordo un
+    gruppo nuovo da quel lato, al centro la scheda va in quel gruppo. Il segno compare solo dove il rilascio fa
+    qualcosa (`dropFor`). L'unica scheda di un gruppo, rilasciata sul bordo di un altro, sposta il gruppo intero.
+    A 6 gruppi il rilascio sul bordo diventa «nel gruppo»;
+  - via la striscia «Split» sul bordo destro;
+  - *Open to the side* apre la colonna a destra del gruppo attivo (prima: in fondo). A 6 gruppi apre nel gruppo
+    che segue quello attivo, con un avviso;
+  - chiudendo un gruppo diventa attivo il vicino nella disposizione, non nell'elenco;
+  - con l'editor diviso la scheda attiva dei gruppi non attivi è più tenue: si vede dove si sta lavorando;
+  - sessione: `groupLayout` (indici dei gruppi salvati per colonna) e `groupSizes`. Una sessione di prima, o con
+    una disposizione che non torna, dà una colonna per gruppo, come prima.
+- Testo che Orbit scrive in CLAUDE.md: «fino a 6» chat, e l'editor in righe e colonne.
+- Docs: 01, 02, 03, 04, 07, 10, ARCHITECTURE e README. In 10-development una regola in più per l'istanza di prova
+  (sotto, «Da sapere»).
+
+**Verifica.**
+- `vitest` 89/89 (78 nella 1.3.0): 11 test nuovi fra scaffale (file con il nome di una regola, contatore) e
+  `paneLayout` (massimo per chiamata, 5–6 chat, geometria, separatori, `reconcile`, `validSizes`).
+  `svelte-check` 0/0, `cargo test` 74 (il Rust non è cambiato).
+- Collaudo nell'app vera, su un'istanza di prova isolata e una repo finta (una soluzione con due progetti SDK,
+  cartelle `tools`, `docs`, `node_modules`, una cartella `src/logs` e un file `scripts/logs`), con clic e
+  trascinamenti veri (eventi `Input` di CDP):
+  - vista a cartelle: *Shelve noise folders* → «Shelf 4»; `tools` per percorso; regola «logs» → sparisce
+    `src/logs`, resta il file `scripts/logs`; il picker dice «Remove the rule for “logs”»; categorie e cartella
+    aperte restano tali dopo un giro su Git;
+  - vista Solution: la sezione Shelf c'è, *Other files* ha *Add to shelf…*, `docs` messa e tolta dallo scaffale
+    dalla sezione in fondo; `.orbit/shelf.json` giusto su disco;
+  - chat: a finestra massimizzata (3072×1680 px logici) sei terminali in 3×2; il menu Split non propone di
+    affiancarne un settimo;
+  - editor: rilascio sul bordo destro, inferiore e superiore → griglia 2×2; separatori verticale e orizzontali;
+    l'unica scheda di un gruppo sul bordo sinistro di un altro sposta il gruppo; *Open to the side* fino a 6
+    gruppi, poi l'avviso e il file nel gruppo seguente; chiusura di un gruppo → attivo il vicino;
+  - dopo una chiusura dalla ✕ e un nuovo avvio tornano disposizione, dimensioni e gruppo attivo dell'editor, e le
+    7 schede del terminale con le 6 chat affiancate (sveglie quelle a vista, dormiente la settima).
+
+**Misure.** Chunk iniziale **293,1 KiB** (99,4 gzip), contro 289,0 (98,2) della stessa build prima delle
+modifiche; `dist/` 2,94 MiB, invariato. L'eseguibile non cambia: il Rust è lo stesso.
+
+**Da sapere.**
+- Uccidere l'istanza di prova invece di chiuderla dalla ✕ non lascia nulla da ripristinare: l'avvio seguente ha
+  una chiave di finestra nuova, ritrova l'editor attraverso il puntatore all'ultima cartella (`load_state` senza
+  chiave) ma non i terminali, che stanno sotto la chiave vecchia. Durante il collaudo sembrava che le chat non
+  tornassero; chiudendo dalla ✕ tornano. Aggiunto alle regole di `docs/10-development.md`.
+- Importando dalla console un modulo di stato modificato durante la sessione di Vite bisogna usare l'URL con
+  `?t=` che l'app ha caricato (lo dice già 10-development); l'URL nudo crea una seconda copia vuota.
+- Resta da decidere quali idee per lo scaffale fare (regole valide per tutte le repo, categorie condivise,
+  rinominare e colorare una categoria, pattern, esclusione da ricerca e Quick Open, trascinamento sullo
+  scaffale, interruttore per vederle in grigio al loro posto, avviso con Undo, nodi veri al posto del
+  mini-albero, colore per categoria, separatore fra albero e scaffale).
+- La tabella Footprint del README resta quella della 1.3.0: si aggiorna con la release.
 
 ---
 

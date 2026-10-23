@@ -23,7 +23,7 @@ read the object and call the actions, and re-render on their own when what they 
   (`workspace.rememberView`) and image zoom per path (`AssetView`) change continuously and must not
   re-run effects; the session reads them when it saves.
 - **Pure logic in a plain `.ts`** next to the module, unit-tested with vitest:
-  - `editorTabs.ts`, `terminalLayout.ts`, `symbolMaps.ts`, `shelfRules.ts`, `repoStrip.ts`;
+  - `editorTabs.ts`, `paneLayout.ts`, `symbolMaps.ts`, `shelfRules.ts`, `repoStrip.ts`;
   - in `lib/`: `searchText.ts`, `caretStyles.ts`, `util.ts`.
 
 ## Workspace and window
@@ -35,11 +35,14 @@ read the object and call the actions, and re-render on their own when what they 
   - the light-window flags (`light`, `lightProject`);
   - the **document pool** `openFiles`, with kinds `file`, `diff`, `image`, `pdf`, `activity`, `gitgraph`;
   - the **editor groups** (split view), each with its tabs, active tab and per-group previews;
+  - where the groups sit (`groupLayout`, columns of rows) and their dragged sizes (`groupSizes`), M72;
   - `editorStatus` (line and column for the status bar).
 - **Open**: `openFile`, `openFileAt`, `openDiff`, `openActivityBoard`, `openGitGraphBoard`,
   `openInNewGroup`, `openPreviewToSide`.
 - **Tabs and groups**: `setActiveTab`, `setActiveGroup`, `closeTab`/`closeTabs`/`closeFile`, `moveTab`,
-  `reorderTab`, `splitWithTab`, `togglePreview`/`setPreview`.
+  `reorderTab`, `splitWithTab` (to a side of any group), `togglePreview`/`setPreview`.
+- **Layout of the groups** (M72): `groupLayout()` (reconciled with the groups that exist), `setGroupSizes`,
+  `MAX_GROUPS` (6).
 - **Saving and reloading**: `updateContent`, `savePath`, `saveActive`, `autosaveAll`, `reloadOpenFiles`
   (external changes), `renameOpenPaths`/`closeUnder` (files renamed or deleted in the tree).
 - **Session support**: `restoreGroups`, `resetDocs`.
@@ -156,14 +159,18 @@ read the object and call the actions, and re-render on their own when what they 
   an invalid file warns and keeps the current menu), and `teachClaudeSection` writes a marked section into
   `CLAUDE.md`.
 - `shelf`: folders put aside by category, both per path and by name (e.g. every `bin`/`obj`), in
-  `.orbit/shelf.json`. The hide and group logic is in `shelfRules.ts`.
+  `.orbit/shelf.json`. The hide and group logic is in `shelfRules.ts`: a by-name rule hides folders, not a
+  file with the same name, and the header counts folders and rules (M72).
+  - `ShelfSection.svelte`, the Shelf at the bottom, is shared by the folder view and the Solution view
+    (M72). What's open in it (`shelfUi`) lives in the module, so it survives the view being remounted.
+  - `NOISE` and `shelveNoise` back *Shelve noise folders* in both views.
 - `scratch`: the one-click scratchpad, `.orbit/scratch.txt`.
 - `run`: run configurations from `.orbit/run.json` (`runConfig`), running a script file (`runFile`,
   `isRunnable`), `openConfig`, `teachClaude`.
 
 ## Terminals and Claude
 
-### `terminals` + `terminalLayout`
+### `terminals` + `paneLayout`
 - **Owns**:
   - the terminal tabs of every repo: id, names, color, shell, cwd, `root`;
   - `kind` (`shell`/`claude`/`run`), `chat` (the Claude conversation), `dormant`, attention;
@@ -175,8 +182,9 @@ read the object and call the actions, and re-render on their own when what they 
 - Attention: `notifyTerminalBell`, `clearAttention`, `goToTerminal`, `waitingTerminals`.
 - Restore: `restoreTerminal`, `restoreRepoTerminals`, `tabWithChat`.
 - Floating windows: `removeTerminalKeepPty`, `redockTerminal`.
-- `terminalLayout.ts` (pure, tested) is the pane model: columns of rows, with insert, remove, replace,
-  auto arrangement and drop zones.
+- `paneLayout.ts` (pure, tested; `terminalLayout.ts` until M72) is the pane model: columns of rows, with
+  insert, remove, replace, auto arrangement and drop zones, plus sizes and geometry (`sizesFor`,
+  `paneGeometry`, `resizePanes`, `reconcile`, `validSizes`). The editor groups use it too since M72.
 - See [Terminal](04-terminal.md).
 
 ### `terminalPersist`

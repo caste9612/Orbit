@@ -46,6 +46,7 @@ cargo test --manifest-path src-tauri/Cargo.toml  # Rust unit tests
   - the reference lexer (`refs`);
   - Activity's segmentation, including incremental reads against a from-scratch parse (`activity`);
   - the process walk for Claude chats (`claudeproc`);
+  - the shelf's rule matching and walk (`glob_match`, `shelf_walk` in `lib.rs`, M73);
   - solutions and projects (`solution`): `.sln` and `.slnx`, SDK, old-style and C++ projects with
     filters, conditions, property functions, imports, central package versions, several target
     frameworks, Show All Files. Fixtures use made-up names, in a temporary folder.

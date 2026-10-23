@@ -12,6 +12,8 @@ The name is historical, and a test build with another identifier gets its own fo
 | Activity choices | `localStorage["orbit.activity.hidden"]`, `["orbit.activity.dismissed"]` | app | `activity.svelte.ts` |
 | Repo colors picked by hand | `localStorage["orbit.repoColors"]`, keyed by `pathKey` (M69) | app | `repoColors.svelte.ts` |
 | Explorer view (folders or which solution, Show All Files) | `localStorage["orbit.explorerView"]`, keyed by the repo's `pathKey`, the solution relative to the root (M70) | app | `explorerView.svelte.ts` |
+| Shelf rules for every repository and the categories' color and search option | `localStorage["orbit.shelf"]` (M73) | app | `shelf.svelte.ts` |
+| Shelf section: open categories and rules, height, the eye | `localStorage["orbit.shelfUi"]` (M73) | app | `shelf.svelte.ts` |
 | Open nodes of the Solution view | `localStorage["orbit.solutionExpanded"]`, keyed by the solution's `pathKey`; up to 400 ids, the last 30 solutions (M70) | app | `solution.svelte.ts` |
 | Session of a folder | `sessions/<hash>.json`, key `<winKey>\|<folder>` | window + folder | `persist.svelte.ts` |
 | Terminals of a window | `sessions/<hash>.json`, key `<winKey>\|#terminals` | window | `terminalPersist.svelte.ts` (M66) |
@@ -35,6 +37,11 @@ Orbit also **reads** Claude Code's own files, never writing them:
   change. The standard library doesn't promise `DefaultHasher` stays the same across Rust versions, and
   a change would have made every window lose its sessions after an update.
 - Two tests guard it: one compares with `DefaultHasher`, one checks fixed values.
+
+**`.orbit/shelf.json`** (M73 format, still readable by older versions):
+`{ "shelved": { "<rel path>": [categories] }, "byName": { "<folder name or pattern>": [...] }, "files": { "<file
+name or pattern>": [...] } }`. `shelved` holds folders or files; `byName` and `files` take names or patterns with `*`
+and `?`. The rules for every repository aren't here: they're on the PC (`orbit.shelf`).
 
 ## The session of a folder
 

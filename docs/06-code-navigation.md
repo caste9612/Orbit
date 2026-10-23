@@ -67,6 +67,8 @@ up to date incrementally.
 
 - **Quick Open** (`Ctrl+P`, `quickopen.svelte.ts`): fuzzy match over `list_files`, cached per root in
   `projectFiles.ts` and shared with the Docs view. The list lives only while the palette is open.
+- **The shelf's categories hidden from search** (M73) are left out of Quick Open and of search results
+  (`shelf.hiddenFromSearch`, applied on the frontend after the walk).
 - **Search** (`search.svelte.ts`, `SearchView.svelte`): `search_in_project` lowercases each file once,
   skips binaries (a NUL in the first 8 KB) and folders ignored by git. It runs on a background thread.
 - **Follow the active file** (the ⌖ toggle in the Explorer): an effect calls `explorer.revealInTree`,

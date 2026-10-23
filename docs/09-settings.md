@@ -28,9 +28,13 @@ User preferences, the Settings window, keyboard presets, themes and their *look*
 
 ## The Settings window
 
-`Settings.svelte`, loaded on demand, is a large modal (M64). It has a search box on top, six categories
-on the left (Appearance, Editor, Terminal, Claude, Keyboard, Updates & logs) and the version with *Check
-now* in the footer.
+`Settings.svelte`, loaded on demand, is a large modal (M64). It has a search box on top, seven categories
+on the left (Appearance, Editor, Shelf, Terminal, Claude, Keyboard, Updates & logs) and the version with
+*Check now* in the footer.
+- **Shelf** (M73) is `SettingsShelf.svelte`: the rules for every repository (add, remove, categories) and
+  the categories (color, *hide from search and Quick Open*, delete), plus the eye. Its state isn't in
+  `settings` but in `shelf.svelte.ts` (`shelfGlobal`, `shelfUi`). The ⚙ in the Shelf header opens it
+  (`openSettings("shelf")`).
 - **Rows are data.** `ROWS` describes each setting: category, name, a hint with `code` in backticks, and
   search keywords. The `control` snippet draws its control (switch, select, slider, swatches, theme
   thumbnails, buttons).

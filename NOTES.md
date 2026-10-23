@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova) · [v1.2.0](#versione-120) · [70](#milestone-70--vista-solution-nellexplorer-come-il-solution-explorer-di-visual-studio) · [v1.3.0](#versione-130) · [71](#milestone-71--rilasci-da-github-actions-si-pubblica-da-qualunque-pc) · [72](#milestone-72--scaffale-nella-vista-solution-sei-chat-affiancate-editor-diviso-in-righe-e-colonne)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova) · [v1.2.0](#versione-120) · [70](#milestone-70--vista-solution-nellexplorer-come-il-solution-explorer-di-visual-studio) · [v1.3.0](#versione-130) · [71](#milestone-71--rilasci-da-github-actions-si-pubblica-da-qualunque-pc) · [72](#milestone-72--scaffale-nella-vista-solution-sei-chat-affiancate-editor-diviso-in-righe-e-colonne) · [73](#milestone-73--lo-scaffale-secondo-giro-regole-per-tutte-le-repo-nodi-veri-categorie-undo)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -4224,6 +4224,108 @@ modifiche; `dist/` 2,94 MiB, invariato. L'eseguibile non cambia: il Rust è lo s
   rinominare e colorare una categoria, pattern, esclusione da ricerca e Quick Open, trascinamento sullo
   scaffale, interruttore per vederle in grigio al loro posto, avviso con Undo, nodi veri al posto del
   mini-albero, colore per categoria, separatore fra albero e scaffale).
+- La tabella Footprint del README resta quella della 1.3.0: si aggiorna con la release.
+
+---
+
+## Milestone 73 — lo scaffale, secondo giro: regole per tutte le repo, nodi veri, categorie, Undo
+
+Dopo la M72 l'utente ha chiesto di far evolvere lo scaffale. Il metodo, chiesto da lui: gli presento i miglioramenti
+possibili, spiegati, e lui sceglie se farli e come, con una domanda a scelta multipla per ciascuno.
+
+**Il punto di partenza.** Nelle sue repo mette a mano sempre le stesse cartelle (`.git`, `.claude`, `.idea`, `.orbit`,
+`.vs`, `.run`), in una categoria che si chiama ogni volta in modo diverso (settings, Settings, config). Le cartelle
+dello scaffale si aprivano in un mini-albero senza menu né colori git; una regola per nome diceva solo «all
+folders»; le categorie non si potevano rinominare.
+
+**Le scelte** (la mia raccomandazione su tutte, tranne la 1, che è un'idea sua):
+1. Scaffale **sempre visibile**, anche vuoto, con una **⚙** che apre una pagina **Shelf** nelle Impostazioni: la
+   funzione si fa scoprire da chi non la conosce. Lì le regole valide in ogni repo; in più una casella «In every
+   repository» nel picker. Vuoto e aperto: testata e una riga d'aiuto.
+2. «Shelve dot-folders»: una regola `.*` per tutte le repo, in **Config**.
+3. Pattern `*` e `?` nelle regole per nome.
+4. Categorie: rinomina, elimina, colore.
+5. Le voci come nodi veri dell'albero (riga e menu dell'Explorer).
+6. Le regole mostrano cosa prendono («bin — 12 folders») e si aprono sull'elenco.
+7. Pallino git su categoria, voce e regola, e sulla testata a sezione chiusa.
+8. Separatore trascinabile fra albero e scaffale.
+9. Trascinare una cartella dall'albero sullo scaffale (solo verso lo scaffale).
+10. Avviso con **Undo** dopo ogni azione.
+11. Per categoria, «Hide from search and Quick Open».
+12. Anche i file, per percorso e per pattern.
+13. «Shelve noise folders» globale, in **Generated** (prima «Generato», in italiano, e solo nella repo).
+14. L'occhio (scelto prima): le voci dello scaffale al loro posto nell'albero, in grigio, nella testata dello
+    scaffale.
+- Release: prima la prova l'utente in dev, poi decide.
+
+**Come è fatto.**
+- **Il modello** (`shelfRules.ts`, puro): voci per percorso (cartelle o file) e regole per nome per cartelle
+  (`folders`) o per file (`files`), nomi esatti o pattern; `compileShelf` le compila una volta (insieme di nomi
+  esatti più espressioni regolari dai pattern). Una regola per cartelle nasconde le cartelle e il loro contenuto,
+  mai un file con lo stesso nome, e viceversa. Più le operazioni sulle categorie (rinomina senza doppioni,
+  elimina, pulizia dei dati letti da file).
+- **Lo stato** (`shelf.svelte.ts`):
+  - repo in `.orbit/shelf.json` (`shelved`, `byName` come prima, più `files`: le versioni precedenti continuano a
+    leggerlo);
+  - globali su questo PC (`localStorage` `orbit.shelf`): le regole per tutte le repo e i metadati delle
+    categorie (colore, esclusione dalla ricerca), globali perché «Config» è la stessa ovunque;
+  - `orbit.shelfUi`: categorie e regole aperte, altezza, occhio, ricordati anche al riavvio;
+  - le regole compilate si rifanno quando cresce un contatore di versione, non a ogni riga dell'albero;
+  - ogni azione fotografa lo stato e mostra l'avviso con Undo (che lo rimette com'era, repo e globali); gli
+    avvisi dello scaffale si sostituiscono invece di accodarsi (`notify` con `key`, M73).
+- **Rust**: `shelf_find(root, folders, files)` trova cosa prende ogni regola in una passata, senza entrare in
+  ciò che trova, nelle cartelle ignorate da git, in `.git`, `node_modules`, `target`, `dist`; al massimo 500 voci
+  per regola. Lo stesso confronto dei pattern del frontend (`glob_match`, senza il crate `regex`). Si rilancia
+  quando cambiano le regole e dopo i cambi su disco.
+- **Righe e menu condivisi**: `TreeRow.svelte` e `treeMenu.ts`, usati da Explorer, «Other files» e scaffale (prima
+  le prime due avevano ciascuna la sua copia; il mini-albero `MiniTree.svelte` è sparito). `explorer.nodeAt` e
+  `ensureNode` danno allo scaffale i nodi veri: le cartelle sopra una voce si leggono senza aprirle, e
+  aggiornamenti dal watcher, espansione in sessione, rinomina e git vengono gratis.
+- `edit.where`: con l'occhio la stessa voce sta nell'albero e nello scaffale; la casella del nome compare solo
+  dove è partito il comando.
+- **Il trascinamento** (`shelfDrag.svelte.ts`): a puntatore come le schede; zone di rilascio `data-shelf-drop`
+  (una categoria, o la testata che apre il picker); il click che chiude un trascinamento non apre la voce.
+- **Il picker**: «This folder» / «All folders matching» con il pattern, «In every repository», categorie con
+  colore, nuova categoria, rimuovi. Anche per i file.
+- **Impostazioni → Shelf** (`SettingsShelf.svelte`): regole per tutte le repo (aggiungi, togli, categorie),
+  categorie (colore, esclusione dalla ricerca, elimina) e l'occhio; la riga «Rules for every repository» resta
+  per la ricerca nelle Impostazioni.
+- **Ricerca e Quick Open** saltano le voci delle categorie escluse (filtro sul frontend, dopo il giro).
+- Finestra leggera: niente scaffale né «Add to shelf…», perché non scrive nulla nella cartella.
+- Il testo che Orbit scrive in CLAUDE.md descrive i nuovi campi di `shelf.json`.
+
+**Peso.** Con tutto nel chunk d'avvio era 313,7 KiB (293,1 nella M72). La testata della sezione resta all'avvio;
+il contenuto (`ShelfBody.svelte`) e il picker si caricano quando servono, come le altre viste. Risultato:
+**301,0 KiB** (102,5 gzip), +7,9 KiB; `dist/` 2,98 MiB.
+
+**Verifica.**
+- `vitest` 98/98 (89 nella M72): il modello dello scaffale riscritto, 21 test (nomi e pattern, regole per cartelle e
+  per file, `.*`, ambiti insieme, categorie, pulizia dei dati). `cargo test` 76 (+2: `glob_match`, `shelf_walk`).
+  `svelte-check` 0/0.
+- Collaudo nell'app vera, su un'istanza di prova isolata e una repo finta (una soluzione con due progetti,
+  cartelle col punto, `bin`/`obj` ignorate da git, un `*.DotSettings.user`, una modifica non committata), con clic
+  e trascinamenti veri:
+  - scaffale vuoto con la riga d'aiuto; *Shelve dot-folders* → spariscono le 5 cartelle col punto, «.* — 5 folders
+    · all repositories», l'elenco si apre e `.vs` si apre come nodo vero; *Shelve noise folders* e Undo; un
+    avviso solo, l'ultimo;
+  - `*.user` dal picker («All files matching») in una categoria nuova; `tools` trascinata sulla testata → picker;
+    `scripts` trascinata su una categoria;
+  - colore, «Hide from search» e rinomina dal menu della categoria; ricerca di «Write-Host» e Quick Open senza i file
+    di Utility, e di nuovo con, togliendo l'esclusione;
+  - l'occhio: voci in grigio al loro posto, col pallino del colore della categoria; la rinomina partita dallo
+    scaffale apre la casella solo lì;
+  - separatore: 163 → 524 px, ricordato; doppio clic → automatico;
+  - la ⚙ apre Impostazioni → Shelf con regole e categorie;
+  - una regola della repo portata in tutte le repo e indietro;
+  - dopo una chiusura dalla ✕ e un nuovo avvio tornano voci, regole globali, colori, categorie aperte;
+  - vista Solution: scaffale in fondo, occhio su «Other files», trascinamento da lì e Undo;
+  - dopo la divisione del componente, di nuovo picker, trascinamento e Undo.
+
+**Da sapere.**
+- Le regole globali e i colori stanno su questo PC: sull'altro PC si rifanno una volta.
+- La regola `.*` prende anche `.github`: per vederla c'è l'occhio.
+- Le regole «Generato» create prima della M73 restano nelle repo che le hanno: si rinominano in «Generated» dal
+  menu della categoria.
 - La tabella Footprint del README resta quella della 1.3.0: si aggiorna con la release.
 
 ---

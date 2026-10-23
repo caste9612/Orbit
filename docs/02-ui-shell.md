@@ -114,9 +114,10 @@ solution the way Visual Studio's Solution Explorer shows it (M70).
 - **Other files**, at the bottom and closed, is the rest of the repository as on disk: the folder tree
   without the project folders and the folders holding nothing but project folders. It uses the same
   nodes as the folder view (expansion, refresh, shelf).
-- **The Shelf** works here too since M72: the same section at the bottom (`ShelfSection.svelte`), and
-  *Add to shelf…* and *Shelve noise folders* in the menus of *Other files*. Before, shelved folders were
-  hidden from *Other files* with nowhere to find them.
+- **The Shelf** works here too since M72: the same section at the bottom, *Add to shelf…*, *Shelve noise
+  folders* and *Shelve dot-folders* in the menus of *Other files*, the eye and dragging (see
+  [The Shelf](#the-shelf)). Before, shelved folders were hidden from *Other files* with nowhere to find
+  them.
 - **Context menu**:
   - the solution and the projects have *Build*, *Rebuild*, *Clean*;
   - executable SDK projects also have *Run*;
@@ -136,6 +137,35 @@ solution the way Visual Studio's Solution Explorer shows it (M70).
   if needed), else in *Other files*.
 - Git decorations as in the folder view: files by path, a dot on folders, projects and solution folders
   that hold changes.
+
+## The Shelf
+
+Folders and files put aside by category, at the bottom of the Explorer, in the folder view and in the
+Solution view (`ShelfSection.svelte`). The data and the rules are in
+[Frontend state](01-frontend-state.md#dotorbit-shelf--shelfrules-scratch-run). Since M73:
+- **Always there**, empty too, so the feature can be found: open and empty it says *Right-click a folder or
+  a file → Add to shelf…, or drag it here*. Not in a light window, which writes nothing in the folder.
+- **The header** holds the eye (shelved items shown in the tree, in place and dimmed, with their
+  category's color), the ⚙ that opens **Settings → Shelf**, the count, and a git dot while the section is
+  closed and something inside has changed.
+- **A splitter** on its top edge sets its height (remembered; double-click = automatic, at most 45%).
+- **The content** (`ShelfBody.svelte`) loads on demand, out of the startup chunk:
+  - categories with their color, a mark when they're hidden from search, a git dot and a menu: *Rename…*
+    (inline), *Hide from search and Quick Open*, *Color*, *Delete category*;
+  - items shelved by path are the **tree's own nodes** (`TreeRow`, the menu of `treeMenu.ts`): git
+    colors, the active file, the full menu with *Shelf…* to change their categories, expansion saved
+    with the session. `explorer.nodeAt`/`ensureNode` find them, loading the folders above without
+    opening them;
+  - rules show what they take (*bin — 12 folders · all repositories*, from `shelf_find`) and open on that
+    list, as tree nodes too.
+- **Dragging** a folder or a file from the tree (`shelfDrag.svelte.ts`) onto a category shelves it there;
+  onto the header, it opens the picker. Only towards the shelf: taking an item out goes through its menu.
+- **The picker** (`ShelfPicker.svelte`, on demand): *This folder* (or file), or *All folders matching* a
+  name or pattern, *In every repository*, the categories with their colors, a new category, *Remove*.
+- Every change shows a toast with **Undo**, which puts back both the repository's shelf and the rules for
+  every repository as they were.
+- When a name is edited from the shelf (*New…*, *Rename…*), the input appears in the shelf only
+  (`edit.where`): with the eye on, the same item is also in the tree.
 
 ## Layout motion
 
@@ -200,7 +230,7 @@ the file. It keeps the open files and adopts the terminals.
 |---|---|
 | Frame | `TopBar` (+ `RepoStrip`), `Sidebar`, `PanelStrip`, `Splitter`, `StatusBar`, `Toaster`, `Logo`, `Icon`, `Backdrop`, `Switch`, `ContextMenu`, `Lazy`, `MatchText` |
 | Editor area | `EditorArea` (groups, tabs, viewers, drop of OS files), `LazyEditor` → `Editor`, `RelatedBar`, `KindBadge`, `DiffView`, `MarkdownView`, `HtmlView`, `AssetView` (images, PDF), `GitGraph`, `ActivityBoard`, `UnitDigest`, `ChatDigest` |
-| Sidebar views | `Explorer` and `SolutionView` (+ `ShelfSection`, `ShelfPicker`, `MiniTree`), `GitPanel`, `SearchView`, `DocsView`, `ActivityPanel` |
+| Sidebar views | `Explorer` and `SolutionView` (+ `TreeRow`, `ShelfSection` → `ShelfBody`, `ShelfPicker`), `GitPanel`, `SearchView`, `DocsView`, `ActivityPanel` |
 | Terminal | `TerminalPanel` (tabs, panes, split menu, floating windows), `LazyTerminal` → `Terminal` |
 | Palettes | `QuickOpen`, `SymbolPalette`, `WorkspaceSymbols` |
 | Dialogs | `Settings` (+ `SettingsKeyboard`, `EditorCaretPreview`, `TerminalCaretPreview`), `UnsavedDialog`, `UpdateDialog`, `LogViewer`, `WrapperComposer`, `ClaudePrompts` |

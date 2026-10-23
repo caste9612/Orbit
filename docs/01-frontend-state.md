@@ -73,7 +73,10 @@ read the object and call the actions, and re-render on their own when what they 
   saved expansion, starts the watcher and git status, loads `.orbit/` configs and resets the per-repo
   views.
 - `toggle`, `collapseAll`, `refreshTreeFor` (only the folders holding changed paths, M62), `revealInTree`.
-- Inline file operations: `startCreate`, `startRename`, `commitEdit`, `deleteEntry`.
+- Inline file operations: `startCreate`, `startRename`, `commitEdit`, `deleteEntry`. `edit.where` (M73) says
+  whether the name is typed in the tree or in the shelf, where the same item can also appear.
+- `nodeAt` and `ensureNode` (M73): the tree node of a path, loading the folders above it without opening
+  them, so the shelf shows the tree's own nodes.
 - `copyPath`, `copyRelPath`, `revealPath`.
 - Expanded folders: `snapshotExpanded` (in memory, across repo switches); `expandedRel`/`seedExpanded`
   (saved in the session, M66). Keys are `pathKey`.
@@ -158,12 +161,27 @@ read the object and call the actions, and re-render on their own when what they 
 - `dotorbit.ts`: reads and creates `.orbit/` files (`readOrbitConfig` tells *absent* from *invalid* JSON:
   an invalid file warns and keeps the current menu), and `teachClaudeSection` writes a marked section into
   `CLAUDE.md`.
-- `shelf`: folders put aside by category, both per path and by name (e.g. every `bin`/`obj`), in
-  `.orbit/shelf.json`. The hide and group logic is in `shelfRules.ts`: a by-name rule hides folders, not a
-  file with the same name, and the header counts folders and rules (M72).
-  - `ShelfSection.svelte`, the Shelf at the bottom, is shared by the folder view and the Solution view
-    (M72). What's open in it (`shelfUi`) lives in the module, so it survives the view being remounted.
-  - `NOISE` and `shelveNoise` back *Shelve noise folders* in both views.
+- `shelf`: folders and files put aside by category (the UI is in [UI shell](02-ui-shell.md#the-shelf)).
+  - **Items** (M73): paths of the repository, and rules by name for folders (`folders`) or files (`files`),
+    exact names or patterns with `*` and `?`. The repository's are in `.orbit/shelf.json` (`shelf`); rules
+    for every repository and the categories' color and search option are on this PC (`shelfGlobal`,
+    `localStorage`), so `Config` is the same everywhere.
+  - `shelfRules.ts` (pure, tested) compiles them once (`compileShelf`): a folder rule hides the folders
+    with that name and what they hold, never a file with the same name (M72), and the other way round.
+    `isHidden(rel, isDir)` and `hiddenFromSearch` use the compiled rules, rebuilt when a version counter
+    moves, so the tree doesn't compile them at every row.
+  - Actions: `shelvePath`, `shelveRule` (with `global`), `setRuleGlobal`, `renameCategory`,
+    `deleteCategory`, `setCategoryColor`, `setCategoryHiddenFromSearch`, `shelveNoise` and
+    `shelveDotFolders` (rules for every repository, in *Generated* and *Config*). Each one snapshots the
+    shelf first and shows a toast with **Undo**.
+  - `shelfMatches`: what each rule takes, from the `shelf_find` command, rescanned when the rules change
+    and after changes on disk (`scheduleShelfScan`).
+  - `shelfUi`: what's open, the height and the eye, in the module (so a remounted view keeps it, M72) and
+    in `localStorage` (so a restart does, M73).
+- `shelfDrag.svelte.ts`: dragging a tree row onto the shelf (pointer-based, drop zones marked
+  `data-shelf-drop`).
+- `treeMenu.ts`: the context menu of a folder or file on disk, shared by the Explorer, *Other files* and
+  the shelf (`fsMenuItems`, `openTerminalAt`, `copyName`); the row itself is `TreeRow.svelte`.
 - `scratch`: the one-click scratchpad, `.orbit/scratch.txt`.
 - `run`: run configurations from `.orbit/run.json` (`runConfig`), running a script file (`runFile`,
   `isRunnable`), `openConfig`, `teachClaude`.

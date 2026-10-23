@@ -51,6 +51,7 @@ clipboard), `tauri-plugin-updater` (used from Rust only: no JS package, no permi
 | `read_dir` · `read_file` · `write_file` | Directory listing, text read, write (async) |
 | `create_file` · `create_dir` · `rename_path` · `delete_path` | File operations from the tree |
 | `list_files(root)` | Every file of the project, skipping ignored folders (Quick Open, Docs) — async |
+| `shelf_find(root, folders, files)` | What the shelf's rules by name take (M73): the folders and files matching each name or pattern (`*`, `?`, case-insensitive), at most 500 per rule. One walk that doesn't enter what it found, folders ignored by git, `.git`, `node_modules`, `target`, `dist` — async |
 | `search_in_project` | Text search; skips binaries and ignored folders — async |
 | `resolve_existing(paths)` | First existing path among candidates (terminal links) |
 | `project_root(path)` | Nearest ancestor with `.git` (light window → "Open as project") |

@@ -55,11 +55,18 @@ cross-platform desktop app that weighs almost nothing.
   (inline editing for new / rename).
 - **Git decorations** in the tree: modified/added/deleted files are highlighted live (so you
   see exactly what changed — including what Claude just touched).
-- **Shelf**: set aside uninteresting folders by category to declutter the tree without losing
-  them — they sit at the bottom and stay browsable inline (`.orbit/shelf.json`). A folder can be
-  shelved on its own, or via a **by‑name rule** that hides *every* folder with that name — including
-  nested ones and ones recreated later (e.g. all the `bin`/`obj` folders of a C# solution). The Shelf
-  works in the Solution view too, for the folders under *Other files*.
+- **Shelf**: set aside the folders and files you don't need to see, by category, at the bottom of the
+  Explorer — in the folder view and in the Solution view. Shelve one item (right-click → *Add to
+  shelf…*, or drag it onto a category), or a **rule**: every folder or file matching a name or a pattern
+  (`bin`, `*.Tests`, `.*`, `*.DotSettings.user`), nested or recreated later, in this repository or **in
+  every repository** (⚙ → Settings → Shelf). *Shelve dot-folders* and *Shelve noise folders* do it in one
+  click.
+  - Shelved items stay real tree items (git colors, the full menu); a rule shows what it takes
+    (*bin — 12 folders*) and opens on that list.
+  - The **eye** puts them back in the tree, in place and dimmed. A dot tells you when something inside
+    has changed.
+  - Categories have colors, can be renamed, and can stay out of search and Quick Open. Every change can
+    be undone from its notice.
 - **Follow active file**: an optional toggle (⌖ in the explorer toolbar) that auto‑expands the tree
   to the active file and reveals it as you switch tabs, Quick‑Open a file, or jump to a definition
   (VS Code's *reveal*).
@@ -410,7 +417,8 @@ dependency) lives in [NOTES.md](./NOTES.md).
 - `.orbit/claude.json` — Claude launcher command/flags + task shortcuts + prompt wrappers
   (committed/shared). Format is documented to Claude in `CLAUDE.md` via the Claude menu's
   "Update CLAUDE.md for Claude".
-- `.orbit/shelf.json` — shelved folders by category (a personal view preference; git-ignored).
+- `.orbit/shelf.json` — the repository's Shelf: shelved folders and files, and rules by name or pattern, by
+  category (a personal view preference; git-ignored). Rules for every repository live in Orbit, on the PC.
 - `.orbit/scratch.txt` — the Scratchpad (📝): notes and prompts kept with the project.
 - `.orbit/index/` — cached project symbol index for code navigation (rebuilt automatically; git-ignored).
 

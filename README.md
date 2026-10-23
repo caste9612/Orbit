@@ -8,7 +8,7 @@
   <img alt="Platform: Windows, macOS, Linux" src="https://img.shields.io/badge/platform-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-4c8dff?style=flat-square" />
   <img alt="Built with Tauri 2 and Svelte 5" src="https://img.shields.io/badge/built%20with-Tauri%202%20%C2%B7%20Svelte%205-1f9c8a?style=flat-square" />
   <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-7c5cff?style=flat-square" />
-  <img alt="Binary: ~6.8 MB" src="https://img.shields.io/badge/binary-~6.8%20MB-2f7ff0?style=flat-square" />
+  <img alt="Binary: ~6.7 MB" src="https://img.shields.io/badge/binary-~6.7%20MB-2f7ff0?style=flat-square" />
 </div>
 
 A **lightweight**, beautiful IDE built as a **companion for Claude Code**: edit code, browse
@@ -33,8 +33,8 @@ cross-platform desktop app that weighs almost nothing.
   review); files Claude edits **reload by themselves**, changed files are **highlighted in the
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
-- **It is genuinely small.** A ~6.8 MB binary, ~120 MB of RAM at rest with a project open (mostly the
-  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~289 KB startup chunk (≈98 KB gzipped).
+- **It is genuinely small.** A ~6.7 MB binary, ~120 MB of RAM at rest with a project open (mostly the
+  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~301 KB startup chunk (≈103 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -346,11 +346,11 @@ Measured on Windows (size-optimized release build):
 
 | Item | Size |
 |---|---|
-| Portable `Orbit` binary | ~6.8 MB (≈0.7 MB of it is the HTTPS client for in-app updates, M59) |
+| Portable `Orbit` binary | ~6.7 MB (≈0.7 MB of it is the HTTPS client for in-app updates, M59) |
 | MSI installer | ~4.0 MB |
 | NSIS setup | ~3.3 MB |
-| Frontend `dist/` | ~2.9 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~289 KB (≈98 KB gzipped; the editor and the terminal load on demand) |
+| Frontend `dist/` | ~3.0 MB (most of it grammars loaded lazily) |
+| Startup JS chunk | ~301 KB (≈103 KB gzipped; the editor and the terminal load on demand) |
 | RAM at rest (project open) | ~120 MB private working set with one terminal, ~160 MB with four terminals and three files open (Orbit + WebView2; the Rust core is ~6 MB, ~30 MB with the symbol index of a very large project — the rest is the shared system WebView, inherent to Tauri) |
 | Under load | Claude saving a file every second in a 5,400-file project: ~23% of one CPU core, the UI answering in ~2 ms (99th percentile) |
 

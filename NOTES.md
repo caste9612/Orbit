@@ -4372,6 +4372,20 @@ Note della release:
 - Up to **six** Claude chats or terminals side by side per repository, in a 3×2 grid on a wide screen.
 ```
 
+**Rilasciato in v1.4.0** il 2026-10-23 (13:14 UTC): "Orbit v1.4.0 — A shelf for every repository", tag `v1.4.0` sul
+commit `18f8c36`. È la prima release pubblicata dal workflow Release di GitHub Actions (M71), esecuzione
+39957992701: approvata dall'utente, 8 min 49 s dall'approvazione alla pubblicazione; autore `github-actions[bot]`.
+- Build firmata (sul runner, Rust stabile):
+  - eseguibile **6,73 MiB** (6,70 nella prova a secco della 1.3.0 sullo stesso runner; 6,82 la 1.3.0 firmata in
+    locale con Rust 1.92);
+  - setup NSIS **3,26 MiB** (3,23 nella prova a secco), MSI **4,01 MiB** (3,99);
+  - chunk iniziale 301,0 KiB, `dist/` 2,98 MiB.
+- Controlli dopo la pubblicazione:
+  - l'indirizzo degli aggiornamenti serve il `latest.json` della 1.4.0, con setup e MSI e le loro firme;
+  - le firme di setup e MSI (e la firma globale del commento) sono valide per la chiave di `tauri.conf.json`,
+    verificate a mano (Ed25519 su BLAKE2b-512, come minisign).
+- README: il Footprint ora ha le misure della 1.4.0 firmata (era quello della 1.3.0, M71).
+
 ---
 
 ## Ambiente di sviluppo verificato

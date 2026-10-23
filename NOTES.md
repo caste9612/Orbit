@@ -4519,6 +4519,20 @@ Note della release:
 - A short, soft chime when a chat is waiting and Orbit is in the background.
 ```
 
+**Rilasciato in v1.5.0** il 2026-10-23 (15:11 UTC): "Orbit v1.5.0 — Notifications you can read", tag `v1.5.0` sul
+commit `07a9890`, dal workflow Release (esecuzione 39974713380): approvata dall'utente, 5 min dall'approvazione
+alla pubblicazione; autore `github-actions[bot]`.
+- Build firmata (sul runner, Rust stabile):
+  - eseguibile **6,74 MiB** (6,73 nella 1.4.0: il Rust non cambia);
+  - setup NSIS **3,26 MiB** (uguale), MSI **4,02 MiB** (4,01);
+  - chunk iniziale 308,0 KiB (105 gzip), `dist/` 2,99 MiB.
+- Controlli dopo la pubblicazione:
+  - l'indirizzo degli aggiornamenti serve il `latest.json` della 1.5.0 (uguale all'asset della release), con setup e
+    MSI e le loro firme, indirizzi su `v1.5.0`;
+  - le firme di setup e MSI (e la firma globale del commento) sono valide per la chiave `55F5361AFA695029` di
+    `tauri.conf.json`, verificate a mano (Ed25519 su BLAKE2b-512, come minisign).
+- README: il Footprint ha il chunk iniziale della 1.5.0 (~308 KB); binario, setup e MSI arrotondati non cambiano.
+
 ---
 
 ## Ambiente di sviluppo verificato

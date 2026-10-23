@@ -3,7 +3,8 @@
 // dir dell'app (comandi Rust load_state/save_state). Zero dipendenze.
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { workspace, fileByPath, restoreGroups, resetDocs, autosaveAll, openFile, activePath, tabView } from "./workspace.svelte";
+import { workspace, fileByPath, restoreGroups, resetDocs, autosaveAll, openFile, activePath, tabView, groupLayout } from "./workspace.svelte";
+import { sizesFor, type PaneSizes } from "./paneLayout";
 import { resolveUnsaved } from "./unsaved.svelte";
 import { settings } from "./settings.svelte";
 import { openRoot, snapshotExpanded, expandedRel, seedExpanded } from "./explorer.svelte";
@@ -37,6 +38,8 @@ interface Session {
   repos?: string[]; // lista repo della FINESTRA (selettore top bar) — per-finestra, non globale
   groups?: SavedGroup[]; // v2: split view
   activeGroup?: number;
+  groupLayout?: number[][]; // M72: editor diviso in righe e colonne, indici di `groups` per colonna
+  groupSizes?: PaneSizes; // M72: dimensioni dei gruppi per quella disposizione
   files?: string[]; // v1 (legacy): un solo gruppo
   active?: string | null;
   expanded?: string[]; // M66: cartelle espanse nell'albero, relative alla radice
@@ -63,11 +66,13 @@ function layoutSnapshot(): Session["layout"] {
 
 function serialize(): string {
   const groups: SavedGroup[] = [];
+  const index = new Map<string, number>(); // gruppo → posizione in `groups` (quelli senza file non si salvano)
   let activeGroup = 0;
   for (const g of workspace.groups) {
     const tabs = g.tabs.filter((p) => fileByPath(p)?.kind === "file"); // i diff non si persistono
     if (tabs.length === 0) continue;
     if (g.id === workspace.activeGroupId) activeGroup = groups.length;
+    index.set(g.id, groups.length);
     const active = g.activePath && tabs.includes(g.activePath) ? g.activePath : tabs[0];
     const views: Record<string, number[]> = {};
     for (const p of tabs) {
@@ -76,12 +81,17 @@ function serialize(): string {
     }
     groups.push({ tabs, active, previews: g.previews.filter((p) => tabs.includes(p)), views });
   }
+  // la disposizione dei soli gruppi salvati; le dimensioni valgono se la forma non è cambiata togliendone
+  const shown = groupLayout().map((c) => c.filter((id) => index.has(id))).filter((c) => c.length);
+  const groupSizes = sizesFor(shown, workspace.groupSizes);
   const data: Session = {
     v: 2,
     root: workspace.rootPath,
     repos: folders.list.map((f) => f.path), // la lista repo della finestra vive nella sua sessione
     groups,
     activeGroup,
+    groupLayout: shown.map((c) => c.map((id) => index.get(id)!)),
+    groupSizes,
     expanded: workspace.rootPath ? expandedRel(workspace.rootPath) : [],
     layout: layoutSnapshot(),
   };
@@ -189,7 +199,7 @@ export async function loadSession(
   if (opts.repos) setFolders(s.repos?.length ? s.repos : [root]); // lista repo della finestra
 
   if (Array.isArray(s.groups) && s.groups.length) {
-    await restoreGroups(s.groups, s.activeGroup ?? 0);
+    await restoreGroups(s.groups, s.activeGroup ?? 0, s.groupLayout, s.groupSizes);
   } else if (Array.isArray(s.files) && s.files.length) {
     // sessione v1: un solo gruppo
     await restoreGroups([{ tabs: s.files, active: s.active ?? s.files[0] }], 0);

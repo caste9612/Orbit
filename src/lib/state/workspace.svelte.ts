@@ -6,6 +6,7 @@ import { basename, assetKind, normSlash, canonPath, samePath, isUnder, pathKey }
 import { notify } from "./toast.svelte";
 import { settings } from "./settings.svelte";
 import { nextActive } from "./editorTabs";
+import { flatten, insertPane, reconcile, shapeOf, validSizes, type Layout, type PaneSizes, type Side } from "./paneLayout";
 
 // Hook cronologia di navigazione (indietro/avanti): codeIndex registra qui una funzione che salva
 // la posizione CORRENTE prima che cambi il file/tab attivo. `dest` = path di destinazione (per non
@@ -37,7 +38,8 @@ export interface OpenFile {
   diskRev: number; // incrementa quando il DISCO cambia (save o reload esterno) → l'anteprima HTML ricarica l'iframe
 }
 
-/** Un gruppo editor = una colonna affiancata con le sue tab e il file attivo. */
+/** Un gruppo editor = un riquadro dell'editor diviso con le sue tab e il file attivo. Dove sta il riquadro
+ *  (colonne di righe) lo dice `workspace.groupLayout` (M72). */
 export interface EditorGroup {
   id: string;
   tabs: string[]; // path dei documenti, in ordine di visualizzazione
@@ -73,6 +75,9 @@ export function tabView(groupId: string, path: string): ViewPos | null {
   return viewByTab.get(tabKey(groupId, path)) ?? null;
 }
 
+/** Massimo di gruppi dell'editor diviso (M72): oltre, ogni riquadro diventa troppo piccolo per lavorarci. */
+export const MAX_GROUPS = 6;
+
 let groupCounter = 0;
 function newGroupId(): string {
   groupCounter += 1;
@@ -86,6 +91,11 @@ export const workspace = $state({
   openFiles: [] as OpenFile[], // pool dei documenti aperti
   groups: [] as EditorGroup[], // gruppi editor affiancati (0..N)
   activeGroupId: "" as string,
+  // Editor diviso in righe e colonne (M72), con il modello dei riquadri del terminale (paneLayout.ts): id
+  // dei gruppi per colonna, e le dimensioni trascinate (null = uguali). Chi la legge la allinea ai gruppi
+  // con `groupLayout()`; prima della M72 i gruppi erano solo colonne uguali, in ordine.
+  groupLayout: [] as Layout,
+  groupSizes: null as PaneSizes | null,
   ready: false, // true a sessione caricata (es. terminale di default attende questo)
   // cambio cartella in corso (persist.switchFolder): rootPath è null per qualche decina di ms, ma la
   // UI NON deve mostrare gli stati "nessuna cartella" (lampeggio del bottone "Open folder…")
@@ -134,12 +144,29 @@ function groupById(id: string): EditorGroup | undefined {
   return workspace.groups.find((g) => g.id === id);
 }
 
+/** Disposizione dei gruppi, allineata ai gruppi che esistono (i nuovi senza posto vanno in coda). */
+export function groupLayout(): Layout {
+  return reconcile(workspace.groupLayout, workspace.groups.map((g) => g.id));
+}
+
+/** Nuova disposizione dei gruppi; se cambia forma, le dimensioni trascinate non valgono più. */
+function setGroupLayout(next: Layout) {
+  if (workspace.groupSizes && workspace.groupSizes.shape !== shapeOf(next)) workspace.groupSizes = null;
+  workspace.groupLayout = next;
+}
+
+/** Dimensioni dei gruppi dopo un trascinamento dei separatori. */
+export function setGroupSizes(sizes: PaneSizes) {
+  workspace.groupSizes = sizes;
+}
+
 function ensureActiveGroup(): EditorGroup {
   let g = activeGroup();
   if (!g) {
     g = { id: newGroupId(), tabs: [], activePath: null, previews: [] };
     workspace.groups.push(g);
     workspace.activeGroupId = g.id;
+    setGroupLayout(groupLayout());
   }
   return g;
 }
@@ -163,10 +190,15 @@ function dropEmptyGroup(g: EditorGroup) {
     g.activePath = null; // tieni un gruppo vuoto → schermata di benvenuto
     return;
   }
+  // il gruppo attivo passa al vicino nella disposizione (prima: nell'elenco, che con le righe non è l'ordine a video)
+  const order = flatten(groupLayout());
+  const at = order.indexOf(g.id);
   const idx = workspace.groups.findIndex((x) => x.id === g.id);
   workspace.groups.splice(idx, 1);
+  setGroupLayout(groupLayout());
   if (workspace.activeGroupId === g.id) {
-    workspace.activeGroupId = (workspace.groups[idx] ?? workspace.groups[idx - 1])?.id ?? "";
+    const near = order[at + 1] ?? order[at - 1];
+    workspace.activeGroupId = (near && groupById(near)?.id) ?? workspace.groups[0]?.id ?? "";
   }
 }
 
@@ -408,6 +440,8 @@ export function resetDocs() {
   workspace.openFiles = [];
   workspace.groups = [];
   workspace.activeGroupId = "";
+  workspace.groupLayout = [];
+  workspace.groupSizes = null;
   viewByTab.clear(); // le posizioni dei gruppi chiusi (la sessione salvata le ha già)
 }
 
@@ -452,19 +486,42 @@ export function moveTab(fromGroupId: string, path: string, toGroupId: string, to
   pruneDocs();
 }
 
-/** Crea un nuovo gruppo (in coda) spostandoci dentro una tab — usato dal drag al bordo. */
-export function splitWithTab(fromGroupId: string, path: string) {
+/**
+ * Rilascio di una scheda sul bordo `side` del gruppo `targetGroupId` (M72; prima c'era solo la colonna in
+ * fondo a destra): un gruppo nuovo da quel lato con dentro la scheda. Se la scheda è l'unica del suo gruppo
+ * si sposta il gruppo intero; con l'editor già diviso in MAX_GROUPS la scheda va nel gruppo bersaglio.
+ */
+export function splitWithTab(fromGroupId: string, path: string, targetGroupId: string = fromGroupId, side: Side = "right") {
   const from = groupById(fromGroupId);
-  if (!from || !from.tabs.includes(path)) return; // path stale: niente da dividere
-  if (from.tabs.length <= 1) return; // è già l'unica tab del gruppo: dividere non ha senso
+  if (!from || !from.tabs.includes(path) || !groupById(targetGroupId)) return; // path stale: niente da dividere
+  if (from.tabs.length <= 1) {
+    if (targetGroupId === fromGroupId) return; // l'unica scheda del gruppo accanto a sé stessa: niente da dividere
+    setGroupLayout(insertPane(groupLayout(), fromGroupId, targetGroupId, side, MAX_GROUPS));
+    workspace.activeGroupId = fromGroupId;
+    return;
+  }
+  if (workspace.groups.length >= MAX_GROUPS) {
+    moveTab(fromGroupId, path, targetGroupId);
+    return;
+  }
   const g: EditorGroup = { id: newGroupId(), tabs: [], activePath: null, previews: [] };
+  const next = insertPane(groupLayout(), g.id, targetGroupId, side, MAX_GROUPS);
   workspace.groups.push(g);
+  setGroupLayout(next);
   moveTab(fromGroupId, path, g.id);
 }
 
-/** Apre un file in un NUOVO gruppo affiancato (split) — usato da "Apri di lato" dell'albero. */
+/** Apre un file in un NUOVO gruppo a destra di quello attivo (split) — "Apri di lato" dell'albero. Con
+ *  l'editor già diviso in MAX_GROUPS lo apre nel gruppo che segue quello attivo. */
 export async function openInNewGroup(path: string) {
   path = docPath(path);
+  const order = flatten(groupLayout());
+  if (order.length >= MAX_GROUPS) {
+    const next = order[(order.indexOf(workspace.activeGroupId) + 1) % order.length];
+    notify(`Up to ${MAX_GROUPS} editor groups: opened in the next one`, "info", 2600);
+    await openFile(path, next);
+    return;
+  }
   beforeNav?.(path); // cronologia: registra la posizione lasciata
   await loadDoc(path); // carica prima: niente gruppo vuoto lampeggiante durante l'await
   const g: EditorGroup = {
@@ -473,7 +530,10 @@ export async function openInNewGroup(path: string) {
     activePath: path,
     previews: initialPreview(basename(path)) ? [path] : [],
   };
+  const anchor = activeGroup()?.id ?? null;
+  const next = insertPane(groupLayout(), g.id, anchor, "right", MAX_GROUPS);
   workspace.groups.push(g);
+  setGroupLayout(next);
   workspace.activeGroupId = g.id;
 }
 
@@ -588,10 +648,13 @@ export async function reloadOpenFiles(changed: string[] | null = null) {
 
 // ---- persistenza di sessione ---------------------------------------------
 
-/** Ripristina i gruppi salvati (carica i documenti nel pool, salta i file spariti). */
+/** Ripristina i gruppi salvati (carica i documenti nel pool, salta i file spariti), con la loro disposizione
+ *  (M72: `savedLayout` = indici dei gruppi salvati per colonna; assente nelle sessioni di prima = colonne). */
 export async function restoreGroups(
   saved: { tabs: string[]; active: string | null; previews?: string[]; views?: Record<string, number[]> }[],
   activeIndex: number,
+  savedLayout?: unknown,
+  savedSizes?: unknown,
 ) {
   // sessioni salvate prima della M59 possono avere lo stesso file in due forme (`src/x` e `src\x`):
   // ognuna si riporta alla prima forma vista, e le schede doppie si fondono
@@ -606,7 +669,8 @@ export async function restoreGroups(
   for (const p of allPaths) await loadDoc(p);
   const loaded = new Set(workspace.openFiles.map((f) => f.path));
   const groups: EditorGroup[] = [];
-  for (const g of saved) {
+  const idOf = new Map<number, string>(); // indice nella sessione → gruppo ripristinato
+  for (const [i, g] of saved.entries()) {
     const tabs = uniq(g.tabs).filter((p) => loaded.has(p));
     if (tabs.length === 0) continue;
     const savedActive = g.active ? canon(g.active) : null;
@@ -616,6 +680,7 @@ export async function restoreGroups(
       tabs.includes(p),
     );
     const id = newGroupId();
+    idOf.set(i, id);
     groups.push({ id, tabs, activePath: active, previews });
     // posizione salvata di ogni scheda (M66): [anchor, head, top]
     for (const [p, v] of Object.entries(g.views ?? {})) {
@@ -625,6 +690,13 @@ export async function restoreGroups(
     }
   }
   if (groups.length === 0) return;
+  const cols = Array.isArray(savedLayout) ? savedLayout.filter(Array.isArray) : [];
+  const lay = reconcile(
+    cols.map((c: unknown[]) => c.map((i) => (typeof i === "number" ? idOf.get(i) : undefined)).filter((id): id is string => !!id)),
+    groups.map((g) => g.id),
+  );
   workspace.groups = groups;
+  workspace.groupLayout = lay;
+  workspace.groupSizes = validSizes(savedSizes, lay);
   workspace.activeGroupId = (groups[activeIndex] ?? groups[0]).id;
 }

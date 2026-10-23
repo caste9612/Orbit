@@ -30,8 +30,12 @@
     savePath,
     togglePreview,
     openPreviewToSide,
+    groupLayout,
+    setGroupSizes,
+    MAX_GROUPS,
     type OpenFile,
   } from "../state/workspace.svelte";
+  import { dropZone, paneGeometry, resizePanes, sizesFor, type PaneSizes, type Zone } from "../state/paneLayout";
 
   const isMd = (name: string) => /\.(md|markdown)$/i.test(name);
   const isHtml = (name: string) => /\.html?$/i.test(name);
@@ -50,13 +54,55 @@
   let drag = $state<{ groupId: string; path: string } | null>(null); // tab in trascinamento
   let dragging = $state(false); // true dopo la soglia di movimento (distingue il drag dal click)
   let dropInfo = $state<{ groupId: string; index: number } | null>(null); // barra+indice sotto il cursore
-  let splitHover = $state(false); // cursore sopra la zona di split
+  // rilascio sul contenuto di un gruppo (M72): al centro la scheda va in quel gruppo, su un bordo apre un
+  // gruppo nuovo da quel lato. Prima c'era solo una zona «Split» sul bordo destro dell'editor.
+  let dropPane = $state<{ groupId: string; zone: Zone } | null>(null);
   let pending: { groupId: string; path: string; x: number; y: number } | null = null; // pre-drag
-  // la zona di split ha senso solo se il gruppo di origine ha più di una scheda (altrimenti
-  // splitWithTab è un no-op): così non mostriamo un bersaglio "Split" morto.
-  let canSplit = $derived(
-    dragging && (workspace.groups.find((g) => g.id === drag?.groupId)?.tabs.length ?? 0) > 1,
-  );
+
+  /** Cosa farebbe davvero il rilascio di `drag` nella zona `zone` del gruppo `groupId` (null = niente):
+   *  il segno compare solo dove il rilascio fa qualcosa. */
+  function dropFor(groupId: string, zone: Zone): Zone | null {
+    const from = drag && workspace.groups.find((g) => g.id === drag!.groupId);
+    if (!from) return null;
+    const single = from.tabs.length <= 1; // l'unica scheda: sposta il gruppo intero
+    const full = workspace.groups.length >= MAX_GROUPS;
+    if (groupId === from.id) return zone === "center" || single || full ? null : zone;
+    return zone !== "center" && full && !single ? "center" : zone;
+  }
+
+  // ---- disposizione dei gruppi (M72): colonne di righe, come le chat del terminale -----------------
+  // Spazio di 1 px fra i gruppi, che lascia vedere lo sfondo come linea; la geometria si calcola su una
+  // superficie più grande di 2 px e spostata di 1, così lo spazio sul bordo esterno resta fuori vista.
+  let gw = $state(0);
+  let gh = $state(0);
+  let glayout = $derived(groupLayout());
+  let gsizes = $derived(sizesFor(glayout, workspace.groupSizes));
+  let ggeom = $derived(paneGeometry(glayout, gsizes, gw + 2, gh + 2, 1));
+  function groupRect(id: string): string {
+    if (glayout.length === 1 && glayout[0].length === 1) return "left:0;top:0;width:100%;height:100%";
+    const r = ggeom.rects[id];
+    return r ? `left:${r.x - 1}px;top:${r.y - 1}px;width:${r.w}px;height:${r.h}px` : "display:none";
+  }
+  let sizing: { kind: "col" | "row"; c: number; r: number; start: number; from: PaneSizes } | null = null;
+  function sizeDown(e: PointerEvent, kind: "col" | "row", c: number, r: number) {
+    sizing = { kind, c, r, start: kind === "col" ? e.clientX : e.clientY, from: gsizes };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  function sizeMove(e: PointerEvent) {
+    if (!sizing) return;
+    const delta = (sizing.kind === "col" ? e.clientX : e.clientY) - sizing.start;
+    setGroupSizes(resizePanes(sizing.from, glayout, sizing.kind, sizing.c, sizing.r, delta, gw + 2, gh + 2, 1, 160));
+  }
+  function sizeUp(e: PointerEvent) {
+    sizing = null;
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      /* no-op */
+    }
+  }
 
   // Sicurezza: se la scheda trascinata sparisce a metà drag (es. rename/delete esterno via
   // fs-changed), annullo tutto così overlay e indicatori non restano bloccati.
@@ -93,7 +139,7 @@
     drag = null;
     dragging = false;
     dropInfo = null;
-    splitHover = false;
+    dropPane = null;
     pending = null;
     window.removeEventListener("pointermove", onTabPointerMove);
     window.removeEventListener("pointerup", onTabPointerUp);
@@ -118,16 +164,20 @@
     }
     if (!dragging) return;
     const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
-    if (el?.closest(".splitzone")) {
-      splitHover = true;
-      dropInfo = null;
-      return;
-    }
-    splitHover = false;
     const bar = el?.closest(".tabs") as HTMLElement | null;
     dropInfo = bar?.dataset.group
       ? { groupId: bar.dataset.group, index: barDropIndex(bar, e.clientX) }
       : null;
+    // fuori dalle barre: il contenuto di un gruppo, al centro o su un bordo (entro un terzo, dropZone)
+    const body = bar ? null : (el?.closest(".group-body") as HTMLElement | null);
+    const gid = body?.dataset.group;
+    if (!body || !gid) {
+      dropPane = null;
+      return;
+    }
+    const r = body.getBoundingClientRect();
+    const zone = dropFor(gid, dropZone((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height));
+    dropPane = zone ? { groupId: gid, zone } : null;
   }
 
   /** Indice di inserimento nella barra in base alla X del cursore (esclude la tab trascinata). */
@@ -145,8 +195,10 @@
   function onTabPointerUp(_e: PointerEvent) {
     const d = drag;
     if (dragging && d) {
-      if (splitHover) splitWithTab(d.groupId, d.path);
-      else if (dropInfo) {
+      if (dropPane) {
+        if (dropPane.zone === "center") moveTab(d.groupId, d.path, dropPane.groupId);
+        else splitWithTab(d.groupId, d.path, dropPane.groupId, dropPane.zone);
+      } else if (dropInfo) {
         if (dropInfo.groupId === d.groupId) reorderTab(d.groupId, d.path, dropInfo.index);
         else moveTab(d.groupId, d.path, dropInfo.groupId, dropInfo.index);
       }
@@ -286,11 +338,11 @@
   {#if workspace.groups.length === 0}
     <div class="surface center">{@render welcome()}</div>
   {:else}
-    <div class="groups">
+    <div class="groups" class:split={workspace.groups.length > 1} bind:clientWidth={gw} bind:clientHeight={gh}>
       {#each workspace.groups as g (g.id)}
         {@const af = g.activePath ? fileByPath(g.activePath) : undefined}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
-        <div class="group" class:active={g.id === workspace.activeGroupId} onpointerdown={() => setActiveGroup(g.id)}>
+        <div class="group" class:active={g.id === workspace.activeGroupId} style={groupRect(g.id)} onpointerdown={() => setActiveGroup(g.id)}>
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="tabbar">
             <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -383,6 +435,8 @@
             <RelatedBar path={af.path} />
           {/if}
 
+          <!-- contenuto del gruppo: bersaglio del rilascio di una scheda (centro o bordi) -->
+          <div class="group-body" data-group={g.id}>
           <div class="surface" class:center={!af}>
             {#if af}
               {#key g.id + "::" + af.path}
@@ -432,14 +486,36 @@
               {@render welcome()}
             {/if}
           </div>
+          {#if dropPane?.groupId === g.id}
+            <div class="dropmark {dropPane.zone}" aria-hidden="true"></div>
+          {/if}
+          </div>
         </div>
       {/each}
-
-      {#if canSplit}
-        <div class="splitzone" class:hover={splitHover}>
-          <div class="splithint"><Icon name="panel-left" size={18} strokeWidth={1.6} /><span>Split</span></div>
-        </div>
-      {/if}
+      {#each ggeom.vSplits as sp (sp.c)}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="gsplit v"
+          style="left:{sp.x - 3}px;top:{sp.y - 1}px;height:{sp.h}px"
+          title="Drag to resize"
+          onpointerdown={(e) => sizeDown(e, "col", sp.c, 0)}
+          onpointermove={sizeMove}
+          onpointerup={sizeUp}
+          onpointercancel={sizeUp}
+        ></div>
+      {/each}
+      {#each ggeom.hSplits as sp (`${sp.c}-${sp.r}`)}
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          class="gsplit h"
+          style="left:{sp.x - 1}px;top:{sp.y - 3}px;width:{sp.w}px"
+          title="Drag to resize"
+          onpointerdown={(e) => sizeDown(e, "row", sp.c, sp.r)}
+          onpointermove={sizeMove}
+          onpointerup={sizeUp}
+          onpointercancel={sizeUp}
+        ></div>
+      {/each}
     </div>
   {/if}
 
@@ -557,18 +633,84 @@
     position: relative;
     flex: 1;
     min-height: 0;
-    display: flex;
-    align-items: stretch;
+  }
+  /* editor diviso: lo spazio di 1 px fra i gruppi lascia vedere la linea */
+  .groups.split {
+    background: var(--color-line);
   }
   .group {
-    flex: 1 1 0;
+    position: absolute; /* posizione e dimensione in px da groupRect() (M72) */
     min-width: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--color-line);
+    overflow: hidden;
+    background: var(--color-surface-1);
   }
-  .group:last-child {
-    border-right: 0;
+  /* con l'editor diviso la scheda attiva dei gruppi non attivi è più tenue: si vede dove si sta lavorando */
+  .groups.split .group:not(.active) .tab.active {
+    background: rgba(var(--accent-rgb), 0.08);
+  }
+  .group-body {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  /* separatori fra i gruppi: 7 px di presa centrati sulla linea, accento all'hover e durante il drag */
+  .gsplit {
+    position: absolute;
+    z-index: 6;
+  }
+  .gsplit.v {
+    z-index: 7; /* all'incrocio con un separatore orizzontale vince quello fra le colonne */
+    width: 7px;
+    cursor: col-resize;
+  }
+  .gsplit.h {
+    height: 7px;
+    cursor: row-resize;
+  }
+  .gsplit::after {
+    content: "";
+    position: absolute;
+    background: transparent;
+    transition: background 80ms ease;
+  }
+  .gsplit.v::after {
+    inset: 0 2px;
+  }
+  .gsplit.h::after {
+    inset: 2px 0;
+  }
+  .gsplit:hover::after,
+  .gsplit:active::after {
+    background: var(--color-accent);
+  }
+  /* rilascio di una scheda sul contenuto di un gruppo: metà dal lato del bordo, o tutto al centro */
+  .dropmark {
+    position: absolute;
+    z-index: 10;
+    pointer-events: none;
+    background: rgba(var(--accent-rgb), 0.16);
+    border: 2px solid rgba(var(--accent-rgb), 0.7);
+    border-radius: var(--r-md);
+  }
+  .dropmark.center {
+    inset: 0;
+  }
+  .dropmark.left {
+    inset: 0 50% 0 0;
+  }
+  .dropmark.right {
+    inset: 0 0 0 50%;
+  }
+  .dropmark.top {
+    inset: 0 0 50% 0;
+  }
+  .dropmark.bottom {
+    inset: 50% 0 0 0;
   }
 
   .tabbar {
@@ -798,40 +940,6 @@
     display: grid;
     place-items: center;
     overflow: auto;
-  }
-
-  .splitzone {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 120px; /* zona ampia: il drop di split è facile da centrare */
-    height: 100%;
-    display: grid;
-    place-items: center;
-    border-left: 2px dashed var(--color-line-strong);
-    background: rgba(var(--accent-rgb), 0.05); /* visibile già durante il drag, non solo all'hover */
-    z-index: 5;
-  }
-  .splitzone.hover {
-    background: rgba(var(--accent-rgb), 0.18);
-    border-left-color: var(--color-accent);
-  }
-  .splithint {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    color: var(--color-ink-subtle);
-    font-size: 10.5px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    pointer-events: none;
-    opacity: 0.5;
-    transition: opacity 90ms ease;
-  }
-  .splitzone.hover .splithint {
-    opacity: 1;
-    color: var(--color-accent);
   }
 
   .tabmenu {

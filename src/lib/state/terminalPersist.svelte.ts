@@ -14,10 +14,9 @@ import {
   syncActiveTerminalToRoot,
   rootKey,
   type ChatRef,
-  type PaneSizes,
   type TermSession,
 } from "./terminals.svelte";
-import { flatten, type Layout } from "./terminalLayout";
+import { flatten, type Layout, type PaneSizes } from "./paneLayout";
 import { chatCommand } from "./claude.svelte";
 import { workspace } from "./workspace.svelte";
 import { folders } from "./folders.svelte";

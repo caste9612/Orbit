@@ -37,11 +37,10 @@
     setSizes,
     selfSplitPartner,
     tabIcon,
-    type PaneSizes,
   } from "../state/terminals.svelte";
   import { launchClaude } from "../state/claude.svelte";
   import { wakeTerminal } from "../state/terminalPersist.svelte";
-  import { dropZone, flatten, locate, MAX_PANES, type Arrangement, type Layout, type Zone } from "../state/terminalLayout";
+  import { dropZone, flatten, paneGeometry, resizePanes, MAX_PANES, type Arrangement, type Layout, type PaneSizes, type Zone } from "../state/paneLayout";
   import { focusOnMount } from "../focus";
 
   interface ShellInfo {
@@ -146,50 +145,24 @@
 
   // ---- geometria dei riquadri ------------------------------------------------------------------
   // Posizionamento ASSOLUTO in px dalle frazioni (colonne, e righe per colonna): a differenza di una
-  // griglia CSS, ogni colonna può avere righe di altezze diverse, e i separatori si trascinano.
+  // griglia CSS, ogni colonna può avere righe di altezze diverse, e i separatori si trascinano. I conti
+  // stanno in paneLayout.ts (M72), condivisi con l'editor diviso.
   const GAP = 4; // px fra i riquadri e dal bordo della superficie (solo in split)
   let sizes = $derived(sizesFor(workspace.rootPath, shownLayout));
-  function colGeom(c: number): { x: number; w: number } {
-    const innerW = Math.max(0, surfW - GAP * (shownLayout.length + 1));
-    let x = GAP;
-    for (let i = 0; i < c; i++) x += (sizes.cols[i] ?? 0) * innerW + GAP;
-    return { x, w: (sizes.cols[c] ?? 1) * innerW };
-  }
-  function rowGeom(c: number, r: number): { y: number; h: number } {
-    const rows = sizes.rows[c] ?? [1];
-    const innerH = Math.max(0, surfH - GAP * (rows.length + 1));
-    let y = GAP;
-    for (let i = 0; i < r; i++) y += (rows[i] ?? 0) * innerH + GAP;
-    return { y, h: (rows[r] ?? 1) * innerH };
-  }
+  let geom = $derived(paneGeometry(shownLayout, sizes, surfW, surfH, GAP));
   /** Posizione del terminale `id` nella superficie ("" = non visibile). */
   function rect(id: string): string {
     if (!shown.includes(id)) return "";
     if (!split || zoom) return "left:0;top:0;width:100%;height:100%";
-    const pos = locate(shownLayout, id);
-    if (!pos) return "";
-    const { x, w } = colGeom(pos.c);
-    const { y, h } = rowGeom(pos.c, pos.r);
-    return `left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+    const r = geom.rects[id];
+    return r ? `left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px` : "";
   }
   // separatori trascinabili: fra colonne (verticali, a tutta altezza) e fra le righe di una colonna
-  let vSplits = $derived(split && !zoom ? shownLayout.slice(1).map((_, i) => ({ c: i, x: colGeom(i + 1).x - GAP })) : []);
-  let hSplits = $derived(
-    split && !zoom
-      ? shownLayout.flatMap((col, c) =>
-          col.slice(1).map((_, r) => {
-            const g = colGeom(c);
-            return { c, r, x: g.x, w: g.w, y: rowGeom(c, r + 1).y - GAP };
-          }),
-        )
-      : [],
-  );
-  let sizing: { kind: "col" | "row"; c: number; r: number; start: number; a: number; b: number; inner: number } | null = null;
+  let vSplits = $derived(split && !zoom ? geom.vSplits : []);
+  let hSplits = $derived(split && !zoom ? geom.hSplits : []);
+  let sizing: { kind: "col" | "row"; c: number; r: number; start: number; from: PaneSizes } | null = null;
   function sizeDown(e: PointerEvent, kind: "col" | "row", c: number, r: number) {
-    const inner = kind === "col" ? surfW - GAP * (shownLayout.length + 1) : surfH - GAP * ((sizes.rows[c]?.length ?? 1) + 1);
-    const arr = kind === "col" ? sizes.cols : (sizes.rows[c] ?? [1]);
-    const i = kind === "col" ? c : r;
-    sizing = { kind, c, r, start: kind === "col" ? e.clientX : e.clientY, a: arr[i], b: arr[i + 1], inner };
+    sizing = { kind, c, r, start: kind === "col" ? e.clientX : e.clientY, from: sizes };
     paneDrag = true;
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     e.preventDefault();
@@ -197,27 +170,8 @@
   }
   function sizeMove(e: PointerEvent) {
     if (!sizing) return;
-    const cur = sizing.kind === "col" ? e.clientX : e.clientY;
-    const df = (cur - sizing.start) / Math.max(1, sizing.inner);
-    const min = Math.max(0.1, 140 / Math.max(1, sizing.inner)); // mai sotto ~140px
-    let a = sizing.a + df;
-    let b = sizing.b - df;
-    if (a < min) {
-      b -= min - a;
-      a = min;
-    }
-    if (b < min) {
-      a -= min - b;
-      b = min;
-    }
-    const next: PaneSizes = { shape: sizes.shape, cols: [...sizes.cols], rows: sizes.rows.map((row) => [...row]) };
-    if (sizing.kind === "col") {
-      next.cols[sizing.c] = a;
-      next.cols[sizing.c + 1] = b;
-    } else {
-      next.rows[sizing.c][sizing.r] = a;
-      next.rows[sizing.c][sizing.r + 1] = b;
-    }
+    const delta = (sizing.kind === "col" ? e.clientX : e.clientY) - sizing.start;
+    const next = resizePanes(sizing.from, shownLayout, sizing.kind, sizing.c, sizing.r, delta, surfW, surfH, GAP);
     setSizes(workspace.rootPath, shownLayout, next);
   }
   function sizeUp(e: PointerEvent) {

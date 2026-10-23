@@ -18,10 +18,12 @@ import {
   replacePane,
   splitPartner,
   MAX_PANES,
+  sizesFor as sizesForLayout,
   type Arrangement,
   type Layout,
+  type PaneSizes,
   type Side,
-} from "./terminalLayout";
+} from "./paneLayout";
 
 /** Cosa ricreare al riavvio (M66): shell e chat tornano, i lavori (Esegui, git) no. */
 export type TermKind = "shell" | "claude" | "run";
@@ -132,7 +134,7 @@ export const terminals = $state({
   activeId: null as string | null,
   focusedId: null as string | null, // terminale col focus REALE (textarea xterm), non solo finestra
   // Chat affiancate (M54/M55): per repo (chiave = rootKey) la DISPOSIZIONE dei terminali visibili
-  // insieme — colonne di righe, vedi terminalLayout.ts. Meno di 2 riquadri = scheda singola (si vede
+  // insieme — colonne di righe, vedi paneLayout.ts. Meno di 2 riquadri = scheda singola (si vede
   // solo l'attivo). Il riquadro attivo è sempre `activeId`. In modalità `auto` (default) la
   // disposizione si ricalcola dallo spazio disponibile (il layout salvato conta solo per l'ordine);
   // un trascinamento con direzione o una scelta dal menu la rendono manuale.
@@ -202,23 +204,9 @@ export function setSurface(width: number, height: number) {
   terminals.surfH = height;
 }
 
-export interface PaneSizes {
-  shape: string; // "1,2" = una colonna da 1 riga e una da 2
-  cols: number[]; // frazioni di larghezza delle colonne (somma 1)
-  rows: number[][]; // per colonna, frazioni di altezza delle righe (somma 1)
-}
-export const shapeOf = (layout: Layout) => layout.map((c) => c.length).join(",");
-
 /** Dimensioni dei riquadri per `layout`: quelle salvate se la forma coincide, altrimenti equidistribuite. */
 export function sizesFor(root: string | null, layout: Layout): PaneSizes {
-  const saved = terminals.sizes[rootKey(root)];
-  const shape = shapeOf(layout);
-  if (saved && saved.shape === shape) return saved;
-  return {
-    shape,
-    cols: layout.map(() => 1 / Math.max(1, layout.length)),
-    rows: layout.map((c) => c.map(() => 1 / Math.max(1, c.length))),
-  };
+  return sizesForLayout(layout, terminals.sizes[rootKey(root)]);
 }
 
 /** Salva le dimensioni dopo un trascinamento dei separatori; la disposizione diventa manuale, così

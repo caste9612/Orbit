@@ -39,8 +39,8 @@
     interattivo — e la prova prima di compilare.
 
 .EXAMPLE
-    .\scripts\New-Release.ps1 -Notes .\artifacts\notes-1.4.0.md
-    .\scripts\New-Release.ps1 -Notes .\artifacts\notes-1.4.0.md -Title "A shelf for every repository" -Publish
+    .\scripts\New-Release.ps1 -Notes .\artifacts\notes-1.5.0.md
+    .\scripts\New-Release.ps1 -Notes .\artifacts\notes-1.5.0.md -Title "Notifications you can read" -Publish
 #>
 param(
     [Parameter(Mandatory)] [string]$Notes,

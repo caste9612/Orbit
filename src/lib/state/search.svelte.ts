@@ -1,6 +1,7 @@
 // Ricerca testuale nel progetto (via comando Rust search_in_project), con debounce.
 import { invoke } from "@tauri-apps/api/core";
 import { workspace, openFileAt } from "./workspace.svelte";
+import { hiddenFromSearch } from "./shelf.svelte";
 
 export interface SearchMatch {
   line: number;
@@ -60,8 +61,9 @@ async function run() {
       query: search.query,
     });
     if (my !== token) return; // una query più recente è partita (o reset): questi risultati sono stale
-    search.results = res;
-    search.count = res.reduce((n, f) => n + f.matches.length, 0);
+    // fuori le voci delle categorie dello scaffale escluse dalla ricerca (M73)
+    search.results = res.filter((f) => !hiddenFromSearch(f.rel));
+    search.count = search.results.reduce((n, f) => n + f.matches.length, 0);
     search.done = true;
   } catch (e) {
     if (my === token) console.error("search", e);

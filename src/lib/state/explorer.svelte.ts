@@ -143,6 +143,49 @@ async function loadChildren(n: TreeNode) {
   n.loaded = true;
 }
 
+/** Segmenti di `path` sotto la radice aperta, o null se non ci sta. */
+function segsUnderRoot(path: string): string[] | null {
+  const root = workspace.rootPath;
+  if (!root || !isUnder(path, root) || samePath(path, root)) return null;
+  return relTo(path, root).split("/").filter(Boolean);
+}
+
+/** Il nodo dell'albero per `path` (cartella o file della repo aperta), se le cartelle che lo contengono
+ *  sono già caricate; altrimenti null. Lo scaffale (M73) mostra così i nodi veri delle sue voci: stessa
+ *  espansione, stessi aggiornamenti dal watcher, stesse operazioni dell'albero. */
+export function nodeAt(path: string): TreeNode | null {
+  const segs = segsUnderRoot(path);
+  if (!segs) return null;
+  let nodes = tree.roots;
+  let node: TreeNode | undefined;
+  for (const [i, seg] of segs.entries()) {
+    const s = seg.toLowerCase();
+    node = nodes.find((n) => n.entry.name.toLowerCase() === s);
+    if (!node || (i < segs.length - 1 && !(node.entry.isDir && node.loaded))) return null;
+    nodes = node.children;
+  }
+  return node ?? null;
+}
+
+/** Carica (senza aprirle) le cartelle che contengono `path`, così che nodeAt lo trovi. null se non esiste. */
+export async function ensureNode(path: string): Promise<TreeNode | null> {
+  const segs = segsUnderRoot(path);
+  if (!segs) return null;
+  let nodes = tree.roots;
+  let node: TreeNode | undefined;
+  for (const [i, seg] of segs.entries()) {
+    const s = seg.toLowerCase();
+    node = nodes.find((n) => n.entry.name.toLowerCase() === s);
+    if (!node) return null;
+    if (i < segs.length - 1) {
+      if (!node.entry.isDir) return null;
+      if (!node.loaded) await loadChildren(node);
+      nodes = node.children;
+    }
+  }
+  return node ?? null;
+}
+
 /** Appiattisce i nodi visibili (rispettando l'espansione) per la lista virtuale. */
 export function flatten(nodes: TreeNode[], out: TreeNode[] = []): TreeNode[] {
   for (const n of nodes) {
@@ -332,10 +375,14 @@ export const edit = $state({
   target: null as string | null, // path dell'elemento in rinomina
   value: "",
   error: null as string | null,
+  // dove si scrive il nome (M73): con l'occhio acceso una voce dello scaffale sta sia nell'albero sia nello
+  // scaffale, e la casella deve comparire in uno solo dei due, quello da cui è partito il comando
+  where: "tree" as EditPlace,
 });
+export type EditPlace = "tree" | "shelf";
 
 /** Avvia la creazione di un file/cartella dentro `dir` (espandendola se serve). */
-export async function startCreate(dir: string, kind: "file" | "dir") {
+export async function startCreate(dir: string, kind: "file" | "dir", where: EditPlace = "tree") {
   if (dir !== workspace.rootPath) {
     const node = findNode(tree.roots, dir);
     if (node) {
@@ -344,6 +391,7 @@ export async function startCreate(dir: string, kind: "file" | "dir") {
     }
   }
   edit.active = true;
+  edit.where = where;
   edit.mode = "create";
   edit.kind = kind;
   edit.dir = dir;
@@ -353,8 +401,9 @@ export async function startCreate(dir: string, kind: "file" | "dir") {
 }
 
 /** Avvia la rinomina di un elemento esistente. */
-export function startRename(path: string, name: string, isDir: boolean) {
+export function startRename(path: string, name: string, isDir: boolean, where: EditPlace = "tree") {
   edit.active = true;
+  edit.where = where;
   edit.mode = "rename";
   edit.kind = isDir ? "dir" : "file";
   edit.dir = dirname(path);

@@ -325,6 +325,108 @@ fn list_files(root: String) -> Result<Vec<FileRef>, String> {
     Ok(out)
 }
 
+/// Una voce presa da una regola per nome dello scaffale (M73): il pattern, il tipo, il percorso relativo.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ShelfMatch {
+    pattern: String,
+    kind: &'static str, // "folders" | "files"
+    rel: String,
+}
+
+/// `*` (qualunque sequenza, anche vuota) e `?` (un carattere) sul nome, senza distinzione fra maiuscole e
+/// minuscole: le stesse regole per nome dello scaffale del frontend (shelfRules.ts).
+fn glob_match(pattern: &str, name: &str) -> bool {
+    let p: Vec<char> = pattern.to_lowercase().chars().collect();
+    let n: Vec<char> = name.to_lowercase().chars().collect();
+    let (mut pi, mut ni) = (0usize, 0usize);
+    let mut star: Option<usize> = None; // ultimo `*` visto, e da dove nel nome riprovare
+    let mut mark = 0usize;
+    while ni < n.len() {
+        if pi < p.len() && (p[pi] == '?' || p[pi] == n[ni]) {
+            pi += 1;
+            ni += 1;
+        } else if pi < p.len() && p[pi] == '*' {
+            star = Some(pi);
+            mark = ni;
+            pi += 1;
+        } else if let Some(s) = star {
+            pi = s + 1;
+            mark += 1;
+            ni = mark;
+        } else {
+            return false;
+        }
+    }
+    while pi < p.len() && p[pi] == '*' {
+        pi += 1;
+    }
+    pi == p.len()
+}
+
+/// Le cartelle e i file della repo presi dalle regole per nome dello scaffale (M73), per mostrare
+/// «bin — 12 folders» e il loro elenco. Una passata sola; non scende nelle cartelle trovate, in quelle
+/// ignorate da git né in .git, node_modules, target, dist (è lì dentro che una ricerca costerebbe e non
+/// servirebbe). Al massimo 500 voci per regola. Fuori dal thread principale.
+#[tauri::command]
+async fn shelf_find(root: String, folders: Vec<String>, files: Vec<String>) -> Result<Vec<ShelfMatch>, String> {
+    tauri::async_runtime::spawn_blocking(move || shelf_walk(Path::new(&root), &folders, &files))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+fn shelf_walk(root: &Path, folders: &[String], files: &[String]) -> Vec<ShelfMatch> {
+    const MAX_PER_RULE: usize = 500;
+    const MAX_SEEN: usize = 200_000; // tetto di voci lette, per una repo enorme senza .gitignore
+    let repo = git2::Repository::discover(root).ok();
+    let mut found_dirs = vec![0usize; folders.len()];
+    let mut found_files = vec![0usize; files.len()];
+    let mut out: Vec<ShelfMatch> = Vec::new();
+    let mut seen = 0usize;
+    let mut stack = vec![root.to_path_buf()];
+    let rel_of = |p: &Path| p.strip_prefix(root).unwrap_or(p).to_string_lossy().replace('\\', "/");
+    while let Some(dir) = stack.pop() {
+        let Ok(rd) = std::fs::read_dir(&dir) else { continue };
+        for entry in rd.flatten() {
+            seen += 1;
+            if seen > MAX_SEEN {
+                out.sort_by(|a, b| a.rel.cmp(&b.rel));
+                return out;
+            }
+            let p = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            let is_dir = entry.file_type().map(|t| t.is_dir()).unwrap_or(false);
+            if is_dir {
+                let mut matched = false;
+                for (i, pat) in folders.iter().enumerate() {
+                    if glob_match(pat, &name) {
+                        matched = true;
+                        if found_dirs[i] < MAX_PER_RULE {
+                            found_dirs[i] += 1;
+                            out.push(ShelfMatch { pattern: pat.clone(), kind: "folders", rel: rel_of(&p) });
+                        }
+                    }
+                }
+                let skip = matched
+                    || matches!(name.as_str(), ".git" | "node_modules" | "target" | "dist")
+                    || git::ignored(repo.as_ref(), &p);
+                if !skip {
+                    stack.push(p);
+                }
+            } else {
+                for (i, pat) in files.iter().enumerate() {
+                    if found_files[i] < MAX_PER_RULE && glob_match(pat, &name) {
+                        found_files[i] += 1;
+                        out.push(ShelfMatch { pattern: pat.clone(), kind: "files", rel: rel_of(&p) });
+                    }
+                }
+            }
+        }
+    }
+    out.sort_by(|a, b| a.rel.cmp(&b.rel));
+    out
+}
+
 // ---- Persistenza di sessione (per-cartella, per le istanze multiple) ---------
 // Ogni sessione è un blob JSON salvato sotto una chiave = cartella aperta, così due
 // istanze su progetti diversi non si sovrascrivono. Un puntatore "last_session.txt"
@@ -631,6 +733,7 @@ pub fn run() {
             delete_path,
             search_in_project,
             list_files,
+            shelf_find,
             load_state,
             save_state,
             open_new_window,
@@ -811,6 +914,45 @@ mod tests {
         assert!(rels.contains(&"src/main.rs"));
         assert!(!rels.iter().any(|r| r.contains("node_modules")), "node_modules deve essere escluso");
         assert!(!rels.iter().any(|r| r.starts_with(".git")), ".git deve essere escluso");
+        fs::remove_dir_all(&root).ok();
+    }
+
+    #[test]
+    fn glob_match_like_the_shelf_rules() {
+        assert!(glob_match("bin", "BIN"));
+        assert!(!glob_match("bin", "binary"));
+        assert!(glob_match("*.Tests", "App.tests"));
+        assert!(!glob_match("*.Tests", "Tests"));
+        assert!(glob_match(".*", ".git"));
+        assert!(!glob_match(".*", "git"));
+        assert!(glob_match("obj?", "obj1"));
+        assert!(!glob_match("obj?", "obj12"));
+        assert!(glob_match("a*b*c", "aXbYc"));
+        assert!(!glob_match("a*b*c", "aXbY"));
+        assert!(glob_match("*", ""));
+    }
+
+    #[test]
+    fn shelf_walk_finds_rules_without_entering_them() {
+        let root = temp_root("shelf");
+        create_file(s(&root.join("ProjA/bin/Debug/a.dll"))).unwrap();
+        create_file(s(&root.join("ProjA/src/bin/x.txt"))).unwrap();
+        create_file(s(&root.join("ProjB/bin/b.dll"))).unwrap();
+        create_file(s(&root.join("ProjB/App.csproj.user"))).unwrap();
+        create_file(s(&root.join("node_modules/pkg/bin/run.js"))).unwrap();
+        create_file(s(&root.join(".vs/state.json"))).unwrap();
+        let folders = vec!["bin".to_string(), ".*".to_string()];
+        let files = vec!["*.user".to_string()];
+        let m = shelf_walk(&root, &folders, &files);
+        let got: Vec<(String, &str, String)> = m.iter().map(|x| (x.pattern.clone(), x.kind, x.rel.clone())).collect();
+        assert!(got.contains(&("bin".into(), "folders", "ProjA/bin".into())));
+        assert!(got.contains(&("bin".into(), "folders", "ProjA/src/bin".into())));
+        assert!(got.contains(&("bin".into(), "folders", "ProjB/bin".into())));
+        assert!(got.contains(&(".*".into(), "folders", ".vs".into())));
+        assert!(got.contains(&("*.user".into(), "files", "ProjB/App.csproj.user".into())));
+        // dentro node_modules non si cerca; dentro una cartella trovata nemmeno (ProjA/bin/Debug)
+        assert!(!got.iter().any(|(_, _, r)| r.starts_with("node_modules/")));
+        assert_eq!(got.iter().filter(|(p, _, _)| p == "bin").count(), 3);
         fs::remove_dir_all(&root).ok();
     }
 

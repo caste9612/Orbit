@@ -25,6 +25,18 @@
         <span class="ti"><Icon name={t.icon ?? icon[t.kind] ?? "git-commit"} size={14} strokeWidth={2} /></span>
         <span class="msg">{t.message}</span>
       </button>
+      {#if t.action}
+        {@const action = t.action}
+        <button
+          class="act"
+          onclick={() => {
+            action.run();
+            dismiss(t.id);
+          }}
+        >
+          {action.label}
+        </button>
+      {/if}
       {#if t.sticky}
         <button class="x" aria-label="Dismiss" title="Dismiss" onclick={() => dismiss(t.id)}>
           <Icon name="x" size={12} strokeWidth={2} />
@@ -108,6 +120,21 @@
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: 18px; /* riga intera: la notifica è alta 36 (era 36,8) e le icone stanno a margini interi (M57) */
+  }
+  /* azione della notifica (es. «Undo»): testo in accento, separato dal corpo */
+  .act {
+    flex: 0 0 auto;
+    padding: 0 12px;
+    border: 0;
+    border-left: 1px solid var(--color-line);
+    background: transparent;
+    color: var(--color-accent);
+    font-size: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .act:hover {
+    background: var(--color-surface-3);
   }
   .x {
     flex: 0 0 auto;

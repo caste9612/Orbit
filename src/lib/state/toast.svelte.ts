@@ -9,16 +9,26 @@ export interface Toast {
   onClick?: () => void; // azione al click sul corpo (es. vai al terminale che aspetta)
   key?: string; // coalescing/dedup: due notifiche con la stessa key non si duplicano
   icon?: string; // icona al posto di quella del tipo (es. "download" per gli aggiornamenti, M59)
+  action?: { label: string; run: () => void }; // pulsante a destra (es. «Undo» dello scaffale, M73)
 }
 
 export const toasts = $state({ list: [] as Toast[] });
 
 let counter = 0;
 
-export function notify(message: string, kind: Toast["kind"] = "info", ms = 2600) {
+/** Notifica che sparisce da sola dopo `ms`. Con `action` ha un pulsante (es. «Undo»); con `key` prende il
+ *  posto di quella con la stessa key ancora a video, invece di accodarsi (M73: tante azioni di fila sullo
+ *  scaffale lasciano un avviso solo, l'ultimo). */
+export function notify(
+  message: string,
+  kind: Toast["kind"] = "info",
+  ms = 2600,
+  opts: { action?: Toast["action"]; key?: string } = {},
+) {
+  if (opts.key) dismissByKey(opts.key);
   counter += 1;
   const id = counter;
-  toasts.list.push({ id, message, kind });
+  toasts.list.push({ id, message, kind, action: opts.action, key: opts.key });
   setTimeout(() => dismiss(id), ms);
 }
 

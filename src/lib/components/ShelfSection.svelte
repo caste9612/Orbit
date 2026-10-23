@@ -1,83 +1,134 @@
 <script lang="ts">
-  // Sezione «Shelf» in fondo all'Explorer: le cartelle messe nello scaffale, per categoria, e le regole per
-  // nome. Condivisa dalla vista a cartelle e dalla vista Solution (M72: nella Solution le cartelle sparivano
-  // da «Other files» senza un posto dove ritrovarle).
+  // Sezione «Shelf» in fondo all'Explorer, condivisa dalla vista a cartelle e dalla vista Solution (M72).
+  // M73: sempre visibile, anche vuota, così la funzione si fa scoprire; nella testata l'occhio (le voci al
+  // loro posto nell'albero, in grigio), la ⚙ verso la pagina Shelf delle Impostazioni e il pallino git a
+  // sezione chiusa; un separatore per l'altezza; il bersaglio del trascinamento dall'albero. Il contenuto
+  // (categorie, voci, regole, menu: ShelfBody) e il picker arrivano su richiesta, fuori dal chunk d'avvio.
+  import { untrack } from "svelte";
   import Icon from "./Icon.svelte";
-  import MiniTree from "./MiniTree.svelte";
-  import ShelfPicker from "./ShelfPicker.svelte";
-  import { shelfUi, byCategory, shelfCount, unshelveName } from "../state/shelf.svelte";
+  import Lazy from "./Lazy.svelte";
+  import type { PickerTarget } from "./ShelfPicker.svelte";
   import { workspace } from "../state/workspace.svelte";
-  import { joinPath, pathKey } from "../util";
+  import { decorations } from "../state/git.svelte";
+  import { openSettings } from "../state/settings.svelte";
+  import { shelfUi, shelfMatches, matchKey, byCategory, shelfCount, setShelfCollapsed, setShelfHeight, setShelfPeek } from "../state/shelf.svelte";
+  import { shelfDrag } from "../state/shelfDrag.svelte";
+  import { joinPath, normSlash } from "../util";
 
-  let items = $derived(byCategory());
   let count = $derived(shelfCount());
-  let picker = $state<{ x: number; y: number; absPath: string } | null>(null);
 
-  function baseRel(rel: string): string {
-    const i = rel.lastIndexOf("/");
-    return i < 0 ? rel : rel.slice(i + 1);
-  }
+  // a sezione chiusa, un pallino se dentro lo scaffale c'è qualcosa di modificato
+  let anyDirty = $derived.by(() => {
+    const root = workspace.rootPath;
+    if (!shelfUi.collapsed || !root || !count) return false;
+    const deco = decorations();
+    const dirty = (rel: string) => {
+      const p = normSlash(joinPath(root, rel));
+      return deco.dirs.has(p) || deco.files.has(p);
+    };
+    return byCategory().some(
+      (c) => c.paths.some(dirty) || c.rules.some((r) => (shelfMatches.byRule[matchKey(r.kind, r.pattern)]?.rels ?? []).some(dirty)),
+    );
+  });
 
-  function openPicker(e: MouseEvent, absPath: string) {
+  // ---- rilascio dal trascinamento sulla testata: si sceglie la categoria nel picker ----
+  let picker = $state<{ x: number; y: number; target: PickerTarget } | null>(null);
+  $effect(() => {
+    const p = shelfDrag.pick;
+    if (!p) return;
+    untrack(() => {
+      picker = { x: p.x, y: p.y, target: { abs: p.abs, isDir: p.isDir } };
+      shelfDrag.pick = null;
+      if (shelfUi.collapsed) setShelfCollapsed(false);
+    });
+  });
+
+  // ---- separatore: altezza della sezione ----
+  let sectionEl: HTMLDivElement;
+  let sizing: { y: number; h: number; max: number } | null = null;
+  function gripDown(e: PointerEvent) {
+    if (e.button !== 0) return;
+    const parent = sectionEl.parentElement?.clientHeight ?? 600;
+    sizing = { y: e.clientY, h: sectionEl.offsetHeight, max: Math.max(80, parent - 60) };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     e.preventDefault();
-    e.stopPropagation();
-    picker = { x: e.clientX, y: e.clientY, absPath };
+  }
+  function gripMove(e: PointerEvent) {
+    if (!sizing) return;
+    shelfUi.height = Math.round(Math.max(52, Math.min(sizing.max, sizing.h - (e.clientY - sizing.y))));
+  }
+  function gripUp() {
+    if (!sizing) return;
+    sizing = null;
+    setShelfHeight(shelfUi.height);
   }
 </script>
 
-{#if items.length}
-  <div class="shelf">
-    <button class="shelf-head" onclick={() => (shelfUi.collapsed = !shelfUi.collapsed)}>
+<div
+  class="shelf"
+  class:sized={!shelfUi.collapsed && shelfUi.height !== null}
+  class:dragging={!!shelfDrag.item}
+  style={!shelfUi.collapsed && shelfUi.height !== null ? `height:${shelfUi.height}px` : ""}
+  bind:this={sectionEl}
+>
+  {#if !shelfUi.collapsed}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div
+      class="grip"
+      title="Drag to resize · double-click for the automatic height"
+      onpointerdown={gripDown}
+      onpointermove={gripMove}
+      onpointerup={gripUp}
+      onpointercancel={gripUp}
+      ondblclick={() => setShelfHeight(null)}
+    ></div>
+  {/if}
+  <div class="shelf-head" class:drop={shelfDrag.over === "*"} data-shelf-drop="*">
+    <button class="head-toggle" onclick={() => setShelfCollapsed(!shelfUi.collapsed)} title={shelfUi.collapsed ? "Show the shelf" : "Hide the shelf"}>
       <span class="chev" class:open={!shelfUi.collapsed}><Icon name="chevron-right" size={13} strokeWidth={2} /></span>
       <Icon name="archive" size={13} strokeWidth={1.7} />
       <span class="shelf-ttl">Shelf</span>
-      <span class="shelf-count">{count}</span>
+      {#if anyDirty}<span class="gdot" title="Changes inside shelved items"></span>{/if}
     </button>
-    {#if !shelfUi.collapsed}
-      <div class="shelf-body">
-        {#each items as cat (cat.category)}
-          <button class="cat-head" onclick={() => (shelfUi.cats[cat.category] = !shelfUi.cats[cat.category])}>
-            <span class="chev" class:open={shelfUi.cats[cat.category]}><Icon name="chevron-right" size={12} strokeWidth={2} /></span>
-            <span class="cat-name">{cat.category}</span>
-            <span class="cat-count">{cat.folders.length + cat.names.length}</span>
-          </button>
-          {#if shelfUi.cats[cat.category]}
-            {#each cat.names as nm (nm)}
-              <div class="srule" title="Rule: hides every folder named “{nm}”">
-                <span class="ic"><Icon name="archive" size={13} strokeWidth={1.6} /></span>
-                <span class="sfname">{nm}</span>
-                <span class="spath">all folders</span>
-                <button class="rule-x" title="Remove the rule for “{nm}”" aria-label="Remove rule" onclick={() => unshelveName(nm)}>
-                  <Icon name="x" size={12} strokeWidth={2} />
-                </button>
-              </div>
-            {/each}
-            {#each cat.folders as rel (rel)}
-              {@const abs = joinPath(workspace.rootPath ?? "", rel)}
-              {@const key = pathKey(abs)}
-              <button class="sfolder" onclick={() => (shelfUi.folders[key] = !shelfUi.folders[key])} oncontextmenu={(e) => openPicker(e, abs)} title={rel}>
-                <span class="chev" class:open={shelfUi.folders[key]}><Icon name="chevron-right" size={12} strokeWidth={2} /></span>
-                <span class="ic dir"><Icon name="folder" size={14} strokeWidth={1.6} /></span>
-                <span class="sfname">{baseRel(rel)}</span>
-                <span class="spath">{rel}</span>
-              </button>
-              {#if shelfUi.folders[key]}
-                <MiniTree path={abs} depth={2} />
-              {/if}
-            {/each}
-          {/if}
-        {/each}
-      </div>
+    <button
+      class="hbtn"
+      class:on={shelfUi.peek}
+      title={shelfUi.peek ? "Shelved items are shown in the tree, dimmed — click to hide them" : "Show shelved items in the tree, dimmed"}
+      aria-pressed={shelfUi.peek}
+      onclick={() => setShelfPeek(!shelfUi.peek)}
+    >
+      <Icon name="eye" size={13} strokeWidth={1.8} />
+    </button>
+    <button class="hbtn" title="Shelf settings" aria-label="Shelf settings" onclick={() => openSettings("shelf")}>
+      <Icon name="settings" size={13} strokeWidth={1.8} />
+    </button>
+    {#if count}<span class="shelf-count">{count}</span>{/if}
+  </div>
+
+  {#if !shelfUi.collapsed}
+    {#if count}
+      <Lazy load={() => import("./ShelfBody.svelte")} />
+    {:else}
+      <div class="help">Right-click a folder or a file → <b>Add to shelf…</b>, or drag it here.</div>
     {/if}
+  {/if}
+</div>
+
+{#if shelfDrag.item}
+  <div class="ghost" style="left:{shelfDrag.x + 14}px; top:{shelfDrag.y + 10}px">
+    <Icon name={shelfDrag.item.isDir ? "folder" : "file"} size={13} strokeWidth={1.7} />
+    <span>{shelfDrag.item.name}</span>
+    {#if shelfDrag.over}<span class="to">→ {shelfDrag.over === "*" ? "Shelf…" : shelfDrag.over}</span>{/if}
   </div>
 {/if}
 
 {#if picker}
-  <ShelfPicker x={picker.x} y={picker.y} absPath={picker.absPath} onClose={() => (picker = null)} />
+  <Lazy load={() => import("./ShelfPicker.svelte")} x={picker.x} y={picker.y} target={picker.target} onClose={() => (picker = null)} />
 {/if}
 
 <style>
   .shelf {
+    position: relative;
     flex: 0 0 auto;
     max-height: 45%;
     display: flex;
@@ -85,13 +136,39 @@
     border-top: 1px solid var(--color-line);
     background: var(--color-surface-2);
   }
+  /* altezza scelta col separatore: vale quella, ma l'albero resta sempre visibile */
+  .shelf.sized {
+    max-height: calc(100% - 60px);
+  }
+  .grip {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -3px;
+    height: 6px;
+    z-index: 2;
+    cursor: row-resize;
+  }
+  .grip:hover,
+  .grip:active {
+    background: rgba(var(--accent-rgb), 0.5);
+  }
   .shelf-head {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 2px;
     height: 26px;
     flex: 0 0 26px;
-    padding: 0 8px;
+    padding: 0 6px 0 0;
+  }
+  .head-toggle {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 0 0 8px;
     background: transparent;
     border: 0;
     color: var(--color-ink-muted);
@@ -101,20 +178,8 @@
     text-transform: uppercase;
     cursor: pointer;
   }
-  .shelf-head:hover {
+  .head-toggle:hover {
     color: var(--color-ink);
-  }
-  .shelf-ttl {
-    flex: 1;
-    text-align: left;
-  }
-  .shelf-count {
-    font-weight: 700;
-    color: var(--color-ink-subtle);
-  }
-  .shelf-body {
-    overflow: auto;
-    padding-bottom: 4px;
   }
   .chev {
     flex: 0 0 16px;
@@ -126,107 +191,77 @@
   .chev.open {
     transform: rotate(90deg);
   }
-  .ic {
+  .gdot {
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-warning);
+  }
+  .hbtn {
     flex: 0 0 auto;
     display: grid;
     place-items: center;
-    color: var(--color-ink-subtle);
-  }
-  .ic.dir {
-    color: var(--color-ink-muted);
-  }
-  .cat-head {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    width: 100%;
-    height: 22px;
-    padding: 0 8px;
-    background: transparent;
-    border: 0;
-    color: var(--color-ink);
-    font-size: 12px;
-    text-align: left;
-    cursor: pointer;
-  }
-  .cat-head:hover {
-    background: var(--color-surface-3);
-  }
-  .cat-name {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .cat-count {
-    color: var(--color-ink-subtle);
-    font-size: 11px;
-  }
-  .sfolder {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    width: 100%;
-    height: 21px;
-    padding: 0 8px 0 16px;
-    background: transparent;
-    border: 0;
-    color: var(--color-ink-muted);
-    font-size: 12.5px;
-    text-align: left;
-    white-space: nowrap;
-    cursor: pointer;
-  }
-  .sfolder:hover {
-    background: var(--color-surface-3);
-    color: var(--color-ink);
-  }
-  .sfname {
-    flex: 0 0 auto;
-  }
-  .spath {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--color-ink-subtle);
-    font-size: 11px;
-  }
-  /* regola-per-nome: come una .sfolder ma senza chevron, con × per rimuoverla */
-  .srule {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    width: 100%;
-    height: 21px;
-    padding: 0 6px 0 16px;
-    color: var(--color-ink-muted);
-    font-size: 12.5px;
-    white-space: nowrap;
-  }
-  .srule:hover {
-    background: var(--color-surface-3);
-    color: var(--color-ink);
-  }
-  .rule-x {
-    flex: 0 0 auto;
-    display: grid;
-    place-items: center;
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 20px;
     padding: 0;
     border: 0;
     border-radius: var(--r-sm);
     background: transparent;
     color: var(--color-ink-subtle);
     cursor: pointer;
-    opacity: 0;
   }
-  .srule:hover .rule-x {
-    opacity: 1;
+  .hbtn:hover {
+    background: var(--color-surface-3);
+    color: var(--color-ink);
   }
-  .rule-x:hover {
-    background: rgba(241, 76, 76, 0.16);
-    color: #ff9b9b;
+  .hbtn.on {
+    color: var(--color-accent);
+  }
+  .shelf-count {
+    min-width: 14px;
+    padding-left: 3px;
+    color: var(--color-ink-subtle);
+    font-size: 11px;
+    font-weight: 700;
+    text-align: right;
+  }
+  /* bersaglio del trascinamento dall'albero */
+  .shelf.dragging .shelf-head {
+    outline: 1px dashed var(--color-line-strong);
+    outline-offset: -2px;
+  }
+  .shelf-head.drop {
+    background: rgba(var(--accent-rgb), 0.18);
+    outline: 1px solid var(--color-accent) !important;
+  }
+  .help {
+    padding: 4px 12px 8px 30px;
+    color: var(--color-ink-subtle);
+    font-size: 11.5px;
+    line-height: 1.45;
+  }
+  .help b {
+    font-weight: 600;
+    color: var(--color-ink-muted);
+  }
+  /* la voce trascinata segue il puntatore */
+  .ghost {
+    position: fixed;
+    z-index: 95;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: var(--r-md);
+    background: var(--color-surface-2);
+    box-shadow: var(--shadow-pop);
+    color: var(--color-ink);
+    font-size: 12px;
+    pointer-events: none;
+  }
+  .ghost .to {
+    color: var(--color-accent);
   }
 </style>

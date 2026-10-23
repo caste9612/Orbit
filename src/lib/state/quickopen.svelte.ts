@@ -2,6 +2,7 @@
 // L'elenco file è fornito dal comando Rust `list_files` e caricato all'apertura.
 import { workspace, openFile } from "./workspace.svelte";
 import { listFiles, type FileRef } from "./projectFiles";
+import { hiddenFromSearch } from "./shelf.svelte";
 
 export type { FileRef };
 
@@ -28,7 +29,8 @@ export async function openPalette() {
   quickopen.index = 0;
   quickopen.loading = true;
   try {
-    files = await listFiles(root);
+    // fuori le voci delle categorie dello scaffale escluse da ricerca e Quick Open (M73)
+    files = (await listFiles(root)).filter((f) => !hiddenFromSearch(f.rel));
   } catch (e) {
     console.error("list_files", e);
     files = [];

@@ -11,6 +11,8 @@
   import Lazy from "./Lazy.svelte";
   import MatchText from "./MatchText.svelte";
   import SettingsKeyboard from "./SettingsKeyboard.svelte";
+  import SettingsShelf from "./SettingsShelf.svelte";
+  import { shelfUi, setShelfPeek, shelfGlobal } from "../state/shelf.svelte";
   import {
     settings,
     settingsUI,
@@ -68,6 +70,7 @@
   const SECTIONS: { id: SettingsSection; label: string; icon: string }[] = [
     { id: "appearance", label: "Appearance", icon: "paintbrush" },
     { id: "editor", label: "Editor", icon: "code" },
+    { id: "shelf", label: "Shelf", icon: "archive" },
     { id: "terminal", label: "Terminal", icon: "terminal" },
     { id: "claude", label: "Claude", icon: "sparkles" },
     { id: "keyboard", label: "Keyboard", icon: "keyboard" },
@@ -82,6 +85,7 @@
   type RowId =
     | "theme" | "accent" | "motion"
     | "edFont" | "edSize" | "edCaret" | "codeLens" | "autosave" | "mdMode"
+    | "shelfPeek" | "shelfRules"
     | "tmFont" | "tmSize" | "tmCaret" | "webgl" | "scrollback"
     | "claudeTerminal" | "bellNotify" | "claudeMenu"
     | "keymap"
@@ -110,6 +114,12 @@
     { id: "autosave", section: "editor", name: "Autosave", hint: "Save edited files on focus loss and when switching tabs (IntelliJ-style)", kw: "save" },
     { id: "mdMode", section: "editor", name: "Open Markdown as", hint: "Default view for `.md` files — preview, source, or preview for READMEs only",
       kw: "markdown readme preview source" },
+
+    { id: "shelfPeek", section: "shelf", name: "Show shelved items in the tree",
+      hint: "Shelved folders and files stay in place, dimmed — the eye in the Shelf header does the same", kw: "shelf dim hide peek explorer" },
+    { id: "shelfRules", section: "shelf", name: "Rules for every repository",
+      hint: "Names or patterns (`*`, `?`) shelved in every repository on this PC — below, with the categories' colors and search option",
+      kw: "shelf global pattern folders files category color search quick open explorer" },
 
     { id: "tmFont", section: "terminal", name: "Font", hint: "Monospace family — shared with the editor", kw: "family typeface" },
     { id: "tmSize", section: "terminal", name: "Font size", hint: "Or Ctrl+scroll over the terminal", kw: "zoom" },
@@ -275,7 +285,12 @@
 
 {#snippet control(id: RowId)}
   {@const sw = SWITCHES[id]}
-  {#if sw}
+  {#if id === "shelfPeek"}
+    <Switch checked={shelfUi.peek} onToggle={() => setShelfPeek(!shelfUi.peek)} label="Show shelved items in the tree" />
+  {:else if id === "shelfRules"}
+    {@const n = Object.keys(shelfGlobal.folders).length + Object.keys(shelfGlobal.files).length}
+    <span class="ctext">{n === 1 ? "1 rule" : `${n} rules`}</span>
+  {:else if sw}
     <Switch checked={settings[sw]} onToggle={() => (settings[sw] = !settings[sw])} label={ROWS.find((r) => r.id === id)?.name} />
   {:else if id === "accent"}
     <div class="swatches">
@@ -497,10 +512,12 @@
       {/if}
     {:else}
       <h2 class="stitle">{labelOf(settingsUI.section)}</h2>
-      {#each ROWS.filter((r) => r.section === settingsUI.section) as r (r.id)}
+      <!-- «Rules for every repository» serve alla ricerca: nella pagina Shelf c'è il blocco completo (SettingsShelf) -->
+      {#each ROWS.filter((r) => r.section === settingsUI.section && r.id !== "shelfRules") as r (r.id)}
         {@render row(r)}
       {/each}
       {#if settingsUI.section === "keyboard"}<SettingsKeyboard groups={kbGroups} />{/if}
+      {#if settingsUI.section === "shelf"}<SettingsShelf />{/if}
     {/if}
   </div>
 
@@ -735,6 +752,12 @@
     font-size: 11.5px;
     line-height: 1.45;
     color: var(--color-ink-subtle);
+  }
+  /* un valore da leggere al posto di un controllo (es. quante regole globali ha lo scaffale) */
+  .ctext {
+    flex: 0 0 auto;
+    color: var(--color-ink-muted);
+    font-size: 12px;
   }
   .control {
     flex: 0 0 auto;

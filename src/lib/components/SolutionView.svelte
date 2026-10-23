@@ -6,8 +6,9 @@
   import Icon from "./Icon.svelte";
   import FileGlyph from "./FileGlyph.svelte";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
-  import ShelfPicker from "./ShelfPicker.svelte";
+  import Lazy from "./Lazy.svelte";
   import ShelfSection from "./ShelfSection.svelte";
+  import TreeRow from "./TreeRow.svelte";
   import { explorerView, setExplorerView } from "../state/explorerView.svelte";
   import {
     sol,
@@ -47,7 +48,9 @@
   import { layout } from "../state/layout.svelte";
   import { decorations } from "../state/git.svelte";
   import { settings } from "../state/settings.svelte";
-  import { isHidden, relOf, NOISE, shelveNoise } from "../state/shelf.svelte";
+  import { isHidden, relOf, colorOf, shelfUi, NOISE, shelveNoise, shelveDotFolders } from "../state/shelf.svelte";
+  import { shelfDragDown, shelfDragClick } from "../state/shelfDrag.svelte";
+  import { fsMenuItems } from "../state/treeMenu";
   import { notify } from "../state/toast.svelte";
   import { fileIcon, basename, dirname, isUnder, normSlash, pathKey, runCommand, samePath } from "../util";
   import { writeClipboard } from "../clipboard";
@@ -58,7 +61,7 @@
 
   type Row =
     | { kind: "s"; node: SNode; depth: number; key: string }
-    | { kind: "f"; node: TreeNode; depth: number; key: string }
+    | { kind: "f"; node: TreeNode; depth: number; key: string; shelved: boolean }
     | { kind: "note"; text: string; error: boolean; depth: number; key: string }
     | { kind: "input"; depth: number; key: string };
 
@@ -94,7 +97,7 @@
     const out: Row[] = [];
     const root = data.root;
     if (!root) return out;
-    const creating = edit.active && edit.mode === "create" ? edit.dir : null;
+    const creating = edit.active && edit.mode === "create" && edit.where === "tree" ? edit.dir : null;
     const visit = (n: SNode, depth: number) => {
       out.push({ kind: "s", node: n, depth, key: n.id });
       if (!sol.expanded[n.id]) return;
@@ -114,8 +117,11 @@
       if (creating && workspace.rootPath && samePath(creating, workspace.rootPath)) out.push({ kind: "input", depth: 1, key: "__input__" });
       const fs = (nodes: TreeNode[], depth: number) => {
         for (const n of nodes) {
-          if (hiddenInOther(n.entry.path, n.entry.name, depth) || isHidden(relOf(n.entry.path), n.entry.isDir)) continue;
-          out.push({ kind: "f", node: n, depth, key: `fs:${n.entry.path}` });
+          if (hiddenInOther(n.entry.path, n.entry.name, depth)) continue;
+          // le voci dello scaffale: via, o al loro posto in grigio con l'occhio acceso (M73)
+          const shelved = isHidden(relOf(n.entry.path), n.entry.isDir);
+          if (shelved && !shelfUi.peek) continue;
+          out.push({ kind: "f", node: n, depth, key: `fs:${n.entry.path}`, shelved });
           if (!n.entry.isDir || !n.expanded) continue;
           if (creating && samePath(n.entry.path, creating)) out.push({ kind: "input", depth: depth + 1, key: "__input__" });
           fs(n.children, depth + 1);
@@ -294,10 +300,11 @@
 
   let menu = $state<{ x: number; y: number; items: MenuItem[]; key: string } | null>(null);
   // scaffale in «Other files» (M72), come nella vista a cartelle
-  let shelfPicker = $state<{ x: number; y: number; absPath: string } | null>(null);
+  let shelfPicker = $state<{ x: number; y: number; absPath: string; isDir: boolean } | null>(null);
   let hasNoise = $derived(
     flatten(tree.roots).some((n) => n.entry.isDir && NOISE.includes(n.entry.name) && !isHidden(relOf(n.entry.path))),
   );
+  let hasDots = $derived(tree.roots.some((n) => n.entry.isDir && n.entry.name.startsWith(".") && !isHidden(relOf(n.entry.path))));
 
   function buildItems(verb: BuildVerb, n: SNode, label: string): MenuItem {
     const icons: Record<BuildVerb, string> = { build: "hammer", rebuild: "refresh", clean: "eraser" };
@@ -396,37 +403,19 @@
           { label: "Reveal in Explorer", icon: "external-link", onClick: () => revealInOs(root) },
         );
         if (hasNoise) items.push({ label: "Shelve noise folders", icon: "archive", separatorBefore: true, onClick: shelveNoise });
+        if (hasDots) items.push({ label: "Shelve dot-folders", icon: "archive", separatorBefore: !hasNoise, onClick: shelveDotFolders });
         break;
       }
     }
     return items;
   }
 
-  /** Menu delle righe di «Other files»: quello dell'Explorer a cartelle. `x`/`y`: dove aprire lo scaffale. */
+  /** Menu delle righe di «Other files»: quello dell'Explorer a cartelle (treeMenu.ts, M73). `x`/`y`: dove
+   *  aprire lo scaffale. */
   function fsItems(n: TreeNode, x: number, y: number): MenuItem[] {
-    const p = n.entry.path;
-    const dir = n.entry.isDir ? p : dirname(p);
-    const items: MenuItem[] = [];
-    if (!n.entry.isDir && runCommand(n.entry.name)) items.push({ label: "Run", icon: "play", onClick: () => runFile(p) });
-    items.push(
-      { label: "New file…", icon: "file-plus", separatorBefore: items.length > 0, onClick: () => void startCreate(dir, "file") },
-      { label: "New folder…", icon: "folder-plus", onClick: () => void startCreate(dir, "dir") },
-      { label: "Open in terminal", icon: "terminal", separatorBefore: true, onClick: () => openTerminalAt(dir) },
-      { label: "Reveal in Explorer", icon: "external-link", onClick: () => revealInOs(p) },
-    );
-    if (!n.entry.isDir) items.push({ label: "Open to the side", icon: "panel-left", separatorBefore: true, onClick: () => void openInNewGroup(p) });
-    items.push(
-      { label: "Rename…", icon: "pencil", separatorBefore: true, onClick: () => startRename(p, n.entry.name, n.entry.isDir) },
-      { label: "Delete", icon: "trash", danger: true, onClick: () => void deleteEntry(p, n.entry.name, n.entry.isDir) },
-    );
-    const paths = pathItems(p, true);
-    if (n.entry.isDir) {
-      // come nell'Explorer: «Add to shelf…» apre la sezione dei percorsi
-      items.push({ label: "Add to shelf…", icon: "archive", separatorBefore: true, onClick: () => (shelfPicker = { x, y, absPath: p }) });
-      paths[0].separatorBefore = false;
-    }
-    items.push(...paths);
-    return items;
+    const { path, isDir } = n.entry;
+    const shelf = { label: "Add to shelf…", icon: "archive", onClick: () => (shelfPicker = { x, y, absPath: path, isDir }) };
+    return fsMenuItems(n, { shelf, remove: (p, name, d) => void remove(p, name, d) });
   }
 
   async function openMenu(e: MouseEvent, row: Row) {
@@ -506,48 +495,26 @@
           </div>
         {:else if r.kind === "f"}
           {@const n = r.node}
-          {@const renaming = renamingPath(n.entry.path)}
-          {@const gcode = n.entry.isDir ? undefined : fileCode(n.entry.path)}
-          <button
-            type="button"
-            class="row"
-            class:active={!n.entry.isDir && samePath(n.entry.path, activePath() ?? "")}
-            class:target={menu?.key === r.key}
-            style="top:{idx * ROW}px; height:{ROW}px; padding-left:{6 + r.depth * 14}px"
-            onclick={() => !renaming && (n.entry.isDir ? toggleFs(n) : openFile(n.entry.path))}
+          <TreeRow
+            node={n}
+            depth={r.depth}
+            top={idx * ROW}
+            height={ROW}
+            active={!n.entry.isDir && samePath(n.entry.path, activePath() ?? "")}
+            target={menu?.key === r.key}
+            dim={r.shelved}
+            swatch={r.shelved ? colorOf(relOf(n.entry.path), n.entry.isDir) : null}
+            gitCode={n.entry.isDir ? undefined : fileCode(n.entry.path)}
+            gitDir={n.entry.isDir && dirDirty(n.entry.path)}
+            onclick={() => {
+              if (shelfDragClick()) return; // il click che chiude un trascinamento sullo scaffale
+              if (n.entry.isDir) void toggleFs(n);
+              else void openFile(n.entry.path);
+            }}
             oncontextmenu={(e) => openMenu(e, r)}
-            title={n.entry.name}
-          >
-            <span class="chev" class:open={n.expanded}>
-              {#if n.entry.isDir}<Icon name="chevron-right" size={14} strokeWidth={2} />{/if}
-            </span>
-            {#if n.entry.isDir}
-              <span class="ic dir"><Icon name={n.expanded ? "folder-open" : "folder"} size={16} strokeWidth={1.6} /></span>
-            {:else}
-              {@const fi = fileIcon(n.entry.name)}
-              <span class="ic"><FileGlyph glyph={fi.glyph} color={fi.color} size={16} /></span>
-            {/if}
-            {#if renaming}
-              <!-- svelte-ignore a11y_autofocus -->
-              <input
-                class="edit"
-                class:err={!!edit.error}
-                bind:value={edit.value}
-                use:autofocus
-                onkeydown={onInputKey}
-                onblur={() => void commit()}
-                onclick={(e) => e.stopPropagation()}
-                title={edit.error ?? ""}
-              />
-            {:else}
-              <span class="name" style={gcode ? `color:${gitColor(gcode)}` : ""}>{n.entry.name}</span>
-              {#if gcode}
-                <span class="gcode" style="color:{gitColor(gcode)}">{gcode}</span>
-              {:else if n.entry.isDir && dirDirty(n.entry.path)}
-                <span class="gdot"></span>
-              {/if}
-            {/if}
-          </button>
+            onpointerdown={(e) => !r.shelved && shelfDragDown(e, { abs: n.entry.path, name: n.entry.name, isDir: n.entry.isDir })}
+            onCommit={() => void commit()}
+          />
         {:else}
           {@const n = r.node}
           {@const open = !!sol.expanded[n.id]}
@@ -628,7 +595,13 @@
   <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => (menu = null)} />
 {/if}
 {#if shelfPicker}
-  <ShelfPicker x={shelfPicker.x} y={shelfPicker.y} absPath={shelfPicker.absPath} onClose={() => (shelfPicker = null)} />
+  <Lazy
+    load={() => import("./ShelfPicker.svelte")}
+    x={shelfPicker.x}
+    y={shelfPicker.y}
+    target={{ abs: shelfPicker.absPath, isDir: shelfPicker.isDir }}
+    onClose={() => (shelfPicker = null)}
+  />
 {/if}
 
 <style>

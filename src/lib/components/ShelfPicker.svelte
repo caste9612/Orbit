@@ -96,7 +96,7 @@
     <div class="divider"></div>
     <button class="remove" onclick={() => { if (applyByName) unshelveName(name); else unshelveFolder(rel); onClose(); }}>
       <Icon name="trash" size={13} strokeWidth={1.8} />
-      <span>{applyByName ? `Rimuovi regola «${name}»` : "Remove from shelf"}</span>
+      <span>{applyByName ? `Remove the rule for “${name}”` : "Remove from shelf"}</span>
     </button>
   {/if}
 </div>

@@ -3,8 +3,8 @@
   import Icon from "./Icon.svelte";
   import FileGlyph from "./FileGlyph.svelte";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
-  import MiniTree from "./MiniTree.svelte";
   import ShelfPicker from "./ShelfPicker.svelte";
+  import ShelfSection from "./ShelfSection.svelte";
   import {
     tree,
     toggle,
@@ -26,9 +26,9 @@
   import { runFile } from "../state/run.svelte";
   import { layout } from "../state/layout.svelte";
   import { decorations } from "../state/git.svelte";
-  import { shelf, relOf, isHidden, byCategory, shelveByName, isNameRuled, unshelveName } from "../state/shelf.svelte";
+  import { relOf, isHidden, NOISE, shelveNoise } from "../state/shelf.svelte";
   import { notify } from "../state/toast.svelte";
-  import { fileIcon, basename, dirname, joinPath, normSlash, runCommand, samePath } from "../util";
+  import { fileIcon, basename, dirname, normSlash, runCommand, samePath } from "../util";
   import { writeClipboard } from "../clipboard";
 
   // Lista virtuale ad altezza fissa: rende solo le righe nel viewport (+overscan).
@@ -53,7 +53,7 @@
   }
 
   // Albero principale senza le cartelle messe nello scaffale (raggruppate in fondo).
-  let rows = $derived(buildRows(flatten(tree.roots).filter((n) => !isHidden(relOf(n.entry.path)))));
+  let rows = $derived(buildRows(flatten(tree.roots).filter((n) => !isHidden(relOf(n.entry.path), n.entry.isDir))));
   let scrollTop = $state(0);
   let viewportH = $state(600);
   let treeEl: HTMLDivElement;
@@ -72,22 +72,7 @@
     return "var(--color-warning)";
   }
 
-  // ---- scaffale (sezione in fondo) ----
-  let shelfItems = $derived(byCategory());
-  let shelfCount = $derived(Object.keys(shelf.map).length);
-  let shelfCollapsed = $state(false);
-  let catOpen = $state<Record<string, boolean>>({});
-  let folderOpen = $state<Record<string, boolean>>({});
-
-  function baseRel(rel: string): string {
-    const i = rel.lastIndexOf("/");
-    return i < 0 ? rel : rel.slice(i + 1);
-  }
-  const NOISE = ["node_modules", "target", "dist", ".git"];
-  // Regole-per-nome → nasconde le cartelle rumore ovunque, anche ANNIDATE (prima solo primo livello).
-  function shelveNoise() {
-    for (const nm of NOISE) shelveByName(nm, "Generato");
-  }
+  // cartelle rumore ancora nell'albero: il menu della radice offre di metterle nello scaffale
   let hasNoise = $derived(
     flatten(tree.roots).some(
       (n) => n.entry.isDir && NOISE.includes(n.entry.name) && !isHidden(relOf(n.entry.path)),
@@ -190,12 +175,6 @@
     }
     return items;
   }
-
-  function openShelfPicker(e: MouseEvent, absPath: string) {
-    e.preventDefault();
-    e.stopPropagation();
-    shelfPicker = { x: e.clientX, y: e.clientY, absPath };
-  }
 </script>
 
 <div class="explorer-root">
@@ -284,51 +263,7 @@
     </div>
   </div>
 
-  {#if shelfItems.length}
-    <div class="shelf">
-      <button class="shelf-head" onclick={() => (shelfCollapsed = !shelfCollapsed)}>
-        <span class="chev" class:open={!shelfCollapsed}><Icon name="chevron-right" size={13} strokeWidth={2} /></span>
-        <Icon name="archive" size={13} strokeWidth={1.7} />
-        <span class="shelf-ttl">Shelf</span>
-        <span class="shelf-count">{shelfCount}</span>
-      </button>
-      {#if !shelfCollapsed}
-        <div class="shelf-body">
-          {#each shelfItems as cat (cat.category)}
-            <button class="cat-head" onclick={() => (catOpen[cat.category] = !catOpen[cat.category])}>
-              <span class="chev" class:open={catOpen[cat.category]}><Icon name="chevron-right" size={12} strokeWidth={2} /></span>
-              <span class="cat-name">{cat.category}</span>
-              <span class="cat-count">{cat.folders.length + cat.names.length}</span>
-            </button>
-            {#if catOpen[cat.category]}
-              {#each cat.names as nm (nm)}
-                <div class="srule" title="Rule: hides every folder named “{nm}”">
-                  <span class="ic"><Icon name="archive" size={13} strokeWidth={1.6} /></span>
-                  <span class="sfname">{nm}</span>
-                  <span class="spath">all folders</span>
-                  <button class="rule-x" title="Remove the rule for “{nm}”" aria-label="Remove rule" onclick={() => unshelveName(nm)}>
-                    <Icon name="x" size={12} strokeWidth={2} />
-                  </button>
-                </div>
-              {/each}
-              {#each cat.folders as rel (rel)}
-                {@const abs = joinPath(workspace.rootPath ?? "", rel)}
-                <button class="sfolder" onclick={() => (folderOpen[rel] = !folderOpen[rel])} oncontextmenu={(e) => openShelfPicker(e, abs)} title={rel}>
-                  <span class="chev" class:open={folderOpen[rel]}><Icon name="chevron-right" size={12} strokeWidth={2} /></span>
-                  <span class="ic dir"><Icon name="folder" size={14} strokeWidth={1.6} /></span>
-                  <span class="sfname">{baseRel(rel)}</span>
-                  <span class="spath">{rel}</span>
-                </button>
-                {#if folderOpen[rel]}
-                  <MiniTree path={abs} depth={2} />
-                {/if}
-              {/each}
-            {/if}
-          {/each}
-        </div>
-      {/if}
-    </div>
-  {/if}
+  <ShelfSection />
 </div>
 
 {#if menu}
@@ -447,140 +382,5 @@
   }
   .edit.err {
     border-color: var(--color-danger);
-  }
-
-  /* ---- scaffale ---- */
-  .shelf {
-    flex: 0 0 auto;
-    max-height: 45%;
-    display: flex;
-    flex-direction: column;
-    border-top: 1px solid var(--color-line);
-    background: var(--color-surface-2);
-  }
-  .shelf-head {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    height: 26px;
-    flex: 0 0 26px;
-    padding: 0 8px;
-    background: transparent;
-    border: 0;
-    color: var(--color-ink-muted);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    cursor: pointer;
-  }
-  .shelf-head:hover {
-    color: var(--color-ink);
-  }
-  .shelf-ttl {
-    flex: 1;
-    text-align: left;
-  }
-  .shelf-count {
-    font-weight: 700;
-    color: var(--color-ink-subtle);
-  }
-  .shelf-body {
-    overflow: auto;
-    padding-bottom: 4px;
-  }
-  .cat-head {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    width: 100%;
-    height: 22px;
-    padding: 0 8px;
-    background: transparent;
-    border: 0;
-    color: var(--color-ink);
-    font-size: 12px;
-    text-align: left;
-    cursor: pointer;
-  }
-  .cat-head:hover {
-    background: var(--color-surface-3);
-  }
-  .cat-name {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .cat-count {
-    color: var(--color-ink-subtle);
-    font-size: 11px;
-  }
-  .sfolder {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    width: 100%;
-    height: 21px;
-    padding: 0 8px 0 16px;
-    background: transparent;
-    border: 0;
-    color: var(--color-ink-muted);
-    font-size: 12.5px;
-    text-align: left;
-    white-space: nowrap;
-    cursor: pointer;
-  }
-  .sfolder:hover {
-    background: var(--color-surface-3);
-    color: var(--color-ink);
-  }
-  .sfname {
-    flex: 0 0 auto;
-  }
-  .spath {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--color-ink-subtle);
-    font-size: 11px;
-  }
-  /* regola-per-nome: come una .sfolder ma senza chevron, con × per rimuoverla */
-  .srule {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    width: 100%;
-    height: 21px;
-    padding: 0 6px 0 16px;
-    color: var(--color-ink-muted);
-    font-size: 12.5px;
-    white-space: nowrap;
-  }
-  .srule:hover {
-    background: var(--color-surface-3);
-    color: var(--color-ink);
-  }
-  .rule-x {
-    flex: 0 0 auto;
-    display: grid;
-    place-items: center;
-    width: 18px;
-    height: 18px;
-    padding: 0;
-    border: 0;
-    border-radius: var(--r-sm);
-    background: transparent;
-    color: var(--color-ink-subtle);
-    cursor: pointer;
-    opacity: 0;
-  }
-  .srule:hover .rule-x {
-    opacity: 1;
-  }
-  .rule-x:hover {
-    background: rgba(241, 76, 76, 0.16);
-    color: #ff9b9b;
   }
 </style>

@@ -9,13 +9,16 @@ export interface ShelfCategory {
   names: string[]; // nomi con regola-per-nome
 }
 
-/** Una cartella (rel, separatori "/") è nascosta date le regole per-percorso (`map`) e per-nome
- *  (`byName`): se è nello scaffale, se è dentro una che lo è, oppure se un suo segmento di path
- *  coincide con un nome a regola (match case-insensitive, Windows). */
+/** Una voce dell'albero (rel, separatori "/") è nascosta date le regole per-percorso (`map`) e per-nome
+ *  (`byName`): se è nello scaffale, se è dentro una cartella che lo è, oppure se una delle sue CARTELLE
+ *  coincide con un nome a regola (match case-insensitive, Windows). `isDir: false` = un file: il suo nome
+ *  non conta per le regole per nome, che valgono per le cartelle (M72: una regola «logs» nascondeva
+ *  anche un file chiamato `logs`). */
 export function isHiddenIn(
   rel: string,
   map: Record<string, string[]>,
   byName: Record<string, string[]>,
+  isDir = true,
 ): boolean {
   if (rel in map) return true;
   for (const key of Object.keys(map)) {
@@ -24,11 +27,19 @@ export function isHiddenIn(
   const names = Object.keys(byName);
   if (names.length) {
     const ruled = new Set(names.map((n) => n.toLowerCase()));
-    for (const seg of rel.split("/")) {
+    const segs = rel.split("/");
+    if (!isDir) segs.pop();
+    for (const seg of segs) {
       if (ruled.has(seg.toLowerCase())) return true;
     }
   }
   return false;
+}
+
+/** Voci dello scaffale, per il contatore della testata: cartelle e regole per nome (M72: prima contava
+ *  solo le cartelle, e con le sole regole di «Shelve noise folders» mostrava 0). */
+export function shelfCountIn(map: Record<string, string[]>, byName: Record<string, string[]>): number {
+  return Object.keys(map).length + Object.keys(byName).length;
 }
 
 /** Il nome di una cartella è coperto da una regola-per-nome? (case-insensitive) */

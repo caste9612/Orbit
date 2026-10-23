@@ -6,6 +6,8 @@
   import Icon from "./Icon.svelte";
   import FileGlyph from "./FileGlyph.svelte";
   import ContextMenu, { type MenuItem } from "./ContextMenu.svelte";
+  import ShelfPicker from "./ShelfPicker.svelte";
+  import ShelfSection from "./ShelfSection.svelte";
   import { explorerView, setExplorerView } from "../state/explorerView.svelte";
   import {
     sol,
@@ -26,6 +28,7 @@
   import { canRun, expandable, type BuildVerb, type SNode } from "../state/solutionTree";
   import {
     tree,
+    flatten,
     toggle as toggleFs,
     edit,
     startCreate,
@@ -44,7 +47,7 @@
   import { layout } from "../state/layout.svelte";
   import { decorations } from "../state/git.svelte";
   import { settings } from "../state/settings.svelte";
-  import { isHidden, relOf } from "../state/shelf.svelte";
+  import { isHidden, relOf, NOISE, shelveNoise } from "../state/shelf.svelte";
   import { notify } from "../state/toast.svelte";
   import { fileIcon, basename, dirname, isUnder, normSlash, pathKey, runCommand, samePath } from "../util";
   import { writeClipboard } from "../clipboard";
@@ -111,7 +114,7 @@
       if (creating && workspace.rootPath && samePath(creating, workspace.rootPath)) out.push({ kind: "input", depth: 1, key: "__input__" });
       const fs = (nodes: TreeNode[], depth: number) => {
         for (const n of nodes) {
-          if (hiddenInOther(n.entry.path, n.entry.name, depth) || isHidden(relOf(n.entry.path))) continue;
+          if (hiddenInOther(n.entry.path, n.entry.name, depth) || isHidden(relOf(n.entry.path), n.entry.isDir)) continue;
           out.push({ kind: "f", node: n, depth, key: `fs:${n.entry.path}` });
           if (!n.entry.isDir || !n.expanded) continue;
           if (creating && samePath(n.entry.path, creating)) out.push({ kind: "input", depth: depth + 1, key: "__input__" });
@@ -290,6 +293,11 @@
   // ---- menu contestuali ----
 
   let menu = $state<{ x: number; y: number; items: MenuItem[]; key: string } | null>(null);
+  // scaffale in «Other files» (M72), come nella vista a cartelle
+  let shelfPicker = $state<{ x: number; y: number; absPath: string } | null>(null);
+  let hasNoise = $derived(
+    flatten(tree.roots).some((n) => n.entry.isDir && NOISE.includes(n.entry.name) && !isHidden(relOf(n.entry.path))),
+  );
 
   function buildItems(verb: BuildVerb, n: SNode, label: string): MenuItem {
     const icons: Record<BuildVerb, string> = { build: "hammer", rebuild: "refresh", clean: "eraser" };
@@ -387,14 +395,15 @@
           { label: "Open in terminal", icon: "terminal", separatorBefore: true, onClick: () => openTerminalAt(root) },
           { label: "Reveal in Explorer", icon: "external-link", onClick: () => revealInOs(root) },
         );
+        if (hasNoise) items.push({ label: "Shelve noise folders", icon: "archive", separatorBefore: true, onClick: shelveNoise });
         break;
       }
     }
     return items;
   }
 
-  /** Menu delle righe di «Other files»: quello dell'Explorer a cartelle. */
-  function fsItems(n: TreeNode): MenuItem[] {
+  /** Menu delle righe di «Other files»: quello dell'Explorer a cartelle. `x`/`y`: dove aprire lo scaffale. */
+  function fsItems(n: TreeNode, x: number, y: number): MenuItem[] {
     const p = n.entry.path;
     const dir = n.entry.isDir ? p : dirname(p);
     const items: MenuItem[] = [];
@@ -409,8 +418,14 @@
     items.push(
       { label: "Rename…", icon: "pencil", separatorBefore: true, onClick: () => startRename(p, n.entry.name, n.entry.isDir) },
       { label: "Delete", icon: "trash", danger: true, onClick: () => void deleteEntry(p, n.entry.name, n.entry.isDir) },
-      ...pathItems(p, true),
     );
+    const paths = pathItems(p, true);
+    if (n.entry.isDir) {
+      // come nell'Explorer: «Add to shelf…» apre la sezione dei percorsi
+      items.push({ label: "Add to shelf…", icon: "archive", separatorBefore: true, onClick: () => (shelfPicker = { x, y, absPath: p }) });
+      paths[0].separatorBefore = false;
+    }
+    items.push(...paths);
     return items;
   }
 
@@ -426,7 +441,7 @@
       if (n.kind === "project" && !n.missing && !data.models.has(n.id)) await loadProject(n);
       items = itemsFor(n);
     } else if (row.kind === "f") {
-      items = fsItems(row.node);
+      items = fsItems(row.node, x, y);
     }
     if (items.length) menu = { x, y, items, key: row.key };
   }
@@ -606,10 +621,14 @@
       {/each}
     </div>
   </div>
+  <ShelfSection />
 </div>
 
 {#if menu}
   <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => (menu = null)} />
+{/if}
+{#if shelfPicker}
+  <ShelfPicker x={shelfPicker.x} y={shelfPicker.y} absPath={shelfPicker.absPath} onClose={() => (shelfPicker = null)} />
 {/if}
 
 <style>

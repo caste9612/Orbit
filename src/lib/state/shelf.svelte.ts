@@ -4,13 +4,35 @@
 import { invoke } from "@tauri-apps/api/core";
 import { workspace } from "./workspace.svelte";
 import { joinPath, relTo } from "../util";
-import { isHiddenIn, isNameRuledIn, groupByCategory, type ShelfCategory } from "./shelfRules";
+import { isHiddenIn, isNameRuledIn, groupByCategory, shelfCountIn, type ShelfCategory } from "./shelfRules";
 
 export const shelf = $state({
   map: {} as Record<string, string[]>, // relPath (separatori "/") -> categorie
   byName: {} as Record<string, string[]>, // nome cartella (es. "bin") -> categorie: REGOLA che nasconde TUTTE le cartelle con quel nome (anche annidate o ricreate dopo, es. bin/obj C#)
   loaded: false,
 });
+
+/** Cosa è aperto nella sezione Shelf in fondo all'Explorer. A livello di modulo (M72): nel componente si
+ *  azzerava a ogni rimontaggio, e tornando all'Explorer da un'altra vista si richiudeva tutto. Le categorie
+ *  per nome, le cartelle per `pathKey`. */
+export const shelfUi = $state({
+  collapsed: false,
+  cats: {} as Record<string, boolean>,
+  folders: {} as Record<string, boolean>,
+});
+
+/** Cartelle «rumore» che *Shelve noise folders* mette nello scaffale con una regola per nome. */
+export const NOISE = ["node_modules", "target", "dist", ".git"];
+
+/** Regole per nome sulle cartelle rumore: le nasconde ovunque, anche annidate. */
+export function shelveNoise() {
+  for (const nm of NOISE) shelveByName(nm, "Generato");
+}
+
+/** Voci dello scaffale (cartelle e regole per nome), per il contatore della testata. */
+export function shelfCount(): number {
+  return shelfCountIn(shelf.map, shelf.byName);
+}
 
 function shelfPath(): string | null {
   return workspace.rootPath ? joinPath(joinPath(workspace.rootPath, ".orbit"), "shelf.json") : null;
@@ -21,11 +43,11 @@ export function relOf(abs: string): string {
   return relTo(abs, workspace.rootPath);
 }
 
-/** Una cartella è nascosta dall'albero se: è nello scaffale (per percorso), è dentro una che lo è,
- *  oppure un segmento del suo path corrisponde a una regola-per-nome. Logica pura in `shelfRules`
- *  (con test); qui si leggono gli stati reattivi `shelf.map`/`shelf.byName`. */
-export function isHidden(rel: string): boolean {
-  return isHiddenIn(rel, shelf.map, shelf.byName);
+/** Una voce è nascosta dall'albero se: è nello scaffale (per percorso), è dentro una cartella che lo è,
+ *  oppure una delle sue cartelle corrisponde a una regola-per-nome (`isDir: false` per i file). Logica
+ *  pura in `shelfRules` (con test); qui si leggono gli stati reattivi `shelf.map`/`shelf.byName`. */
+export function isHidden(rel: string, isDir = true): boolean {
+  return isHiddenIn(rel, shelf.map, shelf.byName, isDir);
 }
 
 /** Nome cartella (basename) coperto da una regola-per-nome? (case-insensitive) */

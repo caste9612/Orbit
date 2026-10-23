@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isHiddenIn, isNameRuledIn, groupByCategory } from "./shelfRules";
+import { isHiddenIn, isNameRuledIn, groupByCategory, shelfCountIn } from "./shelfRules";
 
 describe("isHiddenIn", () => {
   it("nasconde una cartella scaffalata per percorso e i suoi discendenti", () => {
@@ -30,6 +30,27 @@ describe("isHiddenIn", () => {
 
   it("non nasconde nulla senza regole", () => {
     expect(isHiddenIn("src/main.ts", {}, {})).toBe(false);
+  });
+
+  it("regola-per-nome: vale per le cartelle, non per un file con lo stesso nome", () => {
+    const byName = { logs: ["U"] };
+    expect(isHiddenIn("src/logs", {}, byName, false)).toBe(false);
+    expect(isHiddenIn("logs", {}, byName, false)).toBe(false);
+    // un file DENTRO una cartella a regola resta nascosto
+    expect(isHiddenIn("logs/today.txt", {}, byName, false)).toBe(true);
+    expect(isHiddenIn("src/logs", {}, byName)).toBe(true);
+  });
+
+  it("un file dentro una cartella scaffalata per percorso è nascosto", () => {
+    expect(isHiddenIn("tools/run.ps1", { tools: ["U"] }, {}, false)).toBe(true);
+  });
+});
+
+describe("shelfCountIn", () => {
+  it("conta cartelle e regole per nome", () => {
+    expect(shelfCountIn({}, {})).toBe(0);
+    expect(shelfCountIn({}, { node_modules: ["G"], target: ["G"] })).toBe(2);
+    expect(shelfCountIn({ tools: ["U"], "src/gen": ["U", "G"] }, { bin: ["G"] })).toBe(3);
   });
 });
 

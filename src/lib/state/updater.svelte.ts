@@ -57,7 +57,7 @@ export async function checkForUpdates(manual = false) {
     }
   } catch (e) {
     console.error("update_check", e);
-    if (manual) notify(`Couldn't check for updates: ${e}`, "error", 5000);
+    if (manual) notify("Couldn't check for updates", "error", 0, { detail: String(e) });
   } finally {
     updates.checking = false;
   }

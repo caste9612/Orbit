@@ -597,7 +597,7 @@ export async function savePath(path: string, opts: { auto?: boolean } = {}) {
     f.diskRev++; // il disco è cambiato → un'eventuale anteprima HTML affiancata ricarica
     if (!opts.auto) notify(`${f.name} saved`, "success", 1500);
   } catch (e) {
-    notify(`Save failed: ${e}`, "error");
+    notify(`Couldn't save “${f.name}”`, "error", 0, { detail: String(e) });
     console.error("save", e);
   }
 }

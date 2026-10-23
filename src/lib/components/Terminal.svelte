@@ -96,7 +96,7 @@
         ].filter(Boolean) as string[]);
     const abs = await invoke<string | null>("resolve_existing", { paths: bases }).catch(() => null);
     if (!abs) {
-      notify(`File not found: ${p}`, "error");
+      notify("File not found", "error", 0, { detail: p });
       return;
     }
     if (line > 0) void openFileAt(abs, line);

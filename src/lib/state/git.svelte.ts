@@ -152,7 +152,7 @@ function runGit(label: string, command: string) {
   layout.terminalVisible = true;
   setFocusPanel("terminal"); // porta il terminale in primo piano: senza, la tab si apre a destra e sembra "non succede nulla"
   addTerminal({ title: `git · ${label}`, cwd: workspace.rootPath, initCommand: command });
-  notify(`git ${label} → eseguito nel terminale`, "info", 2200);
+  notify(`git ${label} is running in the terminal`, "info", 2200);
 }
 
 /** Scarica i riferimenti dal remoto (senza fondere), potando i rami spariti. */
@@ -271,7 +271,7 @@ export async function discardFile(entry: StatusEntry) {
     await invoke("git_discard", { root: workspace.rootPath, path: entry.path });
     await refreshStatus();
   } catch (e) {
-    notify(`Discard failed: ${e}`, "error");
+    notify(`Couldn't discard “${entry.path}”`, "error", 0, { detail: String(e) });
     console.error("git_discard", e);
   }
 }

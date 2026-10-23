@@ -128,6 +128,11 @@
     solution: `<path d="M16.5 3 21 5v14l-4.5 2-8.5-7.6L4.5 16 3 15.2V8.8L4.5 8 8 10.6z"/><path d="M16.5 8.4v7.2L12 12z"/>`,
     "switch-views": `<path d="M4 8h13"/><path d="m14 5 3 3-3 3"/><path d="M20 16H7"/><path d="m10 13-3 3 3 3"/>`,
     eye: `<path d="M2.1 12.3a1 1 0 0 1 0-.6C3.5 8.1 7.4 5 12 5s8.5 3.1 9.9 6.7a1 1 0 0 1 0 .6C20.5 15.9 16.6 19 12 19s-8.5-3.1-9.9-6.7"/><circle cx="12" cy="12" r="3"/>`,
+    // notifiche (M74): i tipi degli avvisi, la campanella della barra di stato e il Do not disturb
+    info: `<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/>`,
+    alert: `<path d="M10.3 4.2 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4"/><path d="M12 17h.01"/>`,
+    bell: `<path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/><path d="M10.3 20a1.9 1.9 0 0 0 3.4 0"/>`,
+    "bell-off": `<path d="M8.6 3.9A6 6 0 0 1 18 9c0 2.4.4 4.1.9 5.3"/><path d="M17.5 16.5h-14S6 15 6 9c0-.6.1-1.2.3-1.8"/><path d="M10.3 20a1.9 1.9 0 0 0 3.4 0"/><path d="m3 3 18 18"/>`,
     // scaffale (M73): una categoria esclusa da ricerca e Quick Open
     "search-off": `<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M4 4l14 14"/>`,
     layers: `<path d="m12 3 9 4.5-9 4.5-9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/>`,

@@ -102,7 +102,7 @@ export async function openFolderDialog() {
   try {
     sel = await open({ directory: true, multiple: false });
   } catch (e) {
-    notify(`Folder picker failed: ${e}`, "error");
+    notify("Couldn't open the folder picker", "error", 0, { detail: String(e) });
     return;
   }
   if (typeof sel !== "string") return; // annullato
@@ -110,7 +110,7 @@ export async function openFolderDialog() {
     const { switchFolder } = await import("./persist.svelte");
     await switchFolder(sel);
   } catch (e) {
-    notify(`Open folder failed: ${e}`, "error"); // non lasciare il fallimento muto
+    notify("Couldn't open the folder", "error", 0, { detail: String(e) }); // non lasciare il fallimento muto
     console.error("openFolderDialog", e);
   }
 }
@@ -464,7 +464,7 @@ export async function deleteEntry(path: string, name: string, isDir: boolean) {
     await refreshTree();
     await refreshStatus();
   } catch (e) {
-    notify(`Delete failed: ${e}`, "error");
+    notify(`Couldn't delete “${name}”`, "error", 0, { detail: String(e) });
     console.error("delete", e);
   }
 }

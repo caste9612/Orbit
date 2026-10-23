@@ -322,7 +322,7 @@ export async function switchFolder(path: string): Promise<SwitchResult> {
       // Torniamo alla cartella precedente (così non resta una finestra vuota) e segnaliamo l'errore;
       // il chiamante toglierà la voce morta dal selettore.
       if (prev) await loadSession(prev, { keepSidebar: true, onRootOpened: sync }).catch(() => {});
-      notify(`Can't open "${basename(path)}" — the folder may have been moved or deleted.`, "error");
+      notify(`Can't open “${basename(path)}”`, "error", 0, { detail: "The folder may have been moved or deleted." });
       return "failed";
     }
     // 5. "mantieni la vista corrente" (scelta utente): NON forziamo Explorer e NON lasciamo vincere la
@@ -389,7 +389,7 @@ export async function promoteLight(): Promise<SwitchResult> {
       extraTabs: files.length > 0, // i file della finestra leggera restano aperti: l'editor non collassa
     });
     if (!ok) {
-      notify(`Can't open "${basename(target)}" as a project.`, "error");
+      notify(`Can't open “${basename(target)}” as a project`, "error");
       if (active ?? files[0]) await openLight(from, (active ?? files[0])!);
       return "failed";
     }

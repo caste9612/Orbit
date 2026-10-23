@@ -237,7 +237,7 @@ async function saveClaudeConfig() {
     claude.loaded = true;
     claudeInvalid = false; // ciò che abbiamo scritto è valido per costruzione
   } catch (e) {
-    notify(`Couldn't save claude.json: ${e}`, "error");
+    notify("Couldn't save .orbit/claude.json", "error", 0, { detail: String(e) });
     console.error("claude.json", e);
   }
 }

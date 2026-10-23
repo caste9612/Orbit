@@ -2,6 +2,9 @@
   import { fade } from "svelte/transition";
   import Icon from "./Icon.svelte";
   import Backdrop from "./Backdrop.svelte";
+  import Lazy from "./Lazy.svelte";
+  import { notices } from "../state/toast.svelte";
+  import { settings } from "../state/settings.svelte";
   import { workspace, editorStatus, activeFile } from "../state/workspace.svelte";
   import { git, checkout, loadBranches, createBranch } from "../state/git.svelte";
   import { langLabel } from "../util";
@@ -14,6 +17,12 @@
   let lang = $derived(af ? langLabel(af.name) : "");
 
   let open = $state(false);
+  // storico delle notifiche (M74): la 🔔 in fondo a destra, l'elenco caricato quando si apre
+  let bellOpen = $state(false);
+  let bellTitle = $derived(
+    (settings.dnd ? "Do not disturb is on — " : "") +
+      (notices.unread ? `${notices.unread} new notification${notices.unread === 1 ? "" : "s"}` : "Notifications"),
+  );
   let creating = $state(false);
   let newName = $state("");
   let error = $state("");
@@ -118,6 +127,13 @@
       <span class="seg static">UTF-8</span>
       <span class="seg static">{lang}</span>
     {/if}
+    <button class="seg bell" class:dnd={settings.dnd} title={bellTitle} aria-label={bellTitle} onclick={() => (bellOpen = !bellOpen)}>
+      <Icon name={settings.dnd ? "bell-off" : "bell"} size={13} strokeWidth={1.8} />
+      {#if notices.unread}<span class="nbadge" class:nerr={notices.unreadErrors > 0}>{notices.unread > 99 ? "99+" : notices.unread}</span>{/if}
+    </button>
+    {#if bellOpen}
+      <Lazy load={() => import("./NoticeCenter.svelte")} onClose={() => (bellOpen = false)} />
+    {/if}
   </div>
 </footer>
 
@@ -164,6 +180,29 @@
   }
   .seg.static {
     cursor: default;
+  }
+  /* la 🔔 delle notifiche (M74): il numero delle non lette in accento, in rosso se c'è un errore */
+  .seg.bell {
+    gap: 4px;
+    padding: 0 7px;
+  }
+  .seg.bell.dnd {
+    color: var(--color-ink-subtle);
+  }
+  .nbadge {
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 15px;
+    text-align: center;
+  }
+  .nbadge.nerr {
+    background: var(--color-danger);
   }
   .idxic {
     display: inline-flex;

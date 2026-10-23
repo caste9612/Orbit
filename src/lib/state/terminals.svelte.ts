@@ -5,7 +5,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
 import { layout, animate } from "./layout.svelte";
 import { settings } from "./settings.svelte";
-import { notify, notifyAttention, dismissByKey } from "./toast.svelte";
+import { notify, notifyAttention, dismissByKey, addNotice } from "./toast.svelte";
+import { playChime } from "../chime";
 import { workspace } from "./workspace.svelte";
 import { basename } from "../util";
 import {
@@ -48,6 +49,7 @@ export interface TermSession {
   started: boolean; // initCommand già inviato (evita ri-esecuzione al remount)
   attach: boolean; // true = si collega a un PTY esistente (terminale reincollato dalla finestra flottante)
   needsAttention: boolean; // la bell ha suonato (Claude ha finito / aspetta input) mentre non lo guardavi
+  waitToast?: boolean; // ed è nell'avviso delle chat in attesa (non se la chat era già sotto i tuoi occhi, M74)
   kind: TermKind; // scelto alla nascita (M66): decide cosa torna al riavvio
   chat: ChatRef | null; // conversazione di Claude che gira qui (dal registro di Claude Code o da --resume)
   dormant: boolean; // ripristinata al riavvio e non ancora avviata: parte quando la si vede (M66)
@@ -441,7 +443,7 @@ function removeAt(i: number) {
   const removed = terminals.list[i];
   terminals.list.splice(i, 1);
   if (removed) {
-    dismissByKey(bellKey(removed.id)); // se era in attesa, togli la sua notifica sticky orfana
+    if (removed.waitToast) syncWaitingToast(); // se era in attesa, esce dall'avviso delle chat che aspettano
     dropFromPanes(removed.id);
   }
   if (removed && terminals.activeId === removed.id) {
@@ -527,16 +529,52 @@ export function syncActiveTerminalToRoot(root: string | null) {
     remembered && visible.some((t) => t.id === remembered) ? remembered : (visible[0]?.id ?? null);
 }
 
-/** Chiave della notifica sticky di un terminale in attesa (coalescing + rimozione mirata). */
-const bellKey = (id: string) => `bell:${id}`;
+/** La repo di una chat, sotto il suo nome negli avvisi. */
+const repoOf = (t: TermSession) => (t.root ? basename(t.root) : undefined);
+
+const WAITING_KEY = "claude-waiting";
+
+/** L'avviso delle chat in attesa (M74): uno solo, invece di uno fisso per chat impilati. Con una chat dice
+ *  quale e ci porta; da due in su «N chats are waiting» con l'elenco, ognuna cliccabile. Si aggiorna quando
+ *  una chat si mette in attesa, quando la guardi o la chiudi. */
+function syncWaitingToast() {
+  const waiting = terminals.list.filter((t) => t.needsAttention && t.waitToast);
+  if (!waiting.length) {
+    dismissByKey(WAITING_KEY);
+    return;
+  }
+  const first = waiting[0];
+  const many = waiting.length > 1;
+  notifyAttention({
+    key: WAITING_KEY,
+    message: many ? "Chats waiting for you" : `${displayTitle(first)} is waiting for you`,
+    detail: many ? undefined : repoOf(first),
+    count: many ? waiting.length : undefined,
+    onClick: () => void goToTerminal(first.id),
+    // ogni chat col colore della sua scheda, il nome in chiaro e la repo tenue
+    items: many
+      ? waiting.map((t) => ({
+          label: displayTitle(t),
+          detail: repoOf(t),
+          color: t.color,
+          run: () => void goToTerminal(t.id),
+        }))
+      : undefined,
+    notice: false, // nello storico ci va ogni chat, quando si mette in attesa (notifyTerminalBell)
+  });
+}
 
 /** Azzera il pallino "attenzione" di una scheda (quando la guardi davvero), rimuove la notifica
  *  sticky associata e, se non resta nessun terminale in attesa, ferma l'evidenziazione della taskbar. */
 export function clearAttention(id: string | null) {
   if (!id) return;
   const t = terminals.list.find((s) => s.id === id);
-  if (t) t.needsAttention = false;
-  dismissByKey(bellKey(id));
+  if (t) {
+    const was = t.waitToast;
+    t.needsAttention = false;
+    t.waitToast = false;
+    if (was) syncWaitingToast();
+  }
   if (!anyNeedsAttention()) cancelTaskbarAttention();
 }
 
@@ -593,6 +631,7 @@ export function clearTerminalFocus(id: string) {
 
 let attnPending = false;
 function flashTaskbar() {
+  if (settings.dnd) return; // Do not disturb (M74): niente lampeggio; restano il pallino e il «●» nel titolo
   attnPending = true;
   // Critical: su Windows il pulsante in taskbar resta evidenziato FINCHÉ non riporti la finestra a
   // fuoco (non un lampo singolo) → se eri altrove, al ritorno lo vedi.
@@ -628,14 +667,13 @@ export function notifyTerminalBell(id: string) {
   }
   if (!t.needsAttention) {
     t.needsAttention = true;
-    // notifica PERSISTENTE e cliccabile: resta finché apri quel terminale (clearAttention →
-    // dismissByKey) o la chiudi. Creata anche se Orbit è in background → la trovi al ritorno.
-    const where = t.root ? `${basename(t.root)} › ${displayTitle(t)}` : displayTitle(t);
-    notifyAttention({
-      key: bellKey(id),
-      message: `Claude in ${where} is waiting for you`,
-      onClick: () => void goToTerminal(id),
-    });
+    t.waitToast = true;
+    // avviso PERSISTENTE e cliccabile, uno per tutte le chat in attesa (M74): resta finché le apri
+    // (clearAttention) o le chiudi. Creato anche se Orbit è in background → lo trovi al ritorno.
+    syncWaitingToast();
+    addNotice({ message: `${displayTitle(t)} is waiting for you`, detail: repoOf(t), kind: "attention", onClick: () => void goToTerminal(id) });
+    // un suono breve se Orbit non è davanti (M74), non con Do not disturb
+    if (!document.hasFocus() && settings.notifySound && !settings.dnd) playChime();
   }
   if (!document.hasFocus()) flashTaskbar();
 }

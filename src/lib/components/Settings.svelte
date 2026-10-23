@@ -73,6 +73,7 @@
     { id: "shelf", label: "Shelf", icon: "archive" },
     { id: "terminal", label: "Terminal", icon: "terminal" },
     { id: "claude", label: "Claude", icon: "sparkles" },
+    { id: "notifications", label: "Notifications", icon: "bell" },
     { id: "keyboard", label: "Keyboard", icon: "keyboard" },
     { id: "updates", label: "Updates & logs", icon: "download" },
   ];
@@ -87,7 +88,8 @@
     | "edFont" | "edSize" | "edCaret" | "codeLens" | "autosave" | "mdMode"
     | "shelfPeek" | "shelfRules"
     | "tmFont" | "tmSize" | "tmCaret" | "webgl" | "scrollback"
-    | "claudeTerminal" | "bellNotify" | "claudeMenu"
+    | "claudeTerminal" | "claudeNotify" | "claudeMenu"
+    | "bellNotify" | "notifySound" | "dnd"
     | "keymap"
     | "checkUpdates" | "logging" | "logViewer";
   interface Row {
@@ -131,11 +133,19 @@
 
     { id: "claudeTerminal", section: "claude", name: "Launch Claude in the default terminal",
       hint: "When Orbit opens a terminal for you, start `claude` instead of a plain shell" },
-    { id: "bellNotify", section: "claude", name: "Notify when a terminal needs you",
-      hint: "A toast and a tab marker when a terminal rings the bell — e.g. `claude` finished or is waiting — while you're looking elsewhere",
-      kw: "notification bell attention" },
+    { id: "claudeNotify", section: "claude", name: "When a chat is waiting",
+      hint: "Notices, sound and Do not disturb have their own page", kw: "notification bell attention sound" },
     { id: "claudeMenu", section: "claude", name: "Claude menu of this project",
       hint: "Prompts, wrappers, command and flags live in `.orbit/claude.json`, next to the code", kw: "shortcuts args model" },
+
+    { id: "bellNotify", section: "notifications", name: "Notify when a chat is waiting",
+      hint: "A notice and a tab marker when a terminal rings the bell — e.g. `claude` finished or is waiting — while you're looking elsewhere; with more chats, one notice lists them all",
+      kw: "notification bell attention claude terminal" },
+    { id: "notifySound", section: "notifications", name: "Play a sound",
+      hint: "A short chime when a chat is waiting and Orbit isn't in front", kw: "audio chime notification" },
+    { id: "dnd", section: "notifications", name: "Do not disturb",
+      hint: "Only errors show up as notices, with no sound; everything still goes to the 🔔 list in the status bar",
+      kw: "quiet mute silence focus notification" },
 
     { id: "keymap", section: "keyboard", name: "Keymap", hint: "Shortcut preset — Orbit, Visual Studio or IntelliJ; Customize to rebind them",
       kw: "keybindings shortcuts preset custom" },
@@ -147,7 +157,8 @@
     { id: "logViewer", section: "updates", name: "Log viewer", hint: "View, filter and export the collected logs", kw: "debug" },
   ];
 
-  type BoolKey = "motion" | "codeLens" | "autosave" | "webgl" | "claudeTerminal" | "bellNotify" | "checkUpdates" | "logging";
+  type BoolKey =
+    | "motion" | "codeLens" | "autosave" | "webgl" | "claudeTerminal" | "bellNotify" | "notifySound" | "dnd" | "checkUpdates" | "logging";
   const SWITCHES: Partial<Record<RowId, BoolKey>> = {
     motion: "motion",
     codeLens: "codeLens",
@@ -155,6 +166,8 @@
     webgl: "webgl",
     claudeTerminal: "claudeTerminal",
     bellNotify: "bellNotify",
+    notifySound: "notifySound",
+    dnd: "dnd",
     checkUpdates: "checkUpdates",
     logging: "logging",
   };
@@ -350,6 +363,8 @@
         <option value={n}>{n.toLocaleString("en-US")} lines</option>
       {/each}
     </select>
+  {:else if id === "claudeNotify"}
+    <button class="control" onclick={() => go("notifications")}>Open</button>
   {:else if id === "claudeMenu"}
     <div class="pair">
       <button class="control" disabled={!workspace.rootPath} onclick={() => { closeSettings(); openPrompts(); }}>Add / remove prompts…</button>

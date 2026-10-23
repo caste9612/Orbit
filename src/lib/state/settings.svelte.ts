@@ -190,6 +190,8 @@ export const settings = $state({
   terminalScrollback: 3000, // righe di storico per terminale (M62; prima 5000 fisse): ~1,4 MB ogni 1000 a 120 colonne
   claudeTerminal: true, // il terminale di default avvia Claude (companion di Claude Code)
   bellNotify: true, // avvisa quando un terminale suona la bell (Claude ha finito / aspetta) e non lo guardi
+  notifySound: true, // M74: un suono breve quando una chat aspetta e Orbit non è in primo piano
+  dnd: false, // M74: Do not disturb — solo gli errori come avvisi; il resto va nello storico della 🔔
   autosave: true, // salva i file modificati su perdita di focus e cambio tab (stile IntelliJ)
   mdMode: "readme" as MarkdownMode, // apertura .md: anteprima solo per i README (default)
   logging: false, // raccolta log diagnostici (ring buffer + file) per indagare i problemi — spenta di default (M62)
@@ -210,7 +212,7 @@ export function nudgeFontSize(target: "editor" | "terminal", delta: number) {
 }
 
 // Finestra delle Impostazioni (M64): categorie a sinistra; si riapre sull'ultima vista.
-export type SettingsSection = "appearance" | "editor" | "shelf" | "terminal" | "claude" | "keyboard" | "updates";
+export type SettingsSection = "appearance" | "editor" | "shelf" | "terminal" | "claude" | "notifications" | "keyboard" | "updates";
 export const settingsUI = $state({ open: false, section: "appearance" as SettingsSection });
 /** Apre le Impostazioni sulla categoria data (senza: sull'ultima vista). */
 export function openSettings(section?: SettingsSection) {
@@ -311,6 +313,8 @@ export function loadSettings() {
       }
       if (typeof s.claudeTerminal === "boolean") settings.claudeTerminal = s.claudeTerminal;
       if (typeof s.bellNotify === "boolean") settings.bellNotify = s.bellNotify;
+      if (typeof s.notifySound === "boolean") settings.notifySound = s.notifySound;
+      if (typeof s.dnd === "boolean") settings.dnd = s.dnd;
       if (typeof s.autosave === "boolean") settings.autosave = s.autosave;
       if (s.mdMode === "readme" || s.mdMode === "preview" || s.mdMode === "source") settings.mdMode = s.mdMode;
       if (typeof s.logging === "boolean") settings.logging = s.logging;
@@ -345,6 +349,8 @@ export function startSettingsAutosave() {
         terminalScrollback: settings.terminalScrollback,
         claudeTerminal: settings.claudeTerminal,
         bellNotify: settings.bellNotify,
+        notifySound: settings.notifySound,
+        dnd: settings.dnd,
         autosave: settings.autosave,
         mdMode: settings.mdMode,
         logging: settings.logging,

@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova) · [v1.2.0](#versione-120) · [70](#milestone-70--vista-solution-nellexplorer-come-il-solution-explorer-di-visual-studio) · [v1.3.0](#versione-130) · [71](#milestone-71--rilasci-da-github-actions-si-pubblica-da-qualunque-pc) · [72](#milestone-72--scaffale-nella-vista-solution-sei-chat-affiancate-editor-diviso-in-righe-e-colonne) · [73](#milestone-73--lo-scaffale-secondo-giro-regole-per-tutte-le-repo-nodi-veri-categorie-undo) · [v1.4.0](#versione-140)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova) · [v1.2.0](#versione-120) · [70](#milestone-70--vista-solution-nellexplorer-come-il-solution-explorer-di-visual-studio) · [v1.3.0](#versione-130) · [71](#milestone-71--rilasci-da-github-actions-si-pubblica-da-qualunque-pc) · [72](#milestone-72--scaffale-nella-vista-solution-sei-chat-affiancate-editor-diviso-in-righe-e-colonne) · [73](#milestone-73--lo-scaffale-secondo-giro-regole-per-tutte-le-repo-nodi-veri-categorie-undo) · [v1.4.0](#versione-140) · [74](#milestone-74--notifiche-errori-che-restano-storico-nella--chat-in-attesa-in-un-avviso-solo)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -4385,6 +4385,102 @@ commit `18f8c36`. È la prima release pubblicata dal workflow Release di GitHub 
   - le firme di setup e MSI (e la firma globale del commento) sono valide per la chiave di `tauri.conf.json`,
     verificate a mano (Ed25519 su BLAKE2b-512, come minisign).
 - README: il Footprint ora ha le misure della 1.4.0 firmata (era quello della 1.3.0, M71).
+
+---
+
+## Milestone 74 — notifiche: errori che restano, storico nella 🔔, chat in attesa in un avviso solo
+
+Richiesta dell'utente (2026-10-23): «possiamo curare meglio le notifiche di orbit?». Come per la M73: i miglioramenti
+spiegati, poi una domanda per ciascuno, se farlo e come.
+
+**Com'erano.** Avvisi in basso a destra di quattro tipi, da 41 punti del codice, che sparivano tutti dopo ~2,6 s,
+errori compresi: un «Save failed: …» col testo del sistema non si faceva in tempo a leggerlo e non si ritrovava più.
+Ogni chat in attesa aveva il suo avviso fisso, e con più chat si impilavano. L'icona «info» era quella di un commit.
+Un messaggio in italiano nell'interfaccia: «git push → eseguito nel terminale».
+
+**Le scelte dell'utente:**
+- **sì**: errori fissi con «Copy» e pausa col mouse sopra; nuovo aspetto (icona per tipo, messaggio e dettaglio,
+  barra del tempo); storico nella 🔔 della barra di stato; chat in attesa in un avviso solo; un suono solo con
+  Orbit dietro; una pagina **Notifications** nelle Impostazioni con **Do not disturb**;
+- **no**: spostare gli avvisi (restano in basso a destra), meno rumore (le conferme restano avvisi), notifiche di
+  Windows (niente `tauri-plugin-notification`);
+- a lavoro in corso, guardando la prova: «non mi piace che le notifiche siano tutte di dimensione diversa»: ora
+  sono tutte larghe 360 px.
+
+**Cosa c'è.**
+- `toast.svelte.ts`:
+  - `notify(message, kind, ms, { detail, action, key })`: il dettaglio tecnico va sotto il messaggio. Gli errori
+    restano finché li chiudi e hanno «Copy» (messaggio e dettaglio negli appunti), gli altri spariscono dopo
+    `ms`;
+  - la pausa: un timer per avviso con il tempo che resta, fermato e ripreso da `pauseToast`/`resumeToast`;
+  - `notifyAttention` con la stessa `key` aggiorna l'avviso che c'è (testo, elenco) invece di ignorarlo, e prende
+    `items`, un elenco cliccabile;
+  - `notices`: le ultime 50, per la 🔔. Il numero conta solo errori e chat in attesa, così le conferme («Name
+    copied») non lo gonfiano; nello storico restano solo le azioni che restano valide (andare a una chat, il
+    dialogo dell'aggiornamento), mai un Undo, che annullerebbe cose fatte dopo.
+- `Toaster.svelte`: icona per tipo (le nuove `info` e `alert`, `check`, ✦ per Claude), messaggio e dettaglio (al
+  massimo tre righe), azioni a destra, ✕ su quelli fissi, barra del tempo (animazione CSS, ferma col mouse sopra),
+  larghezza fissa. Con Do not disturb mostra solo gli errori. L'avviso delle chat ha un fondo pieno: era
+  trasparente e sopra le Impostazioni ci si leggeva sotto.
+- La 🔔 nella barra di stato (`StatusBar`), con le non lette (rosse se c'è un errore); l'elenco è
+  `NoticeCenter.svelte`, caricato quando si apre: ora, tipo, messaggio, dettaglio, «Copy» sugli errori,
+  clic su quelle che portano da qualche parte, Do not disturb e «Clear». Sta sopra gli avvisi, così uno nuovo non
+  lo copre.
+- Chat in attesa (`terminals.svelte.ts`): `syncWaitingToast` tiene un avviso solo, «Claude in repo › chat is
+  waiting for you» con una chat, «N chats are waiting for you» con l'elenco da due in su; si aggiorna quando una
+  chat si mette in attesa, quando la guardi o la chiudi. Nello storico una riga per chat. Con Orbit dietro, un
+  suono (`lib/chime.ts`: due note morbide, re e la, da Web Audio, nessun file audio; al massimo uno ogni 1,5 s).
+- Do not disturb (`settings.dnd`): solo gli errori come avvisi, niente suono né lampeggio in taskbar; restano
+  pallini, pillola Waiting e «●» nel titolo, e l'avviso delle chat torna quando lo si spegne.
+- Impostazioni → **Notifications**: «Notify when a chat is waiting» (spostata da Claude, dove resta una riga che
+  rimanda lì), «Play a sound», «Do not disturb».
+- Gli errori con il testo del sistema attaccato (`: ${e}`) ora hanno un messaggio in chiaro e il dettaglio a parte
+  («Couldn't save “x”» + «Access is denied…»); «git push is running in the terminal» in inglese.
+
+**L'aspetto, secondo giro.** L'utente: «cerchiamo di curare meglio l'aspetto delle notifiche». Questa volta le
+proposte le ho disegnate nella finestra di prova (un pannello sovrapposto, solo visivo, con i colori del tema),
+accanto agli avvisi veri, in due varianti per il tempo che resta (anello attorno all'icona, barra in fondo).
+- Scelte, tutte sulla mia raccomandazione: icona in un cerchio tinto e niente striscia a sinistra; anello del
+  tempo; Copy e Undo come pillole e una ✕ piccola; le chat in attesa col colore della loro scheda; elenco della 🔔
+  per giorno, con ora relativa e pallino sulle non lette; avvisi che scivolano e si ricompattano; titolo in
+  peso medio.
+- E un richiamo dell'utente, guardando l'anteprima: «è importante anche la simmetria degli elementi», che lì non
+  era precisa (icona in alto e Copy centrato, pillole a distanze diverse dal bordo, pallini e frecce
+  disallineati). Da qui la griglia unica: `| 12 | icona 28 | 10 | messaggio | pillole | 10 | ✕ 28 | 12 |`, con
+  la colonna della ✕ sempre presente (sugli avvisi a tempo la ✕ compare col mouse) e tutto centrato sulla riga
+  del messaggio; l'anello sul bordo del cerchio, non fuori, così il cerchio ha lo stesso diametro in tutti gli
+  avvisi. Lo stesso per l'elenco della 🔔 (`| 12 | icona 24 | 10 | messaggio | ora |`), con il pallino delle
+  non lette sul bordo dell'icona invece che in un margine.
+- Misurato, non a occhio, con le posizioni degli elementi nella finestra di prova: in ogni avviso cerchio,
+  messaggio, pillola e ✕ hanno lo stesso centro verticale; il cerchio sta a 13 px dal bordo e il testo a 51 in
+  tutti; Copy e Undo finiscono entrambe a 51 px dal bordo destro; ✕ e frecce dell'elenco hanno il centro a 26,8
+  px dal bordo destro, come il centro dell'icona dal sinistro; i pallini delle chat partono a 51 px, sul filo del
+  messaggio. Nell'elenco della 🔔 testata, giorni e icone a 13 px, testo a 47, ora e Copy che finiscono a 13 px dal
+  bordo destro.
+- Poi l'utente: «la x deve essere più semplice da cliccare». Era un bersaglio di 20×20 px con un'icona da 12: ora
+  è un cerchio di 28×28 (icona da 13, sfondo tondo al passaggio), lo stesso diametro dell'icona dall'altro lato.
+  Le misure qui sopra sono già con la ✕ nuova (prima: pillole a 43 px, ✕ a 22,8).
+- Le chat in attesa ora si chiamano per nome, con la repo come dettaglio («Claude 2 is waiting for you» e sotto
+  «demo-repo»): prima «Claude in demo-repo › Claude 2 is waiting for you» andava a capo.
+- Il pannello dell'anteprima non è codice di Orbit: è sparito al primo ricaricamento della pagina.
+
+**Peso.** Chunk iniziale **308,0 KiB** (105,1 gzip): +5,0 sulla 1.4.0 col primo giro, +2,0 col secondo; `dist/`
+2,99 MiB. Nessuna dipendenza nuova, il Rust non cambia.
+
+**Verifica.**
+- `svelte-check` 0/0, `vitest` 98/98 (nessuna logica pura nuova da testare a parte).
+- Nell'istanza di prova, con eventi veri dove serve:
+  - errore con dettaglio, «Copy» (negli appunti messaggio e dettaglio, il pulsante dice «Copied»), ✕; conferma con
+    Undo e barra del tempo; info con la sua icona; tutti 360 px, alti 38 quelli di una riga, 56 l'errore;
+  - la pausa: un avviso da 3 s, col mouse sopra, c'è ancora dopo 6 s e sparisce ~2,7 s dopo che il mouse esce.
+    Nella prova il mouse simulato «usciva» da solo dopo ~3,7 s: Chromium, dopo un cambio della pagina, ripete il
+    movimento all'ultima posizione vera del puntatore di sistema, che era altrove; ripetendo il passaggio sopra
+    l'avviso, come fa un puntatore fermo lì, regge;
+  - tre chat in attesa → un avviso «3 chats are waiting for you» con l'elenco; clic su una → «2 chats»; tre righe
+    nello storico;
+  - la 🔔: numero delle non lette (rosso con un errore), elenco, Do not disturb dalla testata (via l'avviso delle
+    chat, passa un errore nuovo, la campanella barrata), spento → l'avviso delle chat torna;
+  - la pagina Notifications; il suono parte senza errori (Web Audio).
 
 ---
 

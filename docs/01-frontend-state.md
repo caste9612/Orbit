@@ -121,8 +121,18 @@ read the object and call the actions, and re-render on their own when what they 
 - `unsaved`: the one "unsaved changes" question of the app (M59). `askUnsaved(files)` resolves to `save` /
   `discard` / `cancel`, and `resolveUnsaved` asks and saves; `UnsavedDialog.svelte` is mounted once in
   `App`. Tab closing, window closing, "close all", repo switch, "open as project" and updates all use it.
-- `toast`: transient notifications (`notify`) plus a **sticky, clickable** kind (`notifyAttention`,
-  coalesced by `key`, removed with `dismissByKey`). The Claude-waiting and update notices use it.
+- `toast`: the notices of `Toaster.svelte`, bottom right.
+  - `notify(message, kind, ms, { detail, action, key })`: transient, paused while the mouse is over it
+    (`pauseToast`/`resumeToast`, M74). **Errors** stay until closed and get a **Copy** action; `detail` is the
+    technical text shown below the message. `key` replaces the notice with the same key (M73).
+  - `notifyAttention`: **sticky, clickable**; with the same `key` it updates the one on screen (message,
+    `items` list) instead of adding another — the waiting chats are one notice (M74). Removed with
+    `dismissByKey`. The Claude-waiting and update notices use it.
+  - `notices` (M74): the last 50 notices for the 🔔 in the status bar (`NoticeCenter.svelte`, on demand).
+    `unread` counts errors and waiting chats only, so confirmations don't inflate it; only actions that stay
+    valid (going to a chat, the update dialog) are kept, never an *Undo*. `addNotice`, `markNoticesRead`,
+    `clearNotices`.
+  - `settings.dnd` (Do not disturb): `Toaster` shows only errors; everything still goes to `notices`.
 
 ## Code and files
 

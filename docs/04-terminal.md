@@ -99,9 +99,16 @@ xterm's WebGL addon (on by default since M62) is attached only while the termina
 - `notifyTerminalBell` marks the tab only if you aren't actually using that terminal (real xterm focus,
   not just window focus). It then shows:
   - a dot on the tab and on the repo tab;
-  - a sticky, clickable toast that takes you there (`goToTerminal`);
+  - **one** sticky, clickable notice for all the waiting chats (`syncWaitingToast`, M74): with one chat it
+    says which and takes you there (`goToTerminal`), from two on *N chats are waiting* with the list, each
+    clickable. It's updated as chats start waiting, get looked at or close; before M74 every chat had its
+    own sticky notice, stacked;
+  - a line in the 🔔 list of the status bar, for each chat that starts waiting;
   - the **Waiting (N)** pill;
-  - `●` in the window title, and the taskbar flag while Orbit is in the background.
+  - `●` in the window title, and, while Orbit is in the background, the taskbar flag and a short chime
+    (`lib/chime.ts`: two soft notes from Web Audio, no audio file, at most one every 1.5 s).
+- **Do not disturb** (M74) hides the notice and silences the chime and the taskbar flag; the dots, the pill
+  and the `●` stay, and the notice comes back when it's turned off.
 - A chat already in view only pulses its pane header.
 - Attention dots pulse four times, then stay on (M62).
 

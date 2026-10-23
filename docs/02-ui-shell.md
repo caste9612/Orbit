@@ -11,7 +11,7 @@ panels and their strips, the layout motion, and the map of all components.
 │ (collapsed)│         │ │ groups · tabs · editor/viewers │ │ tabs · side by side  │ (collapsed)│
 └ StatusBar ── branch · symbols · cursor · encoding · language ──────────────────────────────────┘
   overlays (lazy): QuickOpen, SymbolPalette, WorkspaceSymbols, Settings, LogViewer, WrapperComposer,
-                   ClaudePrompts, UpdateDialog · always mounted: UnsavedDialog, Toaster
+                   ClaudePrompts, UpdateDialog, NoticeCenter · always mounted: UnsavedDialog, Toaster
 ```
 
 - `App.svelte` mounts the frame. On mount it applies the settings, loads the session, restores the
@@ -167,6 +167,34 @@ Solution view (`ShelfSection.svelte`). The data and the rules are in
 - When a name is edited from the shelf (*New…*, *Rename…*), the input appears in the shelf only
   (`edit.where`): with the eye on, the same item is also in the tree.
 
+## Notifications
+
+- **Notices** (`Toaster.svelte`, M74) sit bottom right, all 360 px wide and laid out on one grid, so a
+  stack lines up to the pixel:
+  `| 12 | icon 28 | 10 | message (detail and list below) | pills | 10 | ✕ 28 | 12 |`. The ✕ is a 28 px circle
+  like the icon: easy to hit, and its center is as far from the right edge as the icon's is from the left.
+  - The icon sits in a circle tinted with the kind's color (info, success, error, ✦ for a waiting chat); no
+    side stripe.
+  - Icon, message, pills (*Undo*, *Copy*) and ✕ share one center line. The detail goes below the message,
+    on its edge, at most three lines.
+  - The ✕ column is there in every notice (on the ones that go away by themselves the ✕ shows on hover), so
+    the pills of different notices fall on the same vertical line.
+  - The time left is a ring on the edge of the icon's circle (a CSS `@property` animated with the notice's
+    duration), paused with the mouse over it, like the timer.
+  - Errors stay until closed. Waiting chats: one chat says its name with the repo below; from two on,
+    *Chats waiting for you* with the count in a pill and a row per chat (the dot in its tab's color, the
+    name, the repo, an arrow under the ✕).
+  - They slide in from below, fade out, and the others glide into place (`animate:flip`); still when
+    *Smooth panel transitions* is off.
+  - The whole notice is clickable when it leads somewhere (a transparent button under the content).
+- **The 🔔** at the right of the status bar opens the last 50 notices (`NoticeCenter.svelte`, on demand), on
+  the same grid (icon 24, message, time on the right; detail and *Copy* below): grouped by day (*Today*,
+  *Yesterday*…), the time relative for the last hour, a dot on the icon of the ones you haven't seen yet
+  while the list is open, the seen ones dimmer. Its badge counts the errors and waiting chats you haven't
+  seen (red if there's an error). The header turns **Do not disturb** on and off and clears the list; with
+  Do not disturb the bell is crossed out.
+- The list is above the notices (z-index), so a new notice never covers it.
+
 ## Layout motion
 
 Programmatic layout changes animate as **one** motion (M56):
@@ -228,7 +256,7 @@ the file. It keeps the open files and adopts the terminals.
 
 | Area | Components |
 |---|---|
-| Frame | `TopBar` (+ `RepoStrip`), `Sidebar`, `PanelStrip`, `Splitter`, `StatusBar`, `Toaster`, `Logo`, `Icon`, `Backdrop`, `Switch`, `ContextMenu`, `Lazy`, `MatchText` |
+| Frame | `TopBar` (+ `RepoStrip`), `Sidebar`, `PanelStrip`, `Splitter`, `StatusBar` (+ `NoticeCenter`), `Toaster`, `Logo`, `Icon`, `Backdrop`, `Switch`, `ContextMenu`, `Lazy`, `MatchText` |
 | Editor area | `EditorArea` (groups, tabs, viewers, drop of OS files), `LazyEditor` → `Editor`, `RelatedBar`, `KindBadge`, `DiffView`, `MarkdownView`, `HtmlView`, `AssetView` (images, PDF), `GitGraph`, `ActivityBoard`, `UnitDigest`, `ChatDigest` |
 | Sidebar views | `Explorer` and `SolutionView` (+ `TreeRow`, `ShelfSection` → `ShelfBody`, `ShelfPicker`), `GitPanel`, `SearchView`, `DocsView`, `ActivityPanel` |
 | Terminal | `TerminalPanel` (tabs, panes, split menu, floating windows), `LazyTerminal` → `Terminal` |

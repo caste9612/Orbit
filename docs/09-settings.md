@@ -11,7 +11,8 @@ User preferences, the Settings window, keyboard presets, themes and their *look*
 | Appearance | `theme` (`vs2026`), `accent` (`auto` = the theme's), `motion` (on) |
 | Editor | `fontMono` (JetBrains Mono, shared with the terminal), `editorFontSize` (13), `editorCaret` (Smooth, line), `codeLens` (on), `autosave` (on), `mdMode` (`readme`: preview for READMEs only), `revealActive` (off: the ⌖ toggle in the Explorer) |
 | Terminal | `terminalFontSize` (13), `termCaret` (Smooth without blink; block in shells, bar in chats), `webgl` (on), `terminalScrollback` (3,000) |
-| Claude | `claudeTerminal` (on: the first terminal at startup is a chat), `bellNotify` (on) |
+| Claude | `claudeTerminal` (on: the first terminal at startup is a chat) |
+| Notifications | `bellNotify` (on), `notifySound` (on: a chime when a chat waits and Orbit is in the background), `dnd` (off: Do not disturb), M74 |
 | Keyboard | `keymap` (`orbit` / `vs` / `intellij` / `custom`), `customKeys` |
 | Updates & logs | `checkUpdates` (on), `logging` (off since M62) |
 
@@ -28,9 +29,11 @@ User preferences, the Settings window, keyboard presets, themes and their *look*
 
 ## The Settings window
 
-`Settings.svelte`, loaded on demand, is a large modal (M64). It has a search box on top, seven categories
-on the left (Appearance, Editor, Shelf, Terminal, Claude, Keyboard, Updates & logs) and the version with
-*Check now* in the footer.
+`Settings.svelte`, loaded on demand, is a large modal (M64). It has a search box on top, eight categories
+on the left (Appearance, Editor, Shelf, Terminal, Claude, Notifications, Keyboard, Updates & logs) and the
+version with *Check now* in the footer.
+- **Notifications** (M74): waiting chats, the chime and Do not disturb. The Claude page keeps a row that
+  points there.
 - **Shelf** (M73) is `SettingsShelf.svelte`: the rules for every repository (add, remove, categories) and
   the categories (color, *hide from search and Quick Open*, delete), plus the eye. Its state isn't in
   `settings` but in `shelf.svelte.ts` (`shelfGlobal`, `shelfUi`). The ⚙ in the Shelf header opens it

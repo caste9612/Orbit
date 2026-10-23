@@ -250,10 +250,14 @@ cross-platform desktop app that weighs almost nothing.
   (`.orbit/scratch.txt`) to jot prompts and reuse them.
 - **Attention when a terminal needs you** — when `claude` finishes a turn or waits for input (Orbit
   sets up Claude's `terminal_bell` for you), Orbit raises a **persistent, clickable** notification: a
-  toast you can **click to jump straight to that terminal** (switching repo if needed), a **"Waiting (N)"
-  pill** in the top bar, plus a dot on the repo tab and session tab, a `●` in the title and a taskbar flag
-  **while you're away**. It all clears when you open that terminal — so you can fire Claude off and look
-  elsewhere (toggle in Settings).
+  toast you can **click to jump straight to that terminal** (switching repo if needed) — with more chats
+  waiting, **one** toast lists them all — a **"Waiting (N)" pill** in the top bar, plus a dot on the repo
+  tab and session tab, a `●` in the title, a taskbar flag and a **short chime while you're away**. It all
+  clears when you open that terminal — so you can fire Claude off and look elsewhere.
+- **Notifications you can read**: every notice has a clear message with the technical detail below it,
+  pauses while your mouse is over it and shows the time it has left; **errors stay until you close them**,
+  with **Copy**. The 🔔 in the status bar keeps the last 50 (with a count of what you missed) and turns on
+  **Do not disturb**, which keeps only errors on screen.
 
 ![The Activity view — a timeline of work units across all your repos, with the selected unit's digest in the panel below and Claude Code in the integrated terminal](docs/screenshot-activity.png)
 
@@ -332,8 +336,9 @@ cross-platform desktop app that weighs almost nothing.
     **code lens**, **autosave** and the **default Markdown view** (source / preview / READMEs only); terminal
     GPU rendering (on by default, only for the terminals in view) and **scrollback** (1,000–10,000 lines,
     default 3,000);
-  - **Claude**: "launch Claude in the default terminal", "notify when a terminal needs you", and the way to
-    the project's Claude menu (prompts, wrappers, `.orbit/claude.json`);
+  - **Claude**: "launch Claude in the default terminal" and the way to the project's Claude menu (prompts,
+    wrappers, `.orbit/claude.json`);
+  - **Notifications**: "notify when a chat is waiting", the chime and **Do not disturb**;
   - **Keyboard**: the keymap preset (incl. Custom) and the full shortcut reference, click-to-rebind in Custom;
   - **Updates & logs**: automatic update checks and **diagnostic logging** (collect/export logs to investigate
     issues). The installed version and *Check now* are pinned at the foot of the window.

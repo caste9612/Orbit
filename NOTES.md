@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova) · [v1.2.0](#versione-120) · [70](#milestone-70--vista-solution-nellexplorer-come-il-solution-explorer-di-visual-studio) · [v1.3.0](#versione-130) · [71](#milestone-71--rilasci-da-github-actions-si-pubblica-da-qualunque-pc) · [72](#milestone-72--scaffale-nella-vista-solution-sei-chat-affiancate-editor-diviso-in-righe-e-colonne) · [73](#milestone-73--lo-scaffale-secondo-giro-regole-per-tutte-le-repo-nodi-veri-categorie-undo) · [v1.4.0](#versione-140) · [74](#milestone-74--notifiche-errori-che-restano-storico-nella--chat-in-attesa-in-un-avviso-solo) · [v1.5.0](#versione-150)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova) · [v1.2.0](#versione-120) · [70](#milestone-70--vista-solution-nellexplorer-come-il-solution-explorer-di-visual-studio) · [v1.3.0](#versione-130) · [71](#milestone-71--rilasci-da-github-actions-si-pubblica-da-qualunque-pc) · [72](#milestone-72--scaffale-nella-vista-solution-sei-chat-affiancate-editor-diviso-in-righe-e-colonne) · [73](#milestone-73--lo-scaffale-secondo-giro-regole-per-tutte-le-repo-nodi-veri-categorie-undo) · [v1.4.0](#versione-140) · [74](#milestone-74--notifiche-errori-che-restano-storico-nella--chat-in-attesa-in-un-avviso-solo) · [v1.5.0](#versione-150) · [75](#milestone-75--orbit-su-linux-appimage-deb-rpm-e-pacchetto-per-arch-aggiornamenti-compresi)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -4535,10 +4535,158 @@ alla pubblicazione; autore `github-actions[bot]`.
 
 ---
 
+## Milestone 75 — Orbit su Linux: AppImage, .deb, .rpm e pacchetto per Arch, aggiornamenti compresi
+
+Richiesta dell'utente (2026-11-04): «preparare l'installer per Linux al meglio», con un portatile CachyOS raggiungibile
+via SSH per le prove. Fino a qui Orbit non era mai stato compilato su Linux (gate #3 aperto dalla M8).
+
+**Le scelte dell'utente** (domande a scelta multipla, tutte sulla mia raccomandazione):
+- formati: AppImage, `.deb` e `.rpm` nella release, più un PKGBUILD per Arch che rimpacchetta il `.deb`; l'AUR più
+  avanti, con il suo account;
+- aggiornamenti dall'app per AppImage, `.deb` e `.rpm`; il pacchetto Arch li lascia a pacman;
+- sul portatile tutti gli strumenti per compilare e provare lì;
+- la release 1.6.0 dopo una prova a secco;
+- a lavoro in corso: un file LICENSE (MIT, a nome Antonio Castellucci, il nome dei commit); i Nerd Font come ripiego nel
+  terminale con un font «Custom…» qualsiasi; la scheda col nome della shell; il testo del dialog d'aggiornamento.
+
+**Il banco di prova.** Un Sony Vaio del 2013 (i5-4200U, grafica Intel Haswell, 7,7 GB), CachyOS con kernel 7.3, Hyprland
+0.57 su Wayland, fish. Installati: rustup (Rust 1.99.1), nodejs 26 e npm 12, webkit2gtk-4.1 2.54.2, fuse2, grim, ydotool,
+wtype, wl-clipboard. Due clone: `~/orbit-m75` per compilare (i file cambiati arrivano da Windows con tar su SSH) e
+`~/orbit-testrepo`, la repo aperta nelle prove, con `"command": "echo"` in `.orbit/claude.json`. I clic con
+`hyprctl dispatch "hl.dsp.cursor.move({x,y})"` (la configurazione di Hyprland 0.57 è in Lua) più un piccolo movimento e il
+clic di ydotool, la tastiera con ydotool o wtype, gli screenshot con grim; un controllo ferma tutto se la finestra attiva
+non è Orbit (l'utente a tratti usava il portatile: un Ctrl+A/Ctrl+C era finito in Dolphin).
+
+**Cosa non andava su Linux**, trovato compilando, provando e misurando:
+1. Dentro un **AppImage** una finestra nuova si rilanciava dal binario nel mount temporaneo, che sparisce quando esce il
+   processo che l'ha montato; e lo stesso valeva per il riavvio dopo un aggiornamento (`app.restart()`).
+2. L'AppRun dell'AppImage (linuxdeploy con l'hook GTK, letto nell'AppDir) mette dentro il mount GTK_PATH,
+   GDK_PIXBUF_MODULE_FILE, GSETTINGS_SCHEMA_DIR, GIO_EXTRA_MODULES, XDG_DATA_DIRS…, e impone `GDK_BACKEND=x11` e
+   `GTK_THEME=Adwaita:<variante>` senza salvare i valori di prima: tutto passava alle shell del terminale, a xdg-open e alle
+   finestre nuove.
+3. **Mount orfani**: il runtime dell'AppImage lascia all'app un descrittore della cartella del mount (il 1023), e WebKitGTK
+   tiene aperti senza CLOEXEC /proc/meminfo, i file dei cgroup e /dev/urandom. Il nuovo Orbit (una finestra, il riavvio
+   dopo l'aggiornamento) li ereditava, e il mount vecchio restava occupato: il suo processo FUSE non usciva più. Trovato
+   cercando in /proc chi teneva il mount.
+4. **Zombie**: un processo avviato con `Command::spawn` e mai atteso resta zombie finché il genitore vive; ogni finestra
+   aperta e chiusa (e ogni xdg-open) ne lasciava uno.
+5. **PDF bianco**: WebKitGTK non ha il visualizzatore di WebView2. Ne ha uno basato su PDF.js dietro la feature
+   `PDFJSViewer`: nella 2.54 di Arch è accesa (la prima pagina bianca era PDF.js che caricava mentre la CPU compilava),
+   spenta a mano la pagina resta bianca. Nata sperimentale, può essere spenta in altre versioni.
+6. **Ctrl+Shift+V incollava due volte**: il gestore dei tasti di xterm restituiva `false` ma non fermava il browser, e
+   WebKitGTK tratta Ctrl+Shift+V come un incolla suo nella textarea di xterm.
+7. Il «Run» degli script usava `powershell` e `cmd`; i prompt delle scorciatoie andavano fra virgolette doppie, dove bash e
+   fish espandono `$`.
+8. Il **menu delle applicazioni**: `Categories=` vuoto, `Exec=orbit` senza `%F` (Apri con non passava i file), nessun
+   MimeType, la descrizione lunga «(none)». Con l'elenco completo dei tipi (immagini, PDF, JSON, Markdown…) Orbit è
+   diventato l'app predefinita di ogni tipo senza una predefinita esplicita: i PDF del portatile passavano da Firefox a
+   Orbit (GIO prende la prima registrata, e `Orbit.desktop` con la maiuscola viene prima in ordine ASCII).
+9. Il tema VS 2026 chiede Segoe UI, che c'è solo su Windows; le icone Nerd Font dei prompt (fish con un tema, starship,
+   oh-my-posh) uscivano come quadratini perché JetBrains Mono non le ha e WebKitGTK non le cerca da sé fra i font
+   installati; la scheda di default si chiamava «shell 1».
+10. Gli aggiornamenti: un `.deb` installato da pacman sarebbe stato aggiornato con `dpkg -i`, mescolando due gestori.
+11. La release era solo Windows: workflow, script e `latest.json`.
+
+**Cosa c'è.**
+- `appimage.rs` (nuovo):
+  - `self_exe`: il file `.AppImage` (`$APPIMAGE`) per le finestre nuove, il ripristino di «riapri tutte» e il riavvio;
+  - `env_fixes` (puro, 4 test): via le variabili del runtime, via le voci del mount dalle liste di percorsi, via le
+    variabili che puntano nel mount e le due imposte dall'hook; applicato da `clean_pty` alle shell e da `clean_command`
+    a xdg-open, alle finestre nuove e al riavvio;
+  - `clean_command` su Linux chiude anche i descrittori dal 3 in su nel figlio (`close_range` in `pre_exec`); le shell non
+    ne hanno bisogno, portable-pty li chiude già (verificato);
+  - `spawn_detached`: avvia e attende il figlio da un thread, niente zombie.
+- `webkitgtk.rs` (nuovo, solo Linux): accende `PDFJSViewer` sulla finestra, con le funzioni delle feature di WebKitGTK
+  cercate con dlsym (esistono dalla 2.42 e i binding del crate webkit2gtk non le hanno): un WebKitGTK più vecchio parte lo
+  stesso. Il crate `webkit2gtk` entra nelle dipendenze Linux, ma è quello che wry porta già, alla stessa versione.
+- `updater.rs`: `UpdateInfo.manager` dice chi aggiorna questa copia: il segno `/usr/share/orbit/package-manager` lasciato
+  dal PKGBUILD, oppure un `.deb`/`.rpm` senza `dpkg`/`rpm` o un binario senza pacchetto; il dialog allora dice «This copy
+  of Orbit was installed with pacman: update it from there» e ha solo OK. Il riavvio dopo l'installazione su Linux è
+  `restart_after_install`: chiude i terminali, lascia il registro, rilancia `self_exe` con l'ambiente pulito, esce.
+- Frontend:
+  - `util.ts`: `IS_WINDOWS`, `shQuote` (apici singoli, `'\''`, che anche fish capisce), `runCommand(name, windows)` con i
+    comandi per piattaforma (fuori da Windows `.ps1` con `pwsh`, niente batch);
+  - `claude.svelte.ts`: il prompt delle scorciatoie con `shQuote` fuori da Windows;
+  - `Terminal.svelte`: `preventDefault` su Ctrl+Shift+V e C;
+  - `terminals.svelte.ts`: il tipo della shell predefinita da `list_shells` («fish 1», «zsh 1»);
+  - `fonts.ts` (nuovo, puro, 4 test): la pila dei font monospazio con i Nerd Font più diffusi come ripiego;
+    `settings.fontMonoCustom` e la voce «Custom…» nelle Impostazioni (Editor e Terminal), con una casella per il nome;
+  - il tema VS 2026 ripiega su Inter invece del `system-ui`;
+  - `UpdateDialog.svelte`: il caso `manager`, e il testo giusto per gli altri: terminali e chat tornano (dalla M66).
+- Pacchetti:
+  - `tauri.conf.json`: categoria DeveloperTool, descrizione breve e lunga, `icon.png` (512 px) fra le icone, sezione
+    `bundle.linux` con il modello del menu per deb e rpm (Tauri usa quello del deb anche per l'AppImage);
+  - `src-tauri/linux/orbit.desktop`: `Exec=orbit %F`, `MimeType=text/plain;` soltanto (come VS Code: i tipi di testo e di
+    codice ne sono sottotipi, quindi Orbit c'è in «Apri con» per tutti, e dove manca una scelta vale l'app di
+    text/plain), categorie Development/IDE/TextEditor, parole chiave;
+  - `packaging/arch/PKGBUILD`: `orbit-bin`, dal `.deb` della release, installa LICENSE e il segno per pacman;
+  - `LICENSE` (MIT).
+- Release:
+  - `New-Release.ps1` compila la piattaforma dove gira (Linux: AppImage, `.deb`, `.rpm`) e scrive un `latest.json` con le
+    sole sue voci; percorsi con `/` (pwsh su Linux), anche in `Get-ReleaseNotes.ps1`;
+  - `Publish-Release.ps1` (nuovo): unisce i `latest.json`, pretende tutte e sette le voci (`windows-x86_64`, `-nsis`,
+    `-msi`, `linux-x86_64`, `-appimage`, `-deb`, `-rpm`) salvo `-AllowMissing`, controlla le firme, scrive il PKGBUILD con
+    gli SHA-256 di `.deb` e LICENSE, pubblica con `-Publish`;
+  - `release.yml`: due job di build in matrice (`windows-latest`, `ubuntu-22.04`: la glibc più vecchia fra quelle
+    supportate, perché un binario compilato su una rolling non partirebbe su Debian 12) con una sola approvazione
+    dell'environment, poi il job `release` senza secret che unisce e, con publish, pubblica. `actions/download-artifact`
+    v8.0.2 (`9000827`, del 7 ottobre) fissato per commit come le altre.
+- Docs: README (una sezione Install, che non c'era; Footprint con Linux; Build; Requirements; License), ARCHITECTURE,
+  03, 04, 05, 07, 08 (una sezione Linux), 09, 10 (requisiti, NO_STRIP, prove su Linux via SSH), 11 (le due piattaforme,
+  Publish-Release, i pacchetti, l'aggiornamento su Linux).
+
+**Verifica.**
+- `vitest` 106/106 (98 nella 1.5.0: 4 per `fonts`, 4 per `shQuote`/`runCommand`), `svelte-check` 0/0 (303 file),
+  `cargo test` 80 su Windows e su Linux (76 + 4 di `appimage`); `cargo check` su Windows dopo ogni modifica al Rust.
+- Sul portatile, build di sviluppo e di release, con clic e tasti veri:
+  - finestra nativa Wayland (Hyprland la affianca), albero, git, terminale con fish, scorciatoia Claude con `$` e
+    apostrofo arrivata intatta («costa $5 e l'apice»), anteprime Markdown, immagine, PDF (con e senza la feature),
+    Impostazioni, chiusura dalla ✕ e ritorno di schede e terminali;
+  - appunti: la copia dal menu dell'editor arriva negli appunti di Wayland (5500 byte letti con wl-paste), Ctrl+C con una
+    tastiera uinput anche (con la tastiera virtuale di wtype no: è la prova, non Orbit); Ctrl+Shift+V prima due volte, poi
+    una;
+  - AppImage: parte sotto XWayland; le sue shell hanno un ambiente senza nulla del mount; una finestra nuova parte dal
+    `.AppImage` e non tiene descrittori del mount dell'altra;
+  - pacchetto Arch da `makepkg -si`: LICENSE in `/usr/share/licenses/orbit-bin`, il segno per pacman, nessuna app
+    predefinita cambiata (text/plain resta a GNOME Text Editor, i PDF a Firefox, i PNG a qView), Orbit fra le registrate;
+  - **aggiornamenti**, con una chiave usa e getta generata sul portatile (quella vera non lo tocca mai), una 1.5.98 e una
+    1.5.99 compilate con quella chiave e `latest.json` servito da `python3 -m http.server`:
+    - il pacchetto Arch 1.5.98 trova la 1.5.99 da solo dopo 30 s e il dialog dice di aggiornare con pacman;
+    - l'AppImage 1.5.98 in una cartella qualsiasi: Update and restart → scaricato, firma verificata, file sostituito
+      (stesso md5 della 1.5.99), Orbit riaperto con «Orbit updated to 1.5.99» e i terminali; prima della correzione dei
+      descrittori restava il processo FUSE della 1.5.98 col suo mount, dopo uno solo.
+  - `.deb` e `.rpm` non si possono installare su Arch: il loro aggiornamento (pkexec + dpkg/rpm) è quello del plugin, non
+    provato qui.
+
+**Misure** (CachyOS, i5-4200U, build locali): binario 6,87 MiB; `.deb` 3,67 MiB, `.rpm` 3,64 MiB; AppImage 109 MiB senza
+strip (quello della release, compilato su Ubuntu, si misura con la release); RAM privata con una repo e due terminali:
+237 MiB col pacchetto nativo (orbit 65, WebKitWebProcess 153, WebKitNetworkProcess 20), 257 con l'AppImage (librerie
+sue, non condivise). Chunk iniziale **309,0 KiB** (105,4 gzip; 308,0 nella 1.5.0), `dist/` 3,00 MiB.
+
+**Da sapere.**
+- L'AppImage gira sotto XWayland per scelta dell'hook GTK di Tauri (tauri-apps/tauri#8541); `.deb`, `.rpm` e Arch sono
+  Wayland nativi. Sotto XWayland i tooltip sono finestre X11 a parte.
+- Su Arch lo strip di linuxdeploy non riconosce le sezioni RELR (tipo 0x13) delle librerie di sistema: l'AppImage si
+  compila con `NO_STRIP=true` (provato con e senza).
+- Lanciando Orbit via SSH serve l'ambiente della sessione grafica (copiato da `/proc/<pid>/environ` di un processo del
+  desktop): con i soli WAYLAND_DISPLAY e XDG_RUNTIME_DIR GTK in X11 non si inizializza, e le shell ereditano le
+  variabili SSH (prompt diversi).
+- In dev il primo uso di una dipendenza pigra (`marked` alla prima anteprima Markdown) fa ricaricare la pagina a Vite:
+  finestra vuota per un attimo. Non succede nelle build installate.
+- Su una macchina di prova dove Claude Code è installato, ogni cartella aperta avvia la chat predefinita col `claude`
+  vero, se non ha il `claude.json` di prova: è successo una volta (ferma alla scelta del tema, nessun prompt, chiusa
+  subito). Lì: «Launch Claude in the default terminal» spento, o solo cartelle col `claude.json` di prova.
+- L'AUR: il PKGBUILD è pronto come asset di ogni release; pubblicarlo serve un account AUR e un `.SRCINFO`
+  (`makepkg --printsrcinfo`), da fare su Arch.
+- Il README dice ancora «binary ~6.7 MB» per Windows: il Footprint si aggiorna con la release.
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).
 - WebView2 runtime 148 presente.
 - Release su GitHub Actions (M71): `windows-latest`, Node 24, Rust stable (1.99.0 alla prima prova, 2026-10-13).
-- Dev su **Windows**; il codice è scritto per essere cross-platform (vedi milestone
-  finale per la nota sul build Linux/macOS, non testabile direttamente da qui).
+- Linux (M75): CachyOS (kernel 7.3, Hyprland 0.57 su Wayland), Rust 1.99.1, Node 26, WebKitGTK 2.54.2; la release Linux
+  si compila su `ubuntu-22.04`.
+- Dev su **Windows**; Linux verificato dalla M75 su un portatile CachyOS raggiungibile via SSH; macOS non verificato.

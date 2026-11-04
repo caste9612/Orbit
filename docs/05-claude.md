@@ -7,7 +7,9 @@ terminals and reads the files Claude Code writes on disk.
 
 - `claude.launchClaude(prompt?, title, { side? })` opens a terminal tab in the project root with `kind:
   "claude"` and an `initCommand` built from `.orbit/claude.json`: `command` and `args` (e.g.
-  `--model opus`), plus the prompt in quotes for a shortcut.
+  `--model opus`), plus the prompt for a shortcut, on one line and quoted for the default shell: in double
+  quotes for PowerShell on Windows, in single quotes elsewhere (`util.shQuote`, M75), where bash, zsh and
+  fish leave `$` and backticks alone and an apostrophe becomes `'\''`.
   - `side` opens it in a pane next to the active one.
 - Claude always starts interactive, so you see what it does (important for commits and pushes).
 - **At startup**, with *Launch Claude in the default terminal* on, the first terminal of the repo is a

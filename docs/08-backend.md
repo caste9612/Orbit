@@ -19,9 +19,27 @@ processes, scans, windows, updates — and talks to the WebView through **comman
 | `watcher.rs` | The project file watcher → `fs-changed` |
 | `solution.rs` | Visual Studio solutions and projects for the Explorer's Solution view, read without MSBuild ([UI shell](02-ui-shell.md#explorer-folders-or-a-solution)) |
 | `updater.rs` | In-app updates through `tauri-plugin-updater`, driven by Orbit's own commands ([Release](11-release.md)) |
+| `appimage.rs` | Orbit inside an AppImage (M75): `self_exe` (the `.AppImage` file, for new windows and the restart after an update) and the environment cleanup for child processes (`clean_command`, `clean_pty`); a no-op elsewhere |
+| `webkitgtk.rs` | Linux only (M75): turns on WebKitGTK's built-in PDF viewer (`PDFJSViewer`) on the main window, looking the feature functions up with `dlsym` so an older WebKitGTK still starts |
 
 Plugins: `tauri-plugin-dialog` (folder picker, confirm), `tauri-plugin-clipboard-manager` (reliable
-clipboard), `tauri-plugin-updater` (used from Rust only: no JS package, no permissions).
+clipboard; on Linux it writes through the Wayland data-control protocol, so it works on Wayland too),
+`tauri-plugin-updater` (used from Rust only: no JS package, no permissions).
+
+## Linux
+
+The Linux build is the same code with a few `cfg`-gated parts (M75):
+- **Processes**: the shell is `$SHELL` (else `/bin/bash`); the process table for the Claude chats comes from
+  `ps`; links and folders open with `xdg-open`; liveness is `kill(pid, 0)`.
+- **Inside an AppImage** (`appimage.rs`), linuxdeploy's AppRun has pointed GTK, GIO, GSettings and
+  `XDG_DATA_DIRS` into the AppImage's temporary mount (`$APPDIR`) and forced `GDK_BACKEND=x11` and
+  `GTK_THEME`. Everything Orbit starts gets them removed: the PTY shells, `xdg-open`, a new window and the
+  restart after an update (`env_fixes`, pure and tested: runtime variables out, mount entries out of path
+  lists, single paths into the mount out, the hook's two overrides out). Another window is started from
+  `$APPIMAGE`, the `.AppImage` file: the binary inside the mount disappears with the process that mounted it.
+- **WebKitGTK** has no PDF viewer of its own like WebView2, but a PDF.js one behind the `PDFJSViewer`
+  feature (`webkitgtk.rs`). It's on by default in recent WebKitGTK (2.54 on Arch), and turned on explicitly for
+  the ones that ship it off; with it off, the preview is a blank page.
 
 ## Threading
 
@@ -56,7 +74,7 @@ clipboard), `tauri-plugin-updater` (used from Rust only: no JS package, no permi
 | `resolve_existing(paths)` | First existing path among candidates (terminal links) |
 | `project_root(path)` | Nearest ancestor with `.git` (light window → "Open as project") |
 | `load_state` · `save_state(key, data, pointer?)` | Sessions and terminal stores; `pointer: false` doesn't update the last-folder pointer |
-| `open_new_window(dir?, key?, place?)` | A new Orbit process. It never inherits this window's `ORBIT_WIN_*` variables; with `key` and `place` (a repo moved to a new window, M69) it gets that session key and a position, `"cursor"` or `"beside"` ([Persistence](07-persistence.md#a-repo-moved-to-a-new-window)) |
+| `open_new_window(dir?, key?, place?)` | A new Orbit process (from the `.AppImage` file inside an AppImage, M75). It never inherits this window's `ORBIT_WIN_*` variables; with `key` and `place` (a repo moved to a new window, M69) it gets that session key and a position, `"cursor"` or `"beside"` ([Persistence](07-persistence.md#a-repo-moved-to-a-new-window)) |
 | `reveal_path` · `open_url` | Show a file in the OS file manager; open an http(s) link |
 | `app_version` · `append_log` · `log_file_path` | Version; diagnostic log file |
 
@@ -116,8 +134,10 @@ name)`.
 - Files are UTF-8 or UTF-16 with a BOM; XML through `quick-xml`'s event reader (the version `plist`
   already brings into the dependency tree).
 
-**Updates** (`updater.rs`): `update_check` (from the latest GitHub release's `latest.json`),
-`update_download` (progress events), `update_install` (verifies the signature, starts the installer).
+**Updates** (`updater.rs`): `update_check` (from the latest GitHub release's `latest.json`; `manager` says when
+the package manager updates this copy instead, M75), `update_download` (progress events), `update_install`
+(verifies the signature, starts the installer; on Linux replaces the AppImage or installs the package, then
+restarts Orbit, see [Release](11-release.md#the-in-app-update)).
 
 ## Events
 

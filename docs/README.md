@@ -19,10 +19,10 @@ Start from the overview, then open the page of the area you're touching.
 | [05 · Claude](05-claude.md) | Launching Claude, shortcuts and wrappers, the bell, which conversation runs in a tab, resuming chats, the Activity view |
 | [06 · Code navigation](06-code-navigation.md) | The project symbol index, code lens, go to definition, project and file symbols, the related bar, semantic highlighting, Quick Open, search, folders ignored by git |
 | [07 · Persistence](07-persistence.md) | Everything Orbit saves and where: settings, per-window sessions, terminals, the window registry, `.orbit/`, the files read from Claude Code; startup, switch and quit sequences |
-| [08 · Backend](08-backend.md) | The Rust core: modules, every Tauri command, the events, threading, the file watcher, git, plugins and permissions |
+| [08 · Backend](08-backend.md) | The Rust core: modules, every Tauri command, the events, threading, the file watcher, git, plugins and permissions, what changes on Linux |
 | [09 · Settings](09-settings.md) | The settings model and window, keyboard presets, themes and their *look*, cursor styles, icons and file glyphs |
 | [10 · Development](10-development.md) | Setup, running, tests, debugging (logs, DevTools over CDP, an isolated instance), recipes for common changes |
-| [11 · Release](11-release.md) | Versions, release notes, publishing from GitHub Actions or locally, the signing key and its backup, `latest.json`, installers, the in-app update flow |
+| [11 · Release](11-release.md) | Versions, release notes, publishing Windows and Linux from GitHub Actions or locally, the signing key and its backup, `latest.json`, installers and packages, the in-app update flow |
 
 ## Keeping these pages current
 

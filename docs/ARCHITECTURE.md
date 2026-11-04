@@ -5,7 +5,7 @@ reasons behind every decision are in [`NOTES.md`](../NOTES.md) (Italian, one ent
 
 ## Stack
 
-- **Tauri 2**: a Rust core plus the system WebView (WebView2 on Windows), not Electron.
+- **Tauri 2**: a Rust core plus the system WebView (WebView2 on Windows, WebKitGTK on Linux), not Electron.
 - **Svelte 5** (runes) **+ Vite + TypeScript**: plain Vite, not SvelteKit.
 - **Tailwind v4** for the design tokens (`@theme` in `src/app.css`); components use scoped CSS.
 - **CodeMirror 6** for the editor; **xterm.js** in the WebView plus **portable-pty** (ConPTY on Windows) for
@@ -62,7 +62,7 @@ list on top of that: switching swaps the folder, its documents, tree and termina
 **Heavy code loads on demand.** CodeMirror arrives with the first file you open (`LazyEditor.svelte`),
 xterm with the first terminal (`LazyTerminal.svelte`), the WebGL renderer only for a visible terminal,
 `marked` and DOMPurify on the first Markdown render, and `Lazy.svelte` does the same for overlays, viewers
-and the non-default sidebar views. The startup chunk is ~308 KiB (≈105 KiB gzipped) as of M74.
+and the non-default sidebar views. The startup chunk is ~309 KiB (≈105 KiB gzipped) as of M75.
 
 ## Repo layout
 
@@ -98,13 +98,17 @@ src-tauri/
   src/solution.rs       Visual Studio solutions and projects for the Explorer's Solution view
   src/winsession.rs     windows: registry, reopen all, close all, geometry, restart after updates
   src/updater.rs        in-app updates from GitHub releases
+  src/appimage.rs       Orbit inside an AppImage: relaunching it, a clean environment for what it starts
+  src/webkitgtk.rs      Linux: WebKitGTK's built-in PDF viewer
   tauri.conf.json       window, bundle, updater endpoint and public key
   tauri.windows.conf.json   Windows overrides (no fileAssociations: "Open with" is in hooks.nsh)
   windows/hooks.nsh     NSIS hooks: "Open with" without becoming the default app
+  linux/orbit.desktop   the menu entry of the .deb, .rpm and AppImage
   capabilities/         permissions of the main and floating windows
-scripts/                New-Release.ps1 (signed release), Get-ReleaseNotes.ps1 (notes from NOTES.md),
-                        measure-orbit*.ps1 (footprint)
-.github/workflows/      release.yml: the signed release on GitHub Actions, started by hand
+scripts/                New-Release.ps1 (signed build of this platform), Publish-Release.ps1 (joins the
+                        platforms, publishes), Get-ReleaseNotes.ps1 (notes from NOTES.md), measure-orbit*.ps1
+packaging/arch/         PKGBUILD: the Arch package, from the release's .deb
+.github/workflows/      release.yml: the signed release on GitHub Actions (Windows + Linux), started by hand
 docs/                   these pages + README screenshots
 NOTES.md                decision log, Italian
 CLAUDE.md               tells Claude Code about Orbit and the .orbit/ files

@@ -7,10 +7,13 @@ Setting up, running, testing and debugging Orbit, and recipes for the most commo
 - Node ≥ 20, Rust stable, and the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your
   platform:
   - Windows: WebView2 (preinstalled on Windows 11) and the MSVC build tools;
-  - Linux: WebKitGTK 4.1 and libsoup3;
+  - Linux: WebKitGTK 4.1 and its development files. Arch and derivatives: `webkit2gtk-4.1 base-devel`
+    (plus `fuse2` to run AppImages); Debian and Ubuntu: `libwebkit2gtk-4.1-dev librsvg2-dev libssl-dev
+    build-essential`;
   - macOS: the Xcode command line tools.
-- Built and verified end to end on Windows. The code is cross-platform by construction (Tauri 2,
-  standard crates, `cfg`-gated platform code); a Linux/macOS validation build is still an open item.
+- Built and verified end to end on Windows and, since M75, on Linux (CachyOS with Hyprland on Wayland: dev
+  build, AppImage, Arch package, updates). The release's Linux packages are built on Ubuntu 22.04. macOS is
+  still unverified.
 
 ## Running and building
 
@@ -27,6 +30,9 @@ npm run tauri build     # release binary + installers in src-tauri/target/releas
     `invoke('pty_kill', { id })` or restart the app.
 - `npm run tauri build` needs no signing key: the signed updater artifacts are produced only by the
   release script, run by the Release workflow or locally ([Release](11-release.md)).
+- On Linux it builds the AppImage, the `.deb` and the `.rpm`. On Arch and derivatives the AppImage step fails
+  in linuxdeploy: its own `strip` doesn't know the RELR relocation sections (type `0x13`) of the system's
+  libraries and stops. Set `NO_STRIP=true`; the Ubuntu 22.04 runner doesn't need it.
 
 ## Tests
 
@@ -36,7 +42,7 @@ npm run test                                     # vitest: pure frontend logic
 cargo test --manifest-path src-tauri/Cargo.toml  # Rust unit tests
 ```
 
-- **Frontend tests** live in `*.test.ts` next to the module: `util`, `caretStyles`, `searchText`,
+- **Frontend tests** live in `*.test.ts` next to the module: `util`, `caretStyles`, `searchText`, `fonts`,
   `editorTabs`, `shelfRules`, `symbolMaps`, `paneLayout`, `repoStrip`, `solutionTree`. Only pure
   logic is tested (no runes, no DOM): keep the logic of a new feature in a plain `.ts` so it can be.
 - **Rust tests** sit in each module (`#[cfg(test)] mod tests`). They cover:
@@ -46,6 +52,7 @@ cargo test --manifest-path src-tauri/Cargo.toml  # Rust unit tests
   - the reference lexer (`refs`);
   - Activity's segmentation, including incremental reads against a from-scratch parse (`activity`);
   - the process walk for Claude chats (`claudeproc`);
+  - the environment cleanup inside an AppImage (`appimage`, M75);
   - the shelf's rule matching and walk (`glob_match`, `shelf_walk` in `lib.rs`, M73);
   - solutions and projects (`solution`): `.sln` and `.slnx`, SDK, old-style and C++ projects with
     filters, conditions, property functions, imports, central package versions, several target
@@ -59,7 +66,7 @@ cargo test --manifest-path src-tauri/Cargo.toml  # Rust unit tests
 - **Diagnostic logs**: turn them on in Settings → Updates & logs. They go to a ring buffer and to
   `logs/orbit-<pid>.log` in the app config folder; *Open logs…* shows, filters and exports them. The
   clipboard, paste and terminal paths are instrumented.
-- **DevTools** — the context menu is suppressed, so open DevTools from outside:
+- **DevTools** (Windows) — the context menu is suppressed, so open DevTools from outside:
   1. Start Orbit with `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9333`.
   2. Open `edge://inspect`, or drive the page over the Chrome DevTools Protocol.
   - From the console you can import the state modules (`await import("/src/lib/state/…")`) to read or
@@ -91,6 +98,16 @@ cargo test --manifest-path src-tauri/Cargo.toml  # Rust unit tests
     leaves nothing to restore, so the next bare launch gets a new window key. The editor still comes
     back, through the last-folder pointer, but the terminals are stored under the old key and don't
     (M72).
+- **Testing on a Linux machine over SSH** (M75):
+  - start Orbit with the environment of the desktop session, e.g. copied from a process the desktop started
+    (`/proc/<pid>/environ`). With only `WAYLAND_DISPLAY` and `XDG_RUNTIME_DIR`, GTK in X11 mode fails
+    ("Failed to initialize GTK"), and that's the mode the AppImage forces;
+  - the shells then inherit the SSH variables otherwise, and prompts that show the host over SSH look
+    different;
+  - `wl-paste` reads the Wayland clipboard; a virtual keyboard (`wtype`) doesn't make WebKitGTK copy on
+    `Ctrl+C`, a `uinput` one (`ydotool`) does, as a real keyboard;
+  - in dev, Vite reloads the whole page the first time a lazy dependency is optimized (e.g. `marked` at the
+    first Markdown preview): the window turns blank for a second. Installed builds don't do it.
 - **Reproducing races**: `__TAURI_INTERNALS__.invoke` can't be replaced, but Tauri 2's IPC goes through
   `window.fetch` to `http://ipc.localhost/<command>`. Wrapping `fetch` to delay one command (e.g.
   `read_file`) makes a timing bug deterministic (M65).

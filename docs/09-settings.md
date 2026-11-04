@@ -9,13 +9,18 @@ User preferences, the Settings window, keyboard presets, themes and their *look*
 | Group | Fields (default) |
 |---|---|
 | Appearance | `theme` (`vs2026`), `accent` (`auto` = the theme's), `motion` (on) |
-| Editor | `fontMono` (JetBrains Mono, shared with the terminal), `editorFontSize` (13), `editorCaret` (Smooth, line), `codeLens` (on), `autosave` (on), `mdMode` (`readme`: preview for READMEs only), `revealActive` (off: the ⌖ toggle in the Explorer) |
+| Editor | `fontMono` (JetBrains Mono, shared with the terminal; `Custom` uses `fontMonoCustom`, M75), `editorFontSize` (13), `editorCaret` (Smooth, line), `codeLens` (on), `autosave` (on), `mdMode` (`readme`: preview for READMEs only), `revealActive` (off: the ⌖ toggle in the Explorer) |
 | Terminal | `terminalFontSize` (13), `termCaret` (Smooth without blink; block in shells, bar in chats), `webgl` (on), `terminalScrollback` (3,000) |
 | Claude | `claudeTerminal` (on: the first terminal at startup is a chat) |
 | Notifications | `bellNotify` (on), `notifySound` (on: a chime when a chat waits and Orbit is in the background), `dnd` (off: Do not disturb), M74 |
 | Keyboard | `keymap` (`orbit` / `vs` / `intellij` / `custom`), `customKeys` |
 | Updates & logs | `checkUpdates` (on), `logging` (off since M62) |
 
+- **Fonts**: `MONO_FONTS` lists the monospace choices by family; `monoStack(label)` builds the CSS stack with
+  `lib/fonts.ts` (pure, tested): the chosen families, then the common Nerd Fonts for the glyphs they lack,
+  then the system monospace (M75). *Custom…* (`CUSTOM_FONT`) puts the names typed in `fontMonoCustom` first,
+  comma-separated, stripped of quotes and of the characters that would end the CSS declaration, with JetBrains
+  Mono behind them in case they aren't installed.
 - **Applying**: `applySettings` writes CSS variables on the document root, and the components read them:
   - fonts and sizes (`--font-mono`, `--editor-font-size`);
   - the theme palette and *look*;
@@ -92,6 +97,8 @@ version with *Check now* in the footer.
   - Each theme is a full set of variables.
   - Variables only some themes define are removed when switching to one without them, so nothing
     sticks.
+  - The VS 2026 look asks for Segoe UI, which only Windows has; elsewhere it falls back to Inter, the
+    sans-serif Orbit ships, instead of whatever the system's `system-ui` is (M75).
   - The VS 2026 colors were sampled from a real VS 2026 screenshot (M55).
 - **`look`**: a theme can also change the *shape* of the UI:
   - `fontSans`;

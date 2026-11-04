@@ -34,7 +34,7 @@ cross-platform desktop app that weighs almost nothing.
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
 - **It is genuinely small.** A ~6.7 MB binary, ~120 MB of RAM at rest with a project open (mostly the
-  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~308 KB startup chunk (≈105 KB gzipped).
+  shared system WebView — Orbit's own Rust core is ~6 MB), and a ~309 KB startup chunk (≈105 KB gzipped).
 
 ### Project gates (non-negotiable)
 
@@ -42,6 +42,24 @@ cross-platform desktop app that weighs almost nothing.
 2. **Curated dark mode** — at the level of IntelliJ / Visual Studio 2026 (the default theme is modeled
    on VS 2026 Dark, colors sampled from the real thing).
 3. **Real cross-platform** — Windows, macOS, Linux.
+
+---
+
+## Install
+
+Download the latest version from the [releases page](https://github.com/caste9612/Orbit/releases/latest):
+
+| System | File | How |
+|---|---|---|
+| Windows 10 / 11 | `Orbit_X.Y.Z_x64-setup.exe` | Run it (no admin rights needed). The `.msi` works too |
+| Any Linux | `Orbit_X.Y.Z_amd64.AppImage` | `chmod +x` it and start it: nothing to install (on Arch, the `fuse2` package) |
+| Debian, Ubuntu, Mint | `Orbit_X.Y.Z_amd64.deb` | `sudo apt install ./Orbit_X.Y.Z_amd64.deb` |
+| Fedora, openSUSE | `Orbit-X.Y.Z-1.x86_64.rpm` | `sudo dnf install ./Orbit-X.Y.Z-1.x86_64.rpm` |
+| Arch, CachyOS, EndeavourOS, Manjaro | `PKGBUILD` | Put it in an empty folder and run `makepkg -si` there |
+
+Orbit then **updates itself** from the releases, with your confirmation; the Arch package is updated by pacman
+instead, like the rest of the system. On Linux Orbit uses the system's WebKitGTK 4.1, present on most
+desktops (the AppImage brings its own).
 
 ---
 
@@ -315,7 +333,8 @@ cross-platform desktop app that weighs almost nothing.
   version shows a notice and an **Update** button in the top bar, with its release notes; **Update and
   restart** downloads the installer, verifies its signature, saves your work (or asks), closes the other
   Orbit windows and installs in place — then every window reopens where it was, with its tabs,
-  terminals and Claude chats.
+  terminals and Claude chats. On Linux the AppImage replaces itself, a `.deb` or `.rpm` asks for the
+  administrator password to install, and the Arch package leaves updates to pacman.
 - **Color themes**: five full themes, switched live — **Visual Studio 2026 Dark** (the default since
   0.9: neutral charcoal greys sampled from VS 2026, Segoe UI Variable, near-square corners, Fluent-style
   icons, outline file glyphs and VS's purple accent), **Orbit Dark**, **Eclipse** (OLED), **Slate** and
@@ -330,7 +349,8 @@ cross-platform desktop app that weighs almost nothing.
   (`Ctrl/Cmd+F` jumps to it; `Esc` clears it, then closes the window):
   - **Appearance**: theme (each with a thumbnail in its own colors), accent color, smooth panel transitions;
   - **Editor** and **Terminal**: font with **independent sizes** (`Ctrl/Cmd+scroll` zooms whichever panel the
-    pointer is over; the family is shared), **cursor styles** (Smooth, Classic, Comet, Elastic, Blaze;
+    pointer is over; the family is shared, any installed font with *Custom…*, and the icons of Nerd Font
+    prompts — fish, starship, oh-my-posh — come from the Nerd Fonts you have installed), **cursor styles** (Smooth, Classic, Comet, Elastic, Blaze;
     *Customize* for shape, glide, blink, trail and glow — a bar in Claude chats, a block in shells) with a
     **live preview** to try them — a small editor, and a small terminal with a *Shell* and a *Claude chat* tab;
     **code lens**, **autosave** and the **default Markdown view** (source / preview / READMEs only); terminal
@@ -355,9 +375,14 @@ Measured on Windows (size-optimized release build):
 | MSI installer | ~4.0 MB |
 | NSIS setup | ~3.3 MB |
 | Frontend `dist/` | ~3.0 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~308 KB (≈105 KB gzipped; the editor and the terminal load on demand) |
+| Startup JS chunk | ~309 KB (≈105 KB gzipped; the editor and the terminal load on demand) |
 | RAM at rest (project open) | ~120 MB private working set with one terminal, ~160 MB with four terminals and three files open (Orbit + WebView2; the Rust core is ~6 MB, ~30 MB with the symbol index of a very large project — the rest is the shared system WebView, inherent to Tauri) |
 | Under load | Claude saving a file every second in a 5,400-file project: ~23% of one CPU core, the UI answering in ~2 ms (99th percentile) |
+
+On **Linux** (CachyOS, measured on a 2013 laptop): the `orbit` binary is ~6.9 MB, the `.deb` and the `.rpm`
+~3.7 MB, the AppImage ~110 MB because it carries GTK and WebKitGTK. With a project and two terminals open,
+Orbit's private memory is ~240 MB (the Rust core with GTK's side of the WebView ~65 MB, WebKitGTK's web process
+~155 MB, its network process ~20 MB; WebKitGTK keeps more of the WebView in each app than WebView2 does).
 
 The terminal's child processes are separate: a `claude` session (Node) or a shell add their own
 memory on top, just as in any terminal. For comparison, an equivalent Electron app ships an
@@ -444,26 +469,29 @@ Debugging, an isolated test instance, tests and recipes: [docs/10-development.md
 npm run tauri build    # binary + installers in src-tauri/target/release
 ```
 
-Releases are built by `scripts/New-Release.ps1` (PowerShell 7). It checks that the version matches in
-all six places, builds the installers **signed** with the update key, writes `latest.json` for the in-app
-updater and, when publishing, creates the GitHub release from the pushed commit. The release notes come
-from the version's section in `NOTES.md` (`scripts/Get-ReleaseNotes.ps1`).
+Releases are built by `scripts/New-Release.ps1` (PowerShell 7) on each platform. It checks that the version
+matches in all six places, builds the installers **signed** with the update key (Windows: NSIS and MSI; Linux:
+AppImage, `.deb` and `.rpm`) and writes that platform's `latest.json` for the in-app updater.
+`scripts/Publish-Release.ps1` joins the platforms into one `latest.json`, writes the Arch `PKGBUILD` and creates
+the GitHub release from the pushed commit. The release notes come from the version's section in `NOTES.md`
+(`scripts/Get-ReleaseNotes.ps1`).
 
 The usual way is the **Release** workflow on GitHub Actions (`.github/workflows/release.yml`), started by
-hand from any PC or from the browser. It runs the same script on a GitHub runner, with the key kept in
-the secrets of a protected `release` environment: `main` only, approval required.
+hand from any PC or from the browser. It builds Windows and Linux (on Ubuntu 22.04, so the packages run on
+older distributions too) with the same script, with the key kept in the secrets of a protected `release`
+environment (`main` only, approval required), then joins and publishes them.
 
 ```powershell
 gh workflow run release.yml -f title="Updates from GitHub"                  # dry run: files in the run's artifact
 gh workflow run release.yml -f title="Updates from GitHub" -f publish=true  # GitHub release
 ```
 
-The script also runs locally, on a PC that has the key (`~/.tauri/orbit-updater.key`, password-protected).
+The scripts also run locally, on a PC that has the key (`~/.tauri/orbit-updater.key`, password-protected).
 Back up the key together with its password: without them, installed copies can't verify new versions.
 
 ```powershell
-.\scripts\New-Release.ps1 -Notes (.\scripts\Get-ReleaseNotes.ps1)                                # build only, in artifacts\release
-.\scripts\New-Release.ps1 -Notes (.\scripts\Get-ReleaseNotes.ps1) -Title "Updates from GitHub" -Publish
+./scripts/New-Release.ps1 -Notes (./scripts/Get-ReleaseNotes.ps1)       # this platform, in artifacts/release
+./scripts/Publish-Release.ps1 -Dir ./artifacts/release, <other platform> -Notes (./scripts/Get-ReleaseNotes.ps1) -Title "…" -Publish
 ```
 
 A release published without `latest.json` (or marked as pre-release) is not offered to installed copies.
@@ -482,13 +510,15 @@ cargo test --manifest-path src-tauri/Cargo.toml  # backend unit tests
 - Node ≥ 20, Rust stable, and the Tauri prerequisites for your platform
   (see https://tauri.app/start/prerequisites/).
 - **Windows**: WebView2 (preinstalled on Win11) + MSVC build tools.
-- **Linux**: WebKitGTK 4.1 + libsoup3.
+- **Linux**: WebKitGTK 4.1 and its development files (Arch: `webkit2gtk-4.1 base-devel`; Debian/Ubuntu:
+  `libwebkit2gtk-4.1-dev librsvg2-dev libssl-dev build-essential`). On Arch, build the AppImage with
+  `NO_STRIP=true`.
 - **macOS**: Xcode command line tools.
 
-> Built and verified end-to-end on Windows. The code is cross-platform by construction
-> (Tauri 2 + standard crates; the few platform-specific bits are `cfg`-gated); a validation
-> build on Linux/macOS is the remaining open item for gate #3.
+> Built and verified end-to-end on Windows and Linux (CachyOS, Hyprland on Wayland). The code is
+> cross-platform by construction (Tauri 2 + standard crates; the few platform-specific bits are
+> `cfg`-gated); macOS is the remaining open item for gate #3.
 
 ## License
 
-MIT
+[MIT](LICENSE)

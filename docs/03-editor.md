@@ -107,7 +107,8 @@ options; `editor/caret.ts` applies them (M63):
   protocol. Anchors and relative assets work, page scripts never run (no `allow-scripts`), and the
   preview refreshes on save and on external changes (`diskRev`).
 - **Images and PDF** — `assetKind` tags them, and `AssetView.svelte` shows them through the asset
-  protocol (no base64): images in `<img>`, PDFs in WebView2's viewer.
+  protocol (no base64): images in `<img>`, PDFs in the WebView's viewer — WebView2's on Windows, WebKitGTK's
+  PDF.js one on Linux, which `webkitgtk.rs` turns on (M75; without it the page stays blank).
   - Image zoom (M58): `Ctrl+wheel` steps through round levels around the pointer, a double-click toggles
     fit ⇄ 100%, dragging pans. Rendering turns pixelated from 300%.
   - Zoom and scroll are remembered per path while Orbit runs.

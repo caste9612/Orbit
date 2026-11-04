@@ -1,8 +1,9 @@
 # Persistence
 
 What Orbit remembers, where it keeps it, and the sequences that read and write it: startup, switching
-repository, closing. The app config folder (`app_config_dir`) is `%APPDATA%\com.visialab.lume` on Windows.
-The name is historical, and a test build with another identifier gets its own folder.
+repository, closing. The app config folder (`app_config_dir`) is `%APPDATA%\com.visialab.lume` on Windows and
+`~/.config/com.visialab.lume` on Linux. The name is historical, and a test build with another identifier gets
+its own folder.
 
 ## What is saved where
 
@@ -22,6 +23,7 @@ The name is historical, and a test build with another identifier gets its own fo
 | Diagnostic logs | `logs/orbit-<pid>.log` (~2 MB, rotated) | process | `append_log` |
 | Project config | `.orbit/run.json`, `.orbit/claude.json` (committed); `.orbit/shelf.json`, `.orbit/index/` (git-ignored); `.orbit/scratch.txt` | project | run, claude, shelf, codeIndex, scratch |
 | Claude's bell | `.claude/settings.local.json` (`preferredNotifChannel`) | project, local | `claude.svelte.ts` |
+| Who updates this copy (Arch package) | `/usr/share/orbit/package-manager` (M75): its content names the package manager | system, read only | the PKGBUILD |
 
 Orbit also **reads** Claude Code's own files, never writing them:
 - `~/.claude/projects/*/*.jsonl`: the transcripts, for Activity and to check that a chat can be resumed;

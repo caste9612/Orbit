@@ -38,6 +38,9 @@ and the tabs and chats come back when you reopen Orbit.
   xterm's CSS paints the sub-row remainder black.
 - **Scrollback**: the *Terminal scrollback* setting, 1,000–10,000 lines (default 3,000), applied live.
 - Closing a tab kills the PTY (`closeTerminal`). The app kills every PTY on exit (`PtyManager::kill_all`).
+- **The shell's environment** has none of the window's `ORBIT_WIN_*` variables (M69) and, inside an AppImage,
+  none of the paths its AppRun added (M75, `appimage.rs`; see [Backend](08-backend.md#linux)): a GTK program
+  started from the terminal uses the system's libraries, theme and backend, not Orbit's bundled ones.
 
 ## GPU rendering
 
@@ -53,7 +56,9 @@ xterm's WebGL addon (on by default since M62) is attached only while the termina
 - `TerminalPanel` shows only the tabs whose `root` is the active repo. Every tab of every repo stays
   mounted (hidden ones are `display: none`), so switching never restarts a process.
 - **Names and colors**:
-  - `shortName` is minimal and numbered per kind (`Claude 2`, `pwsh 1`; run configs keep their name);
+  - `shortName` is minimal and numbered per kind (`Claude 2`, `pwsh 1`; run configs keep their name). A plain
+    terminal is named after the default shell: `pwsh` on Windows, elsewhere the shell of `$SHELL` (`fish 1`,
+    `zsh 1`), the first entry of `list_shells`, read once at startup (M75; before, `shell 1`);
   - `customTitle` comes from a rename (double-click);
   - `autoTitle` is the chat summary Claude Code writes in the terminal title (OSC 0/2). It's shown as a
     subtitle for chats only; shells put paths there, which is noise;
@@ -120,7 +125,9 @@ xterm's WebGL addon (on by default since M62) is attached only while the termina
 - **Paste**:
   - with mouse tracking on (a TUI such as Claude Code), right-click is left to the program, so it pastes
     once with its own handling. This fixed the double paste;
-  - `Shift`+right-click and `Ctrl+Shift+V` force Orbit's paste;
+  - `Shift`+right-click and `Ctrl+Shift+V` force Orbit's paste. The key handler also cancels the browser's
+    default for `Ctrl+Shift+V`/`C`: WebKitGTK treats `Ctrl+Shift+V` as a paste of its own into xterm's
+    textarea, and on Linux the text arrived twice (M75);
   - in a plain shell, Orbit always pastes.
 - **OSC 52** (a program setting the clipboard) is honored, so Claude's "copied to clipboard" reaches the
   system clipboard.
@@ -139,10 +146,21 @@ xterm can't animate its cursor, so Orbit draws one (M63, `terminalCaret.ts`):
 - **shape**: a bar in Claude chats, a block in shells, a hollow block when the terminal isn't focused.
   The styles are the same as in the editor ([Settings](09-settings.md#cursor-styles)).
 
+## The font
+
+The terminal uses the monospace font of the editor (`monoStack`, [Settings](09-settings.md#the-settings-model)).
+After the chosen families the stack lists the common **Nerd Fonts** (`lib/fonts.ts`, M75): prompts such as
+fish's, starship or oh-my-posh draw icons from Unicode's private area, which JetBrains Mono doesn't have, and
+WebKitGTK doesn't look for them among the installed fonts by itself. The browser takes from the fallback only
+the glyphs the first font lacks, so text and cell size don't change. *Custom…* in Settings takes any installed
+font by name, e.g. a Nerd Font Mono.
+
 ## Run configurations and jobs
 
 - `.orbit/run.json` entries (the Run menu) open a tab with an `initCommand`; their `kind` is `run`.
-- `runFile` runs a script by its interpreter (`.ps1`, `.cmd`, `.bat`, `.sh`) in its folder.
+- `runFile` runs a script by its interpreter in its folder (`util.runCommand`): on Windows `.ps1` with
+  PowerShell, `.cmd`/`.bat` with `cmd /c`, `.sh` with `bash`; elsewhere `.ps1` with `pwsh` (PowerShell 7, if
+  installed) and `.sh` with `bash`, the file name in single quotes, and no *Run* for batch files (M75).
 - Git fetch, pull, push and merge are `run` tabs too, so they use your git credentials.
 - Jobs are not restored after a restart.
 

@@ -169,9 +169,7 @@ The `release` environment (Settings → Environments) holds two secrets:
 `New-Release.ps1 -Publish` still exists for a one-platform release: it runs the checks before compiling,
 then calls `Publish-Release.ps1`, which refuses a single platform unless `-AllowMissing` is given too.
 
-A plain `npm run tauri build` needs no key: `createUpdaterArtifacts` is set only by the script. On Arch and
-its derivatives, linuxdeploy's own `strip` doesn't know the RELR relocation sections of the system libraries
-and the AppImage step fails: build there with `NO_STRIP=true` (the Ubuntu runner doesn't need it).
+A plain `npm run tauri build` needs no key: `createUpdaterArtifacts` is set only by the script.
 
 ## The signing key
 
@@ -220,12 +218,17 @@ On Linux the `.deb`, the `.rpm` and the AppImage share one menu entry, `src-taur
   app and `Orbit.desktop` sorts first;
 - the *Development* category, keywords, and icons from 32 to 512 px.
 
-The AppImage runs through linuxdeploy's AppRun, whose GTK hook forces `GDK_BACKEND=x11` (Orbit runs under
-XWayland on a Wayland session, as Tauri chose for its AppImages) and `GTK_THEME`, and points GTK, GIO and
-`XDG_DATA_DIRS` into the AppImage's temporary mount. Orbit undoes all of that for what it starts
-(`appimage.rs`, see [Backend](08-backend.md#modules)): another window is started from the `.AppImage` file
-itself, and shells, `xdg-open` and new windows get an environment without the mount's paths. The `.deb`, the
-`.rpm` and the Arch package run as native Wayland clients.
+The AppImage runs through linuxdeploy's AppRun, whose GTK hook sets `GTK_THEME` and points GTK, GIO and
+`XDG_DATA_DIRS` into the AppImage's temporary mount. Orbit undoes that for what it starts (`appimage.rs`, see
+[Backend](08-backend.md#linux)): another window is started from the `.AppImage` file itself, and shells,
+`xdg-open` and new windows get an environment without the mount's paths.
+
+The AppImage needs **Tauri CLI 2.12** or later (bundler 2.10, M75). The 1.6.0 dry run, built with 2.11 on
+Ubuntu 22.04, didn't start on CachyOS: it carried Ubuntu's `libwayland-client`, older than the one the
+system's Mesa expects, and WebKitGTK aborted with `Could not create default EGL display: EGL_BAD_PARAMETER`
+(`WEBKIT_DISABLE_DMABUF_RENDERER=1` didn't help; leaving that library out did). The newer linuxdeploy and GTK
+hook leave `libwayland-client` to the system, no longer force `GDK_BACKEND=x11` (the AppImage is a native
+Wayland client, as the `.deb`, the `.rpm` and the Arch package are) and build on Arch without `NO_STRIP`.
 
 ## The in-app update
 

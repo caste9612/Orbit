@@ -4561,8 +4561,8 @@ non è Orbit (l'utente a tratti usava il portatile: un Ctrl+A/Ctrl+C era finito 
 1. Dentro un **AppImage** una finestra nuova si rilanciava dal binario nel mount temporaneo, che sparisce quando esce il
    processo che l'ha montato; e lo stesso valeva per il riavvio dopo un aggiornamento (`app.restart()`).
 2. L'AppRun dell'AppImage (linuxdeploy con l'hook GTK, letto nell'AppDir) mette dentro il mount GTK_PATH,
-   GDK_PIXBUF_MODULE_FILE, GSETTINGS_SCHEMA_DIR, GIO_EXTRA_MODULES, XDG_DATA_DIRS…, e impone `GDK_BACKEND=x11` e
-   `GTK_THEME=Adwaita:<variante>` senza salvare i valori di prima: tutto passava alle shell del terminale, a xdg-open e alle
+   GDK_PIXBUF_MODULE_FILE, GSETTINGS_SCHEMA_DIR, GIO_EXTRA_MODULES, XDG_DATA_DIRS…, e impone `GDK_BACKEND=x11` (fino al
+   CLI 2.11) e `GTK_THEME=Adwaita:<variante>` senza salvare i valori di prima: tutto passava alle shell del terminale, a xdg-open e alle
    finestre nuove.
 3. **Mount orfani**: il runtime dell'AppImage lascia all'app un descrittore della cartella del mount (il 1023), e WebKitGTK
    tiene aperti senza CLOEXEC /proc/meminfo, i file dei cgroup e /dev/urandom. Il nuovo Orbit (una finestra, il riavvio
@@ -4632,7 +4632,7 @@ non è Orbit (l'utente a tratti usava il portatile: un Ctrl+A/Ctrl+C era finito 
     dell'environment, poi il job `release` senza secret che unisce e, con publish, pubblica. `actions/download-artifact`
     v8.0.2 (`9000827`, del 7 ottobre) fissato per commit come le altre.
 - Docs: README (una sezione Install, che non c'era; Footprint con Linux; Build; Requirements; License), ARCHITECTURE,
-  03, 04, 05, 07, 08 (una sezione Linux), 09, 10 (requisiti, NO_STRIP, prove su Linux via SSH), 11 (le due piattaforme,
+  03, 04, 05, 07, 08 (una sezione Linux), 09, 10 (requisiti, CLI 2.12, prove su Linux via SSH), 11 (le due piattaforme,
   Publish-Release, i pacchetti, l'aggiornamento su Linux).
 
 **Verifica.**
@@ -4645,7 +4645,7 @@ non è Orbit (l'utente a tratti usava il portatile: un Ctrl+A/Ctrl+C era finito 
   - appunti: la copia dal menu dell'editor arriva negli appunti di Wayland (5500 byte letti con wl-paste), Ctrl+C con una
     tastiera uinput anche (con la tastiera virtuale di wtype no: è la prova, non Orbit); Ctrl+Shift+V prima due volte, poi
     una;
-  - AppImage: parte sotto XWayland; le sue shell hanno un ambiente senza nulla del mount; una finestra nuova parte dal
+  - AppImage (compilato sul portatile): parte; le sue shell hanno un ambiente senza nulla del mount; una finestra nuova parte dal
     `.AppImage` e non tiene descrittori del mount dell'altra;
   - pacchetto Arch da `makepkg -si`: LICENSE in `/usr/share/licenses/orbit-bin`, il segno per pacman, nessuna app
     predefinita cambiata (text/plain resta a GNOME Text Editor, i PDF a Firefox, i PNG a qView), Orbit fra le registrate;
@@ -4658,16 +4658,29 @@ non è Orbit (l'utente a tratti usava il portatile: un Ctrl+A/Ctrl+C era finito 
   - `.deb` e `.rpm` non si possono installare su Arch: il loro aggiornamento (pkexec + dpkg/rpm) è quello del plugin, non
     provato qui.
 
+**La prova a secco** (esecuzione 41925212076, approvata dall'utente): build Windows e Linux riuscite, sette voci in
+`latest.json`, firme valide per la chiave `55F5361AFA695029`, note uguali al blocco qui sotto, SHA-256 del PKGBUILD uguali
+a `.deb` e LICENSE. Ma l'AppImage compilato su Ubuntu 22.04 **non partiva** su CachyOS: «Could not create default EGL
+display: EGL_BAD_PARAMETER. Aborting...», finestra vuota. Portava la `libwayland-client` di Ubuntu (1.20), più vecchia di
+quella che la Mesa del sistema si aspetta. Prove: con `WEBKIT_DISABLE_DMABUF_RENDERER=1` niente; togliendo le `libwayland`
+dall'AppImage estratto parte. linuxdeploy le esclude solo con `--exclude-library`, che Tauri non passa (nessuna variabile
+d'ambiente: provata `LINUXDEPLOY_EXCLUDED_LIBRARIES`, ignorata). La correzione ufficiale è nel bundler 2.10 (CLI 2.12,
+tauri-apps/tauri#16062): linuxdeploy e plugin GTK nuovi, `libwayland-client` lasciata al sistema, niente più
+`GDK_BACKEND=x11`, e su Arch si compila senza `NO_STRIP`. `@tauri-apps/cli` passa da 2.11.2 a **2.12.4** (del 21 ottobre;
+nel lockfile solo le sue voci, a mano: npm 11 qui aggiunge `"peer": true` ovunque). Verificato sul portatile: AppImage
+compilato col CLI nuovo senza `libwayland-client` né `GDK_BACKEND`; l'AppImage di Ubuntu della prova a secco, senza
+`libwayland-client` e con l'hook nuovo, parte come client Wayland nativo, senza errori EGL.
+
 **Misure** (CachyOS, i5-4200U, build locali): binario 6,87 MiB; `.deb` 3,67 MiB, `.rpm` 3,64 MiB; AppImage 109 MiB senza
 strip (quello della release, compilato su Ubuntu, si misura con la release); RAM privata con una repo e due terminali:
 237 MiB col pacchetto nativo (orbit 65, WebKitWebProcess 153, WebKitNetworkProcess 20), 257 con l'AppImage (librerie
 sue, non condivise). Chunk iniziale **309,0 KiB** (105,4 gzip; 308,0 nella 1.5.0), `dist/` 3,00 MiB.
 
 **Da sapere.**
-- L'AppImage gira sotto XWayland per scelta dell'hook GTK di Tauri (tauri-apps/tauri#8541); `.deb`, `.rpm` e Arch sono
-  Wayland nativi. Sotto XWayland i tooltip sono finestre X11 a parte.
-- Su Arch lo strip di linuxdeploy non riconosce le sezioni RELR (tipo 0x13) delle librerie di sistema: l'AppImage si
-  compila con `NO_STRIP=true` (provato con e senza).
+- Con il Tauri CLI 2.11 l'AppImage girava sotto XWayland (l'hook GTK imponeva `GDK_BACKEND=x11`, tauri-apps/tauri#8541),
+  e sotto XWayland i tooltip sono finestre X11 a parte; dal CLI 2.12 è Wayland nativo, come `.deb`, `.rpm` e Arch.
+- Con il CLI 2.11, su Arch lo strip di linuxdeploy non riconosceva le sezioni RELR (tipo 0x13) delle librerie di sistema:
+  l'AppImage si compilava solo con `NO_STRIP=true` (provato con e senza). Col CLI 2.12 non serve più.
 - Lanciando Orbit via SSH serve l'ambiente della sessione grafica (copiato da `/proc/<pid>/environ` di un processo del
   desktop): con i soli WAYLAND_DISPLAY e XDG_RUNTIME_DIR GTK in X11 non si inizializza, e le shell ereditano le
   variabili SSH (prompt diversi).
@@ -4703,7 +4716,7 @@ Note della release:
   Fedora and openSUSE, and a **PKGBUILD** for Arch, CachyOS and Manjaro.
 - It **updates itself** there too: the AppImage replaces itself, the .deb and .rpm ask for the administrator password;
   the Arch package leaves updates to pacman.
-- At home on the desktop: native Wayland (the AppImage runs through XWayland), **Open with** for text and code files
+- At home on the desktop: native Wayland, **Open with** for text and code files
   without taking over your default apps, PDF preview, and the terminal tab named after your shell (`fish 1`, `zsh 1`).
 
 ### Fonts in the terminal

@@ -511,8 +511,7 @@ cargo test --manifest-path src-tauri/Cargo.toml  # backend unit tests
   (see https://tauri.app/start/prerequisites/).
 - **Windows**: WebView2 (preinstalled on Win11) + MSVC build tools.
 - **Linux**: WebKitGTK 4.1 and its development files (Arch: `webkit2gtk-4.1 base-devel`; Debian/Ubuntu:
-  `libwebkit2gtk-4.1-dev librsvg2-dev libssl-dev build-essential`). On Arch, build the AppImage with
-  `NO_STRIP=true`.
+  `libwebkit2gtk-4.1-dev librsvg2-dev libssl-dev build-essential`).
 - **macOS**: Xcode command line tools.
 
 > Built and verified end-to-end on Windows and Linux (CachyOS, Hyprland on Wayland). The code is

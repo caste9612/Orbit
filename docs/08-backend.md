@@ -32,8 +32,8 @@ The Linux build is the same code with a few `cfg`-gated parts (M75):
 - **Processes**: the shell is `$SHELL` (else `/bin/bash`); the process table for the Claude chats comes from
   `ps`; links and folders open with `xdg-open`; liveness is `kill(pid, 0)`.
 - **Inside an AppImage** (`appimage.rs`), linuxdeploy's AppRun has pointed GTK, GIO, GSettings and
-  `XDG_DATA_DIRS` into the AppImage's temporary mount (`$APPDIR`) and forced `GDK_BACKEND=x11` and
-  `GTK_THEME`. Everything Orbit starts gets them removed: the PTY shells, `xdg-open`, a new window and the
+  `XDG_DATA_DIRS` into the AppImage's temporary mount (`$APPDIR`) and set `GTK_THEME` (and, before Tauri CLI
+  2.12, `GDK_BACKEND=x11`). Everything Orbit starts gets them removed: the PTY shells, `xdg-open`, a new window and the
   restart after an update (`env_fixes`, pure and tested: runtime variables out, mount entries out of path
   lists, single paths into the mount out, the hook's two overrides out). Another window is started from
   `$APPIMAGE`, the `.AppImage` file: the binary inside the mount disappears with the process that mounted it.

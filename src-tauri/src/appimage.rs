@@ -37,7 +37,8 @@ pub fn child_env_fixes() -> Vec<(String, Option<String>)> {
 /// Il calcolo puro di `child_env_fixes`, testato a parte. Cosa fa l'AppRun di Tauri (linuxdeploy con l'hook
 /// GTK, verificato su un AppImage di Orbit): aggiunge `$APPDIR/usr/share` a XDG_DATA_DIRS, mette dentro
 /// `$APPDIR` GTK_PATH, GDK_PIXBUF_MODULE_FILE, GSETTINGS_SCHEMA_DIR, GIO_EXTRA_MODULES & co., e impone
-/// `GDK_BACKEND=x11` e `GTK_THEME=Adwaita:dark|light`, senza salvare i valori di prima. Quindi:
+/// `GTK_THEME=Adwaita:dark|light` (fino al Tauri CLI 2.11 anche `GDK_BACKEND=x11`), senza salvare i valori di
+/// prima. Quindi:
 /// - le variabili del runtime (`APPDIR`, `APPIMAGE`, `ARGV0`, `OWD`) si tolgono;
 /// - una lista di percorsi perde le voci dentro `$APPDIR`; se non resta nulla si toglie;
 /// - qualunque altra variabile che punta dentro `$APPDIR` si toglie;

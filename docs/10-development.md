@@ -30,9 +30,10 @@ npm run tauri build     # release binary + installers in src-tauri/target/releas
     `invoke('pty_kill', { id })` or restart the app.
 - `npm run tauri build` needs no signing key: the signed updater artifacts are produced only by the
   release script, run by the Release workflow or locally ([Release](11-release.md)).
-- On Linux it builds the AppImage, the `.deb` and the `.rpm`. On Arch and derivatives the AppImage step fails
-  in linuxdeploy: its own `strip` doesn't know the RELR relocation sections (type `0x13`) of the system's
-  libraries and stops. Set `NO_STRIP=true`; the Ubuntu 22.04 runner doesn't need it.
+- On Linux it builds the AppImage, the `.deb` and the `.rpm`. The AppImage needs Tauri CLI 2.12 or later
+  (`package.json` asks for it): with 2.11 its linuxdeploy failed on Arch (its `strip` didn't know the RELR
+  sections of the system's libraries, `NO_STRIP=true` worked around it) and the AppImage built on Ubuntu didn't
+  start on recent distributions (see [Release](11-release.md#installers)).
 
 ## Tests
 

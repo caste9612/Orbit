@@ -269,21 +269,36 @@ export function fileIcon(name: string): FileIcon {
   return BY_EXT[ext] ?? { glyph: "file", color: "#8b929e" };
 }
 
+/** Orbit gira su Windows? (`navigator.platform` è "Win32" anche a 64 bit.) Fuori da un browser: no. */
+export const IS_WINDOWS = typeof navigator !== "undefined" && /^Win/.test(navigator.platform ?? "");
+
+/** Un argomento per una shell POSIX (bash, zsh, fish, sh): tra apici singoli, dove nulla si espande; un
+ *  apice interno diventa `'''` (chiudi, apice escapato, riapri), che anche fish capisce (M75). */
+export function shQuote(s: string): string {
+  return `'${s.replace(/'/g, `'\\''`)}'`;
+}
+
 // Script di shell eseguibili da Orbit ("Run"): estensione → comando, con {f} = nome file quotato
-// (lanciato nella cartella del file). Comandi orientati a Windows (target primario); `bash` per
-// .sh/.bash usa Git Bash/WSL/Unix. `.bat` e `.cmd` sono la stessa famiglia batch (cmd /c).
-const RUNNERS: Record<string, string> = {
+// (lanciato nella cartella del file). Su Windows `bash` per .sh/.bash usa Git Bash o WSL; `.bat` e `.cmd`
+// sono la stessa famiglia batch (cmd /c). Fuori da Windows (M75) i .ps1 vanno a PowerShell 7 (`pwsh`, se
+// installato) e i batch non sono eseguibili.
+const RUNNERS_WIN: Record<string, string> = {
   ps1: "powershell -NoProfile -ExecutionPolicy Bypass -File {f}",
   cmd: "cmd /c {f}",
   bat: "cmd /c {f}",
   sh: "bash {f}",
   bash: "bash {f}",
 };
+const RUNNERS_UNIX: Record<string, string> = {
+  ps1: "pwsh -NoProfile -File {f}",
+  sh: "bash {f}",
+  bash: "bash {f}",
+};
 
 /** Comando per eseguire un file script (dato il nome), o null se il tipo non è eseguibile. */
-export function runCommand(name: string): string | null {
+export function runCommand(name: string, windows = IS_WINDOWS): string | null {
   const lower = name.toLowerCase();
   const ext = lower.includes(".") ? lower.slice(lower.lastIndexOf(".") + 1) : "";
-  const tpl = RUNNERS[ext];
-  return tpl ? tpl.replace("{f}", `"${name}"`) : null;
+  const tpl = (windows ? RUNNERS_WIN : RUNNERS_UNIX)[ext];
+  return tpl ? tpl.replace("{f}", windows ? `"${name}"` : shQuote(name)) : null;
 }

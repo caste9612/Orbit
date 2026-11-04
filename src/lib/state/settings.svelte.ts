@@ -10,18 +10,24 @@ import {
   type EditorCaret,
   type TermCaret,
 } from "../caretStyles";
+import { customFamilies, monoFontStack } from "../fonts";
 export const MONO_FONTS = [
-  { label: "JetBrains Mono", stack: '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace' },
-  { label: "Cascadia Code", stack: '"Cascadia Code", "Cascadia Mono", ui-monospace, monospace' },
-  { label: "Cascadia Mono (Visual Studio)", stack: '"Cascadia Mono", "Cascadia Code", ui-monospace, monospace' },
-  { label: "Fira Code", stack: '"Fira Code", ui-monospace, monospace' },
-  { label: "Consolas", stack: "Consolas, ui-monospace, monospace" },
-  { label: "Source Code Pro", stack: '"Source Code Pro", ui-monospace, monospace' },
-  { label: "Menlo / Monaco", stack: "Menlo, Monaco, ui-monospace, monospace" },
+  { label: "JetBrains Mono", families: ["JetBrains Mono Variable", "JetBrains Mono"] },
+  { label: "Cascadia Code", families: ["Cascadia Code", "Cascadia Mono"] },
+  { label: "Cascadia Mono (Visual Studio)", families: ["Cascadia Mono", "Cascadia Code"] },
+  { label: "Fira Code", families: ["Fira Code"] },
+  { label: "Consolas", families: ["Consolas"] },
+  { label: "Source Code Pro", families: ["Source Code Pro"] },
+  { label: "Menlo / Monaco", families: ["Menlo", "Monaco"] },
 ];
+/** La voce "Custom…" (M75): un font installato qualsiasi, scritto per nome in `settings.fontMonoCustom`. */
+export const CUSTOM_FONT = "Custom";
 
+/** La pila CSS del font monospazio scelto, con i Nerd Font di ripiego (fonts.ts). Con "Custom…" i nomi scritti
+ *  dall'utente vengono prima di JetBrains Mono, che resta il ripiego se non sono installati. */
 export function monoStack(label: string): string {
-  return (MONO_FONTS.find((f) => f.label === label) ?? MONO_FONTS[0]).stack;
+  if (label === CUSTOM_FONT) return monoFontStack([...customFamilies(settings.fontMonoCustom), ...MONO_FONTS[0].families]);
+  return monoFontStack((MONO_FONTS.find((f) => f.label === label) ?? MONO_FONTS[0]).families);
 }
 
 export const ACCENTS = {
@@ -118,7 +124,8 @@ export const THEMES: Record<string, Theme> = {
       "cm-bracket-bg": "rgba(145,132,238,0.2)", "cm-bracket-outline": "rgba(145,132,238,0.5)",
     },
     look: {
-      fontSans: '"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif',
+      // fuori da Windows non c'è Segoe UI: Inter, che Orbit porta con sé, invece del font di sistema (M75)
+      fontSans: '"Segoe UI Variable Text", "Segoe UI", "Inter Variable", system-ui, -apple-system, sans-serif',
       radii: { xs: 2, sm: 2, md: 3, lg: 4, xl: 4, xxl: 6 },
       iconStroke: 1.5,
       iconSet: "fluent",
@@ -173,6 +180,7 @@ export const settings = $state({
   customKeys: null as Record<string, string> | null, // mappa CommandId→tasto del preset "custom" (null = non creato)
   revealActive: false, // "segui il file attivo": espande l'albero e seleziona il file corrente
   fontMono: "JetBrains Mono",
+  fontMonoCustom: "", // con fontMono = "Custom": i nomi delle famiglie installate, separati da virgole (M75)
   editorFontSize: 13, // dimensione font dell'editor (indipendente dal terminale)
   terminalFontSize: 13, // dimensione font del terminale (indipendente dall'editor)
   accent: "auto" as AccentName | "auto", // "auto" = accento del tema; altrimenti un preset sovrascrive
@@ -296,6 +304,7 @@ export function loadSettings() {
       if (settings.keymap === "custom" && !settings.customKeys) settings.keymap = "orbit"; // custom senza mappa → base
       if (typeof s.revealActive === "boolean") settings.revealActive = s.revealActive;
       if (typeof s.fontMono === "string") settings.fontMono = s.fontMono;
+      if (typeof s.fontMonoCustom === "string") settings.fontMonoCustom = s.fontMonoCustom;
       if (typeof s.fontSize === "number") { settings.editorFontSize = s.fontSize; settings.terminalFontSize = s.fontSize; } // migra dal vecchio valore unico
       if (typeof s.editorFontSize === "number") settings.editorFontSize = s.editorFontSize;
       if (typeof s.terminalFontSize === "number") settings.terminalFontSize = s.terminalFontSize;
@@ -339,6 +348,7 @@ export function startSettingsAutosave() {
         customKeys: settings.customKeys,
         revealActive: settings.revealActive,
         fontMono: settings.fontMono,
+        fontMonoCustom: settings.fontMonoCustom,
         editorFontSize: settings.editorFontSize,
         terminalFontSize: settings.terminalFontSize,
         accent: settings.accent,

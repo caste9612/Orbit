@@ -241,6 +241,8 @@ pub fn pty_spawn(
     for v in crate::winsession::ENV_VARS {
         cmd.env_remove(v);
     }
+    // dentro un AppImage, niente percorsi del suo mount nelle shell (M75)
+    crate::appimage::clean_pty(&mut cmd);
 
     let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
     drop(pair.slave); // chiudi il lato slave: serve per rilevare l'EOF all'uscita della shell

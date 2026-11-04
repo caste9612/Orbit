@@ -27,6 +27,38 @@ pub struct UpdateInfo {
     current: String,
     notes: Option<String>,
     date: Option<String>,
+    /// Chi aggiorna questa copia (M75): None = Orbit stesso; Some(nome) = un gestore di pacchetti (pacman per
+    /// il PKGBUILD), e il dialog dice di aggiornare da lì invece di installare.
+    manager: Option<String>,
+}
+
+/// Chi aggiorna questa copia di Orbit (M75). Su Linux il plugin sa aggiornare l'AppImage (lo sostituisce) e i
+/// pacchetti .deb e .rpm (con `dpkg -i` / `rpm -U`, chiedendo la password con pkexec). Restano al gestore di
+/// pacchetti:
+/// - il pacchetto per Arch (PKGBUILD, M75): è il .deb rimpacchettato e lascia un segno in
+///   `/usr/share/orbit/package-manager` con il nome del gestore; `dpkg -i` lì mescolerebbe due gestori;
+/// - un .deb o un .rpm su un sistema senza `dpkg` o `rpm`, e un binario compilato a mano (nessun pacchetto).
+fn package_manager() -> Option<String> {
+    #[cfg(target_os = "linux")]
+    {
+        use tauri::utils::{config::BundleType, platform::bundle_type};
+        let on_path = |prog: &str| {
+            std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(prog).is_file()))
+        };
+        let marked = std::fs::read_to_string("/usr/share/orbit/package-manager")
+            .ok()
+            .map(|s| s.trim().to_string())
+            .map(|s| if s.is_empty() { "your package manager".to_string() } else { s });
+        let generic = || Some("your package manager".to_string());
+        return match bundle_type() {
+            Some(BundleType::AppImage) => None,
+            Some(BundleType::Deb) => marked.or_else(|| if on_path("dpkg") { None } else { generic() }),
+            Some(BundleType::Rpm) => marked.or_else(|| if on_path("rpm") { None } else { generic() }),
+            _ => marked.or_else(generic),
+        };
+    }
+    #[allow(unreachable_code)]
+    None
 }
 
 /// Uscita per l'installazione (Windows: `install` termina il processo con `std::process::exit`, senza
@@ -54,6 +86,7 @@ pub async fn update_check(app: AppHandle, state: State<'_, PendingUpdate>) -> Re
         current: u.current_version.clone(),
         notes: u.body.clone().filter(|b| !b.trim().is_empty()),
         date: u.raw_json.get("pub_date").and_then(|d| d.as_str()).map(str::to_string),
+        manager: package_manager(),
     });
     *state.update.lock().unwrap_or_else(|e| e.into_inner()) = found;
     *state.bytes.lock().unwrap_or_else(|e| e.into_inner()) = None; // un controllo nuovo invalida un download vecchio
@@ -113,8 +146,26 @@ pub fn update_install(app: AppHandle, state: State<'_, PendingUpdate>) -> Result
         winsession::mark_quitting(&app, false);
         return Err(e.to_string());
     }
-    if cfg!(not(windows)) {
-        app.restart();
-    }
+    #[cfg(not(windows))]
+    restart_after_install(&app);
+    #[allow(unreachable_code)]
     Ok(())
+}
+
+/// Fuori da Windows l'installazione sostituisce i file e ritorna: Orbit si rilancia da sé. Non con
+/// `app.restart()`, che passerebbe al nuovo processo l'ambiente di questo: dentro un AppImage, con i percorsi
+/// del mount di questo processo, che sparisce con lui (M75). Il segno di riavvio fa riaprire tutte le finestre.
+#[cfg(not(windows))]
+fn restart_after_install(app: &AppHandle) -> ! {
+    before_install_exit(app);
+    if let Ok(exe) = crate::appimage::self_exe() {
+        let mut cmd = std::process::Command::new(exe);
+        crate::appimage::clean_command(&mut cmd);
+        for v in winsession::ENV_VARS {
+            cmd.env_remove(v);
+        }
+        let _ = cmd.spawn();
+    }
+    app.cleanup_before_exit();
+    std::process::exit(0);
 }

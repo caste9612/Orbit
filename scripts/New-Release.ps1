@@ -1,26 +1,30 @@
 #Requires -Version 7
 <#
 .SYNOPSIS
-    Prepara la release di Orbit — installer firmati e latest.json per gli aggiornamenti — e, se vuoi, la
-    pubblica su GitHub.
+    Prepara la release di Orbit per la piattaforma di questo PC — installer firmati e latest.json per gli
+    aggiornamenti — e, se vuoi, la pubblica su GitHub.
 
 .DESCRIPTION
     Gli Orbit installati (dalla v1.0) controllano
     https://github.com/caste9612/Orbit/releases/latest/download/latest.json: se la versione lì è più nuova
-    propongono di aggiornare, scaricano l'installer, ne verificano la firma con la chiave pubblica di
-    tauri.conf.json e lo avviano. Per questo ogni release deve avere installer firmati e latest.json, ed è
-    ciò che fa questo script:
+    propongono di aggiornare, scaricano l'installer della loro piattaforma, ne verificano la firma con la chiave
+    pubblica di tauri.conf.json e lo installano. Per questo ogni release deve avere installer firmati e
+    latest.json, ed è ciò che fa questo script, sulla piattaforma dove gira:
 
     1. controlla che la versione sia la stessa nei sei punti (package.json, package-lock.json due volte,
        Cargo.toml, Cargo.lock, tauri.conf.json);
-    2. compila in release con la chiave PRIVATA di firma (-KeyPath, fuori dal repo): installer NSIS e MSI
-       con le loro firme .sig;
-    3. scrive latest.json (versione, note, data, firma e indirizzo di ogni installer);
-    4. copia tutto in artifacts\release (ignorata da git);
-    5. con -Publish crea la release su GitHub con gh, col tag sul commit compilato.
+    2. compila in release con la chiave PRIVATA di firma (-KeyPath, fuori dal repo), con le loro firme .sig:
+       - Windows: installer NSIS e MSI;
+       - Linux (M75): AppImage, .deb e .rpm;
+    3. scrive latest.json con le voci di questa piattaforma (versione, note, data, firma e indirizzo di ogni
+       installer);
+    4. copia tutto in artifacts/release (ignorata da git);
+    5. con -Publish passa la cartella a Publish-Release.ps1, che crea la release su GitHub con gh.
 
-    Una release pubblicata SENZA latest.json non viene vista dagli Orbit installati; una pre-release
-    nemmeno (per GitHub "latest" è l'ultima release normale).
+    Una release completa ha le due piattaforme: il workflow Release di GitHub Actions compila su Windows e su
+    Linux e unisce i due latest.json con Publish-Release.ps1. Da qui, con -Publish, Publish-Release.ps1 rifiuta
+    una release con una piattaforma sola, a meno di -AllowMissing: gli Orbit della piattaforma mancante non
+    troverebbero più aggiornamenti per sé.
 
 .PARAMETER Notes
     File Markdown con le note della versione, in inglese come le release di Orbit su GitHub: diventano il
@@ -33,32 +37,37 @@
     Pubblica la release su GitHub (serve gh collegato all'account). Prima controlla che non ci siano
     modifiche fuori dal commit, che il commit sia già su GitHub e che la release non esista già.
 
+.PARAMETER AllowMissing
+    Con -Publish: pubblica anche se manca una piattaforma (vedi sopra).
+
 .PARAMETER KeyPath
     Chiave privata di firma degli aggiornamenti, protetta da password (dalla 1.0): lo script la chiede senza
     mostrarla — o la legge da $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD, l'unico modo senza un terminale
     interattivo — e la prova prima di compilare.
 
 .EXAMPLE
-    .\scripts\New-Release.ps1 -Notes .\artifacts\notes-1.5.0.md
-    .\scripts\New-Release.ps1 -Notes .\artifacts\notes-1.5.0.md -Title "Notifications you can read" -Publish
+    ./scripts/New-Release.ps1 -Notes ./artifacts/notes-1.6.0.md
+    ./scripts/New-Release.ps1 -Notes ./artifacts/notes-1.6.0.md -Title "Orbit on Linux" -Publish -AllowMissing
 #>
 param(
     [Parameter(Mandatory)] [string]$Notes,
     [string]$Title,
     [switch]$Publish,
-    [string]$KeyPath = (Join-Path $HOME '.tauri\orbit-updater.key')
+    [switch]$AllowMissing,
+    [string]$KeyPath = (Join-Path $HOME '.tauri/orbit-updater.key')
 )
 
 $ErrorActionPreference = 'Stop'
 $gitHubRepo = 'caste9612/Orbit'
 $repo = Split-Path $PSScriptRoot -Parent
+if (-not ($IsWindows -or $IsLinux)) { throw 'Le release si compilano su Windows o su Linux.' }
 
 # --- 1. versione: la stessa nei sei punti (il lockfile era rimasto indietro per cinque release) -----------
-$conf = Get-Content -LiteralPath (Join-Path $repo 'src-tauri\tauri.conf.json') -Raw | ConvertFrom-Json -AsHashtable
+$conf = Get-Content -LiteralPath (Join-Path $repo 'src-tauri/tauri.conf.json') -Raw | ConvertFrom-Json -AsHashtable
 $version = $conf.version
 $lock = Get-Content -LiteralPath (Join-Path $repo 'package-lock.json') -Raw | ConvertFrom-Json -AsHashtable
-$cargoToml = Get-Content -LiteralPath (Join-Path $repo 'src-tauri\Cargo.toml') -Raw
-$cargoLock = Get-Content -LiteralPath (Join-Path $repo 'src-tauri\Cargo.lock') -Raw
+$cargoToml = Get-Content -LiteralPath (Join-Path $repo 'src-tauri/Cargo.toml') -Raw
+$cargoLock = Get-Content -LiteralPath (Join-Path $repo 'src-tauri/Cargo.lock') -Raw
 $found = [ordered]@{
     'tauri.conf.json'                 = $version
     'package.json'                    = (Get-Content -LiteralPath (Join-Path $repo 'package.json') -Raw | ConvertFrom-Json).version
@@ -80,20 +89,7 @@ if (-not (Test-Path -LiteralPath $KeyPath)) {
 
 # --- controlli prima di compilare, così un push mancante non costa una compilazione -----------------------
 if ($Publish) {
-    $changes = git -C $repo status --porcelain --untracked-files=no
-    if ($changes) { throw "Ci sono modifiche non ancora nel commit:`n$($changes -join "`n")" }
-    git -C $repo fetch --quiet origin
-    if ($LASTEXITCODE -ne 0) { throw 'Non riesco a leggere il repository su GitHub.' }
-    $commit = git -C $repo rev-parse HEAD
-    if (-not (git -C $repo branch --remotes --contains $commit)) {
-        throw "Il commit $($commit.Substring(0, 7)) non è ancora su GitHub: fai prima git push."
-    }
-    $previous = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    gh release view "v$version" --repo $gitHubRepo *> $null
-    $exists = $LASTEXITCODE -eq 0
-    $ErrorActionPreference = $previous
-    if ($exists) { throw "Su GitHub c'è già la release v${version}: alza la versione nei sei punti." }
+    & (Join-Path $PSScriptRoot 'Publish-Release.ps1') -CheckOnly
 }
 
 # --- 2. compilazione firmata ------------------------------------------------------------------------------
@@ -127,7 +123,8 @@ if (-not $signed) {
     throw "La chiave $KeyPath non si apre con questa password (senza un terminale interattivo mettila prima in `$env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD)."
 }
 
-Write-Host "Compilo Orbit $version (installer firmati)..."
+$platform = if ($IsWindows) { 'Windows' } else { 'Linux' }
+Write-Host "Compilo Orbit $version per $platform (installer firmati)..."
 $env:TAURI_SIGNING_PRIVATE_KEY = Get-Content -LiteralPath $KeyPath -Raw
 # gli artefatti firmati SOLO qui: in tauri.conf.json un build normale fallirebbe senza la chiave
 $extra = Join-Path ([IO.Path]::GetTempPath()) "orbit-release-$PID.json"
@@ -147,39 +144,57 @@ finally {
 }
 
 # --- 3-4. artefatti e latest.json -------------------------------------------------------------------------
-$target = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path $repo 'src-tauri\target' }
-$bundle = Join-Path $target 'release\bundle'
-$nsis = Get-Item -LiteralPath (Join-Path $bundle "nsis\Orbit_${version}_x64-setup.exe")
-$msi = Get-Item -LiteralPath (Join-Path $bundle "msi\Orbit_${version}_x64_en-US.msi")
-$out = Join-Path $repo 'artifacts\release'
+$target = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { Join-Path $repo 'src-tauri/target' }
+$bundle = Join-Path $target 'release/bundle'
+$download = "https://github.com/$gitHubRepo/releases/download/v$version"
+function Get-Installer([string]$rel) { Get-Item -LiteralPath (Join-Path $bundle $rel) }
+function New-Entry($file) {
+    [ordered]@{ signature = (Get-Content -LiteralPath "$($file.FullName).sig" -Raw).Trim(); url = "$download/$($file.Name)" }
+}
+if ($IsWindows) {
+    $nsis = Get-Installer "nsis/Orbit_${version}_x64-setup.exe"
+    $msi = Get-Installer "msi/Orbit_${version}_x64_en-US.msi"
+    $installers = @($nsis, $msi)
+    # chi ha installato con l'NSIS (il caso normale) riceve l'NSIS, chi con l'MSI l'MSI
+    $platforms = [ordered]@{
+        'windows-x86_64'      = New-Entry $nsis
+        'windows-x86_64-nsis' = New-Entry $nsis
+        'windows-x86_64-msi'  = New-Entry $msi
+    }
+}
+else {
+    $appImage = Get-Installer "appimage/Orbit_${version}_amd64.AppImage"
+    $deb = Get-Installer "deb/Orbit_${version}_amd64.deb"
+    $rpm = Get-Installer "rpm/Orbit-${version}-1.x86_64.rpm"
+    $installers = @($appImage, $deb, $rpm)
+    # ogni copia riceve il suo formato (l'updater legge quale dal binario); `linux-x86_64` è il ripiego
+    # dell'updater quando la voce del formato manca: l'AppImage, l'unico che non chiede la password
+    $platforms = [ordered]@{
+        'linux-x86_64'          = New-Entry $appImage
+        'linux-x86_64-appimage' = New-Entry $appImage
+        'linux-x86_64-deb'      = New-Entry $deb
+        'linux-x86_64-rpm'      = New-Entry $rpm
+    }
+}
+$out = Join-Path $repo 'artifacts/release'
 if (Test-Path -LiteralPath $out) { Remove-Item -LiteralPath $out -Recurse -Force }
 New-Item -ItemType Directory -Path $out | Out-Null
-foreach ($f in $nsis, $msi) {
+foreach ($f in $installers) {
     Copy-Item -LiteralPath $f.FullName, "$($f.FullName).sig" -Destination $out
 }
-$download = "https://github.com/$gitHubRepo/releases/download/v$version"
-$nsisEntry = @{ signature = (Get-Content -LiteralPath "$($nsis.FullName).sig" -Raw).Trim(); url = "$download/$($nsis.Name)" }
-$msiEntry = @{ signature = (Get-Content -LiteralPath "$($msi.FullName).sig" -Raw).Trim(); url = "$download/$($msi.Name)" }
 $latest = [ordered]@{
     version   = $version
     notes     = (Get-Content -LiteralPath $notesPath -Raw).Trim()
     pub_date  = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-    # chi ha installato con l'NSIS (il caso normale) riceve l'NSIS, chi con l'MSI l'MSI
-    platforms = [ordered]@{
-        'windows-x86_64'      = $nsisEntry
-        'windows-x86_64-nsis' = $nsisEntry
-        'windows-x86_64-msi'  = $msiEntry
-    }
+    platforms = $platforms
 }
 $latest | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $out 'latest.json') -Encoding utf8NoBOM
-Write-Host "Release pronta in $out"
+Write-Host "Release per $platform pronta in $out"
 Get-ChildItem -LiteralPath $out | ForEach-Object { Write-Host ("  {0}  {1:N0} KB" -f $_.Name, ($_.Length / 1KB)) }
 
 # --- 5. pubblicazione -------------------------------------------------------------------------------------
 if ($Publish) {
-    $releaseTitle = if ($Title) { "Orbit v$version — $Title" } else { "Orbit v$version" }
-    Write-Host "Pubblico $releaseTitle dal commit $($commit.Substring(0, 7))..."
-    $assets = @((Get-ChildItem -LiteralPath $out -File).FullName)
-    gh release create "v$version" @assets --repo $gitHubRepo --target $commit --title $releaseTitle --notes-file $notesPath
-    if ($LASTEXITCODE -ne 0) { throw 'La pubblicazione su GitHub non è riuscita.' }
+    $params = @{ Dir = $out; Notes = $notesPath; Publish = $true; AllowMissing = $AllowMissing }
+    if ($Title) { $params.Title = $Title }
+    & (Join-Path $PSScriptRoot 'Publish-Release.ps1') @params
 }

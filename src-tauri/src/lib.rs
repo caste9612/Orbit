@@ -1,5 +1,6 @@
 // Orbit — backend Tauri: filesystem, sessione, git, pty, watcher.
 mod activity;
+mod appimage;
 mod claudeproc;
 mod git;
 mod pty;
@@ -8,6 +9,8 @@ mod solution;
 mod symbols;
 mod updater;
 mod watcher;
+#[cfg(target_os = "linux")]
+mod webkitgtk;
 mod winsession;
 
 use serde::Serialize;
@@ -527,8 +530,9 @@ fn open_new_window(
     key: Option<String>,
     place: Option<String>,
 ) -> Result<(), String> {
-    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let exe = appimage::self_exe().map_err(|e| e.to_string())?;
     let mut cmd = std::process::Command::new(exe);
+    appimage::clean_command(&mut cmd);
     if let Some(d) = dir.filter(|d| Path::new(d).is_dir()) {
         cmd.arg(d);
     }
@@ -548,7 +552,7 @@ fn open_new_window(
             .env("ORBIT_WIN_H", g.height.to_string())
             .env("ORBIT_WIN_MAX", "0");
     }
-    cmd.spawn().map_err(|e| e.to_string())?;
+    appimage::spawn_detached(&mut cmd).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -574,7 +578,9 @@ fn open_url(url: String) -> Result<(), String> {
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
-        std::process::Command::new("xdg-open").arg(&url).spawn().map_err(|e| e.to_string())?;
+        let mut cmd = std::process::Command::new("xdg-open");
+        appimage::clean_command(&mut cmd); // il browser non eredita i moduli GTK dell'AppImage (M75)
+        appimage::spawn_detached(cmd.arg(&url)).map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -627,10 +633,9 @@ fn reveal_path(path: String) -> Result<(), String> {
         } else {
             p.parent().map(|x| x.to_path_buf()).unwrap_or_else(|| p.to_path_buf())
         };
-        std::process::Command::new("xdg-open")
-            .arg(dir)
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        let mut cmd = std::process::Command::new("xdg-open");
+        appimage::clean_command(&mut cmd);
+        appimage::spawn_detached(cmd.arg(dir)).map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -707,6 +712,11 @@ pub fn run() {
             let arg_dir = if updated.is_some() { None } else { cli_dir() };
             *handle.state::<winsession::UpdatedTo>().0.lock().unwrap_or_else(|e| e.into_inner()) =
                 updated.map(|u| u.to);
+            // Linux: il visualizzatore di PDF incluso in WebKitGTK, spento di suo (M75)
+            #[cfg(target_os = "linux")]
+            if let Some(win) = app.get_webview_window("main") {
+                webkitgtk::enable_pdf_viewer(&win);
+            }
             match app.get_webview_window("main") {
                 Some(win) => winsession::init(&handle, &win, arg_dir),
                 None => {

@@ -2537,6 +2537,7 @@ dependencies = [
  "tauri-plugin-clipboard-manager",
  "tauri-plugin-dialog",
  "tauri-plugin-updater",
+ "webkit2gtk",
  "windows-sys 0.59.0",
 ]
 

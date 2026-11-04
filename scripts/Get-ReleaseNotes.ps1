@@ -23,7 +23,7 @@ param([string]$OutFile)
 
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path $PSScriptRoot -Parent
-$version = (Get-Content -LiteralPath (Join-Path $repo 'src-tauri\tauri.conf.json') -Raw | ConvertFrom-Json).version
+$version = (Get-Content -LiteralPath (Join-Path $repo 'src-tauri/tauri.conf.json') -Raw | ConvertFrom-Json).version
 $notesLines = (Get-Content -LiteralPath (Join-Path $repo 'NOTES.md') -Raw) -split '\r?\n'
 
 # la sezione «## Versione X.Y.Z», poi il primo blocco ```markdown prima della sezione seguente
@@ -53,7 +53,7 @@ if (-not ($body -join '').Trim()) {
     throw "Il blocco delle note nella sezione «$heading» di NOTES.md è vuoto."
 }
 
-if (-not $OutFile) { $OutFile = Join-Path $repo "artifacts\notes-$version.md" }
+if (-not $OutFile) { $OutFile = Join-Path $repo "artifacts/notes-$version.md" }
 $OutFile = [IO.Path]::GetFullPath($OutFile, (Get-Location).Path)
 New-Item -ItemType Directory -Force -Path (Split-Path $OutFile -Parent) | Out-Null
 [IO.File]::WriteAllText($OutFile, (($body -join "`n") + "`n"), [Text.UTF8Encoding]::new($false))

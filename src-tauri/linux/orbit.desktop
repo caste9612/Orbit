@@ -1,0 +1,20 @@
+# Voce del menu delle applicazioni per .deb, .rpm e AppImage (M75; Tauri usa quella del deb anche per l'AppImage).
+# - `%F`: "Apri con" passa i file a Orbit, che li apre in una finestra leggera.
+# - MimeType solo text/plain, come VS Code: i file di testo e di codice ne sono sottotipi, quindi Orbit compare
+#   in "Apri con" per tutti, ma dove manca una scelta vale l'app di text/plain. Con l'elenco completo (immagini,
+#   PDF, JSON, Markdown…) Orbit diventava l'app predefinita di ogni tipo senza una predefinita esplicita: su
+#   CachyOS i PDF passavano da Firefox a Orbit (GIO prende la prima registrata, e "Orbit" con la maiuscola viene
+#   prima in ordine ASCII).
+[Desktop Entry]
+Type=Application
+Name={{name}}
+GenericName=Code Editor
+Comment={{comment}}
+Exec={{exec}} %F
+Icon={{icon}}
+StartupWMClass={{exec}}
+StartupNotify=true
+Terminal=false
+Categories={{categories}}IDE;TextEditor;
+Keywords=IDE;editor;code;Claude;terminal;git;
+MimeType=text/plain;

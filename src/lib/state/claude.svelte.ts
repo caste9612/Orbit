@@ -10,7 +10,7 @@ import { layout } from "./layout.svelte";
 import { settings } from "./settings.svelte";
 import { readOrbitConfig, ensureOrbitFile, teachClaudeSection } from "./dotorbit";
 import { notify } from "./toast.svelte";
-import { joinPath } from "../util";
+import { IS_WINDOWS, joinPath, shQuote } from "../util";
 
 export interface ClaudeShortcut {
   name: string;
@@ -123,16 +123,19 @@ function resetDefaults() {
   claude.loaded = false;
 }
 
-/** Prompt → argomento shell sicuro: una riga, niente virgolette doppie interne. */
+/** Prompt → un argomento per la shell predefinita, su una riga. Su Windows (PowerShell) fra virgolette
+ *  doppie, senza virgolette doppie interne; altrove (bash, zsh, fish) fra apici singoli, dove `$` e gli
+ *  apici restano testo (M75). */
 function quotePrompt(prompt: string): string {
-  return prompt.replace(/"/g, "'").replace(/\s+/g, " ").trim();
+  const line = prompt.replace(/\s+/g, " ").trim();
+  return IS_WINDOWS ? `"${line.replace(/"/g, "'")}"` : shQuote(line);
 }
 
-/** Costruisce la riga di comando: `claude <args>` (+ `"<prompt>"` se presente). */
+/** Costruisce la riga di comando: `claude <args>` (+ il prompt quotato se presente). */
 function buildCommand(prompt?: string): string {
   const cmd = claude.command.trim() || "claude";
   const base = [cmd, claude.args.trim()].filter(Boolean).join(" ");
-  return prompt ? `${base} "${quotePrompt(prompt)}"` : base;
+  return prompt ? `${base} ${quotePrompt(prompt)}` : base;
 }
 
 /** Abilita la "campana" di Claude per questo progetto, così Orbit può avvisare a fine turno / quando

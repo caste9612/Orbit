@@ -8,7 +8,7 @@ import { settings } from "./settings.svelte";
 import { notify, notifyAttention, dismissByKey, addNotice } from "./toast.svelte";
 import { playChime } from "../chime";
 import { workspace } from "./workspace.svelte";
-import { basename } from "../util";
+import { IS_WINDOWS, basename } from "../util";
 import {
   arrange,
   arrangeAuto,
@@ -87,6 +87,16 @@ export function tabIcon(t: Pick<TermSession, "shell" | "title">): string {
 // Contatori per tipo ("Claude", "pwsh", "cmd"…): il nome breve è `<tipo> <n>`, stabile anche se si
 // chiudono schede precedenti (niente rinumerazioni a sorpresa).
 const kindCounters: Record<string, number> = {};
+// Il tipo della shell predefinita (M75): su Windows PowerShell; altrove quella di $SHELL, che il backend apre e
+// che list_shells mette per prima ("fish 1", "zsh 1"; prima tutte "shell 1"). Letta una volta all'avvio.
+let defaultShellKind = IS_WINDOWS ? "pwsh" : "shell";
+if (!IS_WINDOWS && typeof window !== "undefined") {
+  invoke<{ label: string }[]>("list_shells")
+    .then((s) => {
+      if (s[0]?.label) defaultShellKind = s[0].label.toLowerCase();
+    })
+    .catch(() => {});
+}
 const SHELL_SHORT: Record<string, string> = {
   powershell: "pwsh",
   "powershell 7": "pwsh7",
@@ -98,7 +108,7 @@ const SHELL_SHORT: Record<string, string> = {
 function shortKind(opts: NewTerminal): string | null {
   const t = (opts.title ?? "").trim();
   if (/^claude/i.test(t)) return "Claude";
-  if (!t) return navigator.platform.startsWith("Win") ? "pwsh" : "shell"; // shell di default della piattaforma
+  if (!t) return defaultShellKind; // shell di default della piattaforma
   // scheda dal selettore shell (con un comando, come Build nella vista Solution, il nome resta quello dato)
   if (opts.shell && !opts.initCommand) return SHELL_SHORT[t.toLowerCase()] ?? t.toLowerCase().split(/\s+/)[0];
   return null;

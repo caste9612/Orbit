@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canonPath, isUnder, langLabel, pathKey, relativeTime, samePath } from "./util";
+import { canonPath, isUnder, langLabel, pathKey, relativeTime, runCommand, samePath, shQuote } from "./util";
 
 describe("percorsi canonici (M59: lo stesso file non si apre due volte)", () => {
   it("su Windows i separatori diventano \\", () => {
@@ -40,5 +40,30 @@ describe("testi dell'interfaccia in inglese (M60)", () => {
   it("linguaggio dei file di testo e sconosciuti", () => {
     expect(langLabel("notes.txt")).toBe("Plain Text");
     expect(langLabel("LICENSE")).toBe("Plain Text");
+  });
+});
+
+describe("shQuote (M75)", () => {
+  it("apici singoli: $, backtick e virgolette restano testo", () => {
+    expect(shQuote("costa $5 e `x`")).toBe("'costa $5 e `x`'");
+    expect(shQuote('dice "ciao"')).toBe(`'dice "ciao"'`);
+  });
+  it("un apice interno chiude, si escapa e riapre", () => {
+    expect(shQuote("l'ordine")).toBe(String.raw`'l'\''ordine'`);
+  });
+});
+
+describe("runCommand per piattaforma (M75)", () => {
+  it("Windows: PowerShell, batch e bash, nome fra virgolette doppie", () => {
+    expect(runCommand("build.ps1", true)).toBe('powershell -NoProfile -ExecutionPolicy Bypass -File "build.ps1"');
+    expect(runCommand("x.CMD", true)).toBe('cmd /c "x.CMD"');
+    expect(runCommand("a.sh", true)).toBe('bash "a.sh"');
+  });
+  it("Linux: pwsh per i .ps1, niente batch, nome fra apici singoli", () => {
+    expect(runCommand("build.ps1", false)).toBe("pwsh -NoProfile -File 'build.ps1'");
+    expect(runCommand("x.cmd", false)).toBeNull();
+    expect(runCommand("x.bat", false)).toBeNull();
+    expect(runCommand("it's.sh", false)).toBe(String.raw`bash 'it'\''s.sh'`);
+    expect(runCommand("readme.md", false)).toBeNull();
   });
 });

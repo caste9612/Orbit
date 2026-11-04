@@ -36,10 +36,14 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "category": "DeveloperTool",
+    "shortDescription": "A lightweight IDE, companion for Claude Code",
+    "longDescription": "Orbit is a lightweight, beautiful IDE built as a companion for Claude Code: edit code, browse the project, manage git, and keep Claude Code running in an integrated terminal, with side-by-side chats, an Activity timeline of what Claude did and a Shelf for the folders you don't need to see.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
+      "icons/icon.png",
       "icons/icon.icns",
       "icons/icon.ico"
     ],
@@ -57,6 +61,15 @@
         "role": "Editor"
       }
     ],
+    "linux": {
+      "deb": {
+        "section": "devel",
+        "desktopTemplate": "./linux/orbit.desktop"
+      },
+      "rpm": {
+        "desktopTemplate": "./linux/orbit.desktop"
+      }
+    },
     "windows": {
       "nsis": {
         "installerHooks": "./windows/hooks.nsh",

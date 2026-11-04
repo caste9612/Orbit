@@ -67,10 +67,12 @@
         <span class="line">Installing — Orbit reopens in a moment.</span>
       {:else if updates.phase === "error"}
         <span class="line err">{updates.error}</span>
+      {:else if info.manager}
+        <span class="line">This copy of Orbit was installed with {info.manager}: update it from there.</span>
       {:else}
         <span class="line">
-          Orbit restarts to install it: windows and tabs reopen; open terminals and Claude chats are closed
-          (resume chats from Activity).
+          Orbit restarts to install it: windows, tabs and terminals reopen, and Claude chats pick up where they
+          were.
         </span>
       {/if}
     </div>
@@ -80,14 +82,18 @@
         Release notes <Icon name="external-link" size={12} strokeWidth={1.8} />
       </button>
       <span class="grow"></span>
-      {#if updates.phase === "closing"}
+      {#if info.manager}
+        <button class="btn primary" use:focusOnMount onclick={closeUpdateDialog}>OK</button>
+      {:else if updates.phase === "closing"}
         <button class="btn ghost" onclick={closeUpdateDialog}>Cancel</button>
       {:else}
         <button class="btn ghost" disabled={busy} onclick={closeUpdateDialog}>Later</button>
       {/if}
-      <button class="btn primary" use:focusOnMount disabled={busy} onclick={() => void installUpdate()}>
-        {updates.phase === "error" ? "Retry" : "Update and restart"}
-      </button>
+      {#if !info.manager}
+        <button class="btn primary" use:focusOnMount disabled={busy} onclick={() => void installUpdate()}>
+          {updates.phase === "error" ? "Retry" : "Update and restart"}
+        </button>
+      {/if}
     </footer>
   </div>
 {/if}

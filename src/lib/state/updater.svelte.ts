@@ -14,6 +14,9 @@ export interface UpdateInfo {
   current: string;
   notes: string | null;
   date: string | null;
+  /** Chi aggiorna questa copia (M75): null = Orbit stesso; altrimenti un gestore di pacchetti (pacman per il
+   *  pacchetto di Arch), e il dialog dice di aggiornare da lì. */
+  manager: string | null;
 }
 
 export type UpdatePhase = "idle" | "downloading" | "closing" | "installing" | "error";
@@ -48,7 +51,7 @@ export async function checkForUpdates(manual = false) {
       notified = info.version;
       notifyAttention({
         key: "orbit-update",
-        message: `Orbit ${info.version} is available — click to update`,
+        message: info.manager ? `Orbit ${info.version} is available` : `Orbit ${info.version} is available — click to update`,
         onClick: openUpdateDialog,
         icon: "download",
       });
@@ -92,7 +95,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Scarica, salva (o chiede), fa uscire le altre finestre e installa. Su Windows Orbit esce qui e
  *  l'installer lo riapre con tutte le finestre; in caso di errore si resta dove si era. */
 export async function installUpdate() {
-  if (!updates.available || updates.phase !== "idle") return;
+  if (!updates.available || updates.available.manager || updates.phase !== "idle") return;
   cancelled = false;
   updates.error = "";
   updates.received = 0;

@@ -385,6 +385,7 @@ pub fn new_window_geom(app: &AppHandle, win: &WebviewWindow, place: &str) -> Opt
 /// Lancia un'altra istanza di Orbit su `folder`, passandole la geometria da applicare via env.
 fn spawn_instance(exe: &Path, e: &WinEntry) {
     let mut cmd = std::process::Command::new(exe);
+    crate::appimage::clean_command(&mut cmd);
     cmd.arg(&e.folder);
     cmd.env("ORBIT_WIN_X", e.x.to_string())
         .env("ORBIT_WIN_Y", e.y.to_string())
@@ -392,7 +393,7 @@ fn spawn_instance(exe: &Path, e: &WinEntry) {
         .env("ORBIT_WIN_H", e.height.to_string())
         .env("ORBIT_WIN_MAX", if e.maximized { "1" } else { "0" })
         .env("ORBIT_WIN_KEY", &e.key); // chiave di sessione stabile → la finestra riapre la SUA sessione
-    let _ = cmd.spawn();
+    let _ = crate::appimage::spawn_detached(&mut cmd);
 }
 
 /// Cosa fare con la finestra "main" all'avvio (logica pura, testata in isolamento).
@@ -464,7 +465,7 @@ pub fn init(app: &AppHandle, win: &WebviewWindow, arg_dir: Option<String>) {
                 WinGeom { x: first.x, y: first.y, width: first.width, height: first.height, maximized: first.maximized },
             );
             *app.state::<OpenFolder>().0.lock().unwrap_or_else(|e| e.into_inner()) = Some(first.folder.clone());
-            if let Ok(exe) = std::env::current_exe() {
+            if let Ok(exe) = crate::appimage::self_exe() {
                 for e in &spawn {
                     spawn_instance(&exe, e);
                 }

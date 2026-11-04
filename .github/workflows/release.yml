@@ -1,13 +1,20 @@
 # Release di Orbit da GitHub Actions: lo stesso scripts/New-Release.ps1 delle release fatte in locale (stessi
-# controlli, stessi installer firmati, stesso latest.json), con la chiave di firma nei secret dell'environment
-# "release" invece che su un PC. Così si pubblica da qualunque PC, o dal sito.
+# controlli, stessi installer firmati), con la chiave di firma nei secret dell'environment "release" invece che
+# su un PC. Così si pubblica da qualunque PC, o dal sito.
+#
+# Due fasi (M75):
+#   1. build: Windows (NSIS e MSI) e Linux (AppImage, .deb e .rpm, su Ubuntu 22.04 perché giri anche sulle
+#      distribuzioni con una glibc meno recente), ognuna col suo latest.json;
+#   2. release: scripts/Publish-Release.ps1 unisce i due latest.json, controlla che ci sia ogni formato, scrive
+#      il PKGBUILD per Arch e, con publish, crea la release. Senza publish è una prova a secco: gli stessi file
+#      restano come artefatto dell'esecuzione.
 #
 # Si lancia solo a mano, mai da una pull request (il repo è pubblico):
 #   - dal sito: Actions → Release → Run workflow;
 #   - da un terminale: gh workflow run release.yml -f title="…" -f publish=true
-# L'environment "release" vale solo per main e aspetta l'approvazione del maintainer prima di dare i secret al
-# job. Con publish spento (il default) è una prova a secco: installer, firme e latest.json restano solo come
-# artefatto dell'esecuzione. Il percorso completo è in docs/11-release.md.
+# L'environment "release" vale solo per main e aspetta l'approvazione del maintainer prima di dare i secret ai
+# due job di build (una sola approvazione, per l'environment, li sblocca entrambi). Il percorso completo è in
+# docs/11-release.md.
 name: Release
 run-name: Release ${{ inputs.publish && '(publish)' || '(dry run)' }}
 
@@ -31,12 +38,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    runs-on: windows-latest
+  build:
+    name: build (${{ matrix.platform }})
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: windows
+            os: windows-latest
+          - platform: linux
+            os: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
     environment: release
     timeout-minutes: 60
-    permissions:
-      contents: write # tag e release, con gh
     defaults:
       run:
         shell: pwsh
@@ -45,8 +59,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0 # lo script controlla che il commit sia già su GitHub (origin/*)
+          fetch-depth: 0 # Publish-Release.ps1 controlla che il commit sia già su GitHub (origin/*)
           persist-credentials: false # repo pubblico: il git fetch dello script non ha bisogno del token
+
+      - name: Linux libraries
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev librsvg2-dev libssl-dev patchelf file xdg-utils
 
       - name: Node 24
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -99,17 +120,10 @@ jobs:
       - name: New-Release.ps1
         env:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          GH_TOKEN: ${{ github.token }}
           NOTES_PATH: ${{ steps.notes.outputs.path }}
-          TITLE: ${{ inputs.title }}
-          PUBLISH: ${{ inputs.publish }}
         run: |
           if (-not $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) { throw 'Manca il secret TAURI_SIGNING_PRIVATE_KEY_PASSWORD nell''environment "release".' }
-          # gli input passano dall'ambiente, mai scritti dentro lo script: un titolo non può diventare codice
-          $params = @{ Notes = $env:NOTES_PATH; KeyPath = $env:KEY_PATH }
-          if ($env:TITLE) { $params.Title = $env:TITLE }
-          if ($env:PUBLISH -eq 'true') { $params.Publish = $true }
-          ./scripts/New-Release.ps1 @params
+          ./scripts/New-Release.ps1 -Notes $env:NOTES_PATH -KeyPath $env:KEY_PATH
 
       - name: Remove the signing key
         if: always()
@@ -118,12 +132,68 @@ jobs:
       # le misure della build firmata, per la sezione della versione in NOTES.md (anche nel riepilogo dell'esecuzione)
       - name: Sizes
         run: |
-          $rows = Get-Item src-tauri/target/release/orbit.exe, artifacts/release/*.exe, artifacts/release/*.msi |
-            ForEach-Object { '| `{0}` | {1:N2} MiB |' -f $_.Name, ($_.Length / 1MB) }
+          $files = if ($IsWindows) {
+            Get-Item src-tauri/target/release/orbit.exe, artifacts/release/*.exe, artifacts/release/*.msi
+          } else {
+            Get-Item src-tauri/target/release/orbit, artifacts/release/*.AppImage, artifacts/release/*.deb, artifacts/release/*.rpm
+          }
+          $rows = $files | ForEach-Object { '| `{0}` | {1:N2} MiB |' -f $_.Name, ($_.Length / 1MB) }
           $rows | ForEach-Object { Write-Host $_ }
           @('| File | Size |', '|---|---|') + $rows | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
 
       - name: Upload artifacts/release
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: orbit-${{ steps.notes.outputs.version }}-${{ matrix.platform }}
+          path: artifacts/release
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # tag e release, con gh
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Release notes from NOTES.md
+        id: notes
+        run: |
+          $version = (Get-Content -LiteralPath src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $path = ./scripts/Get-ReleaseNotes.ps1 -OutFile (Join-Path $env:RUNNER_TEMP 'release-notes.md')
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "path=$path" >> $env:GITHUB_OUTPUT
+
+      - name: Download the builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: orbit-${{ steps.notes.outputs.version }}-*
+          path: ${{ runner.temp }}/builds
+
+      - name: Publish-Release.ps1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES_PATH: ${{ steps.notes.outputs.path }}
+          TITLE: ${{ inputs.title }}
+          PUBLISH: ${{ inputs.publish }}
+          BUILDS: ${{ runner.temp }}/builds
+        run: |
+          # gli input passano dall'ambiente, mai scritti dentro lo script: un titolo non può diventare codice
+          $params = @{ Dir = $env:BUILDS; OutDir = 'artifacts/release'; Notes = $env:NOTES_PATH }
+          if ($env:TITLE) { $params.Title = $env:TITLE }
+          if ($env:PUBLISH -eq 'true') { $params.Publish = $true }
+          ./scripts/Publish-Release.ps1 @params
+
+      - name: Upload the release
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: orbit-${{ steps.notes.outputs.version }}-${{ inputs.publish && 'published' || 'dry-run' }}

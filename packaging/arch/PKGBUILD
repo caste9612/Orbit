@@ -1,0 +1,34 @@
+# Orbit for Arch Linux and its derivatives (CachyOS, EndeavourOS, Manjaro…).
+#
+# It repackages the .deb of the GitHub release, the same signed build the other formats ship, instead of
+# compiling from source. scripts/Publish-Release.ps1 fills in pkgver and the checksum for every release and
+# attaches the result to it as `PKGBUILD`.
+#
+# Install a release: download its PKGBUILD into an empty folder and run `makepkg -si` there.
+#
+# Orbit installed this way leaves updates to pacman: the file /usr/share/orbit/package-manager tells its
+# in-app updater not to install the .deb itself.
+pkgname=orbit-bin
+pkgver=0.0.0
+pkgrel=1
+pkgdesc='A lightweight IDE, companion for Claude Code'
+arch=('x86_64')
+url='https://github.com/caste9612/Orbit'
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'libsoup3' 'openssl' 'glib2' 'hicolor-icon-theme')
+optdepends=('git: fetch, pull, push and merge from the Git panel'
+            'xdg-utils: open links and folders from Orbit'
+            'pwsh: run PowerShell scripts from the Run menu')
+provides=('orbit')
+conflicts=('orbit')
+options=('!strip' '!debug')
+source=("https://github.com/caste9612/Orbit/releases/download/v${pkgver}/Orbit_${pkgver}_amd64.deb"
+        "LICENSE-${pkgver}::https://raw.githubusercontent.com/caste9612/Orbit/v${pkgver}/LICENSE")
+sha256sums=('SKIP' 'SKIP')
+noextract=("LICENSE-${pkgver}")
+
+package() {
+  bsdtar -xf data.tar.gz -C "$pkgdir"
+  printf 'pacman\n' | install -Dm644 /dev/stdin "$pkgdir/usr/share/orbit/package-manager"
+  install -Dm644 "LICENSE-${pkgver}" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

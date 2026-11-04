@@ -53,6 +53,11 @@ tauri-plugin-updater = { version = "2", default-features = false, features = ["n
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+# Linux (M75): il WebKitGTK della finestra, per accendere il visualizzatore di PDF incluso (webkitgtk.rs). È
+# lo stesso crate e la stessa versione che usa già wry: nessuna dipendenza nuova da scaricare.
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = "2.0"
+
 # Profilo release ottimizzato per footprint minimo (gate #1: leggerezza).
 [profile.release]
 opt-level = "s"   # ottimizza per dimensione

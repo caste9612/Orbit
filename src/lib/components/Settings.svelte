@@ -18,6 +18,7 @@
     settingsUI,
     closeSettings,
     MONO_FONTS,
+    CUSTOM_FONT,
     ACCENTS,
     THEMES,
     SCROLLBACK_OPTIONS,
@@ -109,7 +110,7 @@
       hint: "Animate panel sizes when switching repos, collapsing the editor or arranging chats (ignores the system “reduce motion” setting)",
       kw: "animation motion" },
 
-    { id: "edFont", section: "editor", name: "Font", hint: "Monospace family for code — shared with the terminal", kw: "family typeface" },
+    { id: "edFont", section: "editor", name: "Font", hint: "Monospace family for code — shared with the terminal. Custom: any installed font by name", kw: "family typeface custom nerd" },
     { id: "edSize", section: "editor", name: "Font size", hint: "Or Ctrl+scroll over the editor", kw: "zoom" },
     { id: "edCaret", section: "editor", name: "Cursor", hint: "The caret in code files — Customize for shape, glide, blink, trail and glow", kw: CARET_KW },
     { id: "codeLens", section: "editor", name: "Code lens", hint: "References and implementations above classes and methods (counted by name)" },
@@ -123,7 +124,7 @@
       hint: "Names or patterns (`*`, `?`) shelved in every repository on this PC — below, with the categories' colors and search option",
       kw: "shelf global pattern folders files category color search quick open explorer" },
 
-    { id: "tmFont", section: "terminal", name: "Font", hint: "Monospace family — shared with the editor", kw: "family typeface" },
+    { id: "tmFont", section: "terminal", name: "Font", hint: "Monospace family — shared with the editor. Nerd Font icons come from any installed Nerd Font", kw: "family typeface custom nerd icons glyphs" },
     { id: "tmSize", section: "terminal", name: "Font size", hint: "Or Ctrl+scroll over the terminal", kw: "zoom" },
     { id: "tmCaret", section: "terminal", name: "Cursor", hint: "Shells and Claude chats (a bar in chats by default); fast output never animates it", kw: CARET_KW },
     { id: "webgl", section: "terminal", name: "GPU rendering (WebGL)",
@@ -322,11 +323,24 @@
       {/each}
     </div>
   {:else if id === "edFont" || id === "tmFont"}
-    <select class="control" bind:value={settings.fontMono}>
-      {#each MONO_FONTS as f (f.label)}
-        <option value={f.label}>{f.label}</option>
-      {/each}
-    </select>
+    <div class="font-pick">
+      <select class="control" bind:value={settings.fontMono}>
+        {#each MONO_FONTS as f (f.label)}
+          <option value={f.label}>{f.label}</option>
+        {/each}
+        <option value={CUSTOM_FONT}>Custom…</option>
+      </select>
+      {#if settings.fontMono === CUSTOM_FONT}
+        <input
+          class="control font-name"
+          type="text"
+          spellcheck="false"
+          placeholder="Installed font, e.g. MesloLGS Nerd Font Mono"
+          aria-label="Custom font name"
+          bind:value={settings.fontMonoCustom}
+        />
+      {/if}
+    </div>
   {:else if id === "edSize"}
     <div class="size">
       <input type="range" min={MIN_FONT} max={MAX_FONT} step="1" bind:value={settings.editorFontSize} aria-label="Editor font size" />
@@ -804,6 +818,19 @@
     background: rgba(241, 76, 76, 0.16);
     color: #ff9b9b;
     border-color: rgba(241, 76, 76, 0.4);
+  }
+  /* "Custom…" (M75): la casella del nome sotto la tendina, larga come lei */
+  .font-pick {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .control.font-name {
+    width: 260px;
+    cursor: text;
+    font-family: var(--font-mono);
   }
   .pair {
     display: flex;

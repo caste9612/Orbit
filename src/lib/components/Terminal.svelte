@@ -291,15 +291,19 @@
     );
 
     // Tastiera: Ctrl/Cmd+Shift+C copia la selezione, Ctrl/Cmd+Shift+V incolla (a-capo finali tolti).
-    // Ctrl+C "nudo" resta SIGINT: NON lo intercettiamo.
+    // Ctrl+C "nudo" resta SIGINT: NON lo intercettiamo. `false` dice a xterm di lasciar stare il tasto, ma
+    // non ferma il browser: su Linux WebKitGTK tratta Ctrl+Shift+V come un incolla suo nella textarea di
+    // xterm, e il testo arrivava due volte (M75). preventDefault toglie l'azione del browser.
     term.attachCustomKeyEventHandler((e) => {
       if (e.type !== "keydown") return true;
       const cs = (e.ctrlKey || e.metaKey) && e.shiftKey;
       if (cs && (e.key === "C" || e.key === "c")) {
+        e.preventDefault();
         void copySelectionToClipboard(true); // copia esplicita → segnala l'eventuale errore
         return false;
       }
       if (cs && (e.key === "V" || e.key === "v")) {
+        e.preventDefault();
         void pasteFromClipboard("keyboard");
         return false;
       }

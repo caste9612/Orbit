@@ -4729,6 +4729,24 @@ Note della release:
 - The update dialog no longer says that terminals and Claude chats are closed: they come back.
 ```
 
+**Rilasciato in v1.6.0** il 2026-11-04 (23:25 UTC): "Orbit v1.6.0 — Orbit on Linux", tag `v1.6.0` sul commit
+`11c0541`, dal workflow Release a due piattaforme (esecuzione 41932760167), approvato dall'utente; autore
+`github-actions[bot]`. Prima, due prove a secco: 41925212076 (l'AppImage non partiva su CachyOS, vedi la M75: da lì il
+CLI 2.12.4) e 41929305238 (tutto a posto).
+- Build firmate:
+  - Windows: eseguibile **6,71 MiB**, setup NSIS **3,25 MiB**, MSI **4,00 MiB**;
+  - Linux (Ubuntu 22.04): binario **7,45 MiB**, AppImage **80,67 MiB**, `.deb` e `.rpm` **3,98 MiB**;
+  - chunk iniziale 309,0 KiB, `dist/` 3,00 MiB.
+- Controlli:
+  - le firme dei cinque installer (e quelle globali) valide per la chiave `55F5361AFA695029`; le note di `latest.json`
+    uguali al blocco qui sopra; gli SHA-256 del PKGBUILD uguali a `.deb` e LICENSE;
+  - l'indirizzo degli aggiornamenti serve il `latest.json` della 1.6.0 con le sette voci;
+  - sul portatile CachyOS, con i file della seconda prova a secco (gli stessi bit della release, dallo stesso commit):
+    l'AppImage parte come client Wayland nativo, senza errori EGL e senza `libwayland-client` dentro, con le shell
+    pulite; il PKGBUILD (sorgenti locali, gli stessi checksum) installa `orbit-bin` 1.6.0, binario identico a quello del
+    `.deb`, e Orbit parte Wayland nativo col WebKitGTK di sistema. `.deb` e `.rpm` non provati su una loro distribuzione.
+- README: il Footprint di Linux con le misure della release.
+
 ---
 
 ## Ambiente di sviluppo verificato

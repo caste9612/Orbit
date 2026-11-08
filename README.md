@@ -3,23 +3,23 @@
   <br />
   <img src="src/lib/assets/orbit-wordmark.svg" alt="Orbit" width="300" />
   <br /><br />
-  <strong>A lightweight, beautiful IDE — companion for Claude&nbsp;Code</strong>
+  <strong>A lightweight IDE, companion for Claude&nbsp;Code</strong>
   <br /><br />
-  <img alt="Platform: Windows, macOS, Linux" src="https://img.shields.io/badge/platform-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-4c8dff?style=flat-square" />
+  <img alt="Platform: Windows, Linux" src="https://img.shields.io/badge/platform-Windows%20%C2%B7%20Linux-4c8dff?style=flat-square" />
   <img alt="Built with Tauri 2 and Svelte 5" src="https://img.shields.io/badge/built%20with-Tauri%202%20%C2%B7%20Svelte%205-1f9c8a?style=flat-square" />
   <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-7c5cff?style=flat-square" />
   <img alt="Binary: ~6.7 MB" src="https://img.shields.io/badge/binary-~6.7%20MB-2f7ff0?style=flat-square" />
 </div>
 
-A **lightweight**, beautiful IDE built as a **companion for Claude Code**: edit code, browse
-the project, manage git, and keep Claude Code running in an integrated terminal — all in a
-cross-platform desktop app that weighs almost nothing.
+A **lightweight** IDE built as a **companion for Claude Code**: edit code, browse the project,
+manage git, and keep Claude Code running in an integrated terminal, in a small desktop app for
+Windows and Linux.
 
 > Orbit is **not** a heavy IDE (no LSP/debugger/refactoring) and **not** a chat GUI for Claude.
-> It is the calm editor you keep next to Claude Code: it shows you everything, stays out of the
-> way, and starts instantly.
+> It is the editor you keep next to Claude Code: it shows the whole project and stays out of the
+> way.
 
-![Orbit — a lightweight IDE, companion for Claude Code](docs/screenshot.png)
+![Orbit on a repository: the file tree with the Shelf below it, a Rust file with the test Claude has just added marked in the margin, the scratchpad underneath, and three Claude Code chats side by side](docs/screenshots/editor.webp)
 
 ---
 
@@ -33,15 +33,16 @@ cross-platform desktop app that weighs almost nothing.
   review); files Claude edits **reload by themselves**, changed files are **highlighted in the
   tree**, and terminal paths are **clickable**. Both **Run** and **Claude** configurations live in
   `.orbit/` and Claude itself can create them — the format is documented in your `CLAUDE.md`.
-- **It is genuinely small.** A ~6.7 MB binary, ~120 MB of RAM at rest with a project open (mostly the
+- **It is small.** A ~6.7 MB binary, ~120 MB of RAM at rest with a project open (mostly the
   shared system WebView — Orbit's own Rust core is ~6 MB), and a ~309 KB startup chunk (≈105 KB gzipped).
 
-### Project gates (non-negotiable)
+### Design principles
 
-1. **Extreme lightness** — minimal RAM, CPU and binary size. Every dependency must be justified.
-2. **Curated dark mode** — at the level of IntelliJ / Visual Studio 2026 (the default theme is modeled
-   on VS 2026 Dark, colors sampled from the real thing).
-3. **Real cross-platform** — Windows, macOS, Linux.
+1. **Lightness** — minimal RAM, CPU and binary size. Every dependency must be justified.
+2. **A careful dark theme** — the default one is modelled on Visual Studio 2026 Dark, with colors
+   sampled from it.
+3. **Cross-platform** — the code targets Windows, macOS and Linux; builds are published for Windows
+   and Linux.
 
 ---
 
@@ -100,6 +101,8 @@ desktops (the AppImage brings its own).
     `dotnet`.
   - Orbit reads the project files itself, without running MSBuild, and remembers the view for each
     repository.
+
+  ![The Solution view of a .NET repository, with projects, dependencies and nested files, two editor groups with reference counts, and a build in the terminal](docs/screenshots/solution.webp)
 - **Quick Open** (`Ctrl/Cmd+P`) with fuzzy ranking, and full‑text **project search**. Like the symbol index,
   both skip folders ignored by git (build output, virtual environments…); the file tree still shows them.
 - **Drag in files**: drop files from your OS file manager onto the editor to open them.
@@ -180,7 +183,7 @@ desktops (the AppImage brings its own).
   `docs/`) into a **hierarchical, collapsible tree** — ordered by numbered prefixes, with cleaned
   titles and archive folders tucked away — so even large documentation sets stay navigable.
 
-![The Docs view with a Markdown file in reading-mode preview and its outline, next to Claude Code running in the integrated terminal](docs/screenshot-docs.png)
+![The Docs view with a Markdown file in reading mode and its outline, next to a terminal](docs/screenshots/docs.webp)
 
 **Terminal** (xterm.js + a real PTY, drawn on the GPU with WebGL)
 - Docked on the right, with **multiple tabs** and shell selection (PowerShell, cmd, Git Bash,
@@ -227,6 +230,8 @@ desktops (the AppImage brings its own).
 - **Sync**: a local **ahead/behind** indicator (computed with libgit2, no network) plus one‑click
   **Fetch / Pull / Push / Merge** — these run the real `git` CLI in a terminal tab, so they reuse
   your existing git authentication and show real, supervised output.
+
+![The Git Graph with branches and tags, the diff of a commit beside it, and a change made by Claude in the Source Control panel](docs/screenshots/git.webp)
 
 **Run ▶ configurations**
 - Define commands in `.orbit/run.json` and launch them in a terminal tab with one click. Use
@@ -277,7 +282,9 @@ desktops (the AppImage brings its own).
   with **Copy**. The 🔔 in the status bar keeps the last 50 (with a count of what you missed) and turns on
   **Do not disturb**, which keeps only errors on screen.
 
-![The Activity view — a timeline of work units across all your repos, with the selected unit's digest in the panel below and Claude Code in the integrated terminal](docs/screenshot-activity.png)
+![The notification list with two Claude chats of another repository waiting](docs/screenshots/notifications.webp)
+
+![The Activity view: a timeline of work units across five repositories, with a unit open showing its request, its files and its commit](docs/screenshots/activity.webp)
 
 **Workspace**
 - **Pick up where you left off**: reopening Orbit brings back every window with its repository tabs
@@ -516,7 +523,7 @@ cargo test --manifest-path src-tauri/Cargo.toml  # backend unit tests
 
 > Built and verified end-to-end on Windows and Linux (CachyOS, Hyprland on Wayland). The code is
 > cross-platform by construction (Tauri 2 + standard crates; the few platform-specific bits are
-> `cfg`-gated); macOS is the remaining open item for gate #3.
+> `cfg`-gated); macOS is the open item of the third design principle.
 
 ## License
 

@@ -330,7 +330,8 @@ desktops (the AppImage brings its own).
 - **Close all / reopen all windows**: with several windows open, **Close all** (top bar) closes every
   Orbit window at once, and the next launch **reopens them all at their previous positions**. Each
   window stays its own process; a tiny shared registry in the app config dir coordinates them (no extra
-  runtime), and windows left by a crash are pruned so restore keeps working.
+  runtime). After a crash, or shutting the PC down with Orbit still open, the next launch reopens the
+  windows as they were at that moment, each on the repo you were in.
 - **No lost edits on close**: closing a window (title-bar ✕, `Alt+F4`, the taskbar) or **Close all** first
   lets autosave do its part, then asks about whatever is still unsaved — **Save all / Don't save / Cancel**,
   in each window that has something to save. *Cancel* keeps the window open.

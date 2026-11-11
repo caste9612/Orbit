@@ -709,7 +709,8 @@ pub fn run() {
             // riaperta dall'installer dopo un aggiornamento (M59): si ignorano gli argomenti (quelli della
             // finestra che ha aggiornato) e si riaprono TUTTE le finestre, come da un avvio nudo
             let updated = winsession::take_update_marker(&handle);
-            let arg_dir = if updated.is_some() { None } else { cli_dir() };
+            let after_update = updated.is_some();
+            let arg_dir = if after_update { None } else { cli_dir() };
             *handle.state::<winsession::UpdatedTo>().0.lock().unwrap_or_else(|e| e.into_inner()) =
                 updated.map(|u| u.to);
             // Linux: il visualizzatore di PDF incluso in WebKitGTK, spento di suo (M75)
@@ -718,7 +719,7 @@ pub fn run() {
                 webkitgtk::enable_pdf_viewer(&win);
             }
             match app.get_webview_window("main") {
-                Some(win) => winsession::init(&handle, &win, arg_dir),
+                Some(win) => winsession::init(&handle, &win, arg_dir, after_update),
                 None => {
                     // non dovrebbe accadere (la finestra in config ha label "main"); ma con visible:false
                     // una finestra mai mostrata sarebbe irrecuperabile (decorations off) → mostra ciò che c'è.

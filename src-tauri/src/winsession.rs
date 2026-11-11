@@ -5,6 +5,9 @@
 //                            proprio file → niente race né file temp condiviso tra processi.
 //   - windows-restore.json : il set da RIAPRIRE al prossimo avvio "nudo" (snapshot, scritto da una sola
 //                            istanza alla volta: chi chiude per ultimo, o chi avvia il "chiudi tutte").
+//                            Se le finestre sono finite SENZA chiudersi (PC spento con Orbit aperto, crash,
+//                            processo terminato) i loro file in windows/ sono più recenti: al primo avvio
+//                            diventano loro il set da riaprire (M76).
 //   - windows-control.json : token per il "chiudi tutte" (vedi in fondo).
 //
 // Regola che evita ogni IPC tra processi (e quindi zero dipendenze, niente liveness dei pid):
@@ -195,16 +198,19 @@ fn pid_of(id: &str) -> Option<u32> {
 
 #[cfg(windows)]
 fn pid_alive(pid: u32) -> bool {
-    use windows_sys::Win32::Foundation::CloseHandle;
-    use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
-    // OpenProcess fallisce (handle null) se il processo non esiste più.
+    use windows_sys::Win32::Foundation::{CloseHandle, STILL_ACTIVE};
+    use windows_sys::Win32::System::Threading::{GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
+    // OpenProcess fallisce (handle null) se il processo non esiste più; riesce anche per un processo già
+    // uscito di cui qualcuno tiene ancora un handle, che però ha un codice d'uscita.
     unsafe {
         let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
         if h.is_null() {
             return false;
         }
+        let mut code = 0u32;
+        let running = GetExitCodeProcess(h, &mut code) == 0 || code == STILL_ACTIVE as u32;
         CloseHandle(h);
-        true
+        running
     }
 }
 
@@ -215,11 +221,100 @@ fn pid_alive(pid: u32) -> bool {
     r == 0 || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
 }
 
-/// Rimuove dal set vivo i file di processi non più attivi: un crash li lasciava lì e, risultando il
-/// set "non vuoto", bloccava per sempre il "riapri tutte". Chiamata all'avvio.
-fn prune_dead(app: &AppHandle) {
+/// Quando è partito il processo `pid`, in ns dall'epoch Unix (None se non si sa).
+#[cfg(windows)]
+fn process_start_nanos(pid: u32) -> Option<u128> {
+    use windows_sys::Win32::Foundation::{CloseHandle, FILETIME};
+    use windows_sys::Win32::System::Threading::{GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
+    const UNIX_EPOCH_FILETIME: u64 = 116_444_736_000_000_000; // 1601→1970 in unità di 100 ns
+    // SAFETY: l'handle aperto qui viene chiuso; le FILETIME sono struct semplici scritte dall'API.
+    unsafe {
+        let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if h.is_null() {
+            return None;
+        }
+        let zero = FILETIME { dwLowDateTime: 0, dwHighDateTime: 0 };
+        let (mut created, mut exited, mut kernel, mut user) = (zero, zero, zero, zero);
+        let ok = GetProcessTimes(h, &mut created, &mut exited, &mut kernel, &mut user) != 0;
+        CloseHandle(h);
+        if !ok {
+            return None;
+        }
+        let t = (u64::from(created.dwHighDateTime) << 32) | u64::from(created.dwLowDateTime);
+        t.checked_sub(UNIX_EPOCH_FILETIME).map(|v| u128::from(v) * 100)
+    }
+}
+
+/// Su Linux i pid si riusano di rado (ne esistono milioni, assegnati in ordine) e l'ora d'avvio di un
+/// processo si ricava dall'ora di boot ricalcolata, che una correzione dell'orologio sposta: confrontarla
+/// rischierebbe di dare per morta una finestra aperta. Basta il pid.
+#[cfg(not(windows))]
+fn process_start_nanos(_pid: u32) -> Option<u128> {
+    None
+}
+
+/// L'istante (ns dall'epoch Unix) in cui la finestra si è registrata: la seconda parte dell'id "pid-nanos".
+fn nanos_of(id: &str) -> Option<u128> {
+    id.split_once('-').and_then(|(_, n)| n.parse().ok())
+}
+
+/// Margine fra l'avvio del processo e la sua registrazione, per piccole correzioni dell'orologio.
+const START_SLACK_NS: u128 = 30_000_000_000;
+
+/// Il processo che ha oggi quel pid è quello della voce? Lo è se è partito prima che la voce nascesse (la
+/// registrazione avviene dopo l'avvio). Un processo partito dopo ha solo ereditato il numero: dopo un
+/// riavvio del PC un pid di una finestra di ieri può toccare a un altro programma (M76). Pura, testata.
+fn same_process(started: Option<u128>, registered: Option<u128>) -> bool {
+    match (started, registered) {
+        (Some(s), Some(r)) => s <= r + START_SLACK_NS,
+        _ => true, // non si sa: vale il pid, come prima
+    }
+}
+
+/// La finestra della voce `id` è ancora aperta?
+fn entry_alive(id: &str) -> bool {
+    let Some(pid) = pid_of(id) else { return false };
+    pid_alive(pid) && same_process(process_start_nanos(pid), nanos_of(id))
+}
+
+/// Toglie dal set vivo i file di processi non più attivi e ritorna le loro voci. Un crash o uno spegnimento
+/// li lasciava lì e, col set "non vuoto", il "riapri tutte" restava bloccato. Chiamata all'avvio.
+fn prune_dead(app: &AppHandle) -> Vec<WinEntry> {
+    let mut dead = Vec::new();
     for e in load_live(app) {
-        if !pid_of(&e.id).map(pid_alive).unwrap_or(false) {
+        if !entry_alive(&e.id) {
+            if let Some(p) = entry_path(app, &e.id) {
+                let _ = std::fs::remove_file(p);
+            }
+            dead.push(e);
+        }
+    }
+    dead
+}
+
+/// Quali finestre riaprire al posto dello snapshot dell'ultima chiusura regolare (M76): quelle finite senza
+/// chiudersi, se nessuna è più aperta. Sono la foto più recente: ognuna ha la repo attiva al momento (il file
+/// si riscrive a ogni cambio di repo), la posizione e la chiave della sua sessione. Spegnendo il PC con Orbit
+/// aperto, Windows termina il processo senza passare dalla chiusura: prima si riapriva lo snapshot vecchio,
+/// con la repo attiva di allora e la sua lista di repo. Dopo un aggiornamento no: lo snapshot l'ha appena
+/// scritto `quit_others` con tutte le finestre, e chi l'installer ha terminato ne è solo una parte. Pura.
+fn fresher_restore(alive: &[WinEntry], dead: &[WinEntry], after_update: bool) -> Option<Vec<WinEntry>> {
+    (alive.is_empty() && !dead.is_empty() && !after_update).then(|| dead.to_vec())
+}
+
+/// Snapshot del set vivo → ripristino. Le voci di processi già morti ci finiscono dentro (un crash non toglie
+/// la finestra dal "riapri tutte") e poi i loro file si cancellano: ora sono nello snapshot, e restando lì
+/// al prossimo avvio sembrerebbero più recenti di lui (`fresher_restore`).
+fn snapshot_live(app: &AppHandle) {
+    let live = load_live(app);
+    if live.is_empty() {
+        return;
+    }
+    if let Some(rp) = restore_path(app) {
+        write_json_atomic(&rp, &live);
+    }
+    for e in &live {
+        if !entry_alive(&e.id) {
             if let Some(p) = entry_path(app, &e.id) {
                 let _ = std::fs::remove_file(p);
             }
@@ -322,12 +417,7 @@ fn finish_close(app: &AppHandle) {
     // l'ha già scritto chi ha avviato la chiusura (altrimenti ogni finestra che esce lo rimpicciolirebbe).
     let quitting = app.state::<QuitState>().quitting.load(Ordering::SeqCst);
     if !quitting {
-        let live = load_live(app);
-        if !live.is_empty() {
-            if let Some(rp) = restore_path(app) {
-                write_json_atomic(&rp, &live);
-            }
-        }
+        snapshot_live(app);
     }
     let _ = std::fs::remove_file(&p); // rimuovi il proprio file dal set vivo
 }
@@ -424,8 +514,8 @@ fn plan(arg_dir: Option<&str>, env_geom: Option<WinGeom>, live: &[WinEntry], res
 
 /// Inizializza la finestra "main": installa il tracking della geometria, decide il piano d'avvio
 /// (geometria env / apri-cartella / ripristina sessione) e mostra la finestra.
-/// `arg_dir` = cartella passata da CLI/env (None = avvio nudo).
-pub fn init(app: &AppHandle, win: &WebviewWindow, arg_dir: Option<String>) {
+/// `arg_dir` = cartella passata da CLI/env (None = avvio nudo); `after_update` = riaperta dall'installer.
+pub fn init(app: &AppHandle, win: &WebviewWindow, arg_dir: Option<String>, after_update: bool) {
     // tracking geometria + salvataggio alla chiusura
     let w = win.clone();
     let app2 = app.clone();
@@ -446,8 +536,16 @@ pub fn init(app: &AppHandle, win: &WebviewWindow, arg_dir: Option<String>) {
         _ => {}
     });
 
-    prune_dead(app); // scarta i file di processi morti (crash): altrimenti bloccherebbero il ripristino
+    // scarta i file di processi morti (crash, PC spento): altrimenti bloccherebbero il ripristino. Se nessuna
+    // finestra è più aperta, sono loro da riaprire, anche quando questo avvio apre solo una cartella o un
+    // file: il prossimo avvio nudo le ritrova (M76).
+    let dead = prune_dead(app);
     let live = load_live(app);
+    if let Some(fresh) = fresher_restore(&live, &dead, after_update) {
+        if let Some(rp) = restore_path(app) {
+            write_json_atomic(&rp, &fresh);
+        }
+    }
     let restore = load_restore(app);
     let the_plan = plan(arg_dir.as_deref(), geom_from_env(), &live, &restore);
     // chiave di sessione STABILE della finestra: env (figlio del respawn) → voce ripristinata → nuova.
@@ -539,12 +637,7 @@ pub fn close_all_windows(app: AppHandle) {
         update_own_geom(&app, &win);
     }
     // 2) snapshot del set vivo completo → ripristino (così tornano tutte alle posizioni correnti)
-    let live = load_live(&app);
-    if !live.is_empty() {
-        if let Some(rp) = restore_path(&app) {
-            write_json_atomic(&rp, &live);
-        }
-    }
+    snapshot_live(&app);
     // 3) segnala alle altre istanze di uscire, poi esci anche tu. Il frontend di questa finestra ha già
     //    chiesto per le sue modifiche (M59): la baseline spostata prima evita di richiederlo col proprio segnale.
     let token = now_token();
@@ -579,12 +672,7 @@ pub fn quit_others(app: AppHandle) -> usize {
     if let Some(win) = app.get_webview_window("main") {
         update_own_geom(&app, &win);
     }
-    let live = load_live(&app);
-    if !live.is_empty() {
-        if let Some(rp) = restore_path(&app) {
-            write_json_atomic(&rp, &live);
-        }
-    }
+    snapshot_live(&app);
     let token = now_token();
     app.state::<QuitState>().baseline.store(token, Ordering::SeqCst);
     write_token(&app, token);
@@ -603,10 +691,7 @@ pub fn other_instances(app: AppHandle) -> usize {
     #[cfg(not(windows))]
     {
         let me = this_id(&app);
-        load_live(&app)
-            .iter()
-            .filter(|e| e.id != me && pid_of(&e.id).map(pid_alive).unwrap_or(false))
-            .count()
+        load_live(&app).iter().filter(|e| e.id != me && entry_alive(&e.id)).count()
     }
 }
 
@@ -795,6 +880,60 @@ mod tests {
     fn pid_inesistente_non_e_vivo() {
         // un pid certamente inesistente NON deve risultare vivo (altrimenti prune_dead non pota)
         assert!(!pid_alive(999_999));
+    }
+
+    fn now_nanos() -> u128 {
+        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+    }
+
+    #[test]
+    fn nanos_of_estrae_l_istante() {
+        assert_eq!(nanos_of("41212-1781784334144348100"), Some(1781784334144348100));
+        assert_eq!(nanos_of("41212"), None);
+    }
+
+    #[test]
+    fn stesso_processo_se_partito_prima_della_registrazione() {
+        let reg = 1_000_000_000_000_000_000u128;
+        assert!(same_process(Some(reg - 2_000_000_000), Some(reg))); // partito 2 s prima di registrarsi
+        assert!(same_process(Some(reg + 1_000_000_000), Some(reg))); // dentro il margine (orologio corretto)
+        // partito un'ora dopo: un altro programma con lo stesso pid (riavvio del PC)
+        assert!(!same_process(Some(reg + 3_600_000_000_000), Some(reg)));
+        // non si sa: decide il pid
+        assert!(same_process(None, Some(reg)));
+        assert!(same_process(Some(reg), None));
+    }
+
+    #[test]
+    fn la_voce_di_questo_processo_e_viva() {
+        let id = format!("{}-{}", std::process::id(), now_nanos());
+        assert!(entry_alive(&id));
+        assert!(!entry_alive(&format!("999999-{}", now_nanos())));
+        assert!(!entry_alive("nondigits"));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn un_pid_riusato_non_tiene_viva_la_voce() {
+        // questo processo è partito adesso: una voce con il suo pid registrata ieri era di un altro processo
+        let start = process_start_nanos(std::process::id()).expect("ora d'avvio del processo di test");
+        assert!(start <= now_nanos());
+        let ieri = now_nanos() - 86_400_000_000_000;
+        assert!(!entry_alive(&format!("{}-{}", std::process::id(), ieri)));
+    }
+
+    #[test]
+    fn finestre_morte_senza_chiudersi_sono_il_nuovo_ripristino() {
+        let dead = [entry("/swarf"), entry("/prism")];
+        // PC spento con Orbit aperto: riapre quelle, nell'ordine del registro
+        let fresh = fresher_restore(&[], &dead, false).expect("da riaprire");
+        assert_eq!(fresh.iter().map(|e| e.folder.as_str()).collect::<Vec<_>>(), ["/swarf", "/prism"]);
+        // un'altra finestra è ancora aperta: lo snapshot lo scriverà lei chiudendo
+        assert!(fresher_restore(&[entry("/a")], &dead, false).is_none());
+        // dopo un aggiornamento vale lo snapshot di quit_others (completo)
+        assert!(fresher_restore(&[], &dead, true).is_none());
+        // nessuna finestra morta: lo snapshot dell'ultima chiusura regolare
+        assert!(fresher_restore(&[], &[], false).is_none());
     }
 
     #[test]

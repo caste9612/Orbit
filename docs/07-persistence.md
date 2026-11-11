@@ -94,13 +94,26 @@ Each Orbit window is a process. `winsession.rs` lets them cooperate through file
   - A window closing on its own snapshots the live set (itself included), then leaves it. So after
     closing windows one by one, only the last one comes back, as in VS Code.
   - **Close all** snapshots everything first.
+  - A snapshot also takes in the entries of processes already dead (a crashed window still comes back),
+    then deletes their files: they're in the snapshot now (`snapshot_live`).
 - **Bare launch**: this process opens the first entry and respawns the others. Each gets its geometry and
   key through `ORBIT_WIN_*` / `ORBIT_WIN_KEY`, so each window finds **its** session. A launch with a
   folder or a file opens only that.
 - **Close all**: snapshot, then a token in `windows-control.json`. Every instance watches the config
   folder; when the token grows, it emits `orbit-quit-request`, saves or asks, and calls `quit_now`.
-- **Crash recovery**: at startup, `prune_dead` drops the entries of dead processes, so a crash never
-  blocks "reopen all".
+- **Windows that ended without closing** (M76): shutting the PC down with Orbit open, a crash, a killed
+  process. Windows ends the process without a close, so no snapshot is written.
+  - At startup `prune_dead` takes those entries out of the live set, so they never block "reopen all".
+  - If no window is still open, they become the restore set (`fresher_restore`). They're newer than the
+    last snapshot: each entry carries the folder active at that moment, since `register_window` rewrites
+    it on every repo switch. Before M76 the next launch reopened the old snapshot, with the folder active
+    back then and that folder's repo list, which looked like an older state.
+  - Not after an update: the snapshot `quit_others` just wrote has every window, while the ones the
+    installer ended are only some of them.
+  - The live check (`entry_alive`) is the pid and, on Windows, the process start time. After a reboot a
+    dead window's pid can belong to another program; a process that started after the entry was written
+    isn't that window. On Linux pids are rarely reused and the start time comes from a boot time the
+    clock can move, so the pid alone decides.
 - **After an update**: `update-restart.json` (valid 10 minutes) makes the relaunched process reopen every
   window ([Release](11-release.md#the-in-app-update)).
 - **The `ORBIT_WIN_*` variables** (geometry and `ORBIT_WIN_KEY`) are for the child they're meant for.
@@ -131,7 +144,7 @@ close here and the new window brings them back as after a restart:
 ## Startup
 
 1. **Rust** (`winsession::init`):
-   - prune dead entries;
+   - prune dead entries; with no window still open they become the restore set (M76);
    - decide between restore and explicit open (`plan`, pure and tested);
    - resolve the window key;
    - position the hidden window, then show it.

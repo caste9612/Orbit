@@ -117,7 +117,8 @@ CLAUDE.md               tells Claude Code about Orbit and the .orbit/ files
 ## Startup in brief
 
 1. Rust: `winsession` decides what this process opens. A bare launch restores the saved windows,
-   respawning the others; a launch with a folder or file opens just that. It then positions the window,
+   respawning the others (after a shutdown or a crash, the windows as they were then); a launch with a
+   folder or file opens just that. It then positions the window,
    which is created hidden, and shows it.
 2. Frontend: `startup` returns the folder/file, the window key and the light flag. Then:
    - `loadSession` restores the window's repo list, the active folder, its tabs and layout;

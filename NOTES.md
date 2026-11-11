@@ -14,7 +14,7 @@ il codice accanto a Claude Code). Identifier bundle: `com.visialab.lume`.
 - [Gate del progetto](#gate-del-progetto-se-cadono-ci-si-ferma) · [Stack](#stack)
 - Milestone [1](#milestone-1--scaffold-base) · [2](#milestone-2--dark-shell-gate-estetico) · [3](#milestone-3--albero-file--apertura-file) · [4](#milestone-4--editor-codemirror-6) · [5](#milestone-5--pannello-git-libgit2) · [6](#milestone-6--terminale-integrato-pty--finestra-flottante) · [7](#milestone-7--file-watcher-notify) · [8](#milestone-8--footprint-e-verifica-dei-gate)
 - [Restyling UI](#restyling-ui-richiesta-utente) · [Estensioni](#estensioni-post-base-su-richiesta)
-- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova) · [v1.2.0](#versione-120) · [70](#milestone-70--vista-solution-nellexplorer-come-il-solution-explorer-di-visual-studio) · [v1.3.0](#versione-130) · [71](#milestone-71--rilasci-da-github-actions-si-pubblica-da-qualunque-pc) · [72](#milestone-72--scaffale-nella-vista-solution-sei-chat-affiancate-editor-diviso-in-righe-e-colonne) · [73](#milestone-73--lo-scaffale-secondo-giro-regole-per-tutte-le-repo-nodi-veri-categorie-undo) · [v1.4.0](#versione-140) · [74](#milestone-74--notifiche-errori-che-restano-storico-nella--chat-in-attesa-in-un-avviso-solo) · [v1.5.0](#versione-150) · [75](#milestone-75--orbit-su-linux-appimage-deb-rpm-e-pacchetto-per-arch-aggiornamenti-compresi) · [v1.6.0](#versione-160)
+- Milestone [9](#milestone-9--produttività-gestione-file-persistenza-findreplace-quick-open) · [10](#milestone-10--terminali-multipli) · [11](#milestone-11--git-discard--cronologia) · [12](#milestone-12--startup-lazy--decorazioni-git-companion) · [13](#milestone-13--configurazioni-di-esecuzione-esegui--loop-con-claude) · [14](#milestone-14--selettore-branch-status-bar--istanze-multiple--distribuzione) · [15](#milestone-15--scaffale-cartelle-messe-da-parte-per-categoria) · [16](#milestone-16--rifinitura-grafica-ide--terminale) · [17](#milestone-17--polish-grafico-2-diff-toast-focus-title-bar-tab) · [18](#milestone-18--impostazioni-font-cursore-fluido-uireadme-in-inglese) · [19](#milestone-19--zoom-font-vs-look-visual-studio-2026) · [20](#milestone-20--verso-il-look-visual-studio-git-gutter-card-densità) · [21](#milestone-21--indagine-footprint--webgl-opt-in) · [22](#milestone-22--manutenzione-doc-pulizia-repo-refactor) · [23](#milestone-23--più-linguaggi--esperienza-markdowndocs) · [24](#milestone-24--integrazione-claude-code) · [25](#milestone-25--refactor--pulizia-pre-release) · [26](#milestone-26--split-view-riquadri-editor-affiancati) · [27](#milestone-27--rifiniture-split-view--terminale-flottante) · [28](#milestone-28--revisione-pre-release-v020) · [29](#milestone-29--git-completo-vai-al-simbolo-chat-claude-v030) · [30](#milestone-30--viewer-immagini-e-pdf-drop-file-menu-contestuali-multi-detach-v031) · [31](#milestone-31--titolo-finestra-wrapper-claude-open-with-menu-a-sezioni-v032) · [32](#milestone-32--temi-glifi-file-per-linguaggio-notifica-claude-trim-davvio-v040) · [33](#milestone-33--la-finestra-ricorda-posizione-e-dimensione) · [34](#milestone-34--navigazione-del-codice-scorciatoie-configurabili-esegui-script) · [35](#milestone-35--segui-il-file-attivo-badge--pin-del-terminale-flottante-v050) · [36](#milestone-36--finestre-multiple-chiudi-tutte-e-riapri-tutte-c) · [37](#milestone-37--selettore-repo-in-top-bar-più-cartelle-aperte-una-attiva-v060) · [38](#milestone-38--autosave-quick-prompt-keymap-custom-default-markdown-nav-indietroavanti-highlight-semantico-cc-v070) · [39](#milestone-39--multi-finestra--multi-cartella-lista-repo-e-sessioni-per-finestra-v071) · [40](#milestone-40--scaffale-regole-per-nome-rifiniture-top-bar-e-salto-riga-v072) · [41](#milestone-41--perf-terminale-robustezza-e-rete-di-test-v073) · [42](#milestone-42--topbar-uniforme-e-revisione-notifica-claude-v074) · [43](#milestone-43--vista-attività-unità-di-lavoro-dai-transcript-claude-v080) · [44](#milestone-44--revisione-copiaincolla-terminale--editor-affidabilità-e-fix-doppio-incolla-v081) · [45](#milestone-45--piccole-rifiniture-v081) · [46](#milestone-46--sistema-di-log-diagnostico-v082) · [47](#milestone-47--fix-doppio-incolla-e-copia-nel-terminale-di-claude-v084) · [48](#milestone-48--indicatore-usage-tokencosto--stima-limiti-5hsettimana-v085) · [49](#milestone-49--git-graph--switch-repo-a-schede--contatore-globale-usage-v086) · [50](#milestone-50--pannello-usage-embedded-la-pagina-claudeai-al-posto-dei-contatori-stimati-v087) · [51](#milestone-51--attività-per-chat-colori-di-sessione--lente-chats-v088) · [52](#milestone-52--anteprima-html--anteprima-nella-split-view-v089) · [53](#milestone-53--via-il-pannello-usage-nuovo-logo-e-rifiniture-v0810) · [54](#milestone-54--chat-affiancate-nel-pannello-terminale-v0811) · [55](#milestone-55--look-visual-studio-2026-chat-affiancate-rifinite-nomi-e-colori-delle-schede-v090) · [56](#milestone-56--movimento-fluido-del-layout-barra-repo-riordinabile-e-centrata-v091) · [57](#milestone-57--modalità-leggera-pannelli-comprimibili-in-striscia-simmetria-delle-icone-fix-reveal-e-trascinamento-chat) · [58](#milestone-58--chiudi-tutte-le-schede-zoom-delle-immagini) · [59](#milestone-59--aggiornamenti-da-github-nessuna-modifica-persa-alla-chiusura-bug-noti) · [60](#milestone-60--codelens-apri-con-senza-predefinito-rifiniture-per-la-10) · [61](#milestone-61--versione-e-aggiornamenti-sempre-in-vista-nelle-impostazioni) · [62](#milestone-62--prestazioni-tutti-i-punti-caldi-misurati-prima-e-dopo) · [63](#milestone-63--stili-del-cursore-per-editor-e-terminale) · [64](#milestone-64--impostazioni-in-una-finestra-grande-a-categorie) · [65](#milestone-65--cambio-repo-un-movimento-solo-anche-quando-i-file-tardano) · [66](#milestone-66--riaprire-orbit-e-ritrovare-tutto-terminali-chat-posizione-nei-file) · [67](#milestone-67--documentazione-del-codice-in-docs) · [68](#milestone-68--quattro-correzioni-trovate-scrivendo-la-documentazione) · [v1.1.0](#versione-110) · [69](#milestone-69--tante-repo-nella-barra-compressione-da-destra-presa-sempre-libera-repo-in-una-finestra-nuova) · [v1.2.0](#versione-120) · [70](#milestone-70--vista-solution-nellexplorer-come-il-solution-explorer-di-visual-studio) · [v1.3.0](#versione-130) · [71](#milestone-71--rilasci-da-github-actions-si-pubblica-da-qualunque-pc) · [72](#milestone-72--scaffale-nella-vista-solution-sei-chat-affiancate-editor-diviso-in-righe-e-colonne) · [73](#milestone-73--lo-scaffale-secondo-giro-regole-per-tutte-le-repo-nodi-veri-categorie-undo) · [v1.4.0](#versione-140) · [74](#milestone-74--notifiche-errori-che-restano-storico-nella--chat-in-attesa-in-un-avviso-solo) · [v1.5.0](#versione-150) · [75](#milestone-75--orbit-su-linux-appimage-deb-rpm-e-pacchetto-per-arch-aggiornamenti-compresi) · [v1.6.0](#versione-160) · [76](#milestone-76--riaprire-orbit-dopo-aver-spento-il-pc-le-finestre-comerano) · [v1.6.1](#versione-161)
 - [Ambiente di sviluppo verificato](#ambiente-di-sviluppo-verificato)
 
 ---
@@ -4746,6 +4746,85 @@ CLI 2.12.4) e 41929305238 (tutto a posto).
     pulite; il PKGBUILD (sorgenti locali, gli stessi checksum) installa `orbit-bin` 1.6.0, binario identico a quello del
     `.deb`, e Orbit parte Wayland nativo col WebKitGTK di sistema. `.deb` e `.rpm` non provati su una loro distribuzione.
 - README: il Footprint di Linux con le misure della release.
+
+---
+
+## Milestone 76 — riaprire Orbit dopo aver spento il PC: le finestre com'erano
+
+Segnalazione dell'utente (2026-11-11): su questo PC, chiudendo e riaprendo Orbit, a volte non tornavano tutte le repo
+aperte e sembrava di ripartire da uno stato precedente.
+
+**La causa**, verificata sui file di Orbit e sul registro eventi di Windows:
+- Cosa riaprire lo dice `windows-restore.json`, che si scrive solo quando una finestra si chiude davvero (✕, Alt+F4,
+  «Chiudi tutte», aggiornamento). Spegnendo il PC con Orbit aperto, Windows termina il processo senza la chiusura: niente
+  snapshot.
+- Qui era fermo al 10/11 alle 08:51 (l'aggiornamento alla 1.6.0) su una repo. Poi tre spegnimenti con Orbit aperto
+  (eventi 1074 di `shutdown.exe`), e ogni avvio riapriva quella repo con la sua sessione. La finestra intanto era passata a
+  un'altra repo, con un'altra lista (due repo aggiunte, una tolta): al prossimo avvio sarebbe tornata la lista vecchia.
+- Schede e lista di repo si salvano subito (400 ms), ma per repo: la lista vive nella sessione della repo attiva. Il file
+  della finestra in `windows/` ha invece la repo attiva di adesso (`register_window` lo riscrive a ogni cambio), ma
+  all'avvio `prune_dead` lo buttava.
+- Le schede del terminale delle repo mancanti non tornavano, e al salvataggio successivo sparivano (le chat restano in
+  Attività).
+- Un secondo difetto, non visto ma possibile: «finestra ancora aperta» guardava solo il pid. Dopo un riavvio il pid di una
+  finestra di ieri può essere di un altro programma: Orbit la credeva aperta e non ripristinava nulla (apriva l'ultima
+  sessione salvata, in una finestra sola).
+
+**La correzione** (`winsession.rs`; il frontend non cambia):
+- `prune_dead` ritorna le voci dei processi morti. Se nessuna finestra è più aperta, `fresher_restore` ne fa il set da
+  riaprire, scritto subito in `windows-restore.json`: così non lo perde neanche un avvio con una cartella o un file.
+- Non dopo un aggiornamento: lo snapshot di `quit_others` ha tutte le finestre, quelle che l'installer ha terminato ne sono
+  una parte. `init` riceve `after_update`.
+- `snapshot_live` (chiusura di una finestra, «Chiudi tutte», `quit_others`): lo snapshot prende anche le voci morte, come
+  prima, e poi ne cancella i file. Senza, dopo il crash di una finestra e la chiusura regolare dell'altra, al primo avvio
+  la voce morta sembrerebbe più recente dello snapshot e lo sostituirebbe con meno finestre.
+- `entry_alive`: il pid è vivo (su Windows anche `GetExitCodeProcess` = `STILL_ACTIVE`: non conta un processo uscito di
+  cui qualcuno tiene l'handle) e, su Windows, il processo non è partito dopo la registrazione della voce
+  (`GetProcessTimes` contro i nanosecondi dell'id, margine 30 s). Su Linux solo il pid: lì si riusano di rado, e l'ora
+  d'avvio si ricava da un'ora di boot ricalcolata che una correzione dell'orologio sposta (si rischierebbe di dare per
+  morta una finestra aperta).
+
+**Test**: `cargo test` 85 (5 nuovi: `nanos_of`, `same_process`, la voce di questo processo viva e una inesistente
+morta, un pid riusato su Windows, `fresher_restore` nei quattro casi); clippy senza avvisi.
+
+**Collaudo** nell'istanza di prova (`com.visialab.lume.devtest`, cartelle alpha, beta, gamma nello scratchpad, chat
+Claude spente):
+1. Spegnimento: aperta su alpha, aggiunta beta, chiusa con ✕ (ripristino = alpha); riaperta, passata a gamma, processo
+   terminato. Il ripristino diceva ancora alpha, la voce morta gamma. Riaperta: gamma con alpha, beta e gamma, la stessa
+   chiave; il ripristino ora è gamma.
+2. Pid riusato: nel registro una voce «di ieri» col pid di un `ping` appena avviato. Riaperta: voce data per morta e la
+   sua cartella riaperta (la 1.6.0 l'avrebbe creduta aperta e non avrebbe ripristinato nulla).
+3. Crash di una finestra e chiusura regolare dell'altra (WM_CLOSE): lo snapshot ha tutte e due, il file della morta è
+   cancellato; riaperte tutte e due, ognuna con la sua chiave.
+4. Spegnimento con due finestre aperte: riaperte tutte e due.
+
+Profilo di prova cancellato alla fine; l'Orbit installato non toccato.
+
+**Da sapere**:
+- Il portatile CachyOS era spento: su Linux il codice nuovo lo compila il workflow della release.
+- Uno spegnimento non chiude Orbit in modo regolare (nessuno snapshot nei tre spegnimenti di questo PC), quindi non serve
+  gestire `WM_ENDSESSION`: basta il file della finestra.
+
+---
+
+## Versione 1.6.1
+
+La milestone **M76** in una release: dopo uno spegnimento del PC con Orbit aperto (o un crash) si ritrovano le finestre
+com'erano. Titolo "Back where you left off".
+
+**Preparazione** (2026-11-11, da questo PC, con il workflow Release di GitHub Actions).
+- Versione 1.6.1 nei sei punti, con le due del lockfile a mano.
+- Test: `cargo test` 85, clippy senza avvisi; collaudo nell'istanza di prova (vedi la M76). Il frontend non cambia.
+
+Note della release:
+
+```markdown
+### Back where you left off
+- Shut the PC down with Orbit still open, and the next launch now reopens your windows as they were: each on the repo
+  you were in, with all its repos and terminals. Before, it went back to the last time you closed Orbit yourself.
+- After a restart, reopening could rarely do nothing at all, when another program had taken the number of an old Orbit
+  window.
+```
 
 ---
 

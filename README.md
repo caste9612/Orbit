@@ -139,6 +139,25 @@ desktops (the AppImage brings its own).
 - **HTML preview**: a source ⇄ preview toggle renders `.html` files in a sandboxed frame
   (scripts disabled) — anchors, relative assets and data URIs work as in a browser. Also available
   side-by-side ("open preview to the side"), auto-refreshing on save.
+- **Edit HTML documents visually** (preview): the specs and reports Claude writes as HTML (with the
+  *editable-html* skill, installed from the Claude menu) open in a visual editor. Fix text right in the page; move,
+  duplicate, add or delete sections; duplicate or reorder table rows, list items and cards; edit chart
+  data in a grid; change the theme's colors and fonts; switch a section between one, two or three
+  columns; print to PDF. Every change goes back into the source as a small edit, so diffs stay minimal
+  and Claude can keep working on the same file. The page runs in an isolated frame, with no access to
+  the network, your files or Orbit.
+  - Every document has a light and a dark theme: the editor follows Orbit's, a browser the system's, with a
+    small ☀/☾ switch.
+  - **Templates**: right-click in the Explorer → *New document from template…*, pick the folder, fill a few
+    fields, and the document opens ready to edit. Orbit ships a verification protocol, a design document and
+    a test report.
+  - **Your own templates**: ask Claude to turn a form you already use (a Word or PDF model, with your logo and
+    document codes) into a template, or write one yourself: it's a document like the others, with
+    `{{field|Label}}` where the dialog asks for a value. Templates in `~/.orbit/templates` stay on your PC;
+    Orbit lists them first, and installing the skill again passes them on to Claude.
+  - The format of these documents (profile 0.2) is new and may still change.
+
+  ![A test report open in the visual editor, dark theme: a section with two charts side by side and, in the panel on the right, its layout and the data of both charts in editable grids](docs/screenshots/documents.webp)
 - **Split view in rows and columns**: drag a tab onto the **left/right edge** of an editor group for a
   new column on that side, onto the **top/bottom edge** for a new row, onto the center to move it there
   (the drop mark shows the result before you release). Up to six groups, with **draggable splitters**;

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="doc-profile" content="0.2">
+<meta name="doc-template" content="Test report">
+<meta name="description" content="Header and signatures, unit and work order, one block per test with operators and PASS/FAIL checks, a summary counted from the checks, notes.">
+<meta name="doc-template-file" content="{{code}}-{{title}}">
+<title>{{code|Report code}} {{title|Report title}}</title>
+<style>
+:root {
+  --bg: #f4f6f6; --paper: #ffffff; --fg: #1b2024; --muted: #5d666d; --accent: #2f6fde; --accent-soft: #e6eefc; --line: #dfe3e5; --surface: #f6f8f8;
+  --pass: #1b8a52; --pass-soft: #e2f3e9; --fail: #c93a32; --fail-soft: #fbe6e4; --na: #7b848b; --na-soft: #eef0f1;
+  --font-body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --font-heading: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --gap: 1rem; --radius: 10px;
+}
+@media screen and (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1315; --paper: #161b1e; --fg: #e4e8ea; --muted: #9aa4ab; --accent: #7aa7ff; --accent-soft: #1b2944; --line: #2a3237; --surface: #1c2226;
+    --pass: #4fd28a; --pass-soft: #163524; --fail: #ff7a70; --fail-soft: #3a1c1a; --na: #9aa4ab; --na-soft: #242b30;
+  }
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; padding: 32px 16px 56px; background: var(--bg); color: var(--fg); font: 15px/1.55 var(--font-body); }
+.page { max-width: 940px; margin: 0 auto; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 34px 40px 30px; }
+
+header .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font: 600 12px/1 var(--font-mono); padding: 6px 9px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.chip.code { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.kicker { margin: 26px 0 2px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+header h1 { margin: 0; font: 700 30px/1.15 var(--font-heading); letter-spacing: -.01em; }
+.meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 20px; }
+.meta > div { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+.meta .k, .sig .k { display: block; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.meta .v { font-weight: 600; }
+.meta .wide { grid-column: 1 / -1; }
+.sigs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.sig { border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px 12px; }
+.sig strong { display: block; margin-top: 2px; }
+.sig .role { color: var(--muted); font-size: 13px; }
+.sig .line { display: block; height: 30px; margin-top: 6px; border-bottom: 1px dashed var(--line); }
+details.hist { margin-top: 14px; border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; }
+details.hist summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
+details.hist table { margin-top: 8px; }
+
+nav { margin: 26px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); }
+nav [data-generated="toc"] ol { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 0; list-style: none; counter-reset: t; font-size: 13px; }
+nav [data-generated="toc"] li { counter-increment: t; }
+nav [data-generated="toc"] li::before { content: counter(t) " "; color: var(--muted); font-variant-numeric: tabular-nums; }
+nav a { color: var(--accent); text-decoration: none; }
+
+main { counter-reset: par; }
+main > section { counter-increment: par; padding-top: 28px; }
+main > section > h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font: 650 20px/1.3 var(--font-heading); }
+main > section > h2::before { content: counter(par); display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 14px; font-weight: 700; flex: 0 0 auto; }
+p { margin: 8px 0; }
+ul { margin: 8px 0; padding-left: 22px; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.grid, .hist table { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; font-size: 14px; }
+.grid th, .grid td, .hist th, .hist td { padding: 8px 11px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+.grid tbody tr:last-child > *, .hist tbody tr:last-child > * { border-bottom: 0; }
+.grid thead th, .hist thead th { background: var(--surface); font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); }
+.grid.kv th { width: 30%; color: var(--muted); font-weight: 600; background: var(--surface); }
+.tc td:first-child { font: 600 13px var(--font-mono); white-space: nowrap; }
+.tc td.out { white-space: nowrap; }
+.tc td.out[data-v] { font-size: 12px; font-weight: 700; letter-spacing: .03em; }
+.tc td.out[data-v="pass"] { color: var(--pass); }
+.tc td.out[data-v="fail"] { color: var(--fail); }
+.tc td.out[data-v="na"] { color: var(--na); }
+.tc tr:has(td.out[data-v="pass"]) td.out { background: var(--pass-soft); }
+.tc tr:has(td.out[data-v="fail"]) td.out { background: var(--fail-soft); }
+.tc tr:has(td.out[data-v="na"]) td.out { background: var(--na-soft); }
+.note { color: var(--muted); font-size: 13px; }
+
+.oc-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.oc-kpi { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.oc-kpi b { display: block; font: 700 28px/1.1 var(--font-heading); }
+.oc-kpi span { font-size: 12px; color: var(--muted); }
+.oc-kpi.pass { background: var(--pass-soft); border-color: transparent; } .oc-kpi.pass b { color: var(--pass); }
+.oc-kpi.fail { background: var(--fail-soft); border-color: transparent; } .oc-kpi.fail b { color: var(--fail); }
+.oc-kpi.na b { color: var(--na); }
+.oc-bar { display: flex; height: 10px; margin-top: 12px; border-radius: 999px; overflow: hidden; background: var(--surface); }
+.oc-bar i { display: block; height: 100%; }
+.oc-bar .pass { background: var(--pass); } .oc-bar .fail { background: var(--fail); } .oc-bar .na { background: var(--na); }
+.oc-verdict { font-weight: 600; margin-top: 10px; }
+.oc-verdict.pass { color: var(--pass); } .oc-verdict.fail { color: var(--fail); }
+
+footer { margin-top: 34px; padding-top: 12px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+
+@media print {
+  html, body { background: #fff; }
+  body { padding: 0; font-size: 10.5pt; }
+  .page { max-width: none; border: 0; border-radius: 0; padding: 0; }
+  details.hist > *:not(summary) { display: block; }
+  footer { display: none; }
+}
+@media (max-width: 680px) {
+  .page { padding: 22px 16px; border-radius: 0; }
+  .meta, .sigs, .oc-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid { display: block; overflow-x: auto; }
+}
+
+/* six metadata cards in three columns; PASS / FAIL / N/A cells of the checks */
+.meta.six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.chk td.out { white-space: nowrap; }
+.chk td.out[data-v] { font-size: 12px; font-weight: 700; letter-spacing: .03em; }
+.chk td.out[data-v="pass"] { color: var(--pass); }
+.chk td.out[data-v="fail"] { color: var(--fail); }
+.chk td.out[data-v="na"] { color: var(--na); }
+.chk tr:has(td.out[data-v="pass"]) td.out { background: var(--pass-soft); }
+.chk tr:has(td.out[data-v="fail"]) td.out { background: var(--fail-soft); }
+.chk tr:has(td.out[data-v="na"]) td.out { background: var(--na-soft); }
+.ops { margin-bottom: 10px; }
+.sub { margin: 22px 0 8px; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+header .top .kicker { margin: 0; }
+@page {
+  size: A4;
+  @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8pt "Segoe UI", sans-serif; color: #666; }
+}
+</style>
+</head>
+<body>
+<div class="page rt">
+<header>
+  <div class="top">
+    <span class="kicker">Test report</span>
+    <span class="chips"><span class="chip code">{{code|Report code}}</span></span>
+  </div>
+  <h1>{{title|Report title}}</h1>
+  <div class="meta">
+    <div><span class="k">Project</span><span class="v">{{project|Project}}</span></div>
+    <div><span class="k">Version</span><span class="v">v01</span></div>
+    <div><span class="k">Status</span><span class="v">DRAFT</span></div>
+    <div><span class="k">Issue date</span><span class="v">{{date}}</span></div>
+  </div>
+  <div class="sigs">
+    <div class="sig" data-item><span class="k">Prepared by</span><strong>{{prepared_by|Prepared by}}</strong><span class="role">Role</span><i class="line"></i></div>
+    <div class="sig" data-item><span class="k">Reviewed by</span><strong>{{reviewed_by|Reviewed by}}</strong><span class="role">Role</span><i class="line"></i></div>
+    <div class="sig" data-item><span class="k">Approved by</span><strong>{{approved_by|Approved by}}</strong><span class="role">Role</span><i class="line"></i></div>
+  </div>
+  <p class="sub">Unit and order</p>
+  <div class="meta six">
+    <div><span class="k">Unit ID</span><span class="v">{{unit_id|Unit ID}}</span></div>
+    <div><span class="k">Work order</span><span class="v">{{work_order|Work order}}</span></div>
+    <div><span class="k">Order date</span><span class="v">—</span></div>
+  </div>
+  <details class="hist">
+    <summary>Document changes</summary>
+    <table>
+      <thead><tr><th>Revision</th><th>By</th><th>Changes</th><th>Date</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>—</td><td>First release</td><td>{{date}}</td></tr>
+      </tbody>
+    </table>
+  </details>
+</header>
+<nav><div data-generated="toc"></div></nav>
+<main>
+  <section data-block id="test-01">
+    <h2>TEST-01 Functional check</h2>
+    <table class="grid ops">
+      <thead><tr><th>Assembled by</th><th>Checked by</th><th>Date</th></tr></thead>
+      <tbody><tr><td>—</td><td>—</td><td>{{date}}</td></tr></tbody>
+    </table>
+    <table class="grid chk">
+      <thead><tr><th>Check</th><th>Outcome</th><th>Comments</th></tr></thead>
+      <tbody>
+        <tr><td>Description of the check</td><td class="out">PASS</td><td>—</td></tr>
+        <tr><td>Description of the check</td><td class="out">PASS</td><td>—</td></tr>
+        <tr><td>Description of the check</td><td class="out">—</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section data-block id="test-02">
+    <h2>TEST-02 Safety check</h2>
+    <table class="grid ops">
+      <thead><tr><th>Assembled by</th><th>Checked by</th><th>Date</th></tr></thead>
+      <tbody><tr><td>—</td><td>—</td><td>{{date}}</td></tr></tbody>
+    </table>
+    <table class="grid chk">
+      <thead><tr><th>Check</th><th>Outcome</th><th>Comments</th></tr></thead>
+      <tbody>
+        <tr><td>Description of the check</td><td class="out">—</td><td>—</td></tr>
+        <tr><td>Description of the check</td><td class="out">—</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <p class="note">Write PASS, FAIL or N/A in the Outcome column: the summary counts them. Duplicate a test from the panel to add one.</p>
+  </section>
+
+  <section data-block id="summary">
+    <h2>Summary</h2>
+    <div data-generated="outcome-summary"></div>
+  </section>
+
+  <section data-block id="notes">
+    <h2>Notes and final outcome</h2>
+    <p>Outcome of the test, non-conformities and actions.</p>
+  </section>
+</main>
+</div>
+<script>
+/* Results: colors the td.out cells (PASS / FAIL / N/A) and writes the summary in [data-generated="outcome-summary"].
+   Behavior only: it reads the tables and writes only there, following the edits as you type. */
+(() => {
+  const it = /^it\b/i.test(document.documentElement.lang || "");
+  const L = it
+    ? { total: "Controlli", pass: "Superati", fail: "Non superati", na: "Non applicabili", none: "Nessun controllo.", wait: "Nessun esito ancora.", ok: "Tutti i controlli con un esito sono superati.", ko: (n) => n + (n > 1 ? " controlli non superati." : " controllo non superato.") }
+    : { total: "Test cases", pass: "Passed", fail: "Failed", na: "Not applicable", none: "No test cases yet.", wait: "No results yet.", ok: "All test cases with a result passed.", ko: (n) => n + " test case" + (n > 1 ? "s" : "") + " failed." };
+  const norm = (t) => {
+    const s = t.trim().toUpperCase().replace(/\s+/g, " ");
+    if (/^(PASS|PASSED|OK|SUPERATO|CONFORME|✓)$/.test(s)) return "pass";
+    if (/^(FAIL|FAILED|KO|NON SUPERATO|NON CONFORME|✗)$/.test(s)) return "fail";
+    return s && s !== "—" && s !== "-" ? "na" : "";
+  };
+  function update() {
+    const cells = Array.from(document.querySelectorAll("table td.out"));
+    const n = { pass: 0, fail: 0, na: 0 };
+    for (const c of cells) {
+      const v = norm(c.textContent || "");
+      if (v) c.dataset.v = v;
+      else delete c.dataset.v;
+      if (v) n[v]++;
+    }
+    for (const out of document.querySelectorAll('[data-generated="outcome-summary"]')) {
+      const total = cells.length;
+      out.textContent = "";
+      const kpis = document.createElement("div");
+      kpis.className = "oc-kpis";
+      for (const k of ["total", "pass", "fail", "na"]) {
+        const d = document.createElement("div");
+        d.className = "oc-kpi " + k;
+        const b = document.createElement("b");
+        b.textContent = String(k === "total" ? total : n[k]);
+        const s = document.createElement("span");
+        s.textContent = L[k];
+        d.append(b, s);
+        kpis.appendChild(d);
+      }
+      const bar = document.createElement("div");
+      bar.className = "oc-bar";
+      for (const k of ["pass", "fail", "na"]) {
+        const i = document.createElement("i");
+        i.className = k;
+        i.style.width = (total ? (100 * n[k]) / total : 0) + "%";
+        bar.appendChild(i);
+      }
+      const verdict = document.createElement("p");
+      verdict.className = "oc-verdict " + (n.fail ? "fail" : total && n.pass ? "pass" : "");
+      verdict.textContent = !total ? L.none : n.fail ? L.ko(n.fail) : n.pass ? L.ok : L.wait;
+      out.append(kpis, bar, verdict);
+    }
+  }
+  let t = 0;
+  document.addEventListener("input", () => {
+    clearTimeout(t);
+    t = setTimeout(update, 150);
+  });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", update);
+  else update();
+})();
+</script>
+<!-- doc-runtime -->
+</body>
+</html>

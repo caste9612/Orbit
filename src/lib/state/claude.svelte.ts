@@ -362,6 +362,49 @@ const CLAUDE_SECTION = [
   "",
 ].join("\n");
 
+/** Installa o aggiorna la skill «editable-html» (M77) nella cartella di Claude Code: le regole del profilo dei
+ *  documenti HTML modificabili, il runtime e lo script che lo inserisce. Claude la carica da sé quando scrive un
+ *  documento HTML, in qualunque progetto. I file sono quelli di src/lib/htmldoc/, caricati solo qui. */
+export async function installDocSkill() {
+  const [skill, runtime, script, hd, tpl] = await Promise.all([
+    import("../htmldoc/SKILL.md?raw"),
+    import("../htmldoc/runtime.html?raw"),
+    import("../htmldoc/inline-runtime.sh?raw"),
+    import("../htmldoc/htmlDoc"),
+    import("./docTemplates.svelte"),
+  ]);
+  try {
+    // i template (di questo PC e di Orbit) vanno nella skill, con un indice: Claude parte da lì
+    const { items } = await tpl.loadDocTemplates();
+    const files: [string, string][] = [
+      ["SKILL.md", skill.default],
+      ["runtime.html", runtime.default],
+      ["inline-runtime.sh", script.default],
+    ];
+    const index = ["# Document templates", "", "Start from one of these when the request matches it (see SKILL.md, Templates).", ""];
+    const taken = new Set<string>();
+    for (const t of items) {
+      const meta = hd.templateMeta(t.content);
+      let file = hd.fileNameFrom(meta.name, "template");
+      for (let n = 2; taken.has(file.toLowerCase()); n++) file = hd.fileNameFrom(`${meta.name}-${n}`, "template");
+      taken.add(file.toLowerCase());
+      files.push([`templates/${file}`, t.content]);
+      const fields = hd.templateFields(t.content).map((f) => `\`{{${f.key}}}\` ${f.label}`);
+      index.push(`## ${meta.name}`, `- file: \`templates/${file}\` (${t.source === "pc" ? "this PC" : "Orbit"})`);
+      if (meta.description) index.push(`- ${meta.description}`);
+      if (fields.length) index.push(`- fields: ${fields.join(", ")}`);
+      index.push("");
+    }
+    if (items.length) files.push(["templates/INDEX.md", index.join("\n")]);
+    const dir = await invoke<string>("install_claude_skill", { name: "editable-html", files });
+    notify("HTML documents skill installed", "success", 6000, {
+      detail: `Claude now writes HTML documents you can edit in Orbit${items.length ? `, starting from ${items.length} template${items.length > 1 ? "s" : ""}` : ""}. Installed in ${dir}`,
+    });
+  } catch (e) {
+    notify("Couldn't install the HTML documents skill", "error", 0, { detail: String(e) });
+  }
+}
+
 /** Documenta il formato in CLAUDE.md (così Claude sa creare/modificare le scorciatoie). */
 export async function teachClaudeConfig() {
   if (!workspace.rootPath) return;

@@ -22,6 +22,7 @@
     openPrompts,
     openClaudeConfig,
     teachClaudeConfig,
+    installDocSkill,
   } from "../state/claude.svelte";
   import { open as openDialog, confirm } from "@tauri-apps/plugin-dialog";
   import { invoke } from "@tauri-apps/api/core";
@@ -129,6 +130,7 @@
     items.push({ label: "Add / remove prompts…", icon: "plus", onClick: openPrompts });
     items.push({ label: "Edit .orbit/claude.json", icon: "braces", onClick: openClaudeConfig });
     items.push({ label: "Update CLAUDE.md for Claude", icon: "doc", onClick: teachClaudeConfig });
+    items.push({ label: "Install the HTML documents skill", icon: "globe", onClick: installDocSkill });
     return items;
   }
 

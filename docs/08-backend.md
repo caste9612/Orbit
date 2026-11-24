@@ -67,6 +67,8 @@ The Linux build is the same code with a few `cfg`-gated parts (M75):
 |---|---|
 | `startup` | The folder, file, search, light flag, window key and `updatedTo` this window was started with |
 | `read_dir` · `read_file` · `write_file` | Directory listing, text read, write (async) |
+| `install_claude_skill(name, files)` | Writes a Claude Code skill into `<Claude's folder>/skills/<name>/` (M77): plain names or `templates/<name>`, the `templates/` folder replaced when some arrive — async |
+| `list_doc_templates()` | The document templates of this PC: `~/.orbit/templates` (created if missing) and each `.html` in it with its content (M77) — async |
 | `create_file` · `create_dir` · `rename_path` · `delete_path` | File operations from the tree |
 | `list_files(root)` | Every file of the project, skipping ignored folders (Quick Open, Docs) — async |
 | `shelf_find(root, folders, files)` | What the shelf's rules by name take (M73): the folders and files matching each name or pattern (`*`, `?`, case-insensitive), at most 500 per rule. One walk that doesn't enter what it found, folders ignored by git, `.git`, `node_modules`, `target`, `dist` — async |

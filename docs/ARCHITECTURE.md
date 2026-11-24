@@ -78,6 +78,8 @@ src/
     editor/             CodeMirror extensions, outline, active editor
     assets/             the brand wordmark
     util.ts             paths, file icons, language labels, time
+    htmldoc/            editable HTML documents: the skill for Claude, the runtime, the source map and its
+                        edits (htmlDoc.ts), the script injected into the editor's page (shim.js), templates/
     markdown.ts         Markdown → sanitized HTML (lazy) + heading TOC
     clipboard.ts        copy/paste through the Tauri plugin, with an explicit result
     gitgraph.ts         lane layout of the Git Graph

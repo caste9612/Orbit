@@ -14,5 +14,6 @@
     "skipLibCheck": true
   },
   "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "src/**/*.d.ts"],
+  "exclude": ["src/lib/htmldoc/shim.js"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

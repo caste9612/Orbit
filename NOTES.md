@@ -4828,6 +4828,214 @@ Note della release:
 
 ---
 
+## Milestone 77 — documenti HTML modificabili: un profilo per Claude e un editor visuale
+
+Richiesta dell'utente (2026-11-24), con un brief preparato in una chat: i documenti che Claude scrive in HTML (spec,
+report, piani) rendono meglio di Markdown e Word, ma a mano non si modificano; oggi anche per un refuso si richiede a
+Claude. Direzione del brief, confermata: **un profilo vincolato di HTML** (il file resta HTML valido, apribile ovunque)
+**e un editor in Orbit che lo conosce**. Scartati un formato esistente (Claude Docs non è un file locale, i Markdown
+estesi perdono il layout), un formato nuovo, un editor di HTML qualunque (su HTML libero si modifica bene solo il testo).
+
+**Le scelte dell'utente** (domande a scelta multipla, sulla mia raccomandazione salvo l'export):
+- runtime **ibrido**: uno standard, versionato, inserito da uno script; per i visual speciali uno script di Claude, solo
+  dentro un suo `[data-generated]`;
+- Claude impara il profilo da una **skill che Orbit installa** (si carica solo quando serve), non da CLAUDE.md;
+- la prova di qualità sullo **spec di questo editor**;
+- **export PDF da Orbit** (raccomandavo «non ora»): stili di stampa nel profilo, stampa dall'iframe.
+
+**Cosa non andava nel brief**, visto il codice:
+- l'anteprima HTML di Orbit (M52) non esegue gli script: con `allow-same-origin` la pagina starebbe sull'origine del
+  protocollo asset, che legge qualunque file (scope `**`). L'editor deve farli girare (indice, grafici), quindi serve un
+  sandbox vero: iframe `srcdoc` **senza** `allow-same-origin` (origine opaca) e una CSP `default-src 'none'` come primo
+  elemento del documento. La regola «file unico offline» del profilo è ciò che lo rende possibile;
+- il punto aperto P3 (come salvare): in Orbit la strada «il sorgente è la verità» è la più semplice, non la più
+  complessa. Lezer HTML c'è già (lo usa CodeMirror), ogni modifica è la sostituzione di un tratto di testo, e stato
+  modificato, autosave, domande sulle modifiche non salvate e ricarica dal disco funzionano già. Diff minimi, la
+  formattazione di Claude resta. Spariscono P6 (lo stato di tab e accordion non arriva mai nel file) e l'obbligo di
+  script idempotenti;
+- R6 era troppo rigida (niente valori letterali nel CSS): diventa «token di tema su `:root`, il resto è libero»;
+  `data-layout` funziona solo se qualcuno definisce i layout, e lo fa il runtime standard.
+
+**Cosa c'è** (`src/lib/htmldoc/`, due componenti):
+- `SKILL.md`, la skill `editable-html` (profilo 0.2): file unico offline; blocchi `section[data-block][id]` figli di
+  `<main>`; testo statico; `data-item` per le voci ripetute; dataset JSON `{"columns","rows"}` nel blocco che li usa;
+  generato solo in `[data-generated]` vuoti; token su `:root` e un blocco scuro `screen`; stampa; `<meta
+  name="doc-profile">`. Più lo scheletro e una lista di controllo;
+- `runtime.html` (15,5 KiB, 5,2 gzip): indice, grafici SVG (`bar`, `hbar`, `line`, `area`, `pie`, `donut`, con
+  `data-stacked` e `data-height`), i quattro layout, le regole di stampa. `inline-runtime.sh` (awk, quindi gira dove
+  gira Claude Code, anche nel Git Bash di Windows) lo mette al posto del segnaposto `<!-- doc-runtime -->` o aggiorna
+  quello di prima;
+- `htmlDoc.ts`, logica pura: `analyze` (blocchi, testi modificabili, voci, dataset, grafici, token chiari e scuri,
+  problemi del profilo), le modifiche (testo, sposta/duplica/elimina/aggiungi blocco, voci, layout, token, dataset,
+  rinomina di colonna che aggiorna `data-x`/`data-y`, runtime), `frameDoc` (la copia per l'iframe con CSP,
+  `data-orbit-ref`, `data-orbit-item` e il tema forzato), `acceptableInline`, il prompt per Claude;
+- `shim.js`, lo script di Orbit nella pagina: `contenteditable` sui testi, Invio conferma, incolla solo testo, link che
+  non navigano, i messaggi verso Orbit (modifica, selezione, Ctrl+S/Z/Y) e da Orbit (token, layout, dataset dal vivo,
+  stampa);
+- `HtmlDocEditor.svelte`: due iframe che si alternano (la copia nuova si carica dietro, niente lampi), annulla/ripeti a
+  istantanee del sorgente, `rev` incrementato a ogni modifica perché un CodeMirror affiancato prenda il testo;
+  `HtmlDocPanel.svelte`: Sezioni (trascina, sposta, duplica, elimina, aggiungi), la sezione scelta (layout, la voce
+  scelta, la griglia dei dati), Stile (selettore di colore, anteprima chiara/scura), Problemi (inserisci il runtime,
+  copia un prompt per Claude), PDF;
+- `EditorArea`: per un HTML col profilo il bottone dice **Edit**, e il file si apre direttamente lì
+  (`initialPreview`); `util.isDocProfile` è una regex, così il parser resta fuori dal chunk d'avvio;
+- menu Claude → *Install the HTML documents skill*: `install_claude_skill` (Rust) scrive i tre file in
+  `<cartella di Claude>/skills/editable-html/`;
+- `@lezer/html` e `@lezer/common` dichiarati in `package.json` (c'erano già, portati da CodeMirror, stessa versione;
+  lockfile a mano, due righe).
+
+**La prova di qualità.** Due agenti senza il mio contesto, la stessa richiesta (lo spec di questo editor, dati
+uguali), uno libero e uno con la skill. Il «libero» ha scelto da sé di seguire il profilo che il testo descriveva, con un
+suo script al posto del runtime: il confronto è meno netto del previsto. Quello con la skill (82 KiB, 16 blocchi, tre
+diagrammi SVG, un grafico dal runtime) passa il validatore di Orbit senza problemi. Le sue osservazioni sulle regole,
+quasi tutte accolte nella skill e nel runtime: le tabelle lunghe non devono restare intere in stampa; i layout non
+devono collassare su carta; script di solo comportamento (evidenziare l'indice, copiare il codice) ammessi; l'indice
+può avere un titolo; un'etichetta sopra il titolo di un blocco a colonne va nel suo `<header>`; barre impilate,
+altezza dei grafici, etichette lunghe tagliate; duplicando un blocco si rinominano anche gli id interni (i marker
+delle frecce SVG); il testo dentro gli SVG non è modificabile.
+
+**Verifica.**
+- `vitest` 136 (30 nuovi in `htmlDoc.test.ts`), `svelte-check` 0/0 (308 file), `cargo test` 86 (`nomi_delle_skill`).
+- Istanza di prova (`com.visialab.lume.devtest`, cartella con un report di dati finti e i due spec, `CLAUDE_CONFIG_DIR`
+  finto), via CDP:
+  - **sicurezza** (WebView2): Tauri inietta `__TAURI_INTERNALS__` anche nell'iframe, ma un `invoke("write_file")` da lì
+    non scrive nulla (lo stesso dalla pagina di Orbit, per controllo, sì); `fetch` verso l'IPC, il protocollo asset e
+    la rete falliscono, un'immagine dal protocollo asset è bloccata, `parent.document` dà SecurityError;
+  - testo modificato nella pagina → solo quel tratto del sorgente cambia; Ctrl+S dalla pagina salva;
+  - sezioni spostate, duplicate (id nuovo), eliminate, aggiunte («Nuova sezione» in un documento `lang="it"`), quattro
+    annulla di fila tornano all'ordine di partenza;
+  - riga di tabella selezionata nella pagina e duplicata; cella dei dati e riga nuova (il grafico si ridisegna senza
+    ricaricare), colonna rinominata (la legenda segue), layout `grid-2` e colore d'accento dal vivo;
+  - sorgente affiancato: una modifica da lì ricarica la pagina, e viceversa;
+  - anteprima scura; un HTML senza profilo ha l'anteprima di sempre; la skill finisce nella cartella di Claude finta;
+  - stampa: l'anteprima di WebView2 mostra solo il documento, chiaro anche con l'anteprima scura, con le colonne e
+    senza i segni dell'editor (annullata senza stampare).
+- Trovati collaudando: l'iframe in caricamento aveva la classe `hidden`, che in Orbit è quella di Tailwind
+  (`display: none`), e un iframe così non si carica; e «pronto» partiva da un `requestAnimationFrame`, sospeso negli
+  iframe invisibili. Ora `standby` (solo `visibility: hidden`) e `setTimeout`.
+
+**Misure**: chunk iniziale **310,6 KiB** (106,0 gzip; 309,0 nella 1.6.1: +1,6 KiB per il menu e il controllo del
+profilo); l'editor è un chunk a parte di 45,9 KiB (16,6 gzip), la skill altri tre caricati solo all'installazione;
+`dist/` 3,08 MiB. Un documento di 104 KiB si mostra in 50–100 ms.
+
+**Da sapere / punti aperti.**
+- Su Linux (WebKitGTK) sandbox, CSP e IPC dall'iframe non sono ancora verificati: da provare sul portatile CachyOS.
+- La stampa mette in testa e in piede il titolo della finestra (Orbit) e l'indirizzo: si tolgono dalle impostazioni
+  della finestra di stampa.
+- Invio non crea un paragrafo nuovo (un testo resta un elemento): per aggiungere righe si duplica una voce o si passa
+  dal sorgente.
+- Il runtime ha la versione del profilo, ma Orbit confronta il testo: un documento con un runtime 0.2 di prima di una
+  correzione mostra comunque *Update runtime* (così è successo ai documenti delle prove).
+- I documenti di prova (dati finti) restano fuori dal repo.
+
+### Secondo giro (stesso giorno): tema scuro obbligatorio e template
+
+Richieste dell'utente: «i documenti devono avere anche la dark mode» e «voglio la possibilità di aggiungere dei
+template», a partire dai modelli dei documenti che usa al lavoro. Scelte (domande a scelta multipla):
+- template aziendali **solo su questo PC** (`~/.orbit/templates`), non in una cartella condivisa né nelle repo;
+- l'anteprima nell'editor **segue il tema di Orbit**;
+- nei documenti aperti nel browser un **interruttore chiaro/scuro** piccolo e discreto;
+- i modelli da elaborare: documento di progetto, protocollo di verifica (VP) e rapporto di collaudo, **in tutti e due
+  gli stili** (uno che riprende l'impaginazione del modello Word, uno moderno), nella lingua dei modelli
+  (VP e documento di progetto in inglese, collaudo in italiano); le sezioni del VP le ho proposte io (scopo,
+  riferimenti, oggetto in prova, strumenti, criteri di accettazione, casi di test, riepilogo, deviazioni,
+  conclusione) e l'utente le ha accettate.
+
+**Cosa c'è.**
+- Skill: il tema scuro è una regola (colori pensati per lo scuro, non invertiti; nel blocco scuro anche le poche regole
+  che i token non esprimono, come il logo in negativo); numerare i titoli solo con un contatore CSS; una sezione
+  *Templates* (partire dal template giusto, compilare i campi, togliere i meta del template, non ristilarlo).
+- Validatore: avviso R7 se manca il tema scuro.
+- Runtime: il bottone ☀/☾ (`themeToggle`) accende e spegne i blocchi `prefers-color-scheme: dark` via CSSOM
+  (`media.mediaText` a `not all` o `screen`), scelta ricordata per documento in `localStorage` (con try/catch),
+  nascosto in stampa e nell'editor. Runtime 17,9 KiB (6,1 gzip).
+- Editor: l'anteprima parte dal tema di Orbit e lo segue quando cambia.
+- Template: `htmlDoc.ts` (`templateMeta`, `templateFields`, `fillTemplate`, `fileNameFrom`, 4 test), il comando
+  `list_doc_templates` (Rust), `state/docTemplates.svelte.ts` (stato e lettura, i template di Orbit con
+  `import.meta.glob` pigro), `NewDocDialog.svelte` (lista per gruppo, campi, anteprima nella gabbia dell'editor, nome
+  del file proposto, *Create*: file scritto col runtime di questo Orbit e aperto nell'editor visuale), la voce
+  *New document from template…* nei menu dell'Explorer (cartella o file, spazio vuoto, vista Solution: scelta
+  dell'utente, dopo che il comando c'era solo su una cartella) con la destinazione nella finestra, *Change…* per
+  cambiarla e la radice del progetto come proposta (scelta dell'utente); *Install the HTML documents skill* copia i
+  template nella skill con un `INDEX.md` (`install_claude_skill` accetta `templates/<nome>` e svuota quella cartella a ogni installazione).
+- Tre template generici in `src/lib/htmldoc/templates/` (inglese, accento neutro, niente logo né codici di modulo,
+  senza runtime: lo mette Orbit): *Verification protocol*, *Design document*, *Test report*.
+- I template dell'utente restano fuori dal repo (in `~/.orbit/templates`). Cosa ne è venuto di riusabile: un logo
+  in due varianti (chiara e scura) pesa pochi KiB; la stampa A4 può avere in fondo a ogni pagina il codice del modello e
+  «Pag. X di Y» (box di margine di `@page`, verificati in un PDF di Chrome); il riepilogo degli esiti è un piccolo
+  script di comportamento che conta le celle `td.out` (PASS/FAIL/N/A, anche OK/KO, superato, conforme) e scrive solo
+  nel suo `[data-generated]`, aggiornandosi mentre si scrive.
+
+**Verifica.** `vitest` 140, `svelte-check` 0/0 (310 file), `cargo test` 86. Nell'istanza di prova: la finestra elenca i
+due gruppi, crea un documento da ciascuno dei nove template (zero problemi di profilo, file aperto nell'editor
+visuale), il runtime arriva nei documenti dai template generici; il riepilogo si aggiorna scrivendo PASS in una cella;
+tema scuro controllato sugli stili calcolati e a schermo; i sei documenti renderizzati anche con Chrome headless in
+chiaro e in scuro; la stampa in PDF ha i piè di pagina giusti su due pagine.
+
+**Trovato collaudando**: con la finestra di prova ridotta a icona gli iframe (ora nello stesso processo, non più
+OOPIF) non si ridisegnano e lo screenshot di DevTools mostra un fotogramma vecchio: per guardarli serve la finestra
+aperta (PrintWindow) o un browser headless. E per pilotare lo stato da DevTools dopo un aggiornamento a caldo va
+importato il modulo con `?t=` che l'app ha caricato davvero (come dice già `docs/10-development.md`).
+
+**Misure**: chunk iniziale **312,7 KiB** (106,9 gzip; +3,7 KiB su tutta la M77), la finestra dei template un chunk di
+6,0 KiB.
+
+---
+
+## Versione 1.7.0
+
+La milestone **M77** in una release: i documenti HTML modificabili e i template. Titolo "Claude writes, you edit"
+(scelto dall'utente tra quattro proposte, dopo aver chiesto un nome più significativo di "Documents you can edit").
+
+**Le scelte dell'utente** (2026-11-24, domande a scelta multipla; il timore era che la release mostrasse i template
+aziendali):
+- **pubblicare subito** (non una prova a secco da usare qualche giorno, che era la mia raccomandazione): i problemi si
+  correggono in una 1.7.1;
+- **Linux senza verifica**: che dall'iframe dell'editor non si raggiungano IPC e file è verificato solo su WebView2;
+  su WebKitGTK resta da provare;
+- la funzione presentata come **preview**: il formato (profilo 0.2) può ancora cambiare;
+- per i template, **la guida e le istruzioni nella skill**: chiunque trasforma i propri moduli in template come abbiamo
+  fatto noi, e i suoi restano sul suo PC.
+
+**Preparazione** (2026-11-24, da questo PC).
+- Controllo di tutto quello che entra nel commit: nessun nome dell'azienda o di persone, codici di modulo, loghi o
+  percorsi di questo PC. Corretti i commenti rimasti in italiano nei tre template generici (uno parlava ancora del
+  «rapporto di collaudo» da cui veniva) e tolti da questa pagina i dettagli su come sono fatti i modelli aziendali.
+- Skill: una sezione *Making a template* (da un modulo Word, PDF o HTML: struttura e aspetto dell'originale, campi solo
+  per ciò che si sa alla creazione, il marcatore del runtime lasciato a Orbit, piè di pagina nei box di `@page`, salvato
+  in `~/.orbit/templates`) e la descrizione che la richiama.
+- README (preview, *Your own templates*, uno screenshot nuovo) e `docs/03-editor.md`.
+- Lo screenshot `docs/screenshots/documents.webp`: un progetto inventato (la stazione meteo «WS-2», persone e dati
+  finti) con un rapporto creato dal template generico *Test report*, nell'editor visuale, tema scuro; un'istanza a parte
+  (identifier `com.visialab.lume.shot`) per non toccare quella di prova in uso.
+- Trovato facendo lo screenshot: col tema scuro forzato dall'editor la barra di scorrimento del documento restava
+  chiara (il tema lo davano solo le media query riscritte). `frameDoc` mette anche `<meta name="color-scheme">`
+  col tema scelto; un test lo controlla.
+- Versione 1.7.0 nei sei punti, con le due del lockfile a mano.
+- Verifica: `svelte-check` 0/0 (310 file), `vitest` 140, note estratte da `Get-ReleaseNotes.ps1` uguali al blocco.
+
+Note della release:
+
+```markdown
+### Claude writes, you edit (preview)
+- The specs and reports Claude writes as HTML now open in a **visual editor**. Fix text right in the page; move,
+  duplicate, add or delete sections; reorder table rows and list items; edit chart data in a grid; change the
+  theme's colors and fonts; put a section in two or three columns; print to PDF.
+- Every change goes back into the HTML as a small edit, so diffs stay readable and Claude can keep working on the
+  same file. The page runs in an isolated frame, with no access to the network, your files or Orbit.
+- Claude learns the format from a skill: **Claude → Install the HTML documents skill**.
+- Every document has a light and a dark theme. In Orbit it follows Orbit's; in a browser, a small ☀/☾ switches it.
+- A preview: the format of these documents may still change in the next versions.
+
+### Templates
+- **New document from template…**, in the Explorer's right-click menu: pick the folder, fill a few fields, and the
+  document opens ready to edit. Orbit comes with a verification protocol, a design document and a test report.
+- **Your own templates**: ask Claude to turn a form you already use (a Word or PDF model, with your logo and codes)
+  into a template, or write one yourself. They stay on your PC, in `~/.orbit/templates`.
+```
+
+---
+
 ## Ambiente di sviluppo verificato
 - Node 24, npm 11, Rust 1.92 (host `x86_64-pc-windows-msvc`).
 - MSVC C++ tools + Windows SDK 26100 (Visual Studio Community 2026).

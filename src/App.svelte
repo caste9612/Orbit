@@ -26,6 +26,7 @@
   import { symbols, openSymbols } from "./lib/state/symbols.svelte";
   import { loadRunConfig } from "./lib/state/run.svelte";
   import { loadClaudeConfig, launchClaude, wrapperUI, promptsUI } from "./lib/state/claude.svelte";
+  import { newDocUI } from "./lib/state/docTemplates.svelte";
   import { loadShelf, scheduleShelfScan } from "./lib/state/shelf.svelte";
   import { detectSolutions } from "./lib/state/explorerView.svelte";
   import { loadDocs } from "./lib/state/docs.svelte";
@@ -552,6 +553,9 @@
   {/if}
   {#if promptsUI.open}
     <Lazy load={() => import("./lib/components/ClaudePrompts.svelte")} />
+  {/if}
+  {#if newDocUI.open}
+    <Lazy load={() => import("./lib/components/NewDocDialog.svelte")} />
   {/if}
   {#if updates.open}
     <Lazy load={() => import("./lib/components/UpdateDialog.svelte")} />

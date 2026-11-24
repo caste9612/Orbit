@@ -10,6 +10,7 @@
   import { relOf, isHidden, colorOf, shelfUi, NOISE, shelveNoise, shelveDotFolders } from "../state/shelf.svelte";
   import { shelfDragDown, shelfDragClick } from "../state/shelfDrag.svelte";
   import { fsMenuItems, openTerminalAt } from "../state/treeMenu";
+  import { openNewDoc } from "../state/docTemplates.svelte";
   import { normSlash, samePath } from "../util";
 
   // Lista virtuale ad altezza fissa: rende solo le righe nel viewport (+overscan).
@@ -98,6 +99,7 @@
     const items: MenuItem[] = [
       { label: "New file…", icon: "file-plus", onClick: () => startCreate(root, "file") },
       { label: "New folder…", icon: "folder-plus", onClick: () => startCreate(root, "dir") },
+      { label: "New document from template…", icon: "doc", onClick: () => openNewDoc(root) },
       { label: "Open in terminal", icon: "terminal", separatorBefore: true, onClick: () => openTerminalAt(root) },
       { label: "Reveal in Explorer", icon: "external-link", onClick: () => revealPath(root) },
     ];

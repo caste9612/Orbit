@@ -10,7 +10,7 @@
   import { onMount, onDestroy, tick } from "svelte";
   import { settings } from "../state/settings.svelte";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
-  import { fileIcon, relTo, runCommand } from "../util";
+  import { fileIcon, relTo, runCommand, isDocProfile } from "../util";
   import { runFile } from "../state/run.svelte";
   import { copyPath, copyRelPath, revealPath } from "../state/explorer.svelte";
   import { askUnsaved } from "../state/unsaved.svelte";
@@ -408,21 +408,22 @@
               {/if}
               {#if isMd(af.name) || isHtml(af.name)}
                 {@const pv = g.previews.includes(af.path)}
+                {@const ed = isHtml(af.name) && isDocProfile(af.content)}
                 <button
                   class="mdtoggle"
                   class:on={pv}
                   onclick={() => af && void toggleWithSave(g.id, af.path, af.name)}
-                  title={pv ? "Show source" : "Show preview"}
+                  title={pv ? "Show source" : ed ? "Edit the document visually" : "Show preview"}
                 >
-                  <Icon name={pv ? "code" : isHtml(af.name) ? "globe" : "book-open"} size={13} strokeWidth={1.8} />
-                  <span>{pv ? "Source" : "Preview"}</span>
+                  <Icon name={pv ? "code" : ed ? "pencil" : isHtml(af.name) ? "globe" : "book-open"} size={13} strokeWidth={1.8} />
+                  <span>{pv ? "Source" : ed ? "Edit" : "Preview"}</span>
                 </button>
                 {#if !pv}
                   <button
                     class="mdtoggle side"
                     onclick={() => af && void openPreviewToSide(af.path)}
-                    title="Open preview to the side"
-                    aria-label="Open preview to the side"
+                    title={ed ? "Open the visual editor to the side" : "Open preview to the side"}
+                    aria-label={ed ? "Open the visual editor to the side" : "Open preview to the side"}
                   >
                     <Icon name="panel-left" size={13} strokeWidth={1.8} />
                   </button>
@@ -448,6 +449,8 @@
                   <Lazy load={() => import("./GitGraph.svelte")} />
                 {:else if af.kind === "image" || af.kind === "pdf"}
                   <Lazy load={() => import("./AssetView.svelte")} path={af.path} kind={af.kind} />
+                {:else if isHtml(af.name) && g.previews.includes(af.path) && isDocProfile(af.content)}
+                  <Lazy load={() => import("./HtmlDocEditor.svelte")} path={af.path} content={af.content} readonly={af.readonly} />
                 {:else if isHtml(af.name) && g.previews.includes(af.path)}
                   <Lazy load={() => import("./HtmlView.svelte")} path={af.path} diskRev={af.diskRev} />
                 {:else if isMd(af.name) && g.previews.includes(af.path)}

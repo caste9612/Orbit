@@ -51,6 +51,7 @@
   import { isHidden, relOf, colorOf, shelfUi, NOISE, shelveNoise, shelveDotFolders } from "../state/shelf.svelte";
   import { shelfDragDown, shelfDragClick } from "../state/shelfDrag.svelte";
   import { fsMenuItems } from "../state/treeMenu";
+  import { openNewDoc } from "../state/docTemplates.svelte";
   import { notify } from "../state/toast.svelte";
   import { fileIcon, basename, dirname, isUnder, normSlash, pathKey, runCommand, samePath } from "../util";
   import { writeClipboard } from "../clipboard";
@@ -342,6 +343,7 @@
             items.push(
               { label: "New file…", icon: "file-plus", separatorBefore: true, onClick: () => createIn(n, n.dir!, "file") },
               { label: "New folder…", icon: "folder-plus", onClick: () => createIn(n, n.dir!, "dir") },
+              { label: "New document from template…", icon: "doc", onClick: () => openNewDoc(n.dir!) },
             );
           }
           items.push(
@@ -358,6 +360,7 @@
           items.push(
             { label: "New file…", icon: "file-plus", onClick: () => createIn(n, path, "file") },
             { label: "New folder…", icon: "folder-plus", onClick: () => createIn(n, path, "dir") },
+            { label: "New document from template…", icon: "doc", onClick: () => openNewDoc(path) },
           );
         }
         items.push(
@@ -399,6 +402,7 @@
         items.push(
           { label: "New file…", icon: "file-plus", onClick: () => createIn(null, root, "file") },
           { label: "New folder…", icon: "folder-plus", onClick: () => createIn(null, root, "dir") },
+          { label: "New document from template…", icon: "doc", onClick: () => openNewDoc(root) },
           { label: "Open in terminal", icon: "terminal", separatorBefore: true, onClick: () => openTerminalAt(root) },
           { label: "Reveal in Explorer", icon: "external-link", onClick: () => revealInOs(root) },
         );

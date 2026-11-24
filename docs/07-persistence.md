@@ -23,6 +23,7 @@ its own folder.
 | Diagnostic logs | `logs/orbit-<pid>.log` (~2 MB, rotated) | process | `append_log` |
 | Project config | `.orbit/run.json`, `.orbit/claude.json` (committed); `.orbit/shelf.json`, `.orbit/index/` (git-ignored); `.orbit/scratch.txt` | project | run, claude, shelf, codeIndex, scratch |
 | Claude's bell | `.claude/settings.local.json` (`preferredNotifChannel`) | project, local | `claude.svelte.ts` |
+| Document templates of this PC | `~/.orbit/templates/*.html` (M77): the same for every Orbit on the PC, installed or test copy | user | by hand; read by `list_doc_templates` |
 | Who updates this copy (Arch package) | `/usr/share/orbit/package-manager` (M75): its content names the package manager | system, read only | the PKGBUILD |
 
 Orbit also **reads** Claude Code's own files, never writing them:

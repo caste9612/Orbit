@@ -7,6 +7,7 @@ import { addTerminal } from "./terminals.svelte";
 import { layout } from "./layout.svelte";
 import { runFile } from "./run.svelte";
 import { notify } from "./toast.svelte";
+import { openNewDoc } from "./docTemplates.svelte";
 import { writeClipboard } from "../clipboard";
 import { basename, dirname, runCommand } from "../util";
 
@@ -44,6 +45,7 @@ export function fsMenuItems(node: TreeNode, opts: FsMenuOptions = {}): MenuItem[
   items.push(
     { label: "New file…", icon: "file-plus", separatorBefore: items.length > 0, onClick: () => void startCreate(dir, "file", where) },
     { label: "New folder…", icon: "folder-plus", onClick: () => void startCreate(dir, "dir", where) },
+    { label: "New document from template…", icon: "doc", onClick: () => openNewDoc(dir) },
     { label: "Open in terminal", icon: "terminal", separatorBefore: true, onClick: () => openTerminalAt(dir) },
     { label: "Reveal in Explorer", icon: "external-link", onClick: () => revealPath(path) },
   );

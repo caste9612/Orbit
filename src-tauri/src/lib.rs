@@ -130,6 +130,76 @@ fn write_file(path: String, content: String) -> Result<(), String> {
     std::fs::write(&path, content).map_err(|e| e.to_string())
 }
 
+/// Nome di una skill o di un suo file: lettere, cifre, `-`, `_`, `.`, senza percorsi né file nascosti.
+fn skill_name_ok(s: &str) -> bool {
+    !s.is_empty()
+        && s.len() <= 64
+        && !s.starts_with('.')
+        && s.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'))
+}
+
+/// Un file della skill: un nome, o `templates/<nome>` (i template dei documenti, M77).
+fn skill_file_ok(f: &str) -> bool {
+    match f.split_once('/') {
+        Some(("templates", rest)) => skill_name_ok(rest),
+        Some(_) => false,
+        None => skill_name_ok(f),
+    }
+}
+
+/// Installa (o aggiorna) una skill di Claude Code: i file in `<cartella di Claude>/skills/<name>/`
+/// (`CLAUDE_CONFIG_DIR` o `~/.claude`, come il registro delle chat). I template sostituiscono quelli di prima:
+/// la cartella `templates/` della skill si svuota se ne arrivano. Ritorna la cartella (M77).
+#[tauri::command(async)]
+fn install_claude_skill(name: String, files: Vec<(String, String)>) -> Result<String, String> {
+    if !skill_name_ok(&name) || files.is_empty() || files.iter().any(|(f, _)| !skill_file_ok(f)) {
+        return Err("invalid skill or file name".into());
+    }
+    let dir = claudeproc::claude_dir()
+        .ok_or("Claude Code's folder not found")?
+        .join("skills")
+        .join(&name);
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    if files.iter().any(|(f, _)| f.starts_with("templates/")) {
+        let t = dir.join("templates");
+        if t.is_dir() {
+            std::fs::remove_dir_all(&t).map_err(|e| e.to_string())?;
+        }
+        std::fs::create_dir_all(&t).map_err(|e| e.to_string())?;
+    }
+    for (file, content) in &files {
+        std::fs::write(dir.join(file), content).map_err(|e| e.to_string())?;
+    }
+    Ok(dir.to_string_lossy().into_owned())
+}
+
+/// La cartella dei template dei documenti di questo PC: `~/.orbit/templates`, creata se manca (M77). Fuori dalle
+/// repo e dalla cartella dei dati di Orbit, così la stessa per l'Orbit installato e per una copia di prova.
+fn doc_templates_path() -> Result<PathBuf, String> {
+    let home = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME")).ok_or("home folder not found")?;
+    let dir = Path::new(&home).join(".orbit").join("templates");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir)
+}
+
+/// I template dei documenti di questo PC: la cartella e, per ogni `.html`, percorso e contenuto (M77).
+#[tauri::command(async)]
+fn list_doc_templates() -> Result<(String, Vec<(String, String)>), String> {
+    let dir = doc_templates_path()?;
+    let mut out = Vec::new();
+    for e in std::fs::read_dir(&dir).map_err(|e| e.to_string())?.flatten() {
+        let p = e.path();
+        let html = p.extension().and_then(|x| x.to_str()).is_some_and(|x| x.eq_ignore_ascii_case("html") || x.eq_ignore_ascii_case("htm"));
+        if html && p.is_file() {
+            if let Ok(text) = std::fs::read_to_string(&p) {
+                out.push((p.to_string_lossy().into_owned(), text));
+            }
+        }
+    }
+    out.sort_by(|a, b| a.0.to_lowercase().cmp(&b.0.to_lowercase()));
+    Ok((dir.to_string_lossy().into_owned(), out))
+}
+
 /// Primo percorso esistente (file) tra i candidati. Risolve i link cliccati nel terminale
 /// quando il percorso è relativo: il frontend prova cwd del terminale e radice del progetto.
 #[tauri::command]
@@ -738,6 +808,8 @@ pub fn run() {
             read_dir,
             read_file,
             write_file,
+            install_claude_skill,
+            list_doc_templates,
             create_file,
             create_dir,
             rename_path,
@@ -818,6 +890,21 @@ mod tests {
     use std::sync::atomic::{AtomicU32, Ordering};
 
     static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+    #[test]
+    fn nomi_delle_skill() {
+        assert!(skill_name_ok("editable-html"));
+        assert!(skill_name_ok("SKILL.md"));
+        assert!(skill_name_ok("inline-runtime.sh"));
+        for bad in ["", ".hidden", "../x", "a/b", "a\\b", "c:x", &"x".repeat(65)] {
+            assert!(!skill_name_ok(bad), "{bad}");
+        }
+        assert!(skill_file_ok("templates/vp.html"));
+        assert!(skill_file_ok("SKILL.md"));
+        for bad in ["templates/../x", "templates/a/b", "other/x.html", "templates/", "templates/.x"] {
+            assert!(!skill_file_ok(bad), "{bad}");
+        }
+    }
 
     const SESSION_KEYS: [&str; 6] = ["", "a", "1234567", "12345678", "k1791704813816-9|C:\\Progetti\\repo", "k1|#terminals"];
     // calcolati anche con un'implementazione indipendente (Python), che riproduce il nome di un file di

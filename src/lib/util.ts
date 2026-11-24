@@ -302,3 +302,9 @@ export function runCommand(name: string, windows = IS_WINDOWS): string | null {
   const tpl = (windows ? RUNNERS_WIN : RUNNERS_UNIX)[ext];
   return tpl ? tpl.replace("{f}", windows ? `"${name}"` : shQuote(name)) : null;
 }
+
+/** Il file HTML dichiara il profilo dei documenti modificabili (`<meta name="doc-profile">`, M77)? Controllo
+ *  veloce, qui e non in htmldoc/htmlDoc.ts, perché serve al chunk d'avvio senza tirarsi dietro il parser. */
+export function isDocProfile(src: string): boolean {
+  return /<meta\b[^>]*\bname\s*=\s*["']?doc-profile\b/i.test(src);
+}

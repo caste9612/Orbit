@@ -46,6 +46,19 @@ terminals and reads the files Claude Code writes on disk.
   `CLAUDE.md`, describing Orbit and the `.orbit/` files, so Claude can add shortcuts and run
   configurations itself. The Run menu has the same for `run.json`.
 
+## The HTML documents skill
+
+*Install the HTML documents skill* (`installDocSkill`, in the Claude menu, M77) writes the *editable-html*
+skill into `<config>/skills/editable-html/` (`<config>` is `CLAUDE_CONFIG_DIR` or `~/.claude`, as for the
+registry of chats): `SKILL.md`, `runtime.html` and `inline-runtime.sh` from `src/lib/htmldoc/`, loaded only
+when the command runs. The backend command `install_claude_skill(name, files)` accepts plain file names
+only, or `templates/<name>`. The templates of this PC and Orbit's (see
+[Editor](03-editor.md#templates)) go into `templates/`, with an `INDEX.md` of names, descriptions and fields;
+the folder is replaced at each install. Running it again updates the skill. With it, Claude writes HTML
+documents that Orbit's visual editor
+can change ([Editor](03-editor.md#editable-html-documents)); Claude loads the skill only when it writes or
+changes such a document, so other sessions don't pay for it.
+
 ## Which conversation runs in a tab
 
 Claude Code keeps a registry of its running chats: one file per process,

@@ -2,7 +2,7 @@
 // (split view, stile VS Code). Ogni gruppo ha le sue tab e il suo file attivo; lo stesso
 // documento può vivere in più gruppi (contenuto/dirty condivisi dal pool `openFiles`).
 import { invoke } from "@tauri-apps/api/core";
-import { basename, assetKind, normSlash, canonPath, samePath, isUnder, pathKey } from "../util";
+import { basename, assetKind, normSlash, canonPath, samePath, isUnder, pathKey, isDocProfile } from "../util";
 import { notify } from "./toast.svelte";
 import { settings } from "./settings.svelte";
 import { nextActive } from "./editorTabs";
@@ -17,8 +17,13 @@ export function setBeforeNavigate(fn: (dest: string) => void) {
   beforeNav = fn;
 }
 
-/** Anteprima iniziale per un documento: solo per i markdown, secondo l'impostazione `mdMode`. */
-function initialPreview(name: string): boolean {
+/** Anteprima iniziale per un documento: i markdown secondo l'impostazione `mdMode`; gli HTML del profilo
+ *  editable-html si aprono nell'editor visuale (M77): sono documenti, non codice. */
+function initialPreview(name: string, path?: string): boolean {
+  if (path && /\.html?$/i.test(name)) {
+    const f = workspace.openFiles.find((d) => d.path === path);
+    return !!f && f.kind === "file" && isDocProfile(f.content);
+  }
   if (!/\.(md|markdown)$/i.test(name)) return false; // l'anteprima ha senso solo sui markdown
   if (settings.mdMode === "preview") return true;
   if (settings.mdMode === "source") return false;
@@ -256,7 +261,7 @@ export async function openFile(path: string, groupId?: string) {
   if (!g.tabs.includes(path)) {
     g.tabs.push(path);
     // anteprima iniziale (mdMode) decisa quando la tab ENTRA nel gruppo, non sul documento
-    if (initialPreview(basename(path))) g.previews.push(path);
+    if (initialPreview(basename(path), path)) g.previews.push(path);
   }
   g.activePath = path;
   workspace.activeGroupId = g.id;
@@ -528,7 +533,7 @@ export async function openInNewGroup(path: string) {
     id: newGroupId(),
     tabs: [path],
     activePath: path,
-    previews: initialPreview(basename(path)) ? [path] : [],
+    previews: initialPreview(basename(path), path) ? [path] : [],
   };
   const anchor = activeGroup()?.id ?? null;
   const next = insertPane(groupLayout(), g.id, anchor, "right", MAX_GROUPS);

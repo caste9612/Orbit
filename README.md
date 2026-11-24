@@ -398,15 +398,15 @@ Measured on Windows (size-optimized release build):
 
 | Item | Size |
 |---|---|
-| Portable `Orbit` binary | ~6.7 MB (≈0.7 MB of it is the HTTPS client for in-app updates, M59) |
-| MSI installer | ~4.0 MB |
+| Portable `Orbit` binary | ~6.8 MB (≈0.7 MB of it is the HTTPS client for in-app updates, M59) |
+| MSI installer | ~4.1 MB |
 | NSIS setup | ~3.3 MB |
 | Frontend `dist/` | ~3.0 MB (most of it grammars loaded lazily) |
-| Startup JS chunk | ~309 KB (≈105 KB gzipped; the editor and the terminal load on demand) |
+| Startup JS chunk | ~313 KB (≈107 KB gzipped; the editor, the terminal and the document editor load on demand) |
 | RAM at rest (project open) | ~120 MB private working set with one terminal, ~160 MB with four terminals and three files open (Orbit + WebView2; the Rust core is ~6 MB, ~30 MB with the symbol index of a very large project — the rest is the shared system WebView, inherent to Tauri) |
 | Under load | Claude saving a file every second in a 5,400-file project: ~23% of one CPU core, the UI answering in ~2 ms (99th percentile) |
 
-On **Linux** (the signed 1.6.0 release; memory measured on CachyOS, on a 2013 laptop): the `orbit` binary is
+On **Linux** (the signed 1.7.0 release; memory measured with 1.6.0 on CachyOS, on a 2013 laptop): the `orbit` binary is
 ~7.5 MB, the `.deb` and the `.rpm` ~4.0 MB, the AppImage ~81 MB because it carries GTK and WebKitGTK. With a project and two terminals open,
 Orbit's private memory is ~240 MB (the Rust core with GTK's side of the WebView ~65 MB, WebKitGTK's web process
 ~155 MB, its network process ~20 MB; WebKitGTK keeps more of the WebView in each app than WebView2 does).

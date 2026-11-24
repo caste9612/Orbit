@@ -5034,6 +5034,20 @@ Note della release:
   into a template, or write one yourself. They stay on your PC, in `~/.orbit/templates`.
 ```
 
+**Rilasciato in v1.7.0** il 2026-11-24 (13:57 UTC): "Orbit v1.7.0 — Claude writes, you edit", tag `v1.7.0` sul commit
+`4b5c7c4`, dal workflow Release a due piattaforme (esecuzione 45407272232), approvato dall'utente; nove minuti dal
+lancio alla pubblicazione; autore `github-actions[bot]`. Nessuna prova a secco (scelta dell'utente).
+- Build firmate:
+  - Windows: eseguibile **6,77 MiB** (6,71 nella 1.6.0: l'editor dei documenti è quasi tutto frontend), setup NSIS
+    **3,30 MiB**, MSI **4,06 MiB**;
+  - Linux (Ubuntu 22.04): binario **7,51 MiB**, AppImage **80,72 MiB**, `.deb` e `.rpm` **4,04 MiB**;
+  - chunk iniziale 312,7 KiB (106,9 gzip), la finestra dei template un chunk di 6,4 kB e l'editor dei documenti a parte.
+- Controlli:
+  - le firme dei cinque installer e quelle globali valide per la chiave `55F5361AFA695029`, uguali ai `.sig`; le note di
+    `latest.json` uguali al blocco qui sopra; gli SHA-256 del PKGBUILD uguali a `.deb` e LICENSE;
+  - l'indirizzo degli aggiornamenti serve il `latest.json` della 1.7.0 con le sette voci.
+- README: Footprint con le misure della 1.7.0.
+
 ---
 
 ## Ambiente di sviluppo verificato
